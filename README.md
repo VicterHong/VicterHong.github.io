@@ -4,6 +4,18 @@ Portofolio pribadi. Situs statis: HTML, CSS, dan JavaScript murni tanpa build st
 
 **Live:** https://victerhong.github.io
 
+## Lapisan situs
+
+| Lapisan | Akses | Isi |
+|---------|-------|-----|
+| Publik | Gratis | Halaman utama, ringkasan proyek, kontak |
+| Halaman proyek | Gratis | Masalah, sorotan publik, metrik yang bisa diverifikasi |
+| Bagian terkunci | Token | Arsitektur, keputusan desain, metrik internal |
+| Enterprise | Kontak sales | Multi-proyek, SLA, catatan audit |
+
+Konten terkunci **tidak ada di repo ini**. Ia disimpan di server VPS dan hanya dikirim
+setelah token lolos verifikasi. Panduan lengkap: [docs/OPERASIONAL.md](docs/OPERASIONAL.md).
+
 ## Kenapa tanpa framework
 
 Situs ini beberapa bagian teks dan satu video latar. React atau Vue akan menambah
@@ -11,14 +23,24 @@ ratusan kilobita untuk pekerjaan yang bisa diselesaikan puluhan baris DOM. GitHu
 menyajikan berkas statis apa adanya, jadi tidak ada langkah build yang bisa rusak dan
 tidak ada dependensi yang bisa kedaluwarsa.
 
+Backend token juga tanpa dependency: modul bawaan Node (`node:sqlite`, `node:http`,
+`node:crypto`) cukup untuk seluruh pekerjaannya.
+
 ## Struktur
 
 ```
-index.html              halaman tunggal
-styles.css              seluruh tampilan
-src/app.js              logika render (DOM murni)
-src/data/projects.js    SATU sumber kebenaran untuk semua isi
-assets/hero.mp4         video latar (opsional — lihat di bawah)
+index.html                  halaman utama
+styles.css                  tampilan halaman utama
+src/app.js                  logika render (DOM murni)
+src/api.js                  klien layanan token
+src/project.js              halaman proyek + gerbang token
+src/project.css             tampilan halaman proyek
+src/data/projects.js        SATU sumber kebenaran untuk semua isi
+projects/<slug>/index.html  halaman detail per proyek
+assets/hero.mp4             video latar (opsional)
+backend/                    layanan token (Node murni + SQLite)
+backend-url.json            alamat backend, diperbarui otomatis oleh tunnel
+docs/                       PRD dan panduan operasional
 ```
 
 ## Mengubah isi
