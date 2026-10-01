@@ -27,11 +27,16 @@ export const profile = {
 
 /**
  * Proyek unggulan. `metrics` hanya berisi angka yang bisa diverifikasi dari repo.
+ *
+ * `gated: true` menandai proyek yang punya halaman detail dengan bagian terkunci.
+ * Konten terkunci TIDAK ada di berkas ini — ia hidup di server token dan hanya
+ * dikirim setelah token diverifikasi.
  */
 export const projects = [
   {
     slug: 'mina',
     featured: true,
+    gated: true,
     name: 'MINA',
     subtitle: 'Remote Control for Your Home Machine',
     summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun — shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
@@ -69,6 +74,7 @@ export const projects = [
   },
   {
     slug: 'spareparts',
+    gated: true,
     name: 'Spareparts Inventory System',
     subtitle: 'Inventory & logistik untuk suku cadang alat berat',
     summary: 'Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit.',

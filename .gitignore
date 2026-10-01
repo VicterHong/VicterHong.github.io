@@ -1,0 +1,7 @@
+# Berkas rahasia layanan token — tidak pernah masuk repo publik.
+backend/service.env
+backend/.env
+*.db
+*.db-wal
+*.db-shm
+node_modules/

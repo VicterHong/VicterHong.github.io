@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MINA — Detail Teknis | Victer</title>
+<meta name="description" content="Detail arsitektur dan keputusan desain MINA — remote control hemat sumber daya untuk komputer rumah.">
+<meta name="robots" content="noindex">
+
+<meta property="og:title" content="MINA — Detail Teknis">
+<meta property="og:description" content="Arsitektur, keputusan desain, dan metrik internal. Akses terbatas.">
+<meta property="og:type" content="article">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../../src/project.css">
+</head>
+<body class="page-project">
+
+<header class="site-header">
+  <a class="brand" href="../../index.html">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">Victer</span>
+  </a>
+  <nav class="site-nav" aria-label="Navigasi utama">
+    <a href="../../index.html#work">Proyek</a>
+    <a href="../../index.html#approach">Cara kerja</a>
+    <a href="../../index.html#contact">Kontak</a>
+  </nav>
+</header>
+
+<main>
+  <!-- ── RINGKASAN PUBLIK ───────────────────────────────────────────────────
+       Semua di bagian ini gratis dan boleh dibaca siapa pun. Konten sensitif
+       berada di bagian TERKUNCI di bawah — tidak ada di HTML ini. -->
+  <article class="project-page">
+    <a class="back-link" href="../../index.html#work">← Semua proyek</a>
+
+    <header class="project-hero">
+      <p class="project-kicker">Proyek unggulan</p>
+      <h1 class="project-title">MINA</h1>
+      <p class="project-subtitle">Remote Control for Your Home Machine</p>
+      <p class="project-lede">
+        Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun — shutdown,
+        wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4&nbsp;GB RAM
+        dalam ~25&nbsp;MB.
+      </p>
+      <dl class="project-facts">
+        <div><dd>231</dd><dt>tes otomatis</dt></div>
+        <div><dd>~25 MB</dd><dt>RAM saat jalan</dt></div>
+        <div><dd>MIT</dd><dt>lisensi</dt></div>
+      </dl>
+      <div class="stack">
+        <span class="tag">Python</span>
+        <span class="tag">HMAC-SHA256</span>
+        <span class="tag">stdlib only</span>
+        <span class="tag">Telegram</span>
+        <span class="tag">Discord</span>
+      </div>
+      <a class="btn btn-ghost" href="https://github.com/VicterHong/mina-remote-control" target="_blank" rel="noopener">Buka repo publik</a>
+    </header>
+
+    <section class="public-section">
+      <h2>Masalah yang diselesaikan</h2>
+      <p>
+        Perangkat lama sering dianggap sampah karena tidak sanggup menjalankan alat modern.
+        Padahal dengan desain yang hemat, ia masih bisa jadi server pribadi yang berguna.
+      </p>
+    </section>
+
+    <section class="public-section">
+      <h2>Yang bisa diperiksa publik</h2>
+      <ul class="public-list">
+        <li>Token bearer + HMAC-SHA256 di setiap permintaan, proteksi replay (jendela 5 menit).</li>
+        <li>Allowlist perintah yang ketat, batas laju per aksi, dan <span class="mono">shell=False</span> di mana pun.</li>
+        <li>Web UI admin memakai <span class="mono">stdlib</span> saja — tanpa Django, Flask, atau Node.</li>
+        <li>Berjalan lintas platform: Windows, Linux, macOS, dengan penyesuaian per platform.</li>
+      </ul>
+    </section>
+
+    <!-- ── BAGIAN TERKUNCI ────────────────────────────────────────────────
+         Blur + overlay. Konten sebenarnya baru diambil dari server setelah token
+         lolos verifikasi — tidak ada di HTML maupun JS halaman ini. -->
+    <section class="locked-section" id="locked" aria-labelledby="locked-title">
+      <div class="locked-head">
+        <h2 id="locked-title">Detail arsitektur</h2>
+        <span class="locked-badge">
+          <span class="locked-dot" aria-hidden="true"></span>
+          Akses terbatas
+        </span>
+      </div>
+
+      <p class="locked-note">
+        Bagian ini memuat diagram arsitektur, keputusan desain, metrik internal, dan
+        catatan implementasi. Akses diberikan lewat token yang diterbitkan setelah
+        permintaan disetujui.
+      </p>
+
+      <!-- Isi terkunci. Sebelum token valid, ini hanya pratinjau kabur. -->
+      <div class="locked-body" id="lockedBody" aria-hidden="true">
+        <div class="locked-preview">
+          <h3>Diagram arsitektur</h3>
+          <p>Alur permintaan dari platform masuk sampai aksi dijalankan di perangkat, termasuk lapisan verifikasi.</p>
+          <h3>Keputusan desain</h3>
+          <p>Mengapa stdlib, mengapa JSONL, dan mengapa fitur berat dimatikan sendiri saat RAM menipis.</p>
+          <h3>Metrik internal</h3>
+          <p>Latensi per aksi, jejak memori per komponen, dan perilaku saat circuit breaker aktif.</p>
+          <h3>Catatan keamanan</h3>
+          <p>Proteksi replay, rotasi kredensial, dan apa yang terjadi saat token bocor.</p>
+        </div>
+        <div class="locked-veil" aria-hidden="true"></div>
+      </div>
+
+      <!-- Gerbang: form token atau konten terbuka (diisi oleh project.js). -->
+      <div class="locked-gate" id="lockedGate">
+        <div class="gate-card">
+          <h3 class="gate-title">Masukkan token akses</h3>
+          <p class="gate-note">
+            Token diberikan setelah permintaan Anda disetujui. Token berlaku untuk proyek ini saja.
+          </p>
+          <form class="gate-form" id="tokenForm" autocomplete="off">
+            <label class="sr-only" for="tokenInput">Token akses</label>
+            <input class="gate-input mono" id="tokenInput" name="token" type="password"
+                   placeholder="pv_XXXXXXXXXXXXXXXX" spellcheck="false" autocomplete="off" required>
+            <button class="btn btn-primary" type="submit" id="tokenSubmit">Buka</button>
+          </form>
+          <p class="gate-status" id="gateStatus" role="status" aria-live="polite"></p>
+          <div class="gate-actions">
+            <button class="link-btn" type="button" id="requestAccessBtn">Belum punya token? Minta akses</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Konten asli dari server muncul di sini setelah token lolos. -->
+      <div class="locked-content" id="lockedContent" hidden></div>
+    </section>
+
+    <!-- ── FORM PERMINTAAN AKSES ────────────────────────────────────────── -->
+    <section class="request-section" id="request" hidden>
+      <h2>Minta akses detail</h2>
+      <p class="request-note">
+        Isi data berikut. Permintaan akan ditinjau, dan token dikirim ke email Anda
+        bila disetujui. Tidak ada pembelian otomatis — semua lewat persetujuan.
+      </p>
+      <form class="request-form" id="requestForm" autocomplete="on">
+        <div class="field">
+          <label for="reqCompany">Perusahaan</label>
+          <input id="reqCompany" name="company" type="text" maxlength="200" required>
+        </div>
+        <div class="field">
+          <label for="reqName">Nama Anda</label>
+          <input id="reqName" name="name" type="text" maxlength="200" required>
+        </div>
+        <div class="field">
+          <label for="reqEmail">Email kerja</label>
+          <input id="reqEmail" name="email" type="email" maxlength="300" required>
+        </div>
+        <div class="field">
+          <label for="reqMessage">Keperluan</label>
+          <textarea id="reqMessage" name="message" rows="4" maxlength="4000"
+                    placeholder="Misalnya: evaluasi arsitektur untuk kemungkinan kerja sama"></textarea>
+        </div>
+        <div class="request-actions">
+          <button class="btn btn-primary" type="submit" id="requestSubmit">Kirim permintaan</button>
+          <button class="btn btn-ghost" type="button" id="requestCancel">Batal</button>
+        </div>
+        <p class="request-status" id="requestStatus" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
+</footer>
+
+<script type="module" src="../../src/project.js"></script>
+</body>
+</html>

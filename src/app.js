@@ -86,9 +86,19 @@ function renderProjects() {
     for (const tech of p.stack) tags.append(el('span', { class: 'tag', text: tech }));
     foot.append(tags);
 
-    foot.append(el('a', {
+    const links = el('div', { class: 'project-links' });
+    // Proyek dengan bagian terkunci punya halaman detail sendiri.
+    if (p.gated) {
+      links.append(el('a', {
+        class: 'project-link project-link-detail',
+        href: `projects/${p.slug}/`,
+        text: 'Detail teknis',
+      }));
+    }
+    links.append(el('a', {
       class: 'project-link', href: p.repo, target: '_blank', rel: 'noopener', text: 'Buka repo',
     }));
+    foot.append(links);
 
     card.append(foot);
     host.append(card);
