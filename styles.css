@@ -64,7 +64,7 @@ a { color: inherit; text-decoration: none; }
   transition: opacity 1.4s var(--ease);
 }
 
-.hero-video.is-ready { opacity: 0.42; }
+.hero-video.is-ready { opacity: 0.28; }
 
 /* Cadangan: gradien yang bergerak sangat lambat. Terlihat hidup, tidak mengganggu. */
 .hero-fallback {
