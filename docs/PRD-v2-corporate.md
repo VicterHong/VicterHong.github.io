@@ -279,7 +279,7 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | Versi | Isi | Target |
 |-------|-----|--------|
 | **v1.2** | Ganti hero video dengan versi final tanpa watermark | Segera |
-| **v2.0** | Token access system + halaman proyek terkunci | 2–4 minggu |
+| **v2.0** ✅ | Token access system + halaman proyek terkunci | **Selesai** |
 | **v2.1** | Admin dashboard untuk issue/revoke token | 1 minggu setelah v2.0 |
 | **v2.2** | Fable 5.1 project narrative videos | 3–4 minggu |
 | **v2.3** | GPT Astra micro-interactions di seluruh halaman | 2–3 minggu |
@@ -287,18 +287,30 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 
 ---
 
-## 14. Definisi Selesai v2.0
+## 14. Definisi Selesai v2.0 ✅
 
-- [ ] Landing page profesional dengan hero Seedance 2.5
-- [ ] Setidaknya 2 halaman proyek dengan bagian publik + terkunci
-- [ ] Backend token service berjalan di VPS
-- [ ] Validasi token berfungsi; konten sensitif tidak ada di HTML statis
-- [ ] Blur overlay dan form token di frontend
-- [ ] Form permintaan akses ke email sales
-- [ ] Audit log dasar tersedia
-- [ ] Token dapat diterbitkan dan dicabut oleh pemilik
-- [ ] Auto-revoke untuk pola sharing/scrape sederhana
-- [ ] Dokumentasi deploy dan penggunaan admin
+- [x] Landing page profesional dengan hero video
+- [x] Setidaknya 2 halaman proyek dengan bagian publik + terkunci (MINA, Spareparts)
+- [x] Backend token service berjalan di VPS (`portfolio-token`, port 8788)
+- [x] Validasi token berfungsi; konten sensitif tidak ada di HTML statis (diverifikasi)
+- [x] Blur overlay dan form token di frontend
+- [x] Form permintaan akses ke email sales
+- [x] Audit log dasar tersedia
+- [x] Token dapat diterbitkan dan dicabut oleh pemilik
+- [x] Auto-revoke untuk pola sharing/scrape (terbukti: 3 IP → dicabut seketika)
+- [x] Dokumentasi deploy dan penggunaan admin (`docs/OPERASIONAL.md`)
+
+### Catatan implementasi v2.0
+
+| Keputusan | Hasil |
+|-----------|-------|
+| Stack backend | Node murni + `node:sqlite` — **nol dependency** |
+| Database | SQLite (WAL), cukup untuk ribuan token |
+| Penyimpanan token | SHA-256 + salt; plaintext tampil sekali saat terbit |
+| Akses publik backend | Cloudflare quick tunnel + publikasi URL otomatis ke repo |
+| Ambang auto-revoke | >3 IP/24 jam, >30 req/menit, ≥12 gagal beruntun |
+| Tes | 22 tes, semuanya lulus |
+| Memori layanan | ~21 MB (token) + ~19 MB (tunnel) |
 
 ---
 
