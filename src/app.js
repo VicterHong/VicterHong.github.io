@@ -147,17 +147,34 @@ function loadHeroVideo() {
   // Hormati preferensi pengguna: jangan paksa video bergerak.
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  const source = 'assets/hero.mp4';
-  fetch(source, { method: 'HEAD' })
-    .then((res) => {
-      if (!res.ok) return;                     // belum ada video: gradien yang tampil
-      const type = res.headers.get('content-type') ?? '';
-      if (!type.startsWith('video/')) return;  // GitHub Pages mengembalikan HTML 404
-      video.src = source;
-      video.addEventListener('loadeddata', () => video.classList.add('is-ready'), { once: true });
-      video.load();
-    })
-    .catch(() => { /* gagal memeriksa = tidak ada video; cadangan sudah tampil */ });
+  // Prefer WebM (lebih kecil), fallback MP4 (kompatibilitas luas).
+  // Cek HEAD dulu supaya tidak ada request besar kalau berkas belum ada.
+  const sources = [
+    { src: 'assets/hero.webm', type: 'video/webm' },
+    { src: 'assets/hero.mp4', type: 'video/mp4' },
+  ];
+
+  function trySource(index) {
+    if (index >= sources.length) return;       // semua gagal: gradien cadangan yang tampil
+    const { src, type } = sources[index];
+    fetch(src, { method: 'HEAD' })
+      .then((res) => {
+        if (!res.ok) return trySource(index + 1);
+        const ct = res.headers.get('content-type') ?? '';
+        if (!ct.startsWith('video/')) return trySource(index + 1);
+
+        // Bersihkan source lama dan tambahkan <source> element agar browser memilih format terbaik.
+        video.innerHTML = '';
+        for (const s of sources) {
+          video.appendChild(el('source', { src: s.src, type: s.type }));
+        }
+        video.addEventListener('loadeddata', () => video.classList.add('is-ready'), { once: true });
+        video.load();
+      })
+      .catch(() => trySource(index + 1));
+  }
+
+  trySource(0);
 }
 
 // ── MUNCUL SAAT DIGULIR ────────────────────────────────────────────────────────
