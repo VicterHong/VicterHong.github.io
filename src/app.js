@@ -1,0 +1,197 @@
+/**
+ * Portofolio — logika tampilan.
+ *
+ * Tidak memakai framework: situs ini beberapa halaman teks dan satu video. React atau
+ * Vue akan menambah ratusan kilobita untuk pekerjaan yang bisa diselesaikan puluhan
+ * baris DOM. GitHub Pages menyajikan berkas statis apa adanya, jadi tidak ada build
+ * step yang bisa rusak.
+ *
+ * Video hero dimuat dengan SENGAJA gagal-diam: kalau berkasnya belum ada (Higgsfield
+ * belum dijalankan), gradien cadangan yang tampil — bukan kotak hitam kosong.
+ */
+
+import { profile, projects, sideProjects, principles, stats } from './data/projects.js';
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const el = (tag, attrs = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key.startsWith('on')) node.addEventListener(key.slice(2).toLowerCase(), value);
+    else node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) {
+    if (child == null) continue;
+    node.append(typeof child === 'string' ? document.createTextNode(child) : child);
+  }
+  return node;
+};
+
+// ── ANGKA RINGKAS ──────────────────────────────────────────────────────────────
+// Dihitung dari data proyek, jadi tidak bisa "basi" saat proyek baru ditambahkan.
+function renderStats() {
+  const s = stats();
+  const host = $('#heroStats');
+  const entries = [
+    { label: 'proyek', value: String(s.projects) },
+    { label: 'tes otomatis', value: s.tests.toLocaleString('id-ID') },
+    { label: 'teknologi', value: String(s.stacks) },
+  ];
+  for (const entry of entries) {
+    host.append(el('div', {},
+      el('dd', { text: entry.value }),
+      el('dt', { text: entry.label }),
+    ));
+  }
+}
+
+// ── PROYEK ─────────────────────────────────────────────────────────────────────
+function renderProjects() {
+  const host = $('#featuredProjects');
+
+  for (const p of projects) {
+    const card = el('article', { class: `project${p.featured ? ' is-featured' : ''}` });
+
+    card.append(el('div', { class: 'project-head' },
+      el('h3', { class: 'project-name', text: p.name }),
+      el('span', { class: 'project-sub', text: p.subtitle }),
+    ));
+    card.append(el('p', { class: 'project-summary', text: p.summary }));
+    if (p.problem) card.append(el('p', { class: 'project-problem', text: p.problem }));
+
+    const highlights = el('div', { class: 'project-highlights' });
+    for (const h of p.highlights) {
+      highlights.append(el('div', { class: 'highlight' },
+        el('h4', { text: h.title }),
+        el('p', { text: h.detail }),
+      ));
+    }
+    card.append(highlights);
+
+    const foot = el('div', { class: 'project-foot' });
+
+    if (p.metrics.length) {
+      const metrics = el('dl', { class: 'project-metrics' });
+      for (const m of p.metrics) {
+        metrics.append(el('div', {},
+          el('dd', { text: m.value }),
+          el('dt', { text: m.label }),
+        ));
+      }
+      foot.append(metrics);
+    }
+
+    const tags = el('div', { class: 'stack' });
+    for (const tech of p.stack) tags.append(el('span', { class: 'tag', text: tech }));
+    foot.append(tags);
+
+    foot.append(el('a', {
+      class: 'project-link', href: p.repo, target: '_blank', rel: 'noopener', text: 'Buka repo',
+    }));
+
+    card.append(foot);
+    host.append(card);
+  }
+}
+
+function renderSideProjects() {
+  const host = $('#sideProjects');
+  for (const p of sideProjects) {
+    const card = el('a', {
+      class: 'side-project', href: p.repo, target: '_blank', rel: 'noopener',
+    });
+    card.append(el('h3', { text: p.name }));
+    card.append(el('p', { text: p.description }));
+    const tags = el('div', { class: 'stack' });
+    for (const tech of p.stack) tags.append(el('span', { class: 'tag', text: tech }));
+    card.append(tags);
+    host.append(card);
+  }
+}
+
+// ── PRINSIP ────────────────────────────────────────────────────────────────────
+function renderPrinciples() {
+  const host = $('#principles');
+  for (const p of principles) {
+    host.append(el('div', { class: 'principle' },
+      el('h3', { text: p.title }),
+      el('p', { text: p.body }),
+    ));
+  }
+}
+
+// ── KONTAK ─────────────────────────────────────────────────────────────────────
+function renderContact() {
+  const host = $('#contactLinks');
+  const links = [
+    { label: 'GitHub', href: profile.links.github },
+    { label: 'Ko-fi', href: profile.links.kofi },
+    { label: 'Saweria', href: profile.links.saweria },
+  ];
+  for (const link of links) {
+    host.append(el('a', {
+      class: 'contact-link', href: link.href, target: '_blank', rel: 'noopener', text: link.label,
+    }));
+  }
+}
+
+// ── VIDEO HERO ─────────────────────────────────────────────────────────────────
+// Kalau berkas video belum ada, jangan tampilkan apa pun yang rusak: cukup biarkan
+// gradien cadangan yang bekerja. Kegagalan di sini tidak boleh memunculkan ikon
+// "video rusak" di halaman.
+function loadHeroVideo() {
+  const video = $('#heroVideo');
+  if (!video) return;
+
+  // Hormati preferensi pengguna: jangan paksa video bergerak.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const source = 'assets/hero.mp4';
+  fetch(source, { method: 'HEAD' })
+    .then((res) => {
+      if (!res.ok) return;                     // belum ada video: gradien yang tampil
+      const type = res.headers.get('content-type') ?? '';
+      if (!type.startsWith('video/')) return;  // GitHub Pages mengembalikan HTML 404
+      video.src = source;
+      video.addEventListener('loadeddata', () => video.classList.add('is-ready'), { once: true });
+      video.load();
+    })
+    .catch(() => { /* gagal memeriksa = tidak ada video; cadangan sudah tampil */ });
+}
+
+// ── MUNCUL SAAT DIGULIR ────────────────────────────────────────────────────────
+function observeReveals() {
+  const targets = document.querySelectorAll('[data-reveal]');
+  if (!('IntersectionObserver' in window)) {
+    targets.forEach((t) => t.classList.add('is-visible'));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    }
+  }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+  targets.forEach((t) => observer.observe(t));
+}
+
+// ── KEPALA SAAT DIGULIR ────────────────────────────────────────────────────────
+function watchHeader() {
+  const header = $('.site-header');
+  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 24);
+  onScroll();
+  window.addEventListener('scroll', onScroll, { passive: true });
+}
+
+// ── JALANKAN ───────────────────────────────────────────────────────────────────
+renderStats();
+renderProjects();
+renderSideProjects();
+renderPrinciples();
+renderContact();
+$('#year').textContent = String(new Date().getFullYear());
+loadHeroVideo();
+observeReveals();
+watchHeader();
