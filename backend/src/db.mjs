@@ -104,6 +104,19 @@ CREATE TABLE IF NOT EXISTS sales_leads (
 );
 
 CREATE INDEX IF NOT EXISTS idx_leads_created ON sales_leads(created_at);
+
+CREATE TABLE IF NOT EXISTS device_fingerprints (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id  TEXT NOT NULL,
+  token_id    TEXT NOT NULL,
+  fingerprint TEXT NOT NULL,
+  ip          TEXT NOT NULL DEFAULT '',
+  country     TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_fp_token ON device_fingerprints(token_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_fp_session ON device_fingerprints(session_id);
 `;
 
 /** Buka (atau buat) database. Aman dipanggil berkali-kali. */

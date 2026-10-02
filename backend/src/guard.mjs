@@ -15,6 +15,7 @@
 import { config } from './config.mjs';
 import { consecutiveFailures, distinctIpsForToken, recordEvent, requestsInWindow } from './audit.mjs';
 import { revokeToken } from './tokens.mjs';
+import { analyzeFingerprints } from './fingerprint.mjs';
 
 /** Hasil pemeriksaan penyalahgunaan. */
 const CLEAN = { violated: false };
@@ -58,6 +59,17 @@ export function checkAbuse(tokenRow, { ip = '' } = {}) {
       violated: true,
       reason: 'percobaan_beruntun',
       detail: `${failures} percobaan gagal beruntun (batas ${config.maxFailedAttempts})`,
+    };
+  }
+
+  // 4. Device fingerprint anomaly — indikasi token dipakai di banyak device berbeda.
+  const fpWindowMs = 24 * 3_600_000; // 24 jam
+  const fpAnalysis = analyzeFingerprints(tokenRow.id, fpWindowMs);
+  if (fpAnalysis.suspicious) {
+    return {
+      violated: true,
+      reason: 'token_dibagikan',
+      detail: `${fpAnalysis.uniqueFpCount} device fingerprint berbeda dalam 24 jam (${fpAnalysis.totalSessions} sesi)`,
     };
   }
 

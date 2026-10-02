@@ -28,6 +28,7 @@ import {
 import { createSession, validateSession, destroySession, cleanupExpiredSessions } from './sessions.mjs';
 import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
 import { enforceAbuseRules, revokeMessage } from './guard.mjs';
+import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
   applyCors, clientCountry, clientIp, extractToken, handlePreflight,
@@ -254,6 +255,16 @@ export const routes = [
         userAgent,
         durationHours: config.sessionDurationHours,
         maxDevices: row.max_devices ?? config.maxDevices,
+      });
+
+      // Record fingerprint untuk deteksi sharing
+      const fingerprint = makeFingerprint(req);
+      recordFingerprint({
+        sessionId: session.id,
+        tokenId: row.id,
+        fingerprint,
+        ip,
+        country,
       });
 
       setCookie(res, 'portfolio_session', session.id, {

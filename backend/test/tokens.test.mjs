@@ -15,6 +15,7 @@ import { hashToken, hashesEqual, issueToken, findTokenByPlaintext, revokeToken, 
 import { createSession, validateSession, destroySession, countSessions } from '../src/sessions.mjs';
 import { recordEvent, distinctIpsForToken, requestsInWindow, consecutiveFailures, recordLead, listLeads, recentEvents } from '../src/audit.mjs';
 import { checkAbuse, revokeMessage } from '../src/guard.mjs';
+import { makeFingerprint, recordFingerprint, analyzeFingerprints } from '../src/fingerprint.mjs';
 import { isValidSlug } from '../src/content.mjs';
 
 const SECRET = 'test-secret-yang-cukup-panjang-untuk-tes';
@@ -325,6 +326,47 @@ test('checkAbuse melaporkan percobaan gagal beruntun', () => {
     assert.equal(verdict.violated, true);
     assert.equal(verdict.reason, 'percobaan_beruntun');
   });
+});
+
+test('checkAbuse melaporkan fingerprint anomaly (banyak device berbeda)', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina' });
+    const row = findTokenByPlaintext(issued.token, SECRET);
+    // Simulasi 5 sesi dari 3 fingerprint berbeda
+    for (let i = 0; i < 5; i++) {
+      const fp = `fp_${i % 3}`; // 3 fingerprint unik
+      recordFingerprint({ sessionId: `sess_${i}`, tokenId: issued.id, fingerprint: fp, ip: `10.0.0.${i}`, country: 'ID' });
+    }
+    const verdict = checkAbuse(row, { ip: '10.0.0.5' });
+    assert.equal(verdict.violated, true);
+    assert.equal(verdict.reason, 'token_dibagikan');
+    assert.ok(verdict.detail.includes('fingerprint'));
+  });
+});
+
+test('fingerprint bersih untuk device yang sama', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina' });
+    const row = findTokenByPlaintext(issued.token, SECRET);
+    // 2 sesi dari fingerprint sama
+    for (let i = 0; i < 2; i++) {
+      recordFingerprint({ sessionId: `sess_${i}`, tokenId: issued.id, fingerprint: 'fp_sama', ip: '10.0.0.1', country: 'ID' });
+    }
+    const verdict = checkAbuse(row, { ip: '10.0.0.1' });
+    assert.equal(verdict.violated, false);
+  });
+});
+
+test('makeFingerprint konsisten untuk request yang sama', () => {
+  const req1 = { headers: { 'user-agent': 'Mozilla/5.0', 'accept-language': 'id-ID', 'accept-encoding': 'gzip', 'dnt': '1' } };
+  const req2 = { headers: { 'user-agent': 'Mozilla/5.0', 'accept-language': 'id-ID', 'accept-encoding': 'gzip', 'dnt': '1' } };
+  assert.equal(makeFingerprint(req1), makeFingerprint(req2));
+});
+
+test('makeFingerprint berbeda untuk request berbeda', () => {
+  const req1 = { headers: { 'user-agent': 'Mozilla/5.0', 'accept-language': 'id-ID', 'accept-encoding': 'gzip' } };
+  const req2 = { headers: { 'user-agent': 'Chrome/90.0', 'accept-language': 'en-US', 'accept-encoding': 'gzip' } };
+  assert.notEqual(makeFingerprint(req1), makeFingerprint(req2));
 });
 
 test('revokeMessage selalu mengembalikan pesan untuk alasan apa pun', () => {
