@@ -12,6 +12,7 @@
 
 import { profile, projects, sideProjects, principles, stats } from './data/projects.js';
 import { initAstra } from './astra.js';
+import { initCinematic } from './cinematic.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -151,6 +152,9 @@ function renderContact() {
 // Kalau berkas video belum ada, jangan tampilkan apa pun yang rusak: cukup biarkan
 // gradien cadangan yang bekerja. Kegagalan di sini tidak boleh memunculkan ikon
 // "video rusak" di halaman.
+//
+// Mode scroll-scrub (teknik PRIOR): video TIDAK autoplay — posisinya dikendalikan
+// scroll. Lebih hemat baterai, dan memberi rasa sinematik.
 function loadHeroVideo() {
   const video = $('#heroVideo');
   if (!video) return;
@@ -179,7 +183,13 @@ function loadHeroVideo() {
         for (const s of sources) {
           video.appendChild(el('source', { src: s.src, type: s.type }));
         }
-        video.addEventListener('loadeddata', () => video.classList.add('is-ready'), { once: true });
+        // Mode scrub: video tidak autoplay, tidak loop — dikendalikan scroll.
+        video.autoplay = false;
+        video.loop = false;
+        video.pause();
+        video.addEventListener('loadeddata', () => {
+          video.classList.add('is-ready', 'is-scrub');
+        }, { once: true });
         video.load();
       })
       .catch(() => trySource(index + 1));
@@ -233,3 +243,7 @@ for (const id of ['featuredProjects', 'sideProjects', 'principles', 'contactLink
 
 // Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
 initAstra();
+
+// Efek sinematik (teknik PRIOR, vanilla) — clip reveal, parallax, text stagger,
+// scroll-scrub video, hero fade. Semua hormati prefers-reduced-motion.
+initCinematic();

@@ -1,0 +1,249 @@
+/**
+ * Cinematic scroll effects — teknik dari template PRIOR, ditulis ulang vanilla.
+ *
+ * Prinsip:
+ *   - Nol dependency (PRIOR pakai GSAP; kita pakai rAF + IntersectionObserver)
+ *   - Video 2 MB, bukan 265 MB frame sequence — preloader tidak perlu
+ *   - Hormati prefers-reduced-motion: semua efek mati, konten langsung terlihat
+ *   - Semua animasi hanya transform/opacity/clip-path (tidak memicu layout)
+ *
+ * Efek:
+ *   1. Scroll-scrub video  — video hero berjalan mengikuti posisi scroll
+ *   2. Clip-path reveal    — section membuka dari inset kecil ke penuh
+ *   3. Parallax            — elemen bergerak dengan kecepatan berbeda saat scroll
+ *   4. Text stagger        — kata muncul berurutan saat masuk layar
+ *   5. Hero fade           — konten hero memudar saat digulir
+ */
+
+const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ── UTIL: rAF throttle ────────────────────────────────────────────────────────
+/** Bungkus handler scroll supaya jalan maksimal sekali per frame. */
+function rafThrottle(fn) {
+  let scheduled = false;
+  return (...args) => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      fn(...args);
+    });
+  };
+}
+
+/** Bagi teks heading menjadi <span class="cine-word"> per kata.
+ *  Menangani elemen bersarang (mis. <span class="accent">) — hanya simpul teks
+ *  yang dipecah, jadi styling di dalam heading tetap utuh. */
+export function splitWords(el) {
+  if (!el || el.dataset.cineSplit === 'done') return [...el.querySelectorAll('.cine-word')];
+
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => (node.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+  });
+
+  const textNodes = [];
+  let node;
+  while ((node = walker.nextNode())) textNodes.push(node);
+
+  for (const textNode of textNodes) {
+    const words = textNode.textContent.split(/(\s+)/); // simpan spasi
+    const frag = document.createDocumentFragment();
+    for (const part of words) {
+      if (/^\s+$/.test(part) || part === '') {
+        frag.append(document.createTextNode(part));
+      } else {
+        const span = document.createElement('span');
+        span.className = 'cine-word';
+        span.textContent = part;
+        frag.append(span);
+      }
+    }
+    textNode.replaceWith(frag);
+  }
+
+  el.dataset.cineSplit = 'done';
+  return [...el.querySelectorAll('.cine-word')];
+}
+
+// ── 1. SCROLL-SCRUB VIDEO ─────────────────────────────────────────────────────
+/**
+ * Video hero tidak autoplay — ia "dikendalikan" posisi scroll.
+ * Scroll ke bawah = video maju; scroll ke atas = video mundur.
+ * Jauh lebih hemat baterai daripada autoplay loop terus-menerus.
+ */
+export function initScrollScrubVideo(selector = '#heroVideo') {
+  const video = document.querySelector(selector);
+  if (!video) return;
+
+  if (prefersReduced()) {
+    // Gerakan minimal: tampilkan poster/frame awal saja, tanpa scrub.
+    video.pause();
+    return;
+  }
+
+  let duration = 0;
+  let targetTime = 0;
+  let currentTime = 0;
+  let running = false;
+
+  const setup = () => {
+    duration = video.duration;
+    if (!duration || !Number.isFinite(duration)) return;
+
+    const update = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      targetTime = progress * duration;
+      startLoop();
+    };
+
+    // Smoothing: currentTime mendekati target perlahan — menghindari patah-patah.
+    const loop = () => {
+      const delta = targetTime - currentTime;
+      if (Math.abs(delta) < 0.008) {
+        currentTime = targetTime;
+        running = false;
+      } else {
+        currentTime += delta * 0.14;
+        requestAnimationFrame(loop);
+      }
+      try { video.currentTime = currentTime; } catch { /* metadata belum siap */ }
+    };
+
+    const startLoop = () => {
+      if (running) return;
+      running = true;
+      requestAnimationFrame(loop);
+    };
+
+    window.addEventListener('scroll', rafThrottle(update), { passive: true });
+    update();
+  };
+
+  if (video.readyState >= 1) setup();
+  else video.addEventListener('loadedmetadata', setup, { once: true });
+}
+
+// ── 2. CLIP-PATH REVEAL ───────────────────────────────────────────────────────
+/**
+ * Section membuka seperti lensa: dari inset(18% 14%) ke inset(0).
+ * Dipakai untuk section utama — memberi kesan "masuk ke dalam" halaman.
+ */
+export function initClipReveal(selector = '[data-cine-clip]') {
+  const targets = document.querySelectorAll(selector);
+  if (!targets.length) return;
+
+  if (prefersReduced() || !('IntersectionObserver' in window)) {
+    for (const t of targets) t.classList.add('cine-clip-in');
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.add('cine-clip-in');
+      observer.unobserve(entry.target);
+    }
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+
+  for (const t of targets) observer.observe(t);
+}
+
+// ── 3. PARALLAX ───────────────────────────────────────────────────────────────
+/**
+ * Elemen [data-cine-parallax] bergerak vertikal lebih lambat dari scroll.
+ * Nilai data = kekuatan dalam piksel (contoh: data-cine-parallax="40").
+ * Dipakai di latar/aksen, bukan teks utama — supaya tetap terbaca.
+ */
+export function initParallax(selector = '[data-cine-parallax]') {
+  const targets = [...document.querySelectorAll(selector)];
+  if (!targets.length || prefersReduced()) return;
+
+  const update = () => {
+    const vh = window.innerHeight;
+    for (const el of targets) {
+      const rect = el.getBoundingClientRect();
+      if (rect.bottom < -100 || rect.top > vh + 100) continue; // di luar layar
+      const strength = Number(el.dataset.cineParallax) || 30;
+      // -1 (bawah layar) → +1 (atas layar)
+      const progress = (rect.top + rect.height / 2 - vh / 2) / vh;
+      el.style.transform = `translate3d(0, ${(-progress * strength).toFixed(1)}px, 0)`;
+    }
+  };
+
+  window.addEventListener('scroll', rafThrottle(update), { passive: true });
+  window.addEventListener('resize', rafThrottle(update), { passive: true });
+  update();
+}
+
+// ── 4. TEXT STAGGER ───────────────────────────────────────────────────────────
+/**
+ * Heading dipecah per kata, lalu muncul berurutan saat masuk layar.
+ * Mirip .intro__heading PRIOR.
+ */
+export function initTextStagger(selector = '[data-cine-words]') {
+  const targets = document.querySelectorAll(selector);
+  if (!targets.length) return;
+
+  if (prefersReduced() || !('IntersectionObserver' in window)) {
+    for (const el of targets) el.classList.add('cine-words-in');
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const el = entry.target;
+      const words = splitWords(el);
+      words.forEach((w, i) => {
+        w.style.transitionDelay = `${Math.min(i * 55, 500)}ms`;
+      });
+      el.classList.remove('cine-words-pending');
+      el.classList.add('cine-words-in');
+      observer.unobserve(el);
+    }
+  }, { rootMargin: '0px 0px -12% 0px', threshold: 0.2 });
+
+  for (const el of targets) {
+    // Sembunyikan kata SEBELUM masuk layar supaya tidak ada flash.
+    el.classList.add('cine-words-pending');
+    observer.observe(el);
+  }
+}
+
+// ── 5. HERO FADE ──────────────────────────────────────────────────────────────
+/**
+ * Konten hero memudar + bergerak naik saat digulir — memberi kedalaman
+ * dan mendorong mata ke bagian berikutnya.
+ */
+export function initHeroFade(selector = '.hero') {
+  const hero = document.querySelector(selector);
+  if (!hero || prefersReduced()) return;
+
+  const content = hero.querySelectorAll('.hero-kicker, .hero-title, .hero-lede, .hero-actions, .hero-stats');
+  if (!content.length) return;
+
+  const update = () => {
+    const rect = hero.getBoundingClientRect();
+    const progress = Math.min(1, Math.max(0, -rect.top / (rect.height * 0.7)));
+    const opacity = 1 - progress * 0.85;
+    const shift = progress * 36;
+    for (const el of content) {
+      el.style.opacity = opacity.toFixed(3);
+      el.style.transform = `translate3d(0, ${-shift.toFixed(1)}px, 0)`;
+    }
+  };
+
+  window.addEventListener('scroll', rafThrottle(update), { passive: true });
+  update();
+}
+
+// ── JALANKAN SEMUA ────────────────────────────────────────────────────────────
+/** Pasang semua efek sinematik. Panggil setelah DOM siap. */
+export function initCinematic() {
+  initScrollScrubVideo();
+  initClipReveal();
+  initParallax();
+  initTextStagger();
+  initHeroFade();
+}

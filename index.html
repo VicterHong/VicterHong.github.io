@@ -16,14 +16,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="src/astra.css">
+<link rel="stylesheet" href="src/cinematic.css">
 </head>
 <body>
 
 <!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
      Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
 <div class="hero-backdrop" aria-hidden="true">
-  <video class="hero-video" id="heroVideo" autoplay muted loop playsinline poster="" preload="none">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="metadata" poster="">
     <!-- Sumber diisi oleh app.js kalau berkasnya ada. MP4 untuk kompatibilitas, WebM untuk ukuran kecil. -->
+    <!-- Mode scroll-scrub: tidak autoplay — posisi dikendalikan scroll (teknik PRIOR). -->
   </video>
   <div class="hero-fallback"></div>
   <div class="hero-grain"></div>
@@ -48,7 +50,7 @@
        sebenarnya dikerjakan, dengan angka yang bisa diperiksa. -->
   <section class="hero" aria-labelledby="hero-title">
     <p class="hero-kicker" data-reveal>Automation &amp; self-hosted tools</p>
-    <h1 class="hero-title" id="hero-title" data-reveal>
+    <h1 class="hero-title" id="hero-title" data-reveal data-cine-words>
       Saya membangun alat yang membuat<br>
       <span class="accent">perangkat lama berguna kembali.</span>
     </h1>
@@ -82,16 +84,16 @@
 
   <!-- ── CARA KERJA ──────────────────────────────────────────────────────────
        Keyakinan desain yang bisa dipertanggungjawabkan, bukan slogan. -->
-  <section class="section" id="approach" aria-labelledby="approach-title">
+  <section class="section" id="approach" aria-labelledby="approach-title" data-cine-clip>
     <div class="section-head">
-      <h2 class="section-title" id="approach-title" data-reveal>Cara saya bekerja</h2>
+      <h2 class="section-title" id="approach-title" data-reveal data-cine-words>Cara saya bekerja</h2>
     </div>
     <div class="principles" id="principles"></div>
   </section>
 
   <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->
-  <section class="section section-contact" id="contact" aria-labelledby="contact-title">
-    <h2 class="section-title" id="contact-title" data-reveal>Mari bicara</h2>
+  <section class="section section-contact" id="contact" aria-labelledby="contact-title" data-cine-clip>
+    <h2 class="section-title" id="contact-title" data-reveal data-cine-words>Mari bicara</h2>
     <p class="contact-lede" data-reveal>
       Terbuka untuk kerja sama, pertanyaan teknis, atau sekadar berbagi ide soal
       otomasi dan perangkat hemat sumber daya.

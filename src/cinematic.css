@@ -1,0 +1,89 @@
+/* ── CINEMATIC — efek scroll dari teknik PRIOR ─────────────────────────────────
+   Ditulis vanilla (PRIOR pakai GSAP). Semua efek transform/opacity/clip-path —
+   tidak memicu layout ulang. Mati total saat prefers-reduced-motion.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* 1. CLIP-PATH REVEAL — section membuka seperti lensa */
+[data-cine-clip] {
+  position: relative;
+  clip-path: inset(14% 10% 14% 10% round 24px);
+  transition: clip-path 1s var(--ease), opacity 0.8s var(--ease);
+  opacity: 0.4;
+  will-change: clip-path, opacity;
+}
+
+[data-cine-clip].cine-clip-in {
+  clip-path: inset(0% 0% 0% 0% round 0px);
+  opacity: 1;
+}
+
+/* 2. TEXT STAGGER — kata muncul berurutan */
+.cine-word {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+[data-cine-words].cine-words-pending .cine-word {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+}
+
+[data-cine-words].cine-words-in .cine-word {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+}
+
+/* 3. PARALLAX — elemen bergerak lebih lambat dari scroll */
+[data-cine-parallax] {
+  will-change: transform;
+}
+
+/* 4. SCROLL-SCRUB VIDEO — video dikendalikan scroll, bukan autoplay.
+   Opacity dinaikkan karena video kini elemen utama, bukan latar samar. */
+.hero-video.is-scrub {
+  opacity: 0.34;
+  transition: opacity 1.2s var(--ease);
+}
+
+/* 5. HERO FADE — konten hero memudar saat digulir */
+.hero-kicker, .hero-title, .hero-lede, .hero-actions, .hero-stats {
+  will-change: transform, opacity;
+}
+
+/* 6. SECTION TRANSITION — garis aksen yang tumbuh saat section masuk */
+[data-cine-clip]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transition: width 1.1s var(--ease) 0.15s;
+}
+
+[data-cine-clip].cine-clip-in::before {
+  width: 100%;
+}
+
+/* 7. Reduced motion — semua efek mati, konten langsung terlihat */
+@media (prefers-reduced-motion: reduce) {
+  [data-cine-clip] {
+    clip-path: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+  [data-cine-clip]::before { display: none; }
+  [data-cine-words] .cine-word {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  [data-cine-parallax] { transform: none !important; }
+  .hero-kicker, .hero-title, .hero-lede, .hero-actions, .hero-stats {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .hero-video.is-scrub { opacity: 0.28; }
+}
