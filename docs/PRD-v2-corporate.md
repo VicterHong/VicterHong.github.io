@@ -280,10 +280,24 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 |-------|-----|--------|
 | **v1.2** | Ganti hero video dengan versi final tanpa watermark | Segera |
 | **v2.0** ✅ | Token access system + halaman proyek terkunci | **Selesai** |
-| **v2.1** | Admin dashboard untuk issue/revoke token | 1 minggu setelah v2.0 |
+| **v2.1** ✅ | Admin dashboard untuk issue/revoke token | **Selesai** (CLI + panel web) |
 | **v2.2** | Fable 5.1 project narrative videos | 3–4 minggu |
-| **v2.3** | GPT Astra micro-interactions di seluruh halaman | 2–3 minggu |
-| **v2.4** | Enterprise package + SLA + custom domain | 1–2 bulan |
+| **v2.3** ✅ | GPT Astra micro-interactions di seluruh halaman | **Selesai** |
+| **v2.4** ✅ | Enterprise package + SLA + custom domain | **Selesai** (domain perlu keputusan pemilik) |
+
+### Catatan implementasi v2.3–v2.4
+
+| Fitur | Status | Catatan |
+|-------|--------|---------|
+| Analytics funnel | ✅ | 9 event types, conversion rate, CLI + panel admin |
+| Lead automation | ✅ | Webhook Discord/Slack/generik — perlu `LEAD_WEBHOOK_URL` |
+| GPT Astra micro-interactions | ✅ | 6 efek, hormati `prefers-reduced-motion` |
+| Device fingerprint (M2) | ✅ | Deteksi sharing dari HTTP headers |
+| SLA tracking | ✅ | Heartbeat per request, uptime/latency/p95, target 99% |
+| Audit export | ✅ | JSON + CSV via CLI dan panel admin |
+| Admin dashboard web | ✅ | 6 tab, akses via SSH tunnel saja |
+| Custom domain | 📋 | Panduan lengkap di `docs/CUSTOM-DOMAIN.md` — menunggu keputusan domain |
+| Security hardening | ✅ | Laporan di `docs/AUDIT-KEAMANAN.md` |
 
 ---
 
