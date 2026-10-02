@@ -1,0 +1,77 @@
+/* ── VIDEO NARASI ──────────────────────────────────────────────────────────────
+   Pemutar video ringan untuk cerita per proyek. Video dimuat lazy, loop mulus,
+   dan mati total saat pengguna meminta gerakan minimal.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.narrative-video {
+  margin: 0 0 2rem;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  background: var(--surface, #131316);
+}
+
+.narrative-frame {
+  position: relative;
+  width: 100%;
+  background: #0a0a0b;
+  overflow: hidden;
+}
+
+.narrative-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s var(--ease, cubic-bezier(0.2, 0.7, 0.3, 1));
+}
+
+.narrative-video.is-ready .narrative-media { opacity: 1; }
+
+.narrative-poster {
+  position: absolute;
+  inset: 0;
+}
+
+.narrative-poster svg { width: 100%; height: 100%; display: block; }
+
+.narrative-badge {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.85rem;
+  background: rgba(10, 10, 11, 0.82);
+  border: 1px solid rgba(255, 122, 69, 0.4);
+  color: #ff9d6b;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 0.28rem 0.65rem;
+  border-radius: 6px;
+  backdrop-filter: blur(8px);
+}
+
+.narrative-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1rem 1.25rem 1.15rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.narrative-caption strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text, #e8e8ed);
+}
+
+.narrative-caption span {
+  font-size: 0.875rem;
+  color: var(--muted, #8a8a96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narrative-media { display: none; }
+  .narrative-poster { position: static; }
+}

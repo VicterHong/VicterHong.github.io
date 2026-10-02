@@ -15,6 +15,7 @@ import {
   requestAccess, storeToken, storedToken, trackEvent, validateToken,
 } from '../../src/api.js';
 import { initAstra } from '../../src/astra.js';
+import { createNarrativeVideo } from '../../src/narrative.js';
 
 /**
  * Slug proyek dibaca dari URL: /projects/<slug>/index.html
@@ -106,6 +107,14 @@ function renderLocked(payload) {
     wrap.append(p);
     contentHost.append(wrap);
   }
+
+  // Video narasi proyek — dimuat lazy, hanya untuk pengguna dengan akses.
+  const videoSlug = { mina: 'mina', spareparts: 'spareparts' }[PROJECT] ?? 'portal';
+  contentHost.append(createNarrativeVideo({
+    slug: videoSlug,
+    title: `${PROJECT.toUpperCase()} — Video Narasi`,
+    caption: 'Ringkasan visual arsitektur dan alur kerja sistem.',
+  }));
 
   // Watermark: nama perusahaan + tier
   const wmText = payload.company
