@@ -21,6 +21,7 @@
 
 import { config } from './config.mjs';
 import { openDb } from './db.mjs';
+import { timingSafeEqual } from 'node:crypto';
 import {
   findTokenByPlaintext, getToken, issueToken, listTokens, revokeToken,
   resumeToken, suspendToken, tokenProblem,
@@ -31,11 +32,47 @@ import { enforceAbuseRules, revokeMessage } from './guard.mjs';
 import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
 import { recordAnalytics, getFunnel, recentAnalytics, uniqueVisitors } from './analytics.mjs';
 import { notifyLead } from './notify.mjs';
+import { checkRateLimit } from './rate-limit.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
   applyCors, clientCountry, clientIp, extractToken, handlePreflight,
   readJson, sendJson, parseCookies, setCookie, clearCookie,
 } from './http-util.mjs';
+
+/** Jenis event analytics yang diterima — mencegah polusi database. */
+const ALLOWED_EVENTS = new Set([
+  'page_view', 'modal_open', 'token_attempt', 'token_success', 'token_fail',
+  'contact_sales', 'lead_submit', 'session_create', 'content_view',
+]);
+
+/**
+ * Batas laju endpoint publik per alamat IP.
+ * Token tak dikenal tidak punya token_id, jadi guard berbasis token tidak
+ * menjangkaunya — batas per-IP ini yang menutup celah brute force.
+ */
+const PUBLIC_LIMITS = {
+  '/api/token/validate': { limit: 20, windowMs: 60_000 },
+  '/api/token/session': { limit: 10, windowMs: 60_000 },
+  '/api/contact/sales': { limit: 5, windowMs: 60_000 },
+  '/api/analytics/track': { limit: 60, windowMs: 60_000 },
+};
+
+/** Terapkan batas laju. Mengembalikan true kalau permintaan ditolak. */
+export function rateLimited(req, res, pathname) {
+  const rule = PUBLIC_LIMITS[pathname];
+  if (!rule) return false;
+  const key = `${pathname}:${clientIp(req) || 'unknown'}`;
+  const verdict = checkRateLimit(key, rule);
+  if (verdict.allowed) return false;
+  res.setHeader('retry-after', String(verdict.retryAfterSeconds));
+  sendJson(res, 429, {
+    ok: false,
+    error: 'terlalu_banyak_permintaan',
+    message: 'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.',
+    retry_after: verdict.retryAfterSeconds,
+  });
+  return true;
+}
 
 /** Dipanggil sekali saat server mulai. */
 export function initRoutes() {
@@ -55,10 +92,15 @@ function matchPath(pattern, pathname) {
   return params;
 }
 
-/** Apakah permintaan ini dari admin (kunci cocok). */
+/** Apakah permintaan ini dari admin (kunci cocok).
+ *  Perbandingan timing-safe: `===` membocorkan panjang awalan yang cocok lewat
+ *  waktu respons, sehingga kunci bisa ditebak karakter demi karakter. */
 function isAdmin(req) {
   const key = req.headers['x-admin-key'];
-  return typeof key === 'string' && key.length > 0 && key === config.adminKey;
+  if (typeof key !== 'string' || key.length === 0) return false;
+  const expected = config.adminKey;
+  if (!expected || key.length !== expected.length) return false;
+  return timingSafeEqual(Buffer.from(key, 'utf8'), Buffer.from(expected, 'utf8'));
 }
 
 /** Bungkus handler: tangkap error supaya satu permintaan buruk tidak menjatuhkan layanan. */
@@ -418,6 +460,23 @@ export const routes = [
         return sendJson(res, 400, { ok: false, error: 'event_type_required' });
       }
 
+      // Hanya event yang dikenal diterima — mencegah database dipenuhi
+      // event sampah yang merusak funnel.
+      if (!ALLOWED_EVENTS.has(eventType)) {
+        return sendJson(res, 400, { ok: false, error: 'event_type_tidak_dikenal' });
+      }
+
+      // Batasi metadata: hanya string pendek, maksimum 20 kunci.
+      const rawMeta = body.metadata && typeof body.metadata === 'object' ? body.metadata : {};
+      const metadata = {};
+      let metaCount = 0;
+      for (const [k, v] of Object.entries(rawMeta)) {
+        if (metaCount >= 20) break;
+        if (typeof k !== 'string' || k.length > 64) continue;
+        metadata[k.slice(0, 64)] = String(v ?? '').slice(0, 300);
+        metaCount += 1;
+      }
+
       recordAnalytics({
         eventType,
         projectSlug: isValidSlug(projectSlug) ? projectSlug : '',
@@ -425,7 +484,7 @@ export const routes = [
         country: clientCountry(req),
         userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
         referrer: String(req.headers.referer ?? ''),
-        metadata: body.metadata ?? {},
+        metadata,
       });
 
       sendJson(res, 200, { ok: true });

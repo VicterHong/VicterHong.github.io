@@ -439,3 +439,43 @@ test('notify: URL webhook tidak valid gagal dengan aman (tidak melempar)', async
   assert.equal(result.sent, false, 'URL mati tidak boleh dianggap terkirim');
   assert.ok(result.reason, 'harus ada alasan kegagalan');
 });
+
+// ── Rate limiting (keamanan) ───────────────────────────────────────────────────────────────
+
+test('rate limit: mengizinkan sampai batas, menolak setelahnya', async () => {
+  const { checkRateLimit, resetRateLimit } = await import('../src/rate-limit.mjs');
+  resetRateLimit();
+  const rule = { limit: 3, windowMs: 60_000 };
+  const key = 'test-key-1';
+
+  assert.equal(checkRateLimit(key, rule).allowed, true);
+  assert.equal(checkRateLimit(key, rule).allowed, true);
+  assert.equal(checkRateLimit(key, rule).allowed, true);
+
+  const fourth = checkRateLimit(key, rule);
+  assert.equal(fourth.allowed, false, 'permintaan keempat harus ditolak');
+  assert.ok(fourth.retryAfterSeconds >= 1, 'harus memberi tahu kapan boleh coba lagi');
+  resetRateLimit();
+});
+
+test('rate limit: key berbeda punya hitungan terpisah', async () => {
+  const { checkRateLimit, resetRateLimit } = await import('../src/rate-limit.mjs');
+  resetRateLimit();
+  const rule = { limit: 1, windowMs: 60_000 };
+
+  assert.equal(checkRateLimit('ip-a', rule).allowed, true);
+  assert.equal(checkRateLimit('ip-b', rule).allowed, true, 'IP lain tidak boleh terpengaruh');
+  assert.equal(checkRateLimit('ip-a', rule).allowed, false, 'IP pertama sudah habis');
+  resetRateLimit();
+});
+
+test('rate limit: jendela waktu memungkinkan permintaan baru setelah lewat', async () => {
+  const { checkRateLimit, resetRateLimit } = await import('../src/rate-limit.mjs');
+  resetRateLimit();
+  const rule = { limit: 1, windowMs: 1 }; // jendela 1ms
+
+  assert.equal(checkRateLimit('key-jendela', rule).allowed, true);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(checkRateLimit('key-jendela', rule).allowed, true, 'jendela sudah lewat');
+  resetRateLimit();
+});

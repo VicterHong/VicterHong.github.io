@@ -48,6 +48,8 @@ export function sendJson(res, statusCode, payload) {
     'content-length': Buffer.byteLength(body),
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+    'referrer-policy': 'no-referrer',
   });
   res.end(body);
 }

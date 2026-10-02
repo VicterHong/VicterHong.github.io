@@ -7,7 +7,7 @@
 
 import { createServer } from 'node:http';
 import { config, validateConfig, ENV_FILE } from './config.mjs';
-import { initRoutes, resolveRoute, handlePreflight } from './routes.mjs';
+import { initRoutes, resolveRoute, handlePreflight, rateLimited } from './routes.mjs';
 import { applyCors, sendJson } from './http-util.mjs';
 import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
@@ -40,6 +40,10 @@ const server = createServer(async (req, res) => {
   applyCors(req, res);
 
   if (req.method === 'OPTIONS') return handlePreflight(req, res);
+
+  // Batas laju per-IP untuk endpoint publik — menutup brute force token
+  // tak dikenal yang tidak tersentuh guard berbasis token.
+  if (rateLimited(req, res, pathname)) return;
 
   const match = resolveRoute(req.method ?? 'GET', pathname);
   if (!match) {
