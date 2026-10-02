@@ -209,6 +209,36 @@ sudo systemctl restart portfolio-token
 | `portfolio-token` | Layanan token + session | `sudo systemctl status portfolio-token` |
 | `portfolio-tunnel` | Tunnel Cloudflare + publikasi URL | `sudo systemctl status portfolio-tunnel` |
 
+### Dashboard admin (panel web)
+
+Panel web untuk mengelola token, melihat lead, funnel, SLA, dan audit log —
+tanpa perlu hafal perintah CLI.
+
+**Akses lewat SSH tunnel** (panel hanya menerima koneksi dari server):
+
+```bash
+# Dari komputer Anda:
+ssh -L 8789:127.0.0.1:8788 ubuntu@<IP-VPS>
+
+# Lalu buka di browser:
+http://localhost:8789/admin
+```
+
+Masukkan `ADMIN_KEY` (dari `~/.portfolio-token/service.env`) saat diminta.
+Kunci disimpan di `sessionStorage` — hilang saat tab ditutup.
+
+Fitur panel:
+- **Ringkasan** — token aktif, lead baru, uptime 24 jam
+- **Token** — daftar, filter status/tier, terbitkan token baru (dengan reveal + copy), cabut
+- **Leads** — semua permintaan akses dengan detail lengkap
+- **Funnel** — grafik konversi visual per proyek
+- **SLA** — uptime, latency, error rate (harian/mingguan/bulanan)
+- **Audit** — log aktivitas + ekspor CSV sekali klik
+
+**Keamanan:** panel menolak semua request yang membawa header Cloudflare
+(`CF-Connecting-IP`, `CF-Ray`) atau `X-Forwarded-For` — jadi tidak bisa diakses
+dari internet meskipun port 8788 terekspos lewat tunnel.
+
 ### Kalau ada masalah
 
 ```bash
