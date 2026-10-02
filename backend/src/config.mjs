@@ -68,6 +68,9 @@ export const config = {
   /** Email sales untuk notifikasi permintaan akses. */
   salesEmail: pick('SALES_EMAIL', ''),
 
+  /** URL webhook untuk notifikasi lead baru (Discord/Slack/generik). Kosong = nonaktif. */
+  leadWebhookUrl: pick('LEAD_WEBHOOK_URL', ''),
+
   /** Origin yang boleh mengakses API (CORS). */
   allowedOrigins: pick('ALLOWED_ORIGINS', 'https://victerhong.github.io')
     .split(',').map((s) => s.trim()).filter(Boolean),

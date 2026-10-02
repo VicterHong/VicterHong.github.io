@@ -18,6 +18,7 @@ import { openDb } from './db.mjs';
 import { getToken, issueToken, listTokens, revokeToken } from './tokens.mjs';
 import { listLeads, recentEvents } from './audit.mjs';
 import { getFunnel, uniqueVisitors } from './analytics.mjs';
+import { sendNotification } from './notify.mjs';
 
 /** Urai argumen sederhana: --key value atau --flag. */
 function parseArgs(argv) {
@@ -56,6 +57,7 @@ Perintah:
   leads     [--status new|contacted] [--limit <n>]
   funnel    [--project <slug>] [--days <n>]
   visitors  [--project <slug>] [--days <n>]
+  notify-test  Kirim notifikasi tes ke webhook (cek konfigurasi)
 
 Contoh:
   node src/admin-cli.mjs issue --project mina --to "PT Contoh" --days 30
@@ -65,7 +67,7 @@ Contoh:
 `);
 }
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv.slice(2));
   const cmd = args._[0];
 
@@ -256,6 +258,30 @@ function main() {
       return 0;
     }
 
+    case 'notify-test': {
+      const url = config.leadWebhookUrl;
+      if (!url) {
+        console.log('');
+        console.log('  Webhook belum dikonfigurasi.');
+        console.log('  Tambahkan LEAD_WEBHOOK_URL ke ~/.portfolio-token/service.env');
+        console.log('  Contoh: LEAD_WEBHOOK_URL=https://discord.com/api/webhooks/...');
+        console.log('');
+        return 1;
+      }
+      console.log('  Mengirim notifikasi tes ke webhook...');
+      const result = await sendNotification({
+        title: '✅ Tes notifikasi',
+        lines: ['Webhook berfungsi. Lead baru akan muncul di sini.'],
+        severity: 'info',
+      });
+      if (result.sent) {
+        console.log('  ✅ Notifikasi terkirim!');
+        return 0;
+      }
+      console.error(`  ❌ Gagal: ${result.reason}`);
+      return 1;
+    }
+
     default:
       console.error(`Perintah tidak dikenal: ${cmd}`);
       usage();
@@ -263,4 +289,4 @@ function main() {
   }
 }
 
-process.exit(main());
+process.exit(await main());

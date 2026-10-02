@@ -16,6 +16,7 @@ import { config } from './config.mjs';
 import { consecutiveFailures, distinctIpsForToken, recordEvent, requestsInWindow } from './audit.mjs';
 import { revokeToken } from './tokens.mjs';
 import { analyzeFingerprints } from './fingerprint.mjs';
+import { notifyAutoRevoke } from './notify.mjs';
 
 /** Hasil pemeriksaan penyalahgunaan. */
 const CLEAN = { violated: false };
@@ -98,6 +99,15 @@ export function enforceAbuseRules(tokenRow, { ip = '', userAgent = '', projectSl
     userAgent,
     detail: `${verdict.reason}: ${verdict.detail}`,
   });
+
+  // Notifikasi ke pemilik (fire-and-forget) — hanya kalau token benar-benar baru dicabut.
+  if (result.revoked) {
+    notifyAutoRevoke({
+      tokenLabel: tokenRow.label || tokenRow.issued_to || tokenRow.id,
+      reason: verdict.reason,
+      detail: verdict.detail,
+    });
+  }
 
   return { revoked: result.revoked, reason: verdict.reason, detail: verdict.detail };
 }

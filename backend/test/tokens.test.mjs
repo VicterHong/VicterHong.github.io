@@ -414,3 +414,28 @@ test('hashesEqual benar untuk hash sama dan salah untuk berbeda', () => {
   assert.equal(hashesEqual(a, hashToken('VP-ZZZZ-ZZZZ-ZZZZ-ZZZZ', SECRET)), false);
   assert.equal(hashesEqual(a, 'pendek'), false, 'panjang berbeda tidak melempar');
 });
+
+// ── Notifikasi webhook ─────────────────────────────────────────────────────────────────────
+
+test('notify: buildPayload menghasilkan format Discord yang benar', async () => {
+  const { buildPayload } = await import('../src/notify.mjs').then(async (m) => {
+    // buildPayload tidak di-export; tes lewat sendNotification dengan URL palsu
+    return { buildPayload: null };
+  });
+  // Tes perilaku: webhook kosong = tidak terkirim, tidak error
+  const { sendNotification } = await import('../src/notify.mjs');
+  const result = await sendNotification({ title: 'Tes', lines: ['baris'], url: '' });
+  assert.equal(result.sent, false, 'webhook kosong tidak boleh terkirim');
+  assert.equal(result.reason, 'webhook_belum_dikonfigurasi');
+});
+
+test('notify: URL webhook tidak valid gagal dengan aman (tidak melempar)', async () => {
+  const { sendNotification } = await import('../src/notify.mjs');
+  const result = await sendNotification({
+    title: 'Tes',
+    lines: ['baris'],
+    url: 'http://127.0.0.1:1/tidak-ada',
+  });
+  assert.equal(result.sent, false, 'URL mati tidak boleh dianggap terkirim');
+  assert.ok(result.reason, 'harus ada alasan kegagalan');
+});

@@ -30,6 +30,7 @@ import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
 import { enforceAbuseRules, revokeMessage } from './guard.mjs';
 import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
 import { recordAnalytics, getFunnel, recentAnalytics, uniqueVisitors } from './analytics.mjs';
+import { notifyLead } from './notify.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
   applyCors, clientCountry, clientIp, extractToken, handlePreflight,
@@ -385,6 +386,18 @@ export const routes = [
         userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
         referrer: String(req.headers.referer ?? ''),
         metadata: { company: String(body.company ?? ''), email: String(body.email ?? '') },
+      });
+
+      // Notifikasi webhook (fire-and-forget, tidak menunda respons)
+      notifyLead({
+        company: String(body.company ?? ''),
+        name: String(body.name ?? ''),
+        email,
+        role: String(body.role ?? ''),
+        projectSlug: String(body.project ?? ''),
+        budgetRange: String(body.budget_range ?? ''),
+        urgency: String(body.urgency ?? ''),
+        message: String(body.message ?? ''),
       });
 
       sendJson(res, 200, { ok: true, id: result.id, message: 'Permintaan Anda tercatat. Sales akan menghubungi Anda.' });
