@@ -278,7 +278,7 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 
 | Versi | Isi | Target |
 |-------|-----|--------|
-| **v1.2** | Ganti hero video dengan versi final tanpa watermark | Segera |
+| **v1.2** ✅ | Ganti hero video dengan versi final tanpa watermark | **Selesai** |
 | **v2.0** ✅ | Token access system + halaman proyek terkunci | **Selesai** |
 | **v2.1** ✅ | Admin dashboard untuk issue/revoke token | **Selesai** (CLI + panel web) |
 | **v2.2** | Fable 5.1 project narrative videos | 3–4 minggu |
