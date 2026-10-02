@@ -73,6 +73,7 @@ async function call(path, { method = 'GET', body = null, token = '', useCredenti
       headers,
       body: body ? JSON.stringify(body) : undefined,
       cache: 'no-store',
+      mode: 'cors',
       credentials: useCredentials ? 'include' : 'same-origin',
     });
     let data = {};
