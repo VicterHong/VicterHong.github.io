@@ -172,6 +172,18 @@ a { color: inherit; text-decoration: none; }
   color: transparent;
 }
 
+/* Kata-kata di dalam .accent juga butuh gradient sendiri.
+   Saat teks dipecah jadi .cine-word dengan transform, browser mobile membuat
+   layer compositing baru — background-clip: text dari parent tidak menempel
+   lagi ke glyph anak, dan teks jadi transparan tanpa gradient (tak terlihat).
+   Memberi gradient langsung ke tiap kata memperbaiki ini. */
+.hero-title .accent .cine-word {
+  background: linear-gradient(100deg, var(--accent), #ffb08a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .hero-lede {
   font-size: clamp(1rem, 2vw, 1.16rem);
   color: var(--text-dim);
@@ -439,6 +451,12 @@ a { color: inherit; text-decoration: none; }
 }
 
 [data-reveal].is-visible { opacity: 1; transform: none; }
+
+/* Jaring pengaman: kalau JavaScript gagal dimuat atau IntersectionObserver tidak
+   ada, jangan biarkan konten tersembunyi selamanya. Kelas .js-ready dipasang oleh
+   app.js saat init berhasil; tanpa itu, konten langsung terlihat. */
+html:not(.js-ready) [data-reveal] { opacity: 1; transform: none; }
+html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }

@@ -205,13 +205,16 @@ function observeReveals() {
     targets.forEach((t) => t.classList.add('is-visible'));
     return;
   }
+  // Threshold rendah + rootMargin positif: animasi mulai saat elemen baru
+  // menyentuh tepi bawah layar, bukan setelah 8% terlihat. Di mobile scroll
+  // cepat, animasi yang menunggu terlalu lama sering terlewat sepenuhnya.
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
       entry.target.classList.add('is-visible');
       observer.unobserve(entry.target);
     }
-  }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+  }, { rootMargin: '0px 0px 10% 0px', threshold: 0.01 });
   targets.forEach((t) => observer.observe(t));
 }
 
@@ -224,6 +227,10 @@ function watchHeader() {
 }
 
 // ── JALANKAN ───────────────────────────────────────────────────────────────────
+// Tandai bahwa JS berhasil dimuat — CSS memakai ini untuk jaring pengaman:
+// tanpa .js-ready, konten langsung terlihat (tidak menunggu animasi).
+document.documentElement.classList.add('js-ready');
+
 renderStats();
 renderProjects();
 renderSideProjects();

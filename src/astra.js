@@ -19,6 +19,9 @@ const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)
 
 // ── 1. STAGGER REVEAL ─────────────────────────────────────────────────────────
 // Anak-anak elemen [data-stagger] muncul berurutan dengan jeda kecil.
+// Threshold rendah + rootMargin positif = animasi mulai LEBIH AWAL, jadi
+// pengguna melihat prosesnya (bukan hasil akhir). Di mobile scroll cepat,
+// animasi yang menunggu 10% terlihat sering terlewat.
 export function initStagger(root = document) {
   if (prefersReduced()) return;
   const groups = root.querySelectorAll('[data-stagger]');
@@ -34,7 +37,7 @@ export function initStagger(root = document) {
       });
       observer.unobserve(entry.target);
     }
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.1 });
+  }, { rootMargin: '0px 0px 8% 0px', threshold: 0.01 });
 
   for (const g of groups) observer.observe(g);
 }

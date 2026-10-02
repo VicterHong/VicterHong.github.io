@@ -138,13 +138,16 @@ export function initClipReveal(selector = '[data-cine-clip]') {
     return;
   }
 
+  // Threshold rendah + rootMargin positif: reveal mulai saat section baru
+  // menyentuh tepi bawah layar. Di mobile, section tinggi sering tidak pernah
+  // mencapai 12% terlihat sebelum pengguna scroll melewatinya.
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
       entry.target.classList.add('cine-clip-in');
       observer.unobserve(entry.target);
     }
-  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+  }, { rootMargin: '0px 0px 10% 0px', threshold: 0.01 });
 
   for (const t of targets) observer.observe(t);
 }
@@ -202,7 +205,7 @@ export function initTextStagger(selector = '[data-cine-words]') {
       el.classList.add('cine-words-in');
       observer.unobserve(el);
     }
-  }, { rootMargin: '0px 0px -12% 0px', threshold: 0.2 });
+  }, { rootMargin: '0px 0px 12% 0px', threshold: 0.01 });
 
   for (const el of targets) {
     // Sembunyikan kata SEBELUM masuk layar supaya tidak ada flash.
@@ -235,12 +238,60 @@ export function initHeroFade(selector = '.hero') {
   };
 
   window.addEventListener('scroll', rafThrottle(update), { passive: true });
-  update();
+  // Sengaja TIDAK memanggil update() langsung: entrance animation sedang
+  // berjalan saat init, dan update() akan menimpa opacity-nya sehingga animasi
+  // masuk tidak terlihat. Fade baru aktif saat pengguna benar-benar menggulir.
+  // Kalau halaman dibuka dalam keadaan sudah tergulir, scroll event berikutnya
+  // yang menyinkronkan posisi.
+  if (window.scrollY > 4) update();
+}
+
+// ── 6. ENTRANCE ANIMATION ─────────────────────────────────────────────────────
+/**
+ * Animasi saat halaman dimuat — TIDAK bergantung scroll.
+ *
+ * Kenapa penting: di mobile, pengguna sering scroll cepat sehingga animasi
+ * berbasis scroll terlewat. Entrance animation selalu terlihat karena berjalan
+ * begitu halaman siap, apa pun kecepatan scroll pengguna.
+ */
+export function initEntrance(selector = '.hero-kicker, .hero-title, .hero-lede, .hero-actions, .hero-stats') {
+  if (prefersReduced()) return;
+
+  const nodes = [...document.querySelectorAll(selector)];
+  if (!nodes.length) return;
+
+  // Mulai dari keadaan tersembunyi, lalu muncul berurutan.
+  nodes.forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translate3d(0, 22px, 0)';
+    el.style.transition = 'opacity 0.85s cubic-bezier(0.2, 0.7, 0.3, 1), transform 0.85s cubic-bezier(0.2, 0.7, 0.3, 1)';
+    el.style.transitionDelay = `${i * 110}ms`;
+  });
+
+  // Jalankan setelah frame berikutnya supaya transisi terpicu.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      nodes.forEach((el) => {
+        el.style.opacity = '';
+        el.style.transform = '';
+      });
+    });
+  });
+
+  // Bersihkan inline style setelah selesai supaya hero-fade bisa mengambil alih.
+  const totalMs = nodes.length * 110 + 900;
+  setTimeout(() => {
+    nodes.forEach((el) => {
+      el.style.transition = '';
+      el.style.transitionDelay = '';
+    });
+  }, totalMs);
 }
 
 // ── JALANKAN SEMUA ────────────────────────────────────────────────────────────
 /** Pasang semua efek sinematik. Panggil setelah DOM siap. */
 export function initCinematic() {
+  initEntrance();        // jalan seketika — selalu terlihat
   initScrollScrubVideo();
   initClipReveal();
   initParallax();
