@@ -19,6 +19,17 @@ const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)
 const AVAILABLE = new Set(['mina', 'spareparts', 'portal', 'hero']);
 
 /**
+ * Akar situs — dihitung dari lokasi modul ini.
+ * Modul selalu di <root>/src/narrative.js, jadi naik dua tingkat dari file ini
+ * menghasilkan akar situs. Ini membuat video tetap ketemu baik halaman berada
+ * di root maupun di subfolder seperti /projects/mina/.
+ */
+function siteRoot() {
+  const url = new URL(import.meta.url);
+  return new URL('../', url).href;
+}
+
+/**
  * Buat elemen pemutar video narasi.
  * @param {{slug: string, title: string, caption: string, aspect?: string}} opts
  * @returns {HTMLElement}
@@ -55,9 +66,10 @@ export function createNarrativeVideo({ slug, title, caption = '', aspect = '16 /
         hero: 'hero-narrative',
       };
       const base = names[slug] ?? slug;
+      const root = siteRoot();
       video.append(
-        Object.assign(document.createElement('source'), { src: `assets/narrative/${base}.webm`, type: 'video/webm' }),
-        Object.assign(document.createElement('source'), { src: `assets/narrative/${base}.mp4`, type: 'video/mp4' }),
+        Object.assign(document.createElement('source'), { src: `${root}assets/narrative/${base}.webm`, type: 'video/webm' }),
+        Object.assign(document.createElement('source'), { src: `${root}assets/narrative/${base}.mp4`, type: 'video/mp4' }),
       );
       video.load();
       video.addEventListener('canplay', () => {
