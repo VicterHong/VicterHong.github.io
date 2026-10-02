@@ -86,6 +86,37 @@ node src/admin-cli.mjs audit --token tok_abc123
 node src/admin-cli.mjs leads
 ```
 
+### Analytics funnel
+
+```bash
+# Funnel konversi 7 hari terakhir
+node src/admin-cli.mjs funnel --project mina --days 7
+
+# Unique visitors
+node src/admin-cli.mjs visitors --project mina --days 30
+```
+
+Funnel menunjukkan: `page_view → modal_open → token_attempt → token_success →`
+`contact_sales → lead_submit → content_view`, plus conversion rate tiap tahap.
+
+### Notifikasi webhook
+
+Lead baru dan auto-revoke bisa dikirim ke Discord/Slack/webhook generik.
+Tambahkan ke `~/.portfolio-token/service.env`:
+
+```bash
+LEAD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
+
+Lalu restart layanan dan uji:
+
+```bash
+sudo systemctl restart portfolio-token
+node src/admin-cli.mjs notify-test
+```
+
+Format payload dideteksi otomatis dari URL (Discord embed, Slack text, atau JSON generik).
+
 ---
 
 ## Mengisi konten terkunci
@@ -182,6 +213,10 @@ Frontend membaca berkas itu setiap kali halaman dibuka.
 - Layanan hanya mendengarkan di `127.0.0.1`; akses publik lewat tunnel.
 - Konten terkunci tidak ada di HTML statis.
 - Dynamic watermark: nama perusahaan + tier ditampilkan di konten terbuka.
+- **Rate limiting per-IP** di endpoint publik (validate 20/menit, session 10/menit,
+  sales 5/menit) — menutup brute force token tak dikenal.
+- **Kunci admin dibandingkan timing-safe** (`timingSafeEqual`) — mencegah timing attack.
+- Audit keamanan lengkap: [`docs/AUDIT-KEAMANAN.md`](AUDIT-KEAMANAN.md).
 
 ### Kalau ada token yang bocor
 
