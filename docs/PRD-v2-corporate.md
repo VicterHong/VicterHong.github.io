@@ -281,7 +281,7 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | **v1.2** ✅ | Ganti hero video dengan versi final tanpa watermark | **Selesai** |
 | **v2.0** ✅ | Token access system + halaman proyek terkunci | **Selesai** |
 | **v2.1** ✅ | Admin dashboard untuk issue/revoke token | **Selesai** (CLI + panel web) |
-| **v2.2** | Fable 5.1 project narrative videos | 3–4 minggu |
+| **v2.2** ✅ | Fable 5.1 project narrative videos | **Selesai** (dibuat programatik, tanpa watermark) |
 | **v2.3** ✅ | GPT Astra micro-interactions di seluruh halaman | **Selesai** |
 | **v2.4** ✅ | Enterprise package + SLA + custom domain | **Selesai** (domain perlu keputusan pemilik) |
 
