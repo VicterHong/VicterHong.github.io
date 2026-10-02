@@ -99,6 +99,34 @@ node src/admin-cli.mjs visitors --project mina --days 30
 Funnel menunjukkan: `page_view → modal_open → token_attempt → token_success →`
 `contact_sales → lead_submit → content_view`, plus conversion rate tiap tahap.
 
+### Laporan SLA (enterprise)
+
+```bash
+# Ringkasan: harian, mingguan, bulanan
+node src/admin-cli.mjs sla
+
+# Periode tertentu
+node src/admin-cli.mjs sla --days 7
+```
+
+Menampilkan uptime, latency rata-rata, p95, error rate, dan status terhadap
+target 99%. Data dari tabel `sla_heartbeats` — dihitung dari request nyata.
+
+### Ekspor audit log (enterprise)
+
+```bash
+# JSON ke layar
+node src/admin-cli.mjs export --format json --limit 100
+
+# CSV ke berkas
+node src/admin-cli.mjs export --format csv --project mina --out audit-mina.csv
+
+# Per token
+node src/admin-cli.mjs export --token tok_abc123 --format csv --out token-audit.csv
+```
+
+Berguna untuk klien enterprise yang minta bukti siapa mengakses apa.
+
 ### Notifikasi webhook
 
 Lead baru dan auto-revoke bisa dikirim ke Discord/Slack/webhook generik.

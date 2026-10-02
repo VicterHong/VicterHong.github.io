@@ -135,6 +135,16 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics_events(event_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_project ON analytics_events(project_slug, created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_token ON analytics_events(token_id, created_at);
+
+CREATE TABLE IF NOT EXISTS sla_heartbeats (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  checked_at  INTEGER NOT NULL,
+  ok          INTEGER NOT NULL,
+  latency_ms  INTEGER NOT NULL DEFAULT 0,
+  detail      TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_sla_checked ON sla_heartbeats(checked_at);
 `;
 
 /** Buka (atau buat) database. Aman dipanggil berkali-kali. */

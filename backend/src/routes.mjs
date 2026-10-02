@@ -33,6 +33,7 @@ import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
 import { recordAnalytics, getFunnel, recentAnalytics, uniqueVisitors } from './analytics.mjs';
 import { notifyLead } from './notify.mjs';
 import { checkRateLimit } from './rate-limit.mjs';
+import { slaSummary, slaReport } from './sla.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
   applyCors, clientCountry, clientIp, extractToken, handlePreflight,
@@ -684,6 +685,63 @@ export const routes = [
         projectSlug: url?.searchParams.get('project') ?? null,
       });
       sendJson(res, 200, { ok: true, count: events.length, events });
+    }),
+  },
+
+  // ── SLA (enterprise) ─────────────────────────────────────────────────────────
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/sla',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const days = Math.min(Number(url?.searchParams.get('days') ?? 0), 90);
+      if (days > 0) {
+        return sendJson(res, 200, { ok: true, report: slaReport({ windowMs: days * 86_400_000 }) });
+      }
+      sendJson(res, 200, { ok: true, sla: slaSummary() });
+    }),
+  },
+
+  // ── Audit export (enterprise) ────────────────────────────────────────────────
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/export/audit',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const format = (url?.searchParams.get('format') ?? 'json').toLowerCase();
+      const limit = Math.min(Number(url?.searchParams.get('limit') ?? 5000), 50_000);
+      const events = recentEvents({
+        limit,
+        tokenId: url?.searchParams.get('token') ?? null,
+        projectSlug: url?.searchParams.get('project') ?? null,
+      });
+
+      if (format === 'csv') {
+        const header = 'id,token_id,project_slug,action,outcome,ip,country,detail,at\n';
+        const rows = events.map((e) => [
+          e.id, e.token_id ?? '', e.project_slug, e.action, e.outcome,
+          e.ip, e.country,
+          `"${String(e.detail ?? '').replace(/"/g, '""')}"`,
+          new Date(Number(e.at)).toISOString(),
+        ].join(',')).join('\n');
+        const body = header + rows;
+        res.writeHead(200, {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-length': Buffer.byteLength(body),
+          'content-disposition': `attachment; filename="audit-export-${Date.now()}.csv"`,
+          'cache-control': 'no-store',
+        });
+        return res.end(body);
+      }
+
+      sendJson(res, 200, {
+        ok: true,
+        exported_at: new Date().toISOString(),
+        count: events.length,
+        events,
+      });
     }),
   },
 ];

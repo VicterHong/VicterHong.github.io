@@ -19,6 +19,8 @@ import { getToken, issueToken, listTokens, revokeToken } from './tokens.mjs';
 import { listLeads, recentEvents } from './audit.mjs';
 import { getFunnel, uniqueVisitors } from './analytics.mjs';
 import { sendNotification } from './notify.mjs';
+import { slaReport, slaSummary } from './sla.mjs';
+import { writeFileSync } from 'node:fs';
 
 /** Urai argumen sederhana: --key value atau --flag. */
 function parseArgs(argv) {
@@ -57,6 +59,8 @@ Perintah:
   leads     [--status new|contacted] [--limit <n>]
   funnel    [--project <slug>] [--days <n>]
   visitors  [--project <slug>] [--days <n>]
+  sla       [--days <n>]     Laporan SLA (uptime, latency, error rate)
+  export    --format json|csv [--project <slug>] [--token <id>] [--limit <n>] [--out <file>]
   notify-test  Kirim notifikasi tes ke webhook (cek konfigurasi)
 
 Contoh:
@@ -255,6 +259,62 @@ async function main() {
       console.log('  Proyek         :', args.project ?? 'semua');
       console.log('  Periode        :', days, 'hari');
       console.log('');
+      return 0;
+    }
+
+    case 'sla': {
+      const days = args.days ? Number(args.days) : 0;
+      console.log('');
+      console.log('  LAPORAN SLA — Layanan Token Portofolio');
+      console.log('  ' + '─'.repeat(46));
+      const reports = days > 0
+        ? { [`${days} hari`]: slaReport({ windowMs: days * 86_400_000 }) }
+        : slaSummary();
+      for (const [label, r] of Object.entries(reports)) {
+        console.log(`\n  ${label.toUpperCase()} (${r.window_hours} jam)`);
+        console.log(`    Total request : ${r.total_requests.toLocaleString('id-ID')}`);
+        console.log(`    Uptime        : ${r.uptime_percent}%  (target ${r.sla_target_percent}%)`);
+        console.log(`    Latency rata² : ${r.avg_latency_ms} ms`);
+        console.log(`    Latency p95   : ${r.p95_latency_ms} ms`);
+        console.log(`    Error         : ${r.error_count} (${r.error_rate_percent}%)`);
+        console.log(`    Status SLA    : ${r.meets_sla ? '✅ TERPENUHI' : '❌ DI BAWAH TARGET'}`);
+      }
+      console.log('');
+      return 0;
+    }
+
+    case 'export': {
+      const format = String(args.format ?? 'json').toLowerCase();
+      const limit = args.limit ? Number(args.limit) : 5000;
+      const events = recentEvents({
+        limit,
+        tokenId: args.token ?? null,
+        projectSlug: args.project ?? null,
+      });
+
+      let output;
+      if (format === 'csv') {
+        const header = 'id,token_id,project_slug,action,outcome,ip,country,detail,at\n';
+        output = header + events.map((e) => [
+          e.id, e.token_id ?? '', e.project_slug, e.action, e.outcome,
+          e.ip, e.country,
+          `"${String(e.detail ?? '').replace(/"/g, '""')}"`,
+          new Date(Number(e.at)).toISOString(),
+        ].join(',')).join('\n');
+      } else {
+        output = JSON.stringify({
+          exported_at: new Date().toISOString(),
+          count: events.length,
+          events,
+        }, null, 2);
+      }
+
+      if (args.out) {
+        writeFileSync(String(args.out), output, 'utf8');
+        console.log(`  ✅ ${events.length} event diekspor ke ${args.out}`);
+      } else {
+        console.log(output);
+      }
       return 0;
     }
 

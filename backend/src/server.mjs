@@ -11,6 +11,7 @@ import { initRoutes, resolveRoute, handlePreflight, rateLimited } from './routes
 import { applyCors, sendJson } from './http-util.mjs';
 import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
+import { recordHeartbeat, cleanupHeartbeats } from './sla.mjs';
 
 const problems = validateConfig();
 if (problems.length) {
@@ -29,11 +30,26 @@ initRoutes();
 setInterval(() => {
   const removed = cleanupExpiredSessions();
   if (removed > 0) console.log(`[cleanup] ${removed} sesi expired dihapus`);
+  // Heartbeat disimpan 90 hari (cukup untuk laporan SLA bulanan + margin).
+  cleanupHeartbeats(90 * 24 * 3_600_000);
 }, 3_600_000);
 
 const server = createServer(async (req, res) => {
+  const startedAt = Date.now();
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   const pathname = url.pathname;
+
+  // SLA: catat setiap respons publik (bukan health check itu sendiri).
+  res.on('finish', () => {
+    if (pathname === '/api/health') return;
+    try {
+      recordHeartbeat({
+        ok: res.statusCode < 500,
+        latencyMs: Date.now() - startedAt,
+        detail: `${req.method} ${pathname} → ${res.statusCode}`,
+      });
+    } catch { /* heartbeat gagal tidak boleh mengganggu respons */ }
+  });
 
   // CORS untuk SETIAP permintaan: preflight maupun respons sebenarnya.
   // Tanpa ini, browser memblokir jawaban walau server menjawab 200.

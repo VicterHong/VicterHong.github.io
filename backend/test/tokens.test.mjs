@@ -479,3 +479,42 @@ test('rate limit: jendela waktu memungkinkan permintaan baru setelah lewat', asy
   assert.equal(checkRateLimit('key-jendela', rule).allowed, true, 'jendela sudah lewat');
   resetRateLimit();
 });
+
+// ── SLA tracking (enterprise) ──────────────────────────────────────────────────────────────
+
+test('SLA: laporan kosong mengembalikan uptime 100%', async () => {
+  const { recordHeartbeat, slaReport } = await import('../src/sla.mjs');
+  withDb(() => {
+    const r = slaReport({ windowMs: 3_600_000 });
+    assert.equal(r.total_requests, 0);
+    assert.equal(r.uptime_percent, 100);
+    assert.equal(r.meets_sla, true);
+  });
+});
+
+test('SLA: heartbeat sukses dan gagal dihitung benar', async () => {
+  const { recordHeartbeat, slaReport } = await import('../src/sla.mjs');
+  withDb(() => {
+    for (let i = 0; i < 9; i += 1) recordHeartbeat({ ok: true, latencyMs: 20 + i });
+    recordHeartbeat({ ok: false, latencyMs: 500, detail: 'error' });
+
+    const r = slaReport({ windowMs: 3_600_000, targetUptime: 99.0 });
+    assert.equal(r.total_requests, 10);
+    assert.equal(r.error_count, 1);
+    assert.equal(r.uptime_percent, 90, 'uptime = 9/10 = 90%');
+    assert.equal(r.meets_sla, false, '90% di bawah target 99%');
+    assert.equal(r.error_rate_percent, 10);
+  });
+});
+
+test('SLA: latency rata-rata dihitung dari request sukses saja', async () => {
+  const { recordHeartbeat, slaReport } = await import('../src/sla.mjs');
+  withDb(() => {
+    recordHeartbeat({ ok: true, latencyMs: 10 });
+    recordHeartbeat({ ok: true, latencyMs: 30 });
+    recordHeartbeat({ ok: false, latencyMs: 9999 });
+
+    const r = slaReport({ windowMs: 3_600_000 });
+    assert.equal(r.avg_latency_ms, 20, '(10+30)/2 = 20 — error tidak dihitung');
+  });
+});
