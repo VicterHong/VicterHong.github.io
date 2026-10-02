@@ -183,10 +183,19 @@ function loadHeroVideo() {
         for (const s of sources) {
           video.appendChild(el('source', { src: s.src, type: s.type }));
         }
-        // Mode scrub: video tidak autoplay, tidak loop — dikendalikan scroll.
-        video.autoplay = false;
-        video.loop = false;
-        video.pause();
+        // Mode: desktop pakai scroll-scrub (video dikendalikan gulir);
+        // perangkat sentuh pakai autoplay loop (scrub tidak terasa di HP).
+        // cinematic.js yang menentukan perilaku akhirnya.
+        const isTouch = window.matchMedia('(hover: none)').matches || 'ontouchstart' in window;
+        if (isTouch) {
+          video.autoplay = true;
+          video.loop = true;
+          video.muted = true;
+        } else {
+          video.autoplay = false;
+          video.loop = false;
+          video.pause();
+        }
         video.addEventListener('loadeddata', () => {
           video.classList.add('is-ready', 'is-scrub');
         }, { once: true });

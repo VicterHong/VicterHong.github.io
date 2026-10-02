@@ -64,7 +64,9 @@ a { color: inherit; text-decoration: none; }
   transition: opacity 1.4s var(--ease);
 }
 
-.hero-video.is-ready { opacity: 0.28; }
+/* Video latar: opacity dinaikkan supaya benar-benar terlihat. Nilai lama 0.28
+   terlalu redup — di layar mobile video tampak seperti gradien polos. */
+.hero-video.is-ready { opacity: 0.55; }
 
 /* Cadangan: gradien yang bergerak sangat lambat. Terlihat hidup, tidak mengganggu. */
 .hero-fallback {
@@ -82,12 +84,20 @@ a { color: inherit; text-decoration: none; }
   to   { transform: translate3d(2%, 2%, 0) scale(1.08); }
 }
 
-/* Lapisan gelap + butiran halus: menjaga teks tetap terbaca di atas video apa pun. */
+/* Lapisan gelap + butiran halus: menjaga teks tetap terbaca di atas video apa pun.
+   Sebelumnya overlay ini 86% gelap di tengah — bersama video opacity 0.34,
+   video jadi praktis tak terlihat (terutama di layar mobile kecil).
+   Sekarang: overlay lebih ringan di area atas (tempat video terlihat), tetap
+   gelap di bawah (tempat teks panjang) supaya kontras terjaga. */
 .hero-grain {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(10,10,11,0.55) 0%, rgba(10,10,11,0.86) 55%, var(--bg) 100%);
+    linear-gradient(180deg,
+      rgba(10,10,11,0.30) 0%,
+      rgba(10,10,11,0.52) 42%,
+      rgba(10,10,11,0.78) 68%,
+      var(--bg) 100%);
 }
 
 .hero-grain::after {

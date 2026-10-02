@@ -81,6 +81,21 @@ export function initScrollScrubVideo(selector = '#heroVideo') {
     return;
   }
 
+  // Di perangkat sentuh (mobile/tablet) scrub tidak terasa: pengguna menggulir
+  // dengan jari dan tidak melihat hubungan sebab-akibat antara gulir dan video.
+  // Lebih baik video berjalan sendiri (autoplay loop) — itulah yang membuat
+  // halaman terasa hidup di HP.
+  const isTouch = window.matchMedia('(hover: none)').matches || 'ontouchstart' in window;
+  if (isTouch) {
+    video.loop = true;
+    video.autoplay = true;
+    video.muted = true;
+    const tryPlay = () => video.play().catch(() => { /* diblokir: biarkan frame pertama */ });
+    if (video.readyState >= 2) tryPlay();
+    else video.addEventListener('canplay', tryPlay, { once: true });
+    return;
+  }
+
   let duration = 0;
   let targetTime = 0;
   let currentTime = 0;
