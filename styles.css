@@ -64,6 +64,10 @@ a { color: inherit; text-decoration: none; }
   transition: opacity 1.4s var(--ease);
 }
 
+/* Poster terlihat sejak awal — kalau video diblokir (hemat baterai/data),
+   background tetap hidup, bukan gradien polos. */
+.hero-video[poster] { opacity: 0.5; }
+
 /* Video latar: opacity dinaikkan supaya benar-benar terlihat. Nilai lama 0.28
    terlalu redup — di layar mobile video tampak seperti gradien polos. */
 .hero-video.is-ready { opacity: 0.55; }

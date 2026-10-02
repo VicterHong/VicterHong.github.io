@@ -90,9 +90,28 @@ export function initScrollScrubVideo(selector = '#heroVideo') {
     video.loop = true;
     video.autoplay = true;
     video.muted = true;
-    const tryPlay = () => video.play().catch(() => { /* diblokir: biarkan frame pertama */ });
+
+    const tryPlay = () => {
+      const p = video.play();
+      if (p && typeof p.catch === 'function') p.catch(() => { /* diblokir */ });
+    };
+
     if (video.readyState >= 2) tryPlay();
     else video.addEventListener('canplay', tryPlay, { once: true });
+
+    // Browser mobile sering memblokir autoplay saat mode hemat baterai/data.
+    // Coba lagi pada interaksi pertama — sentuhan/scroll apa pun dianggap
+    // izin oleh browser. Poster tetap tampil sampai berhasil.
+    const retry = () => {
+      if (!video.paused) return;
+      tryPlay();
+    };
+    for (const evt of ['touchstart', 'touchend', 'click', 'scroll', 'keydown']) {
+      window.addEventListener(evt, retry, { once: true, passive: true });
+    }
+    // Percobaan terakhir setelah beberapa detik (kadang metadata baru siap).
+    setTimeout(retry, 2500);
+
     return;
   }
 

@@ -23,9 +23,11 @@
 <!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
      Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
 <div class="hero-backdrop" aria-hidden="true">
-  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg">
     <!-- Sumber diisi oleh app.js kalau berkasnya ada. MP4 untuk kompatibilitas, WebM untuk ukuran kecil. -->
     <!-- Desktop: scroll-scrub. Mobile: autoplay loop (lihat cinematic.js). -->
+    <!-- Poster: frame terang — supaya background tidak terlihat polos saat
+         autoplay diblokir browser (mode hemat baterai/data). -->
   </video>
   <div class="hero-fallback"></div>
   <div class="hero-grain"></div>
