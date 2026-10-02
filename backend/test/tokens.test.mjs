@@ -12,6 +12,7 @@ import { join } from 'node:path';
 
 import { openDb, closeDb } from '../src/db.mjs';
 import { hashToken, hashesEqual, issueToken, findTokenByPlaintext, revokeToken, tokenProblem, listTokens, suspendToken, resumeToken } from '../src/tokens.mjs';
+import { createSession, validateSession, destroySession, countSessions } from '../src/sessions.mjs';
 import { recordEvent, distinctIpsForToken, requestsInWindow, consecutiveFailures, recordLead, listLeads, recentEvents } from '../src/audit.mjs';
 import { checkAbuse, revokeMessage } from '../src/guard.mjs';
 import { isValidSlug } from '../src/content.mjs';
@@ -30,27 +31,54 @@ function withDb(fn) {
   }
 }
 
-// ── Token: penerbitan & verifikasi ────────────────────────────────────────────
+// ── Token: penerbitan & verifikasi ─────────────────────────────────────────────────────────
 
-test('issueToken menghasilkan token unik dan hash yang tidak sama dengan plaintext', () => {
+test('issueToken menghasilkan token format VP-XXXX-XXXX-XXXX-XXXX', () => {
+  withDb(() => {
+    const a = issueToken({ secret: SECRET, projectSlug: 'mina', prefix: 'VP-', segments: 4, segmentLength: 4 });
+    assert.match(a.token, /^VP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/, 'format token harus VP-XXXX-XXXX-XXXX-XXXX');
+    assert.notEqual(hashToken(a.token, SECRET), a.token, 'hash tidak boleh sama dengan plaintext');
+  });
+});
+
+test('dua token yang diterbitkan berbeda', () => {
   withDb(() => {
     const a = issueToken({ secret: SECRET, projectSlug: 'mina' });
     const b = issueToken({ secret: SECRET, projectSlug: 'mina' });
     assert.notEqual(a.token, b.token, 'dua token harus berbeda');
-    assert.ok(a.token.startsWith('pv_'), 'token punya awalan yang dikenali');
-    assert.notEqual(hashToken(a.token, SECRET), a.token, 'hash tidak boleh sama dengan plaintext');
   });
 });
 
 test('token yang diterbitkan bisa ditemukan kembali lewat plaintext', () => {
   withDb(() => {
-    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', issuedTo: 'PT Contoh' });
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', issuedTo: 'PT Contoh', company: 'PT Contoh Teknologi' });
     const found = findTokenByPlaintext(issued.token, SECRET);
     assert.ok(found, 'token harus ditemukan');
     assert.equal(found.id, issued.id);
     assert.equal(found.project_slug, 'mina');
     assert.equal(found.issued_to, 'PT Contoh');
+    assert.equal(found.company, 'PT Contoh Teknologi');
     assert.equal(found.status, 'active');
+    assert.equal(found.tier, 'standard');
+  });
+});
+
+test('token dengan tier enterprise', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', tier: 'enterprise' });
+    const found = findTokenByPlaintext(issued.token, SECRET);
+    assert.equal(found.tier, 'enterprise');
+  });
+});
+
+test('token dengan scopes multiple projects', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', scopes: ['mina', 'spareparts'] });
+    const found = findTokenByPlaintext(issued.token, SECRET);
+    assert.ok(Array.isArray(found.scopes), 'scopes harus array');
+    assert.equal(found.scopes.length, 2);
+    assert.ok(found.scopes.includes('mina'));
+    assert.ok(found.scopes.includes('spareparts'));
   });
 });
 
@@ -69,7 +97,7 @@ test('database TIDAK menyimpan plaintext token', () => {
   });
 });
 
-// ── Masa berlaku ──────────────────────────────────────────────────────────────
+// ── Masa berlaku ──────────────────────────────────────────────────────────────────────────────────────
 
 test('token kedaluwarsa terdeteksi', () => {
   withDb(() => {
@@ -90,7 +118,7 @@ test('token tanpa kedaluwarsa tidak pernah expired', () => {
   });
 });
 
-// ── Pencabutan ────────────────────────────────────────────────────────────────
+// ── Pencabutan ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 test('revokeToken membuat token tidak valid dan mencatat alasan', () => {
   withDb(() => {
@@ -100,6 +128,17 @@ test('revokeToken membuat token tidak valid dan mencatat alasan', () => {
     const row = findTokenByPlaintext(issued.token, SECRET);
     assert.equal(tokenProblem(row), 'revoked');
     assert.equal(row.revoked_reason, 'kontrak selesai');
+  });
+});
+
+test('revokeToken menghapus semua sesi aktif', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', maxDevices: 3 });
+    const sess1 = createSession({ tokenId: issued.id, secret: SECRET, ip: '1.1.1.1' });
+    const sess2 = createSession({ tokenId: issued.id, secret: SECRET, ip: '2.2.2.2' });
+    assert.equal(countSessions(issued.id), 2);
+    revokeToken(issued.id, 'test');
+    assert.equal(countSessions(issued.id), 0, 'semua sesi harus dihapus saat revoke');
   });
 });
 
@@ -123,23 +162,76 @@ test('suspend lalu resume mengembalikan token ke aktif', () => {
   });
 });
 
-// ── Daftar token ──────────────────────────────────────────────────────────────
+// ── Daftar token ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('listTokens memfilter per proyek dan tidak membocorkan hash', () => {
+test('listTokens memfilter per proyek dan tier, tidak membocorkan hash', () => {
   withDb(() => {
-    issueToken({ secret: SECRET, projectSlug: 'mina' });
-    issueToken({ secret: SECRET, projectSlug: 'mina' });
-    issueToken({ secret: SECRET, projectSlug: 'spareparts' });
+    issueToken({ secret: SECRET, projectSlug: 'mina', tier: 'standard' });
+    issueToken({ secret: SECRET, projectSlug: 'mina', tier: 'enterprise' });
+    issueToken({ secret: SECRET, projectSlug: 'spareparts', tier: 'standard' });
 
     const mina = listTokens({ projectSlug: 'mina' });
     assert.equal(mina.length, 2);
     assert.ok(!('token_hash' in mina[0]), 'hash tidak boleh ikut dalam daftar');
     assert.equal(listTokens({ projectSlug: 'spareparts' }).length, 1);
+    assert.equal(listTokens({ tier: 'enterprise' }).length, 1);
     assert.equal(listTokens().length, 3);
   });
 });
 
-// ── Audit ─────────────────────────────────────────────────────────────────────
+// ── Session ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+test('createSession membuat sesi baru', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', maxDevices: 3 });
+    const sess = createSession({ tokenId: issued.id, secret: SECRET, ip: '1.1.1.1' });
+    assert.ok(sess.id.startsWith('sess_'));
+    assert.ok(sess.expiresAt > Date.now());
+  });
+});
+
+test('validateSession mengembalikan token dan session row', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', maxDevices: 3 });
+    const sess = createSession({ tokenId: issued.id, secret: SECRET, ip: '1.1.1.1' });
+    const result = validateSession(sess.id, SECRET);
+    assert.ok(result);
+    assert.equal(result.tokenRow.id, issued.id);
+    assert.equal(result.sessionRow.ip, '1.1.1.1');
+  });
+});
+
+test('validateSession mengembalikan null untuk sesi tidak valid', () => {
+  withDb(() => {
+    assert.equal(validateSession('sess_tidak_ada', SECRET), null);
+  });
+});
+
+test('maxDevices: sesi ke-4 menghapus sesi paling lama', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', maxDevices: 2 });
+    const sess1 = createSession({ tokenId: issued.id, secret: SECRET, ip: '1.1.1.1' });
+    const sess2 = createSession({ tokenId: issued.id, secret: SECRET, ip: '2.2.2.2' });
+    assert.equal(countSessions(issued.id), 2);
+
+    const sess3 = createSession({ tokenId: issued.id, secret: SECRET, ip: '3.3.3.3' });
+    assert.equal(countSessions(issued.id), 2, 'hanya 2 sesi yang tersisa');
+    assert.equal(validateSession(sess1.id, SECRET), null, 'sesi pertama dihapus');
+    assert.ok(validateSession(sess3.id, SECRET), 'sesi terbaru ada');
+  });
+});
+
+test('destroySession menghapus sesi', () => {
+  withDb(() => {
+    const issued = issueToken({ secret: SECRET, projectSlug: 'mina', maxDevices: 3 });
+    const sess = createSession({ tokenId: issued.id, secret: SECRET, ip: '1.1.1.1' });
+    assert.ok(validateSession(sess.id, SECRET));
+    assert.equal(destroySession(sess.id, SECRET), true);
+    assert.equal(validateSession(sess.id, SECRET), null);
+  });
+});
+
+// ── Audit ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 test('peristiwa akses tercatat dan bisa dibaca kembali', () => {
   withDb(() => {
@@ -163,14 +255,15 @@ test('distinctIpsForToken hanya menghitung IP dalam jendela waktu', () => {
   });
 });
 
-test('requestsInWindow menghitung permintaan validate dan content', () => {
+test('requestsInWindow menghitung permintaan validate, content, dan session_create', () => {
   withDb(() => {
     const issued = issueToken({ secret: SECRET, projectSlug: 'mina' });
     for (let i = 0; i < 5; i += 1) {
       recordEvent({ tokenId: issued.id, action: 'validate', outcome: 'ok' });
     }
+    recordEvent({ tokenId: issued.id, action: 'session_create', outcome: 'ok' });
     recordEvent({ tokenId: issued.id, action: 'issue', outcome: 'ok' });
-    assert.equal(requestsInWindow(issued.id, 60_000), 5, 'aksi issue tidak dihitung');
+    assert.equal(requestsInWindow(issued.id, 60_000), 6, 'aksi issue tidak dihitung, session_create dihitung');
   });
 });
 
@@ -184,7 +277,7 @@ test('consecutiveFailures berhenti di keberhasilan terakhir', () => {
   });
 });
 
-// ── Penjaga penyalahgunaan ────────────────────────────────────────────────────
+// ── Penjaga penyalahgunaan ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 test('checkAbuse melaporkan token yang dipakai dari terlalu banyak IP', () => {
   withDb(() => {
@@ -239,7 +332,7 @@ test('revokeMessage selalu mengembalikan pesan untuk alasan apa pun', () => {
   assert.ok(revokeMessage('alasan_tidak_dikenal').length > 0, 'alasan asing tetap dapat pesan');
 });
 
-// ── Slug proyek ───────────────────────────────────────────────────────────────
+// ── Slug proyek ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 test('isValidSlug menolak upaya keluar dari direktori', () => {
   assert.equal(isValidSlug('mina'), true);
@@ -251,27 +344,31 @@ test('isValidSlug menolak upaya keluar dari direktori', () => {
   assert.equal(isValidSlug('mina.json'), false);
 });
 
-// ── Permintaan sales ──────────────────────────────────────────────────────────
+// ── Permintaan sales ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 test('permintaan akses tercatat dan bisa dibaca', () => {
   withDb(() => {
     const { id } = recordLead({
       company: 'PT Contoh', name: 'Budi', email: 'budi@contoh.co.id',
-      projectSlug: 'mina', message: 'Mau lihat arsitektur',
+      role: 'CTO', projectSlug: 'mina', budgetRange: '10-50 juta', urgency: 'tinggi',
+      message: 'Mau lihat arsitektur',
     });
     assert.ok(id > 0);
     const leads = listLeads();
     assert.equal(leads.length, 1);
     assert.equal(leads[0].email, 'budi@contoh.co.id');
+    assert.equal(leads[0].role, 'CTO');
+    assert.equal(leads[0].budget_range, '10-50 juta');
+    assert.equal(leads[0].urgency, 'tinggi');
     assert.equal(leads[0].status, 'new');
   });
 });
 
-// ── Perbandingan hash aman waktu ──────────────────────────────────────────────
+// ── Perbandingan hash aman waktu ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 test('hashesEqual benar untuk hash sama dan salah untuk berbeda', () => {
-  const a = hashToken('pv_abc', SECRET);
-  assert.equal(hashesEqual(a, hashToken('pv_abc', SECRET)), true);
-  assert.equal(hashesEqual(a, hashToken('pv_xyz', SECRET)), false);
+  const a = hashToken('VP-ABCD-EFGH-IJKL-MNOP', SECRET);
+  assert.equal(hashesEqual(a, hashToken('VP-ABCD-EFGH-IJKL-MNOP', SECRET)), true);
+  assert.equal(hashesEqual(a, hashToken('VP-ZZZZ-ZZZZ-ZZZZ-ZZZZ', SECRET)), false);
   assert.equal(hashesEqual(a, 'pendek'), false, 'panjang berbeda tidak melempar');
 });

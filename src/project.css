@@ -320,6 +320,48 @@
   border-top: 1px solid var(--line-soft);
 }
 
+/* Tier badge */
+.tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  margin-left: 0.75rem;
+  vertical-align: middle;
+}
+
+.tier-standard {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+}
+
+.tier-enterprise {
+  color: #7ed3a5;
+  background: rgba(126, 211, 165, 0.12);
+  border: 1px solid rgba(126, 211, 165, 0.35);
+}
+
+/* Dynamic watermark */
+.dynamic-watermark {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
 /* ── FORM PERMINTAAN AKSES ─────────────────────────────────────────────────── */
 
 .request-section {

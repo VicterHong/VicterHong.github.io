@@ -1,5 +1,5 @@
 /**
- * Utilitas HTTP — pengurai body, jawaban JSON, CORS, alamat klien.
+ * Utilitas HTTP — pengurai body, jawaban JSON, CORS, alamat klien, cookie.
  *
  * Sengaja memakai modul bawaan Node saja: tidak ada framework, tidak ada dependency.
  */
@@ -66,6 +66,7 @@ export function applyCors(req, res) {
   res.setHeader('vary', 'Origin');
   res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
   res.setHeader('access-control-allow-headers', 'content-type, x-project-token');
+  res.setHeader('access-control-allow-credentials', 'true');
   res.setHeader('access-control-max-age', '600');
 }
 
@@ -93,6 +94,38 @@ export function extractToken(req, body = {}) {
   if (typeof header === 'string' && header.trim()) return header.trim();
   if (typeof body.token === 'string' && body.token.trim()) return body.token.trim();
   return '';
+}
+
+/** Parse cookie dari header. */
+export function parseCookies(req) {
+  const raw = req.headers.cookie ?? '';
+  const out = {};
+  for (const part of raw.split(';')) {
+    const [k, ...v] = part.trim().split('=');
+    if (k) out[k.trim()] = v.join('=').trim();
+  }
+  return out;
+}
+
+/** Set cookie httpOnly Secure SameSite. */
+export function setCookie(res, name, value, { maxAgeSeconds = 86400, httpOnly = true, secure = true, sameSite = 'None' } = {}) {
+  let cookie = `${name}=${value}; Max-Age=${maxAgeSeconds}; Path=/`;
+  if (httpOnly) cookie += '; HttpOnly';
+  if (secure) cookie += '; Secure';
+  if (sameSite) cookie += `; SameSite=${sameSite}`;
+  const existing = res.getHeader('set-cookie');
+  if (Array.isArray(existing)) {
+    res.setHeader('set-cookie', [...existing, cookie]);
+  } else if (existing) {
+    res.setHeader('set-cookie', [existing, cookie]);
+  } else {
+    res.setHeader('set-cookie', cookie);
+  }
+}
+
+/** Hapus cookie (set expired). */
+export function clearCookie(res, name) {
+  setCookie(res, name, '', { maxAgeSeconds: 0 });
 }
 
 /** Jawaban OPTIONS preflight. */

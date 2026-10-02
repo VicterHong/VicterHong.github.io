@@ -45,8 +45,10 @@ function usage() {
   console.log(`Layanan token portofolio — CLI admin
 
 Perintah:
-  issue    --project <slug> [--to <nama>] [--label <teks>] [--days <n>] [--max-ips <n>] [--notes <teks>]
-  list     [--project <slug>] [--status active|revoked|suspended] [--limit <n>]
+  issue    --project <slug> [--tier standard|enterprise] [--scopes <slug1,slug2>]
+           [--to <nama>] [--company <nama>] [--label <teks>] [--days <n>]
+           [--max-ips <n>] [--max-devices <n>] [--notes <teks>]
+  list     [--project <slug>] [--status active|revoked|suspended] [--tier <tier>] [--limit <n>]
   show     --id <token_id>
   revoke   --id <token_id> [--reason <teks>]
   audit    [--project <slug>] [--token <token_id>] [--limit <n>]
@@ -54,6 +56,7 @@ Perintah:
 
 Contoh:
   node src/admin-cli.mjs issue --project mina --to "PT Contoh" --days 30
+  node src/admin-cli.mjs issue --project mina --tier enterprise --scopes mina,spareparts --company "PT Besar" --days 90
   node src/admin-cli.mjs list --project mina
   node src/admin-cli.mjs revoke --id tok_1a2b3c4d --reason "kontrak selesai"
 `);
@@ -81,24 +84,40 @@ function main() {
     case 'issue': {
       const project = String(args.project ?? '').trim();
       if (!project) { console.error('--project wajib diisi'); return 1; }
+
+      // Parse scopes
+      let scopes = null;
+      if (args.scopes) {
+        scopes = String(args.scopes).split(',').map(s => s.trim()).filter(Boolean);
+      }
+
       const result = issueToken({
         secret: config.secret,
         projectSlug: project,
+        tier: String(args.tier ?? 'standard').toLowerCase(),
+        scopes,
         label: String(args.label ?? ''),
         issuedTo: String(args.to ?? ''),
+        company: String(args.company ?? ''),
         issuedBy: 'cli',
         expiresInDays: args.days ? Number(args.days) : null,
         maxIps: args['max-ips'] ? Number(args['max-ips']) : config.maxDistinctIps,
+        maxDevices: args['max-devices'] ? Number(args['max-devices']) : config.maxDevices,
         notes: String(args.notes ?? ''),
         prefix: config.tokenPrefix,
+        segments: config.tokenSegments,
+        segmentLength: config.tokenSegmentLength,
       });
       console.log('');
       console.log('  Token diterbitkan.');
       console.log('');
-      console.log('  ID      :', result.id);
-      console.log('  Proyek  :', result.project_slug);
-      console.log('  Berlaku :', result.expires_at ? `sampai ${fmt(result.expires_at)}` : 'tanpa kedaluwarsa');
-      console.log('  Maks IP :', result.max_ips);
+      console.log('  ID           :', result.id);
+      console.log('  Proyek       :', result.project_slug);
+      console.log('  Tier         :', result.tier);
+      console.log('  Scope        :', result.scopes.join(', '));
+      console.log('  Berlaku      :', result.expires_at ? `sampai ${fmt(result.expires_at)}` : 'tanpa kedaluwarsa');
+      console.log('  Maks IP      :', result.max_ips);
+      console.log('  Maks Device  :', result.max_devices);
       console.log('');
       console.log('  TOKEN (tampil sekali — simpan sekarang):');
       console.log('');
@@ -111,16 +130,18 @@ function main() {
       const rows = listTokens({
         projectSlug: args.project ?? null,
         status: args.status ?? null,
+        tier: args.tier ?? null,
         limit: args.limit ? Number(args.limit) : 100,
       });
       if (!rows.length) { console.log('(belum ada token)'); return 0; }
       console.log('');
-      console.log('  ID                PROYEK        STATUS      DIBERIKAN KE            KEDALUWARSA');
-      console.log('  ' + '─'.repeat(88));
+      console.log('  ID                PROYEK        TIER        STATUS      DIBERIKAN KE            KEDALUWARSA');
+      console.log('  ' + '─'.repeat(100));
       for (const r of rows) {
         console.log(
           '  ' + String(r.id).padEnd(17) +
           String(r.project_slug).padEnd(14) +
+          String(r.tier).padEnd(12) +
           String(r.status).padEnd(12) +
           String(r.issued_to || '—').slice(0, 22).padEnd(24) +
           fmt(r.expires_at)
@@ -177,11 +198,14 @@ function main() {
       console.log('');
       for (const l of leads) {
         console.log('  ──', fmt(l.created_at), '·', l.status);
-        console.log('     Perusahaan :', l.company || '—');
-        console.log('     Nama       :', l.name || '—');
-        console.log('     Email      :', l.email);
-        console.log('     Proyek     :', l.project_slug || '—');
-        if (l.message) console.log('     Pesan      :', l.message.slice(0, 200));
+        console.log('     Perusahaan  :', l.company || '—');
+        console.log('     Nama        :', l.name || '—');
+        console.log('     Email       :', l.email);
+        console.log('     Role        :', l.role || '—');
+        console.log('     Proyek      :', l.project_slug || '—');
+        console.log('     Budget      :', l.budget_range || '—');
+        console.log('     Urgensi     :', l.urgency || '—');
+        if (l.message) console.log('     Pesan       :', l.message.slice(0, 200));
         console.log('');
       }
       console.log('  Total:', leads.length);

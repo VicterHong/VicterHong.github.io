@@ -84,11 +84,20 @@ export const config = {
   /** Auto-revoke: jumlah request gagal berturut-turut sebelum token dikunci. */
   maxFailedAttempts: Number(pick('MAX_FAILED_ATTEMPTS', '12')),
 
-  /** Panjang token yang diterbitkan (karakter acak base32). */
-  tokenLength: Number(pick('TOKEN_LENGTH', '32')),
+  /** Panjang segmen token acak (karakter, bukan byte). */
+  tokenSegmentLength: Number(pick('TOKEN_SEGMENT_LENGTH', '4')),
 
-  /** Awalan token supaya mudah dikenali di log. */
-  tokenPrefix: pick('TOKEN_PREFIX', 'pv_'),
+  /** Jumlah segmen token (contoh: 4 segmen → VP-XXXX-XXXX-XXXX-XXXX). */
+  tokenSegments: Number(pick('TOKEN_SEGMENTS', '4')),
+
+  /** Awalan token supaya mudah dikenali. */
+  tokenPrefix: pick('TOKEN_PREFIX', 'VP-'),
+
+  /** Durasi sesi cookie (jam). */
+  sessionDurationHours: Number(pick('SESSION_DURATION_HOURS', '24')),
+
+  /** Maksimum sesi aktif per token (device). */
+  maxDevices: Number(pick('MAX_DEVICES', '3')),
 };
 
 /** Apakah konfigurasi cukup untuk menjalankan layanan produksi. */

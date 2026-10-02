@@ -123,7 +123,7 @@
           <form class="gate-form" id="tokenForm" autocomplete="off">
             <label class="sr-only" for="tokenInput">Token akses</label>
             <input class="gate-input mono" id="tokenInput" name="token" type="password"
-                   placeholder="pv_XXXXXXXXXXXXXXXX" spellcheck="false" autocomplete="off" required>
+                   placeholder="VP-XXXX-XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off" required>
             <button class="btn btn-primary" type="submit" id="tokenSubmit">Buka</button>
           </form>
           <p class="gate-status" id="gateStatus" role="status" aria-live="polite"></p>
@@ -156,6 +156,32 @@
         <div class="field">
           <label for="reqEmail">Email kerja</label>
           <input id="reqEmail" name="email" type="email" maxlength="300" required>
+        </div>
+        <div class="field">
+          <label for="reqRole">Jabatan / Role</label>
+          <input id="reqRole" name="role" type="text" maxlength="100" placeholder="CTO, Engineering Manager, dll">
+        </div>
+        <div class="field">
+          <label for="reqBudget">Kisaran budget</label>
+          <select id="reqBudget" name="budget_range">
+            <option value="">Pilih kisaran</option>
+            <option value="< 10 juta">&lt; 10 juta</option>
+            <option value="10-50 juta">10 – 50 juta</option>
+            <option value="50-100 juta">50 – 100 juta</option>
+            <option value="100-500 juta">100 – 500 juta</option>
+            <option value="> 500 juta">&gt; 500 juta</option>
+            <option value="Belum tentu">Belum tentu — diskusi dulu</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="reqUrgency">Urgensi</label>
+          <select id="reqUrgency" name="urgency">
+            <option value="">Pilih urgensi</option>
+            <option value="segera">Segera (minggu ini)</option>
+            <option value="bulan ini">Bulan ini</option>
+            <option value="kuartal ini">Kuartal ini</option>
+            <option value="explorasi">Hanya explorasi</option>
+          </select>
         </div>
         <div class="field">
           <label for="reqMessage">Keperluan</label>

@@ -14,6 +14,7 @@ let db = null;
 /**
  * Skema:
  *  - tokens        : token yang diterbitkan (disimpan sebagai hash, bukan plaintext)
+ *  - sessions      : sesi aktif per device (cookie-based, maxDevices enforcement)
  *  - access_events : setiap percobaan akses (untuk audit + deteksi penyalahgunaan)
  *  - revocations   : catatan pencabutan (manual maupun otomatis)
  *  - sales_leads   : permintaan akses dari form publik
@@ -27,19 +28,39 @@ CREATE TABLE IF NOT EXISTS tokens (
   token_hash    TEXT NOT NULL UNIQUE,
   label         TEXT NOT NULL DEFAULT '',
   project_slug  TEXT NOT NULL,
+  tier          TEXT NOT NULL DEFAULT 'standard',
+  scopes        TEXT NOT NULL DEFAULT '',
   issued_to     TEXT NOT NULL DEFAULT '',
+  company       TEXT NOT NULL DEFAULT '',
   issued_by     TEXT NOT NULL DEFAULT 'admin',
   issued_at     INTEGER NOT NULL,
   expires_at    INTEGER,
   revoked_at    INTEGER,
   revoked_reason TEXT,
   max_ips       INTEGER NOT NULL DEFAULT 3,
+  max_devices   INTEGER NOT NULL DEFAULT 3,
   status        TEXT NOT NULL DEFAULT 'active',
   notes         TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_tokens_project ON tokens(project_slug);
 CREATE INDEX IF NOT EXISTS idx_tokens_status  ON tokens(status);
+CREATE INDEX IF NOT EXISTS idx_tokens_tier    ON tokens(tier);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id          TEXT PRIMARY KEY,
+  token_id    TEXT NOT NULL,
+  device_fp   TEXT NOT NULL DEFAULT '',
+  ip          TEXT NOT NULL DEFAULT '',
+  country     TEXT NOT NULL DEFAULT '',
+  user_agent  TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL,
+  last_seen   INTEGER NOT NULL,
+  expires_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
 CREATE TABLE IF NOT EXISTS access_events (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +92,10 @@ CREATE TABLE IF NOT EXISTS sales_leads (
   company     TEXT NOT NULL DEFAULT '',
   name        TEXT NOT NULL DEFAULT '',
   email       TEXT NOT NULL,
+  role        TEXT NOT NULL DEFAULT '',
   project_slug TEXT NOT NULL DEFAULT '',
+  budget_range TEXT NOT NULL DEFAULT '',
+  urgency     TEXT NOT NULL DEFAULT '',
   message     TEXT NOT NULL DEFAULT '',
   ip          TEXT NOT NULL DEFAULT '',
   user_agent  TEXT NOT NULL DEFAULT '',

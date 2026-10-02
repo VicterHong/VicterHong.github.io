@@ -5,8 +5,13 @@
  * otomatis oleh skrip tunnel di VPS setiap kali URL tunnel berubah. Jadi situs statis
  * tidak pernah menyimpan alamat yang basi.
  *
- * Token disimpan di sessionStorage: hilang saat tab ditutup, tidak ikut ke tab lain,
- * dan tidak pernah ditulis ke localStorage.
+ * Flow baru (v2.1):
+ *   1. User submit token → POST /api/token/session → server set httpOnly cookie
+ *   2. Cookie 'portfolio_session' ikut otomatis di request berikutnya
+ *   3. Konten diambil via GET /api/project/:slug/locked (cookie-based)
+ *   4. Logout → POST /api/token/logout → cookie dihapus
+ *
+ * credentials: 'include' wajib supaya cookie cross-origin terkirim.
  */
 
 const URL_FILE = '/backend-url.json';
@@ -54,7 +59,7 @@ export function clearToken() {
 }
 
 /** Panggil endpoint API. Mengembalikan { ok, status, data }. */
-async function call(path, { method = 'GET', body = null, token = '' } = {}) {
+async function call(path, { method = 'GET', body = null, token = '', useCredentials = false } = {}) {
   const base = await apiBase();
   if (!base) return { ok: false, status: 0, data: { error: 'backend_tidak_diketahui' } };
 
@@ -68,6 +73,7 @@ async function call(path, { method = 'GET', body = null, token = '' } = {}) {
       headers,
       body: body ? JSON.stringify(body) : undefined,
       cache: 'no-store',
+      credentials: useCredentials ? 'include' : 'same-origin',
     });
     let data = {};
     try { data = await res.json(); } catch { /* jawaban tanpa body */ }
@@ -77,14 +83,40 @@ async function call(path, { method = 'GET', body = null, token = '' } = {}) {
   }
 }
 
-/** Verifikasi token untuk satu proyek. */
-export function validateToken(project, token) {
-  return call('/api/token/validate', { method: 'POST', body: { project }, token });
+/**
+ * Tukar token dengan session cookie.
+ * Kalau berhasil, server set httpOnly cookie 'portfolio_session'.
+ */
+export function createSession(token, project) {
+  return call('/api/token/session', {
+    method: 'POST',
+    body: { token, project },
+    useCredentials: true,
+  });
 }
 
-/** Ambil konten terkunci satu proyek. */
-export function fetchLockedContent(project, token) {
-  return call(`/api/project/${encodeURIComponent(project)}/locked`, { token });
+/**
+ * Logout — hapus session cookie.
+ */
+export function destroySession() {
+  return call('/api/token/logout', {
+    method: 'POST',
+    useCredentials: true,
+  });
+}
+
+/**
+ * Ambil konten terkunci satu proyek (session cookie otomatis terkirim).
+ */
+export function fetchLockedContent(project) {
+  return call(`/api/project/${encodeURIComponent(project)}/locked`, {
+    useCredentials: true,
+  });
+}
+
+/** Verifikasi token untuk satu proyek (tanpa buat session). */
+export function validateToken(project, token) {
+  return call('/api/token/validate', { method: 'POST', body: { project }, token });
 }
 
 /** Kirim permintaan akses ke sales. */

@@ -4,7 +4,9 @@
  * Publik:
  *   GET  /api/health
  *   POST /api/token/validate      — cek token, buka metadata proyek
- *   GET  /api/project/:slug/locked — konten sensitif (butuh token)
+ *   POST /api/token/session       — tukar token dengan session cookie
+ *   POST /api/token/logout        — hapus session
+ *   GET  /api/project/:slug/locked — konten sensitif (butuh session atau token)
  *   POST /api/contact/sales       — permintaan akses dari form publik
  *
  * Admin (butuh header X-Admin-Key):
@@ -23,12 +25,13 @@ import {
   findTokenByPlaintext, getToken, issueToken, listTokens, revokeToken,
   resumeToken, suspendToken, tokenProblem,
 } from './tokens.mjs';
+import { createSession, validateSession, destroySession, cleanupExpiredSessions } from './sessions.mjs';
 import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
 import { enforceAbuseRules, revokeMessage } from './guard.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
   applyCors, clientCountry, clientIp, extractToken, handlePreflight,
-  readJson, sendJson,
+  readJson, sendJson, parseCookies, setCookie, clearCookie,
 } from './http-util.mjs';
 
 /** Dipanggil sekali saat server mulai. */
@@ -89,8 +92,16 @@ function verifyToken(req, body, { projectSlug = '', action = 'validate' } = {}) 
     return { error: { status: 403, body: { ok: false, error: 'token_invalid', message: 'Token tidak dikenali. Periksa kembali atau hubungi sales.' } } };
   }
 
-  // Proyek pada token harus cocok dengan proyek yang diminta — token berlaku per proyek.
-  if (projectSlug && row.project_slug !== projectSlug) {
+  // Cek scope: token harus mencakup projectSlug yang diminta
+  if (projectSlug && row.scopes && Array.isArray(row.scopes)) {
+    if (!row.scopes.includes(projectSlug)) {
+      recordEvent({
+        tokenId: row.id, projectSlug, action, outcome: 'proyek_tidak_cocok',
+        ip, userAgent, country, detail: `token scope: ${row.scopes.join(',')}`,
+      });
+      return { error: { status: 403, body: { ok: false, error: 'token_scope_tidak_cocok', message: 'Token ini tidak berlaku untuk proyek tersebut.' } } };
+    }
+  } else if (projectSlug && row.project_slug !== projectSlug) {
     recordEvent({
       tokenId: row.id, projectSlug, action, outcome: 'proyek_tidak_cocok',
       ip, userAgent, country, detail: `token untuk ${row.project_slug}`,
@@ -124,6 +135,62 @@ function verifyToken(req, body, { projectSlug = '', action = 'validate' } = {}) 
   return { row };
 }
 
+/**
+ * Verifikasi session cookie.
+ * Mengembalikan { tokenRow, sessionRow, error }.
+ */
+function verifySession(req, { projectSlug = '', action = 'content' } = {}) {
+  const ip = clientIp(req);
+  const userAgent = String(req.headers['user-agent'] ?? '').slice(0, 300);
+  const country = clientCountry(req);
+  const cookies = parseCookies(req);
+  const sessionId = cookies.portfolio_session ?? '';
+
+  if (!sessionId) {
+    recordEvent({ projectSlug, action, outcome: 'tanpa_sesi', ip, userAgent, country });
+    return { error: { status: 401, body: { ok: false, error: 'session_required', message: 'Sesi diperlukan. Masukkan token terlebih dahulu.' } } };
+  }
+
+  const result = validateSession(sessionId, config.secret);
+  if (!result) {
+    recordEvent({ projectSlug, action, outcome: 'sesi_tidak_valid', ip, userAgent, country });
+    return { error: { status: 403, body: { ok: false, error: 'session_invalid', message: 'Sesi tidak valid atau sudah expired. Masukkan token kembali.' } } };
+  }
+
+  const { tokenRow, sessionRow } = result;
+
+  // Cek scope
+  if (projectSlug && tokenRow.scopes && Array.isArray(tokenRow.scopes)) {
+    if (!tokenRow.scopes.includes(projectSlug)) {
+      recordEvent({
+        tokenId: tokenRow.id, projectSlug, action, outcome: 'proyek_tidak_cocok',
+        ip, userAgent, country, detail: `token scope: ${tokenRow.scopes.join(',')}`,
+      });
+      return { error: { status: 403, body: { ok: false, error: 'token_scope_tidak_cocok', message: 'Token ini tidak berlaku untuk proyek tersebut.' } } };
+    }
+  } else if (projectSlug && tokenRow.project_slug !== projectSlug) {
+    recordEvent({
+      tokenId: tokenRow.id, projectSlug, action, outcome: 'proyek_tidak_cocok',
+      ip, userAgent, country, detail: `token untuk ${tokenRow.project_slug}`,
+    });
+    return { error: { status: 403, body: { ok: false, error: 'token_proyek_lain', message: 'Token ini tidak berlaku untuk proyek tersebut.' } } };
+  }
+
+  const problem = tokenProblem(tokenRow);
+  if (problem) {
+    recordEvent({ tokenId: tokenRow.id, projectSlug, action, outcome: problem, ip, userAgent, country });
+    return {
+      error: {
+        status: 403,
+        body: { ok: false, error: problem, message: revokeMessage(tokenRow.revoked_reason ?? problem) },
+      },
+    };
+  }
+
+  recordEvent({ tokenId: tokenRow.id, projectSlug: projectSlug || tokenRow.project_slug, action, outcome: 'ok', ip, userAgent, country });
+  return { tokenRow, sessionRow };
+}
+
 /** Semua rute, dengan pola dan handler. */
 export const routes = [
   {
@@ -148,10 +215,75 @@ export const routes = [
       sendJson(res, 200, {
         ok: true,
         project: row.project_slug,
+        tier: row.tier,
+        scopes: row.scopes,
         label: row.label,
         issued_to: row.issued_to,
+        company: row.company,
         expires_at: row.expires_at,
       });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/token/session',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const slug = String(body.project ?? '').trim();
+      if (!isValidSlug(slug)) {
+        return sendJson(res, 400, { ok: false, error: 'proyek_tidak_valid', message: 'Slug proyek tidak valid.' });
+      }
+
+      // Verifikasi token dulu
+      const { row, error } = verifyToken(req, body, { projectSlug: slug, action: 'session_create' });
+      if (error) return sendJson(res, error.status, error.body);
+
+      // Buat session
+      const ip = clientIp(req);
+      const userAgent = String(req.headers['user-agent'] ?? '').slice(0, 300);
+      const country = clientCountry(req);
+      const deviceFp = String(body.device_fp ?? '').slice(0, 200);
+
+      const session = createSession({
+        tokenId: row.id,
+        secret: config.secret,
+        deviceFp,
+        ip,
+        country,
+        userAgent,
+        durationHours: config.sessionDurationHours,
+        maxDevices: row.max_devices ?? config.maxDevices,
+      });
+
+      setCookie(res, 'portfolio_session', session.id, {
+        maxAgeSeconds: config.sessionDurationHours * 3600,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+      });
+
+      sendJson(res, 200, {
+        ok: true,
+        project: row.project_slug,
+        tier: row.tier,
+        scopes: row.scopes,
+        session_expires: session.expiresAt,
+      });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/token/logout',
+    handler: safe(async (req, res) => {
+      const cookies = parseCookies(req);
+      const sessionId = cookies.portfolio_session ?? '';
+      if (sessionId) {
+        destroySession(sessionId, config.secret);
+      }
+      clearCookie(res, 'portfolio_session');
+      sendJson(res, 200, { ok: true, message: 'Sesi dihapus.' });
     }),
   },
 
@@ -163,11 +295,35 @@ export const routes = [
       if (!isValidSlug(slug)) {
         return sendJson(res, 400, { ok: false, error: 'proyek_tidak_valid', message: 'Slug proyek tidak valid.' });
       }
-      const { row, error } = verifyToken(req, {}, { projectSlug: slug, action: 'content' });
-      if (error) return sendJson(res, error.status, error.body);
+
+      // Coba session dulu, kalau tidak ada coba token di header
+      let tokenRow = null;
+      const cookies = parseCookies(req);
+      if (cookies.portfolio_session) {
+        const result = verifySession(req, { projectSlug: slug, action: 'content' });
+        if (result.error) {
+          // Kalau session gagal, coba token di header sebagai fallback
+          const { row } = verifyToken(req, {}, { projectSlug: slug, action: 'content' });
+          if (!row) return sendJson(res, result.error.status, result.error.body);
+          tokenRow = row;
+        } else {
+          tokenRow = result.tokenRow;
+        }
+      } else {
+        const { row, error } = verifyToken(req, {}, { projectSlug: slug, action: 'content' });
+        if (error) return sendJson(res, error.status, error.body);
+        tokenRow = row;
+      }
 
       const content = loadLockedContent(slug) ?? sampleLockedContent(slug);
-      sendJson(res, 200, { ok: true, project: slug, issued_to: row.issued_to, content });
+      sendJson(res, 200, {
+        ok: true,
+        project: slug,
+        tier: tokenRow.tier,
+        issued_to: tokenRow.issued_to,
+        company: tokenRow.company,
+        content,
+      });
     }),
   },
 
@@ -184,7 +340,10 @@ export const routes = [
         company: String(body.company ?? '').slice(0, 200),
         name: String(body.name ?? '').slice(0, 200),
         email: email.slice(0, 300),
+        role: String(body.role ?? '').slice(0, 100),
         projectSlug: String(body.project ?? '').slice(0, 64),
+        budgetRange: String(body.budget_range ?? '').slice(0, 100),
+        urgency: String(body.urgency ?? '').slice(0, 50),
         message: String(body.message ?? '').slice(0, 4000),
         ip: clientIp(req),
         userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
@@ -207,16 +366,29 @@ export const routes = [
       const body = await readJson(req);
       const slug = String(body.project ?? '').trim();
       if (!isValidSlug(slug)) return sendJson(res, 400, { ok: false, error: 'proyek_tidak_valid' });
+
+      // Parse scopes array
+      let scopes = null;
+      if (body.scopes && Array.isArray(body.scopes)) {
+        scopes = body.scopes.filter(s => isValidSlug(String(s)));
+      }
+
       const result = issueToken({
         secret: config.secret,
         projectSlug: slug,
+        tier: String(body.tier ?? 'standard').toLowerCase(),
+        scopes,
         label: String(body.label ?? '').slice(0, 200),
         issuedTo: String(body.issued_to ?? '').slice(0, 200),
+        company: String(body.company ?? '').slice(0, 200),
         issuedBy: 'admin',
         expiresInDays: body.expires_in_days ? Number(body.expires_in_days) : null,
         maxIps: body.max_ips ? Number(body.max_ips) : config.maxDistinctIps,
+        maxDevices: body.max_devices ? Number(body.max_devices) : config.maxDevices,
         notes: String(body.notes ?? '').slice(0, 500),
         prefix: config.tokenPrefix,
+        segments: config.tokenSegments,
+        segmentLength: config.tokenSegmentLength,
       });
       recordEvent({
         tokenId: result.id, projectSlug: slug, action: 'issue', outcome: 'ok',
@@ -228,8 +400,11 @@ export const routes = [
         id: result.id,
         token: result.token,
         project: result.project_slug,
+        tier: result.tier,
+        scopes: result.scopes,
         expires_at: result.expires_at,
         max_ips: result.max_ips,
+        max_devices: result.max_devices,
         warning: 'Simpan token ini sekarang. Nilainya tidak bisa ditampilkan lagi.',
       });
     }),
@@ -284,6 +459,7 @@ export const routes = [
       const rows = listTokens({
         projectSlug: url?.searchParams.get('project') ?? null,
         status: url?.searchParams.get('status') ?? null,
+        tier: url?.searchParams.get('tier') ?? null,
         limit: Math.min(Number(url?.searchParams.get('limit') ?? 100), 500),
       });
       sendJson(res, 200, { ok: true, count: rows.length, tokens: rows });
@@ -327,6 +503,16 @@ export const routes = [
       // token_hash tidak pernah dikembalikan.
       const { token_hash: _ignored, ...safeRow } = row;
       sendJson(res, 200, { ok: true, token: safeRow });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/cleanup',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const removed = cleanupExpiredSessions();
+      sendJson(res, 200, { ok: true, removed });
     }),
   },
 ];

@@ -51,7 +51,7 @@ export function requestsInWindow(tokenId, windowMs) {
   const since = now() - windowMs;
   const row = getDb().prepare(`
     SELECT COUNT(*) AS n FROM access_events
-    WHERE token_id = ? AND at >= ? AND action IN ('validate', 'content')
+    WHERE token_id = ? AND at >= ? AND action IN ('validate', 'content', 'session_create')
   `).get(tokenId, since);
   return Number(row?.n ?? 0);
 }
@@ -60,7 +60,7 @@ export function requestsInWindow(tokenId, windowMs) {
 export function consecutiveFailures(tokenId) {
   const rows = getDb().prepare(`
     SELECT outcome FROM access_events
-    WHERE token_id = ? AND action = 'validate'
+    WHERE token_id = ? AND action IN ('validate', 'session_create')
     ORDER BY at DESC LIMIT 40
   `).all(tokenId);
   let n = 0;
@@ -72,11 +72,11 @@ export function consecutiveFailures(tokenId) {
 }
 
 /** Permintaan akses dari form publik. */
-export function recordLead({ company = '', name = '', email, projectSlug = '', message = '', ip = '', userAgent = '' }) {
+export function recordLead({ company = '', name = '', email, role = '', projectSlug = '', budgetRange = '', urgency = '', message = '', ip = '', userAgent = '' }) {
   const info = getDb().prepare(`
-    INSERT INTO sales_leads (company, name, email, project_slug, message, ip, user_agent, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(company, name, email, projectSlug, message, ip, userAgent, now());
+    INSERT INTO sales_leads (company, name, email, role, project_slug, budget_range, urgency, message, ip, user_agent, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(company, name, email, role, projectSlug, budgetRange, urgency, message, ip, userAgent, now());
   return { id: Number(info.lastInsertRowid) };
 }
 
@@ -85,7 +85,7 @@ export function listLeads({ limit = 100, status = null } = {}) {
   const where = status ? 'WHERE status = ?' : '';
   const params = status ? [status, limit] : [limit];
   return getDb().prepare(`
-    SELECT id, company, name, email, project_slug, message, status, created_at
+    SELECT id, company, name, email, role, project_slug, budget_range, urgency, message, status, created_at
     FROM sales_leads ${where} ORDER BY created_at DESC LIMIT ?
   `).all(...params);
 }

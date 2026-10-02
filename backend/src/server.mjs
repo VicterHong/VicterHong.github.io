@@ -10,6 +10,7 @@ import { config, validateConfig, ENV_FILE } from './config.mjs';
 import { initRoutes, resolveRoute, handlePreflight } from './routes.mjs';
 import { applyCors, sendJson } from './http-util.mjs';
 import { closeDb } from './db.mjs';
+import { cleanupExpiredSessions } from './sessions.mjs';
 
 const problems = validateConfig();
 if (problems.length) {
@@ -23,6 +24,12 @@ if (problems.length) {
 }
 
 initRoutes();
+
+// Cleanup sesi expired setiap 1 jam
+setInterval(() => {
+  const removed = cleanupExpiredSessions();
+  if (removed > 0) console.log(`[cleanup] ${removed} sesi expired dihapus`);
+}, 3_600_000);
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);

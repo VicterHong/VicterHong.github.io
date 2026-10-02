@@ -1,19 +1,22 @@
 /**
  * Halaman proyek — gerbang token.
  *
- * Tiga keadaan:
- *   1. Belum punya token  → form token yang terlihat, konten terkunci kabur.
- *   2. Token valid        → konten terkunci diambil dari server dan ditampilkan.
- *   3. Token ditolak      → pesan jelas dari server (dicabut, kedaluwarsa, dibagikan).
+ * Flow baru (v2.1):
+ *   1. User submit token → POST /api/token/session → server set httpOnly cookie
+ *   2. Konten diambil via GET /api/project/:slug/locked (cookie otomatis terkirim)
+ *   3. Session persist di cookie, tidak di sessionStorage
+ *   4. Logout → POST /api/token/logout → cookie dihapus
  *
  * Konten terkunci TIDAK pernah ada di halaman ini sampai server mengirimkannya.
  */
 
-import { clearToken, fetchLockedContent, requestAccess, storeToken, storedToken, validateToken } from '../../src/api.js';
+import {
+  clearToken, createSession, destroySession, fetchLockedContent,
+  requestAccess, storeToken, storedToken, validateToken,
+} from '../../src/api.js';
 
 /**
  * Slug proyek dibaca dari URL: /projects/<slug>/index.html
- * Halaman proyek baru tidak perlu menyentuh berkas ini.
  */
 function currentProject() {
   const parts = window.location.pathname.split('/').filter(Boolean);
@@ -42,10 +45,19 @@ function setStatus(message, kind = '') {
   status.className = 'gate-status' + (kind ? ` is-${kind}` : '');
 }
 
-/** Kunci tombol selama permintaan berjalan supaya tidak terkirim dua kali. */
+/** Kunci tombol selama permintaan berjalan. */
 function setBusy(busy) {
   submit.disabled = busy;
   submit.textContent = busy ? 'Memeriksa…' : 'Buka';
+}
+
+/** Tambahkan watermark dinamis ke konten. */
+function addWatermark(container, text) {
+  const wm = document.createElement('div');
+  wm.className = 'dynamic-watermark';
+  wm.textContent = text;
+  wm.setAttribute('aria-hidden', 'true');
+  container.append(wm);
 }
 
 /** Tampilkan konten terkunci yang datang dari server. */
@@ -58,10 +70,19 @@ function renderLocked(payload) {
   const h2 = document.createElement('h2');
   h2.textContent = content.title ?? 'Detail arsitektur';
   head.append(h2);
-  if (payload.issued_to) {
+
+  // Badge tier
+  const tier = payload?.tier ?? 'standard';
+  const badge = document.createElement('span');
+  badge.className = `tier-badge tier-${tier}`;
+  badge.textContent = tier === 'enterprise' ? '🛡️ Enterprise' : '🔒 Gated';
+  head.append(badge);
+
+  if (payload.issued_to || payload.company) {
     const who = document.createElement('p');
     who.className = 'locked-issued';
-    who.textContent = `Akses untuk: ${payload.issued_to}`;
+    const name = payload.company ? `${payload.company} (${payload.issued_to})` : payload.issued_to;
+    who.textContent = `Akses untuk: ${name}`;
     head.append(who);
   }
   contentHost.append(head);
@@ -85,6 +106,12 @@ function renderLocked(payload) {
     contentHost.append(wrap);
   }
 
+  // Watermark: nama perusahaan + tier
+  const wmText = payload.company
+    ? `Lisensi: ${payload.company} • ${tier.toUpperCase()}`
+    : `Lisensi: ${payload.issued_to || 'Dibatasi'} • ${tier.toUpperCase()}`;
+  addWatermark(contentHost, wmText);
+
   // Sembunyikan pratinjau kabur dan gerbang; tampilkan konten asli.
   body.hidden = true;
   gate.hidden = true;
@@ -95,8 +122,9 @@ function renderLocked(payload) {
   const lockBtn = document.createElement('button');
   lockBtn.type = 'button';
   lockBtn.className = 'link-btn';
-  lockBtn.textContent = 'Kunci kembali';
-  lockBtn.addEventListener('click', () => {
+  lockBtn.textContent = 'Kunci kembali / Logout';
+  lockBtn.addEventListener('click', async () => {
+    await destroySession();
     clearToken();
     contentHost.hidden = true;
     contentHost.innerHTML = '';
@@ -109,23 +137,25 @@ function renderLocked(payload) {
   contentHost.append(foot);
 }
 
-/** Buka konten dengan token tertentu. */
+/** Buka konten: token → session → content. */
 async function unlock(token) {
   setBusy(true);
   setStatus('Memeriksa token…');
 
-  const check = await validateToken(PROJECT, token);
-  if (!check.ok) {
+  // Step 1: Buat session cookie
+  const sess = await createSession(token, PROJECT);
+  if (!sess.ok) {
     setBusy(false);
-    const message = check.data?.message
-      ?? (check.status === 0
+    const message = sess.data?.message
+      ?? (sess.status === 0
         ? 'Tidak bisa menghubungi server. Coba lagi sebentar lagi.'
         : 'Token tidak dapat digunakan.');
     setStatus(message, 'error');
     return false;
   }
 
-  const result = await fetchLockedContent(PROJECT, token);
+  // Step 2: Ambil konten dengan session cookie
+  const result = await fetchLockedContent(PROJECT);
   setBusy(false);
 
   if (!result.ok) {
@@ -149,7 +179,7 @@ form.addEventListener('submit', async (event) => {
   }
   const ok = await unlock(token);
   if (ok) {
-    // Token hanya disimpan setelah terbukti valid.
+    // Token hanya disimpan di sessionStorage sebagai backup (cookie adalah utama)
     storeToken(token);
   }
 });
@@ -185,7 +215,10 @@ requestForm.addEventListener('submit', async (event) => {
     company: data.company ?? '',
     name: data.name ?? '',
     email,
+    role: data.role ?? '',
     project: PROJECT,
+    budget_range: data.budget_range ?? '',
+    urgency: data.urgency ?? '',
     message: data.message ?? '',
   });
 
@@ -206,8 +239,11 @@ requestForm.addEventListener('submit', async (event) => {
 
 $('#year').textContent = String(new Date().getFullYear());
 
-// Kalau sesi ini sudah punya token (misalnya setelah refresh), coba langsung buka.
-const existing = storedToken();
-if (existing) {
-  unlock(existing);
-}
+// Coba ambil konten dengan session cookie yang mungkin sudah ada
+(async () => {
+  const result = await fetchLockedContent(PROJECT);
+  if (result.ok) {
+    renderLocked(result.data);
+  }
+  // Kalau tidak ada session, tampilkan gate (default state)
+})();

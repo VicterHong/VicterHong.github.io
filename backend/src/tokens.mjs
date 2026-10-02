@@ -3,6 +3,10 @@
  *
  * Token disimpan HANYA sebagai hash (SHA-256 + salt dari SERVICE_SECRET). Plaintext
  * ditampilkan sekali saat terbit. Kalau database bocor, token tidak langsung bisa dipakai.
+ *
+ * Format baru: VP-XXXX-XXXX-XXXX-XXXX (128-bit entropy, 4 segmen × 4 karakter base32)
+ * Tier: standard | enterprise
+ * Scopes: array project_slug yang bisa diakses (JSON di database)
  */
 
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -36,34 +40,51 @@ export function hashesEqual(a, b) {
 
 /**
  * Terbitkan token baru.
- * @returns {{id: string, token: string, project_slug: string, expires_at: number|null}}
+ * @returns {{id: string, token: string, project_slug: string, tier: string, scopes: string[], expires_at: number|null}}
  *   `token` adalah plaintext — satu-satunya kesempatan melihatnya.
  */
 export function issueToken({
-  secret, projectSlug, label = '', issuedTo = '', issuedBy = 'admin',
-  expiresInDays = null, maxIps = 3, notes = '', prefix = 'pv_',
+  secret, projectSlug, tier = 'standard', scopes = null,
+  label = '', issuedTo = '', company = '', issuedBy = 'admin',
+  expiresInDays = null, maxIps = 3, maxDevices = 3, notes = '',
+  prefix = 'VP-', segments = 4, segmentLength = 4,
 }) {
-  const plaintext = prefix + randomToken(32);
+  const parts = [];
+  for (let i = 0; i < segments; i += 1) parts.push(randomToken(segmentLength));
+  const plaintext = prefix + parts.join('-');
+
   const id = tokenId();
   const issuedAt = now();
   const expiresAt = expiresInDays ? issuedAt + expiresInDays * 86_400_000 : null;
 
+  // scopes: kalau null, default ke [projectSlug]
+  const scopeList = scopes && Array.isArray(scopes) && scopes.length > 0 ? scopes : [projectSlug];
+
   transaction(() => {
     getDb().prepare(`
-      INSERT INTO tokens (id, token_hash, label, project_slug, issued_to, issued_by,
-                          issued_at, expires_at, max_ips, status, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
-    `).run(id, hashToken(plaintext, secret), label, projectSlug, issuedTo, issuedBy,
-           issuedAt, expiresAt, maxIps, notes);
+      INSERT INTO tokens (id, token_hash, label, project_slug, tier, scopes,
+                          issued_to, company, issued_by, issued_at, expires_at,
+                          max_ips, max_devices, status, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+    `).run(id, hashToken(plaintext, secret), label, projectSlug, tier,
+           JSON.stringify(scopeList), issuedTo, company, issuedBy,
+           issuedAt, expiresAt, maxIps, maxDevices, notes);
   });
 
-  return { id, token: plaintext, project_slug: projectSlug, expires_at: expiresAt, max_ips: maxIps };
+  return {
+    id, token: plaintext, project_slug: projectSlug, tier,
+    scopes: scopeList, expires_at: expiresAt, max_ips: maxIps, max_devices: maxDevices,
+  };
 }
 
 /** Cari baris token berdasarkan plaintext. */
 export function findTokenByPlaintext(plaintext, secret) {
   const hash = hashToken(plaintext, secret);
-  return getDb().prepare('SELECT * FROM tokens WHERE token_hash = ?').get(hash) ?? null;
+  const row = getDb().prepare('SELECT * FROM tokens WHERE token_hash = ?').get(hash) ?? null;
+  if (row && row.scopes) {
+    try { row.scopes = JSON.parse(row.scopes); } catch { row.scopes = [row.project_slug]; }
+  }
+  return row;
 }
 
 /** Alasan token tidak valid, atau null kalau valid. */
@@ -87,6 +108,8 @@ export function revokeToken(tokenId, reason, { automatic = false, detail = '' } 
     getDb().prepare(`
       INSERT INTO revocations (token_id, reason, automatic, detail, at) VALUES (?, ?, ?, ?, ?)
     `).run(tokenId, reason, automatic ? 1 : 0, detail, at);
+    // Hapus semua sesi aktif token ini
+    getDb().prepare('DELETE FROM sessions WHERE token_id = ?').run(tokenId);
     return { revoked: true, at };
   });
 }
@@ -109,22 +132,35 @@ export function resumeToken(tokenId) {
 }
 
 /** Daftar token, terbaru lebih dulu. Plaintext TIDAK pernah dikembalikan. */
-export function listTokens({ projectSlug = null, status = null, limit = 100 } = {}) {
+export function listTokens({ projectSlug = null, status = null, tier = null, limit = 100 } = {}) {
   const where = [];
   const params = [];
   if (projectSlug) { where.push('project_slug = ?'); params.push(projectSlug); }
   if (status) { where.push('status = ?'); params.push(status); }
+  if (tier) { where.push('tier = ?'); params.push(tier); }
   const clause = where.length ? 'WHERE ' + where.join(' AND ') : '';
   params.push(limit);
-  return getDb().prepare(`
-    SELECT id, label, project_slug, issued_to, issued_by, issued_at, expires_at,
-           revoked_at, revoked_reason, max_ips, status, notes
+  const rows = getDb().prepare(`
+    SELECT id, label, project_slug, tier, scopes, issued_to, company,
+           issued_by, issued_at, expires_at, revoked_at, revoked_reason,
+           max_ips, max_devices, status, notes
     FROM tokens ${clause}
     ORDER BY issued_at DESC LIMIT ?
   `).all(...params);
+  // Parse scopes JSON
+  for (const row of rows) {
+    if (row.scopes) {
+      try { row.scopes = JSON.parse(row.scopes); } catch { row.scopes = [row.project_slug]; }
+    }
+  }
+  return rows;
 }
 
 /** Ringkasan satu token untuk tampilan admin. */
 export function getToken(tokenId) {
-  return getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(tokenId) ?? null;
+  const row = getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(tokenId) ?? null;
+  if (row && row.scopes) {
+    try { row.scopes = JSON.parse(row.scopes); } catch { row.scopes = [row.project_slug]; }
+  }
+  return row;
 }
