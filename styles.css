@@ -66,13 +66,11 @@ a { color: inherit; text-decoration: none; }
 
 /* Poster terlihat sejak awal — kalau video diblokir (hemat baterai/data),
    background tetap hidup, bukan gradien polos. */
-.hero-video[poster] { opacity: 0.7; }
+.hero-video[poster] { opacity: 0.5; }
 
-/* Video latar: dinaikkan bertahap sampai benar-benar terlihat.
-   0.28 → 0.55 → 0.75. Di layar mobile yang kecil, video butuh lebih terang
-   lagi supaya gerakannya terasa — keterbacaan teks dijaga oleh text-shadow
-   dan overlay yang lebih terarah (bukan dengan meredupkan video). */
-.hero-video.is-ready { opacity: 0.75; }
+/* Video latar: opacity dinaikkan supaya benar-benar terlihat. Nilai lama 0.28
+   terlalu redup — di layar mobile video tampak seperti gradien polos. */
+.hero-video.is-ready { opacity: 0.55; }
 
 /* Cadangan: gradien yang bergerak sangat lambat. Terlihat hidup, tidak mengganggu. */
 .hero-fallback {
@@ -91,17 +89,18 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* Lapisan gelap + butiran halus: menjaga teks tetap terbaca di atas video apa pun.
-   Overlay dikurangi lagi (0.52 → 0.42 di tengah) karena video kini 0.75 terang.
-   Keterbacaan teks dijaga oleh text-shadow di elemen hero, bukan dengan
-   meredupkan video sampai tak terlihat. */
+   Sebelumnya overlay ini 86% gelap di tengah — bersama video opacity 0.34,
+   video jadi praktis tak terlihat (terutama di layar mobile kecil).
+   Sekarang: overlay lebih ringan di area atas (tempat video terlihat), tetap
+   gelap di bawah (tempat teks panjang) supaya kontras terjaga. */
 .hero-grain {
   position: absolute;
   inset: 0;
   background:
     linear-gradient(180deg,
-      rgba(10,10,11,0.22) 0%,
-      rgba(10,10,11,0.42) 40%,
-      rgba(10,10,11,0.72) 68%,
+      rgba(10,10,11,0.30) 0%,
+      rgba(10,10,11,0.52) 42%,
+      rgba(10,10,11,0.78) 68%,
       var(--bg) 100%);
 }
 
@@ -178,9 +177,6 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: -0.035em;
   font-weight: 700;
   margin: 0 0 1.5rem;
-  /* Bayangan halus menjaga judul tetap terbaca di atas video yang terang.
-     Lebih baik dari menambah overlay gelap (yang membuat video tak terlihat). */
-  text-shadow: 0 2px 20px rgba(10, 10, 11, 0.85), 0 1px 4px rgba(10, 10, 11, 0.6);
 }
 
 .hero-title .accent {
@@ -207,7 +203,6 @@ a { color: inherit; text-decoration: none; }
   color: var(--text-dim);
   max-width: 58ch;
   margin: 0 0 2.2rem;
-  text-shadow: 0 1px 12px rgba(10, 10, 11, 0.9), 0 1px 3px rgba(10, 10, 11, 0.7);
 }
 
 .hero-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 3.4rem; }
