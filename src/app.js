@@ -11,6 +11,7 @@
  */
 
 import { profile, projects, sideProjects, principles, stats } from './data/projects.js';
+import { initAstra } from './astra.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -40,7 +41,7 @@ function renderStats() {
   ];
   for (const entry of entries) {
     host.append(el('div', {},
-      el('dd', { text: entry.value }),
+      el('dd', { 'data-count': entry.value.replace(/\./g, ''), text: entry.value }),
       el('dt', { text: entry.label }),
     ));
   }
@@ -222,3 +223,13 @@ $('#year').textContent = String(new Date().getFullYear());
 loadHeroVideo();
 observeReveals();
 watchHeader();
+
+// Stagger untuk daftar yang dirender JS (kartu proyek, prinsip, kontak).
+// Ditandai SEBELUM initAstra supaya observer langsung menangkapnya.
+for (const id of ['featuredProjects', 'sideProjects', 'principles', 'contactLinks', 'heroStats']) {
+  const node = document.getElementById(id);
+  if (node) node.dataset.stagger = '';
+}
+
+// Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
+initAstra();

@@ -14,6 +14,7 @@ import {
   clearToken, createSession, destroySession, fetchLockedContent,
   requestAccess, storeToken, storedToken, trackEvent, validateToken,
 } from '../../src/api.js';
+import { initAstra } from '../../src/astra.js';
 
 /**
  * Slug proyek dibaca dari URL: /projects/<slug>/index.html
@@ -274,4 +275,7 @@ observer.observe(gate);
     renderLocked(result.data);
   }
   // Kalau tidak ada session, tampilkan gate (default state)
+
+  // Micro-interactions Astra — setelah konten statis siap.
+  initAstra();
 })();
