@@ -117,6 +117,24 @@ CREATE TABLE IF NOT EXISTS device_fingerprints (
 
 CREATE INDEX IF NOT EXISTS idx_fp_token ON device_fingerprints(token_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_fp_session ON device_fingerprints(session_id);
+
+CREATE TABLE IF NOT EXISTS analytics_events (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_type  TEXT NOT NULL,
+  project_slug TEXT NOT NULL DEFAULT '',
+  token_id    TEXT,
+  session_id  TEXT,
+  ip          TEXT NOT NULL DEFAULT '',
+  country     TEXT NOT NULL DEFAULT '',
+  user_agent  TEXT NOT NULL DEFAULT '',
+  referrer    TEXT NOT NULL DEFAULT '',
+  metadata    TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics_events(event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_project ON analytics_events(project_slug, created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_token ON analytics_events(token_id, created_at);
 `;
 
 /** Buka (atau buat) database. Aman dipanggil berkali-kali. */

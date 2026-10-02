@@ -12,7 +12,7 @@
 
 import {
   clearToken, createSession, destroySession, fetchLockedContent,
-  requestAccess, storeToken, storedToken, validateToken,
+  requestAccess, storeToken, storedToken, trackEvent, validateToken,
 } from '../../src/api.js';
 
 /**
@@ -177,10 +177,19 @@ form.addEventListener('submit', async (event) => {
     setStatus('Masukkan token terlebih dahulu.', 'error');
     return;
   }
+
+  // Track: token attempt
+  trackEvent('token_attempt', PROJECT);
+
   const ok = await unlock(token);
   if (ok) {
     // Token hanya disimpan di sessionStorage sebagai backup (cookie adalah utama)
     storeToken(token);
+    // Track: token success
+    trackEvent('token_success', PROJECT);
+  } else {
+    // Track: token fail
+    trackEvent('token_fail', PROJECT);
   }
 });
 
@@ -188,6 +197,9 @@ $('#requestAccessBtn').addEventListener('click', () => {
   requestSection.hidden = false;
   requestSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('#reqCompany').focus();
+
+  // Track: contact sales clicked
+  trackEvent('contact_sales', PROJECT);
 });
 
 $('#requestCancel').addEventListener('click', () => {
@@ -229,6 +241,8 @@ requestForm.addEventListener('submit', async (event) => {
     requestForm.reset();
     requestStatus.textContent = 'Permintaan terkirim. Sales akan menghubungi Anda lewat email.';
     requestStatus.className = 'request-status is-ok';
+    // Track: lead submitted
+    trackEvent('lead_submit', PROJECT, { company: data.company, email });
   } else {
     requestStatus.textContent = result.data?.message ?? 'Gagal mengirim permintaan. Coba lagi.';
     requestStatus.className = 'request-status is-error';
@@ -238,6 +252,20 @@ requestForm.addEventListener('submit', async (event) => {
 // ── Saat halaman dibuka ───────────────────────────────────────────────────────
 
 $('#year').textContent = String(new Date().getFullYear());
+
+// Track: page view
+trackEvent('page_view', PROJECT);
+
+// Track: modal open (gate visible)
+const observer = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting && !entry.target.hidden) {
+      trackEvent('modal_open', PROJECT);
+      observer.disconnect();
+    }
+  }
+});
+observer.observe(gate);
 
 // Coba ambil konten dengan session cookie yang mungkin sudah ada
 (async () => {

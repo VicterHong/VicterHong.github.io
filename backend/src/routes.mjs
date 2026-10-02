@@ -29,6 +29,7 @@ import { createSession, validateSession, destroySession, cleanupExpiredSessions 
 import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
 import { enforceAbuseRules, revokeMessage } from './guard.mjs';
 import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
+import { recordAnalytics, getFunnel, recentAnalytics, uniqueVisitors } from './analytics.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
   applyCors, clientCountry, clientIp, extractToken, handlePreflight,
@@ -327,6 +328,18 @@ export const routes = [
       }
 
       const content = loadLockedContent(slug) ?? sampleLockedContent(slug);
+
+      // Record analytics: content_view
+      recordAnalytics({
+        eventType: 'content_view',
+        projectSlug: slug,
+        tokenId: tokenRow.id,
+        ip: clientIp(req),
+        country: clientCountry(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        referrer: String(req.headers.referer ?? ''),
+      });
+
       sendJson(res, 200, {
         ok: true,
         project: slug,
@@ -363,7 +376,46 @@ export const routes = [
         projectSlug: String(body.project ?? ''), action: 'lead', outcome: 'ok',
         ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
       });
+      // Record analytics: lead_submit
+      recordAnalytics({
+        eventType: 'lead_submit',
+        projectSlug: String(body.project ?? ''),
+        ip: clientIp(req),
+        country: clientCountry(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        referrer: String(req.headers.referer ?? ''),
+        metadata: { company: String(body.company ?? ''), email: String(body.email ?? '') },
+      });
+
       sendJson(res, 200, { ok: true, id: result.id, message: 'Permintaan Anda tercatat. Sales akan menghubungi Anda.' });
+    }),
+  },
+
+  // ── ANALYTICS ────────────────────────────────────────────────────────────────
+
+  {
+    method: 'POST',
+    pattern: '/api/analytics/track',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const eventType = String(body.event_type ?? '').trim();
+      const projectSlug = String(body.project ?? '').trim();
+
+      if (!eventType) {
+        return sendJson(res, 400, { ok: false, error: 'event_type_required' });
+      }
+
+      recordAnalytics({
+        eventType,
+        projectSlug: isValidSlug(projectSlug) ? projectSlug : '',
+        ip: clientIp(req),
+        country: clientCountry(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        referrer: String(req.headers.referer ?? ''),
+        metadata: body.metadata ?? {},
+      });
+
+      sendJson(res, 200, { ok: true });
     }),
   },
 
@@ -524,6 +576,42 @@ export const routes = [
       if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
       const removed = cleanupExpiredSessions();
       sendJson(res, 200, { ok: true, removed });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/analytics/funnel',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const project = url?.searchParams.get('project') ?? null;
+      const days = Math.min(Number(url?.searchParams.get('days') ?? 30), 365);
+      const windowMs = days * 24 * 60 * 60 * 1000;
+
+      const funnel = getFunnel({ projectSlug: project, windowMs });
+      const visitors = uniqueVisitors({ projectSlug: project, windowMs });
+
+      sendJson(res, 200, {
+        ok: true,
+        project: project ?? 'all',
+        days,
+        funnel,
+        unique_visitors: visitors,
+      });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/analytics/events',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const events = recentAnalytics({
+        limit: Math.min(Number(url?.searchParams.get('limit') ?? 100), 1000),
+        eventType: url?.searchParams.get('type') ?? null,
+        projectSlug: url?.searchParams.get('project') ?? null,
+      });
+      sendJson(res, 200, { ok: true, count: events.length, events });
     }),
   },
 ];

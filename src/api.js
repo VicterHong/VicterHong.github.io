@@ -124,3 +124,16 @@ export function validateToken(project, token) {
 export function requestAccess(payload) {
   return call('/api/contact/sales', { method: 'POST', body: payload });
 }
+
+/**
+ * Track analytics event dari frontend.
+ * Fire-and-forget: tidak menunggu respons, tidak mengganggu UX.
+ */
+export function trackEvent(eventType, project, metadata = {}) {
+  // Fire-and-forget: jangan await, jangan blocking
+  call('/api/analytics/track', {
+    method: 'POST',
+    body: { event_type: eventType, project, metadata },
+    useCredentials: false, // no cookie needed for tracking
+  }).catch(() => { /* silently fail */ });
+}

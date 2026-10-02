@@ -17,6 +17,7 @@ import { config, validateConfig } from './config.mjs';
 import { openDb } from './db.mjs';
 import { getToken, issueToken, listTokens, revokeToken } from './tokens.mjs';
 import { listLeads, recentEvents } from './audit.mjs';
+import { getFunnel, uniqueVisitors } from './analytics.mjs';
 
 /** Urai argumen sederhana: --key value atau --flag. */
 function parseArgs(argv) {
@@ -45,14 +46,16 @@ function usage() {
   console.log(`Layanan token portofolio — CLI admin
 
 Perintah:
-  issue    --project <slug> [--tier standard|enterprise] [--scopes <slug1,slug2>]
-           [--to <nama>] [--company <nama>] [--label <teks>] [--days <n>]
-           [--max-ips <n>] [--max-devices <n>] [--notes <teks>]
-  list     [--project <slug>] [--status active|revoked|suspended] [--tier <tier>] [--limit <n>]
-  show     --id <token_id>
-  revoke   --id <token_id> [--reason <teks>]
-  audit    [--project <slug>] [--token <token_id>] [--limit <n>]
-  leads    [--status new|contacted] [--limit <n>]
+  issue     --project <slug> [--tier standard|enterprise] [--scopes <slug1,slug2>]
+            [--to <nama>] [--company <nama>] [--label <teks>] [--days <n>]
+            [--max-ips <n>] [--max-devices <n>] [--notes <teks>]
+  list      [--project <slug>] [--status active|revoked|suspended] [--tier <tier>] [--limit <n>]
+  show      --id <token_id>
+  revoke    --id <token_id> [--reason <teks>]
+  audit     [--project <slug>] [--token <token_id>] [--limit <n>]
+  leads     [--status new|contacted] [--limit <n>]
+  funnel    [--project <slug>] [--days <n>]
+  visitors  [--project <slug>] [--days <n>]
 
 Contoh:
   node src/admin-cli.mjs issue --project mina --to "PT Contoh" --days 30
@@ -209,6 +212,46 @@ function main() {
         console.log('');
       }
       console.log('  Total:', leads.length);
+      console.log('');
+      return 0;
+    }
+
+    case 'funnel': {
+      const days = args.days ? Number(args.days) : 30;
+      const windowMs = days * 24 * 60 * 60 * 1000;
+      const funnel = getFunnel({ projectSlug: args.project ?? null, windowMs });
+      const visitors = uniqueVisitors({ projectSlug: args.project ?? null, windowMs });
+
+      console.log('');
+      console.log('  FUNNEL ANALYTICS');
+      console.log('  Proyek :', args.project ?? 'semua');
+      console.log('  Periode:', days, 'hari');
+      console.log('  Visitor:', visitors, 'unik');
+      console.log('');
+      console.log('  Step                Count');
+      console.log('  ' + '─'.repeat(30));
+      for (const [step, count] of Object.entries(funnel)) {
+        if (step === 'conversion_rate') continue;
+        console.log('  ' + String(step).padEnd(20) + String(count).padStart(6));
+      }
+      console.log('');
+      console.log('  Conversion Rates');
+      console.log('  ' + '─'.repeat(30));
+      for (const [rate, value] of Object.entries(funnel.conversion_rate)) {
+        console.log('  ' + String(rate).padEnd(20) + String(value).padStart(6) + '%');
+      }
+      console.log('');
+      return 0;
+    }
+
+    case 'visitors': {
+      const days = args.days ? Number(args.days) : 30;
+      const windowMs = days * 24 * 60 * 60 * 1000;
+      const visitors = uniqueVisitors({ projectSlug: args.project ?? null, windowMs });
+      console.log('');
+      console.log('  Unique visitors:', visitors);
+      console.log('  Proyek         :', args.project ?? 'semua');
+      console.log('  Periode        :', days, 'hari');
       console.log('');
       return 0;
     }
