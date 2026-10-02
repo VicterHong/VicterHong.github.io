@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="620" viewBox="0 0 1440 620" font-family="Inter, -apple-system, sans-serif">
+  <rect width="1440" height="620" fill="#0a0a0b"/>
+
+  <text x="80" y="70" fill="#ff7a45" font-size="13" font-weight="600" letter-spacing="2">03 · SISTEM WARNA</text>
+  <text x="80" y="106" fill="#e8e8ed" font-size="26" font-weight="700">Palet &amp; Tipografi</text>
+
+  <!-- Color swatches -->
+  <g transform="translate(80, 160)">
+    <!-- Background -->
+    <g>
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#0a0a0b" stroke="#2a2a32" stroke-width="1"/>
+      <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Background</text>
+      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#0A0A0B</text>
+    </g>
+    <!-- Surface -->
+    <g transform="translate(224, 0)">
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#131316" stroke="#2a2a32" stroke-width="1"/>
+      <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Surface</text>
+      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#131316</text>
+    </g>
+    <!-- Surface 2 -->
+    <g transform="translate(448, 0)">
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#1a1a1f" stroke="#2a2a32" stroke-width="1"/>
+      <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Surface Alt</text>
+      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#1A1A1F</text>
+    </g>
+    <!-- Border -->
+    <g transform="translate(672, 0)">
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#2a2a32" stroke="#2a2a32" stroke-width="1"/>
+      <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Border</text>
+      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#2A2A32</text>
+    </g>
+    <!-- Accent -->
+    <g transform="translate(896, 0)">
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#ff7a45"/>
+      <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Accent</text>
+      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#FF7A45</text>
+    </g>
+    <!-- Accent light -->
+    <g transform="translate(1120, 0)">
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#ff9d6b"/>
+      <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Accent Light</text>
+      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#FF9D6B</text>
+    </g>
+  </g>
+
+  <!-- Text colors -->
+  <g transform="translate(80, 380)">
+    <text x="0" y="0" fill="#ff7a45" font-size="12" font-weight="600" letter-spacing="1.5">WARNA TEKS</text>
+    <g transform="translate(0, 24)">
+      <rect x="0" y="0" width="120" height="80" rx="8" fill="#e8e8ed"/>
+      <text x="16" y="110" fill="#e8e8ed" font-size="14" font-weight="600">Text</text>
+      <text x="16" y="132" fill="#8a8a96" font-size="12" font-family="monospace">#E8E8ED</text>
+    </g>
+    <g transform="translate(144, 24)">
+      <rect x="0" y="0" width="120" height="80" rx="8" fill="#8a8a96"/>
+      <text x="16" y="110" fill="#e8e8ed" font-size="14" font-weight="600">Muted</text>
+      <text x="16" y="132" fill="#8a8a96" font-size="12" font-family="monospace">#8A8A96</text>
+    </g>
+  </g>
+
+  <!-- Typography -->
+  <g transform="translate(500, 380)">
+    <text x="0" y="0" fill="#ff7a45" font-size="12" font-weight="600" letter-spacing="1.5">TIPOGRAFI</text>
+    <g transform="translate(0, 30)">
+      <text x="0" y="0" fill="#e8e8ed" font-size="32" font-weight="700">Inter Bold 32</text>
+      <text x="0" y="22" fill="#8a8a96" font-size="12">Judul hero, nama proyek</text>
+    </g>
+    <g transform="translate(0, 90)">
+      <text x="0" y="0" fill="#e8e8ed" font-size="20" font-weight="600">Inter SemiBold 20</text>
+      <text x="0" y="20" fill="#8a8a96" font-size="12">Judul kartu, heading section</text>
+    </g>
+    <g transform="translate(0, 145)">
+      <text x="0" y="0" fill="#e8e8ed" font-size="15" font-weight="400">Inter Regular 15 — teks isi</text>
+      <text x="0" y="20" fill="#8a8a96" font-size="12">Deskripsi, paragraf</text>
+    </g>
+    <g transform="translate(0, 200)">
+      <text x="0" y="0" fill="#ff9d6b" font-size="13" font-family="monospace">JetBrains Mono 13 — label teknis</text>
+      <text x="0" y="20" fill="#8a8a96" font-size="12">Durasi, kode, metadata</text>
+    </g>
+  </g>
+
+  <!-- Spacing scale -->
+  <g transform="translate(1000, 380)">
+    <text x="0" y="0" fill="#ff7a45" font-size="12" font-weight="600" letter-spacing="1.5">SKALA JARAK</text>
+    <g transform="translate(0, 30)" fill="#e8e8ed" font-size="13" font-family="monospace">
+      <text x="0" y="0">4px   · ikon kecil</text>
+      <text x="0" y="26">8px   · gap dalam komponen</text>
+      <text x="0" y="52">16px  · padding kartu</text>
+      <text x="0" y="78">24px  · gap antar kartu</text>
+      <text x="0" y="104">48px  · jarak antar section</text>
+      <text x="0" y="130">80px  · margin halaman</text>
+    </g>
+  </g>
+</svg>

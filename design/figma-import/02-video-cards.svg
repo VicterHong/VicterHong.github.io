@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="560" viewBox="0 0 1440 560" font-family="Inter, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="thumb1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a1f"/>
+      <stop offset="100%" stop-color="#0d0d0f"/>
+    </linearGradient>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="560" fill="#0a0a0b"/>
+
+  <!-- Title -->
+  <text x="80" y="70" fill="#ff7a45" font-size="13" font-weight="600" letter-spacing="2">02 · KARTU VIDEO</text>
+  <text x="80" y="106" fill="#e8e8ed" font-size="26" font-weight="700">Kartu Video per Proyek</text>
+
+  <!-- Card 1 — MINA -->
+  <g transform="translate(80, 160)">
+    <rect x="0" y="0" width="400" height="330" rx="14" fill="#131316" stroke="#2a2a32" stroke-width="1"/>
+    <!-- Thumb -->
+    <rect x="0" y="0" width="400" height="225" rx="14" fill="url(#thumb1)"/>
+    <rect x="0" y="200" width="400" height="25" rx="0" fill="url(#thumb1)"/>
+    <!-- Network visual -->
+    <g stroke="#ff7a45" stroke-width="1" opacity="0.45" fill="none">
+      <path d="M80 80 L160 110 L240 85 L320 120"/>
+      <path d="M90 160 L170 140 L250 170 L330 150"/>
+      <path d="M160 110 L170 140 M240 85 L250 170"/>
+    </g>
+    <g fill="#ffb088">
+      <circle cx="80" cy="80" r="3"/><circle cx="160" cy="110" r="3.5"/>
+      <circle cx="240" cy="85" r="4"/><circle cx="320" cy="120" r="3.5"/>
+      <circle cx="90" cy="160" r="3"/><circle cx="170" cy="140" r="3.5"/>
+      <circle cx="250" cy="170" r="4"/><circle cx="330" cy="150" r="3.5"/>
+    </g>
+    <!-- Tag -->
+    <rect x="16" y="16" width="76" height="26" rx="6" fill="#0a0a0b" opacity="0.85"/>
+    <rect x="16" y="16" width="76" height="26" rx="6" fill="none" stroke="#ff7a45" stroke-width="1" opacity="0.4"/>
+    <text x="54" y="33" fill="#ff9d6b" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">MINA</text>
+    <!-- Duration -->
+    <rect x="340" y="184" width="48" height="24" rx="6" fill="#0a0a0b" opacity="0.85"/>
+    <text x="364" y="200" fill="#e8e8ed" font-size="11" text-anchor="middle" font-family="monospace">0:45</text>
+    <!-- Play -->
+    <g transform="translate(200, 112)">
+      <circle cx="0" cy="0" r="24" fill="#0a0a0b" opacity="0.75"/>
+      <circle cx="0" cy="0" r="24" fill="none" stroke="#ff7a45" stroke-width="1.2" opacity="0.5"/>
+      <path d="M-6 -9 L12 0 L-6 9 Z" fill="#ff9d6b"/>
+    </g>
+    <!-- Body -->
+    <text x="20" y="262" fill="#e8e8ed" font-size="17" font-weight="600">Arsitektur Sistem</text>
+    <text x="20" y="288" fill="#8a8a96" font-size="13">Bagaimana remote control hemat</text>
+    <text x="20" y="306" fill="#8a8a96" font-size="13">sumber daya dibangun.</text>
+  </g>
+
+  <!-- Card 2 — SPAREPARTS -->
+  <g transform="translate(520, 160)">
+    <rect x="0" y="0" width="400" height="330" rx="14" fill="#131316" stroke="#2a2a32" stroke-width="1"/>
+    <rect x="0" y="0" width="400" height="225" rx="14" fill="url(#thumb1)"/>
+    <rect x="0" y="200" width="400" height="25" rx="0" fill="url(#thumb1)"/>
+    <!-- Shelf lines -->
+    <g stroke="#ff7a45" stroke-width="1.5" opacity="0.35">
+      <path d="M60 70 H340"/>
+      <path d="M60 120 H340"/>
+      <path d="M60 170 H340"/>
+    </g>
+    <g fill="#ffb088" opacity="0.7">
+      <rect x="80" y="58" width="24" height="12" rx="2"/>
+      <rect x="130" y="58" width="24" height="12" rx="2"/>
+      <rect x="200" y="58" width="24" height="12" rx="2"/>
+      <rect x="100" y="108" width="24" height="12" rx="2"/>
+      <rect x="180" y="108" width="24" height="12" rx="2"/>
+      <rect x="260" y="108" width="24" height="12" rx="2"/>
+      <rect x="90" y="158" width="24" height="12" rx="2"/>
+      <rect x="160" y="158" width="24" height="12" rx="2"/>
+      <rect x="240" y="158" width="24" height="12" rx="2"/>
+    </g>
+    <rect x="16" y="16" width="120" height="26" rx="6" fill="#0a0a0b" opacity="0.85"/>
+    <rect x="16" y="16" width="120" height="26" rx="6" fill="none" stroke="#ff7a45" stroke-width="1" opacity="0.4"/>
+    <text x="76" y="33" fill="#ff9d6b" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">SPAREPARTS</text>
+    <rect x="340" y="184" width="48" height="24" rx="6" fill="#0a0a0b" opacity="0.85"/>
+    <text x="364" y="200" fill="#e8e8ed" font-size="11" text-anchor="middle" font-family="monospace">0:38</text>
+    <g transform="translate(200, 112)">
+      <circle cx="0" cy="0" r="24" fill="#0a0a0b" opacity="0.75"/>
+      <circle cx="0" cy="0" r="24" fill="none" stroke="#ff7a45" stroke-width="1.2" opacity="0.5"/>
+      <path d="M-6 -9 L12 0 L-6 9 Z" fill="#ff9d6b"/>
+    </g>
+    <text x="20" y="262" fill="#e8e8ed" font-size="17" font-weight="600">Manajemen Inventaris</text>
+    <text x="20" y="288" fill="#8a8a96" font-size="13">Dari spreadsheet ke sistem yang</text>
+    <text x="20" y="306" fill="#8a8a96" font-size="13">bisa diandalkan.</text>
+  </g>
+
+  <!-- Card 3 — GATED PORTAL -->
+  <g transform="translate(960, 160)">
+    <rect x="0" y="0" width="400" height="330" rx="14" fill="#131316" stroke="#2a2a32" stroke-width="1"/>
+    <rect x="0" y="0" width="400" height="225" rx="14" fill="url(#thumb1)"/>
+    <rect x="0" y="200" width="400" height="25" rx="0" fill="url(#thumb1)"/>
+    <!-- Door with light -->
+    <rect x="150" y="50" width="100" height="150" rx="4" fill="#0d0d0f" stroke="#ff7a45" stroke-width="1.5" opacity="0.7"/>
+    <rect x="150" y="50" width="6" height="150" fill="#ff9d6b" opacity="0.5" filter="url(#softGlow)"/>
+    <rect x="244" y="50" width="6" height="150" fill="#ff9d6b" opacity="0.5" filter="url(#softGlow)"/>
+    <circle cx="200" cy="125" r="4" fill="#ffb088"/>
+    <rect x="16" y="16" width="126" height="26" rx="6" fill="#0a0a0b" opacity="0.85"/>
+    <rect x="16" y="16" width="126" height="26" rx="6" fill="none" stroke="#ff7a45" stroke-width="1" opacity="0.4"/>
+    <text x="79" y="33" fill="#ff9d6b" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">GATED PORTAL</text>
+    <rect x="330" y="184" width="54" height="24" rx="6" fill="#0a0a0b" opacity="0.9"/>
+    <text x="357" y="200" fill="#e8e8ed" font-size="11" text-anchor="middle" font-family="monospace">0:52</text>
+    <!-- Extra light particles for visual richness -->
+    <g fill="#ffffff" opacity="0.2">
+      <circle cx="90" cy="90" r="2"/><circle cx="320" cy="110" r="2.5"/>
+      <circle cx="110" cy="170" r="1.5"/><circle cx="300" cy="180" r="1.5"/>
+    </g>
+    <g stroke="#ff7a45" stroke-width="1" opacity="0.25" fill="none">
+      <path d="M60 60 L140 50 M260 50 L340 65"/>
+      <path d="M70 195 L150 205 M250 205 L330 192"/>
+    </g>
+    <g transform="translate(200, 112)">
+      <circle cx="0" cy="0" r="24" fill="#0a0a0b" opacity="0.75"/>
+      <circle cx="0" cy="0" r="24" fill="none" stroke="#ff7a45" stroke-width="1.2" opacity="0.5"/>
+      <path d="M-6 -9 L12 0 L-6 9 Z" fill="#ff9d6b"/>
+    </g>
+    <text x="20" y="262" fill="#e8e8ed" font-size="17" font-weight="600">Token Akses Terkendali</text>
+    <text x="20" y="288" fill="#8a8a96" font-size="13">Sistem akses yang mencabut diri</text>
+    <text x="20" y="306" fill="#8a8a96" font-size="13">saat disalahgunakan.</text>
+  </g>
+
+  <!-- Footer note -->
+  <text x="80" y="540" fill="#8a8a96" font-size="13">Grid auto-fit 300px · hover: border oranye + lift 3px · konsisten dengan portofolio live</text>
+</svg>

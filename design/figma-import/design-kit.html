@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Kit — Video Narasi Portofolio</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #131316;
+    --surface-2: #1a1a1f;
+    --border: #2a2a32;
+    --text: #e8e8ed;
+    --muted: #8a8a96;
+    --accent: #ff7a45;
+    --accent-2: #ff9d6b;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.6 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 3rem 2rem 6rem;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+
+  /* ── Header ─────────────────────────────────────────────────────── */
+  .doc-head { margin-bottom: 3.5rem; }
+  .doc-head .label {
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .doc-head h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.75rem; }
+  .doc-head p { color: var(--muted); max-width: 640px; }
+
+  /* ── Section ────────────────────────────────────────────────────── */
+  .section { margin-bottom: 4rem; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    color: var(--accent);
+  }
+  .section-head h2 { font-size: 1.4rem; font-weight: 600; }
+  .section-head .note { color: var(--muted); font-size: 0.875rem; margin-left: auto; }
+
+  /* ── Video Hero Mockup ──────────────────────────────────────────── */
+  .mockup-video {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 122, 69, 0.3);
+    overflow: hidden;
+    background: radial-gradient(ellipse 60% 60% at 50% 45%, rgba(255, 122, 69, 0.1), transparent 70%), var(--surface);
+  }
+  .mockup-video .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .mockup-video .network {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .play-btn {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: rgba(10, 10, 11, 0.72);
+    border: 1.5px solid rgba(255, 122, 69, 0.6);
+    display: grid;
+    place-items: center;
+    z-index: 3;
+  }
+  .play-btn::after {
+    content: '';
+    width: 0; height: 0;
+    border-left: 22px solid var(--accent-2);
+    border-top: 13px solid transparent;
+    border-bottom: 13px solid transparent;
+    margin-left: 6px;
+  }
+  .video-meta {
+    position: absolute;
+    left: 2.5rem;
+    bottom: 2.25rem;
+    z-index: 3;
+  }
+  .video-meta .kicker {
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    margin-bottom: 0.6rem;
+  }
+  .video-meta h3 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.35rem; }
+  .video-meta p { color: var(--muted); font-size: 0.9375rem; }
+  .duration-badge {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(10, 10, 11, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    z-index: 3;
+  }
+  .duration-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .progress-line {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.07);
+    z-index: 3;
+  }
+  .progress-line .fill {
+    width: 38%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+  .progress-line .knob {
+    position: absolute;
+    left: 38%;
+    top: 50%;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--accent-2);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 14px rgba(255, 157, 107, 0.8);
+  }
+
+  /* ── Video Card Grid ────────────────────────────────────────────── */
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+  }
+  .video-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color 0.3s ease, transform 0.3s ease;
+  }
+  .video-card:hover { border-color: rgba(255, 122, 69, 0.45); transform: translateY(-3px); }
+  .video-card .thumb {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg, #1a1a1f, #0d0d0f);
+    display: grid;
+    place-items: center;
+  }
+  .video-card .thumb .mini-play {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(10,10,11,0.7);
+    border: 1px solid rgba(255,122,69,0.5);
+    display: grid; place-items: center;
+  }
+  .video-card .thumb .mini-play::after {
+    content: '';
+    border-left: 12px solid var(--accent-2);
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    margin-left: 3px;
+  }
+  .video-card .thumb .tag {
+    position: absolute;
+    top: 0.75rem; left: 0.75rem;
+    background: rgba(10,10,11,0.8);
+    border: 1px solid rgba(255,122,69,0.4);
+    color: var(--accent-2);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+  .video-card .thumb .time {
+    position: absolute;
+    bottom: 0.75rem; right: 0.75rem;
+    background: rgba(10,10,11,0.85);
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text);
+  }
+  .video-card .body { padding: 1.1rem 1.25rem 1.25rem; }
+  .video-card .body h4 { font-size: 1.0625rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .video-card .body p { color: var(--muted); font-size: 0.875rem; }
+
+  /* ── Color swatches ─────────────────────────────────────────────── */
+  .swatches { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .swatch {
+    flex: 1;
+    min-width: 130px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .swatch .chip { height: 68px; }
+  .swatch .meta { padding: 0.6rem 0.75rem; background: var(--surface); }
+  .swatch .meta .name { font-size: 0.8125rem; font-weight: 600; }
+  .swatch .meta .hex { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+
+  /* ── Prompt box ─────────────────────────────────────────────────── */
+  .prompt-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .prompt-box .head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .prompt-box .head .num {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    border: 1px solid rgba(255,122,69,0.4);
+    border-radius: 6px;
+    padding: 0.1rem 0.45rem;
+  }
+  .prompt-box .head .title { font-weight: 600; font-size: 0.9375rem; }
+  .prompt-box .head .use { color: var(--muted); font-size: 0.8125rem; margin-left: auto; }
+  .prompt-box code {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.65;
+    color: #c9d1d9;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1rem;
+    white-space: pre-wrap;
+  }
+  .prompt-box code .hl { color: var(--accent-2); }
+
+  /* ── Steps ──────────────────────────────────────────────────────── */
+  .steps { counter-reset: step; }
+  .step {
+    counter-increment: step;
+    display: flex;
+    gap: 1.25rem;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step::before {
+    content: counter(step);
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,122,69,0.45);
+    color: var(--accent);
+    display: grid;
+    place-items: center;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  .step h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .step p { color: var(--muted); font-size: 0.9rem; }
+  .step code {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    background: var(--surface-2);
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    color: var(--accent-2);
+  }
+
+  .callout {
+    display: flex;
+    gap: 0.9rem;
+    background: rgba(255, 122, 69, 0.06);
+    border: 1px solid rgba(255, 122, 69, 0.25);
+    border-radius: 10px;
+    padding: 1rem 1.15rem;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+  }
+  .callout .icon { color: var(--accent); flex-shrink: 0; font-weight: 700; }
+  .callout p { color: var(--text); }
+  .callout strong { color: var(--accent-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-head">
+    <div class="label">Design Kit · v1.0</div>
+    <h1>Video Narasi Portofolio</h1>
+    <p>
+      Paket desain untuk fitur video narasi per proyek (roadmap v2.2).
+      Semua aset di sini bisa diimpor ke Figma sebagai SVG, dan prompt di bawah
+      bisa langsung dipakai di Dreamina/Seedance versi gratis.
+    </p>
+  </header>
+
+  <!-- ── 1. HERO MOCKUP ────────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">01</span>
+      <h2>Hero Video Showcase</h2>
+      <span class="note">1440 × 810 · 16:9</span>
+    </div>
+
+    <div class="mockup-video">
+      <div class="grid-bg"></div>
+      <div class="network">
+        <svg width="60%" height="60%" viewBox="0 0 800 450" fill="none" aria-hidden="true">
+          <g stroke="#ff7a45" stroke-width="1" opacity="0.4">
+            <path d="M120 130 L280 200 L400 150 L540 220 L680 140"/>
+            <path d="M140 320 L300 270 L430 340 L580 290 L700 360"/>
+            <path d="M280 200 L300 270 M400 150 L430 340 M540 220 L580 290"/>
+            <path d="M120 130 L140 320 M680 140 L700 360"/>
+          </g>
+          <g fill="#ffb088">
+            <circle cx="120" cy="130" r="5"/><circle cx="280" cy="200" r="6"/>
+            <circle cx="400" cy="150" r="7"/><circle cx="540" cy="220" r="6"/>
+            <circle cx="680" cy="140" r="5"/><circle cx="140" cy="320" r="5"/>
+            <circle cx="300" cy="270" r="6"/><circle cx="430" cy="340" r="7"/>
+            <circle cx="580" cy="290" r="6"/><circle cx="700" cy="360" r="5"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="duration-badge"><span class="dot"></span> 0:45</div>
+
+      <div class="play-btn" role="img" aria-label="Putar video"></div>
+
+      <div class="video-meta">
+        <div class="kicker">VIDEO NARASI</div>
+        <h3>MINA — Arsitektur Sistem</h3>
+        <p>Bagaimana remote control 25 MB RAM dibangun dan diuji</p>
+      </div>
+
+      <div class="progress-line"><div class="fill"></div><div class="knob"></div></div>
+    </div>
+  </section>
+
+  <!-- ── 2. VIDEO CARD GRID ────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">02</span>
+      <h2>Kartu Video per Proyek</h2>
+      <span class="note">Grid · auto-fit 300px</span>
+    </div>
+
+    <div class="video-grid">
+      <article class="video-card">
+        <div class="thumb">
+          <span class="tag">MINA</span>
+          <div class="mini-play"></div>
+          <span class="time">0:45</span>
+        </div>
+        <div class="body">
+          <h4>Arsitektur Sistem</h4>
+          <p>Bagaimana remote control hemat sumber daya dibangun.</p>
+        </div>
+      </article>
+
+      <article class="video-card">
+        <div class="thumb">
+          <span class="tag">SPAREPARTS</span>
+          <div class="mini-play"></div>
+          <span class="time">0:38</span>
+        </div>
+        <div class="body">
+          <h4>Manajemen Inventaris</h4>
+          <p>Dari spreadsheet ke sistem yang bisa diandalkan.</p>
+        </div>
+      </article>
+
+      <article class="video-card">
+        <div class="thumb">
+          <span class="tag">GATED PORTAL</span>
+          <div class="mini-play"></div>
+          <span class="time">0:52</span>
+        </div>
+        <div class="body">
+          <h4>Token Akses Terkendali</h4>
+          <p>Sistem akses yang mencabut diri saat disalahgunakan.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── 3. COLOR SYSTEM ───────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">03</span>
+      <h2>Sistem Warna</h2>
+      <span class="note">Selaras dengan portofolio</span>
+    </div>
+
+    <div class="swatches">
+      <div class="swatch"><div class="chip" style="background:#0a0a0b"></div><div class="meta"><div class="name">Background</div><div class="hex">#0A0A0B</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#131316"></div><div class="meta"><div class="name">Surface</div><div class="hex">#131316</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ff7a45"></div><div class="meta"><div class="name">Accent</div><div class="hex">#FF7A45</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#ff9d6b"></div><div class="meta"><div class="name">Accent Light</div><div class="hex">#FF9D6B</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#e8e8ed"></div><div class="meta"><div class="name">Text</div><div class="hex">#E8E8ED</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#8a8a96"></div><div class="meta"><div class="name">Muted</div><div class="hex">#8A8A96</div></div></div>
+    </div>
+  </section>
+
+  <!-- ── 4. PROMPT SEEDANCE ────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">04</span>
+      <h2>Prompt Seedance (Gratis)</h2>
+      <span class="note">Copy → Dreamina → Generate</span>
+    </div>
+
+    <div class="prompt-box">
+      <div class="head">
+        <span class="num">P1</span>
+        <span class="title">Hero — Jaringan Data</span>
+        <span class="use">Untuk: hero section</span>
+      </div>
+      <code>Cinematic macro shot of a golden neural network <span class="hl">gradually illuminating</span> in deep black space. Light travels along thin connecting lines from the center outward, particles drift slowly. Slow camera push-in, shallow depth of field, warm golden bokeh in background. Polished, premium, 16:9, 5 seconds, <span class="hl">no text, no watermark, no logos</span>.</code>
+    </div>
+
+    <div class="prompt-box">
+      <div class="head">
+        <span class="num">P2</span>
+        <span class="title">MINA — Terminal Berjalan</span>
+        <span class="use">Untuk: video narasi MINA</span>
+      </div>
+      <code>Cinematic close-up of a small glowing terminal window on a dark desk, <span class="hl">command lines appearing one by one</span> as if being typed. Warm screen glow reflects on the surface. Slow dolly movement to the right, shallow depth of field, moody lighting. Professional tech aesthetic, 16:9, 5 seconds, <span class="hl">no readable text, no watermark, no logos</span>.</code>
+    </div>
+
+    <div class="prompt-box">
+      <div class="head">
+        <span class="num">P3</span>
+        <span class="title">Gated Portal — Gerbang Terbuka</span>
+        <span class="use">Untuk: video narasi Gated Portal</span>
+      </div>
+      <code>Cinematic shot of a minimalist dark door with warm orange light <span class="hl">gradually appearing through the edges</span> as it opens slightly. Abstract geometric frame around the door, particles of light floating. Slow camera orbit, premium architectural aesthetic, 16:9, 5 seconds, <span class="hl">no text, no watermark, no logos</span>.</code>
+    </div>
+
+    <div class="prompt-box">
+      <div class="head">
+        <span class="num">P4</span>
+        <span class="title">Spareparts — Rak Bergerak</span>
+        <span class="use">Untuk: video narasi Spareparts</span>
+      </div>
+      <code>Cinematic shot of organized dark storage shelves, <span class="hl">warm accent lights turning on sequentially</span> row by row. Clean industrial aesthetic, slow camera tilt upward. Minimal, premium, 16:9, 5 seconds, <span class="hl">no readable text, no watermark, no logos</span>.</code>
+    </div>
+
+    <div class="callout">
+      <span class="icon">💡</span>
+      <p>
+        <strong>Semua prompt ini gratis</strong> — pakai kredit harian Dreamina (Seedance 2.0 / Lite).
+        Setiap frasa <strong>"no text, no watermark, no logos"</strong> penting supaya hasilnya bersih
+        tanpa perlu dihapus manual seperti video hero sebelumnya.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── 5. CARA PAKAI ─────────────────────────────────────────────── -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num">05</span>
+      <h2>Cara Pakai</h2>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div>
+          <h4>Impor desain ke Figma</h4>
+          <p>Buka Figma → drag file <code>design/figma-import/*.svg</code> ke canvas. Figma otomatis mengenali layer, teks, dan warna — semuanya bisa diedit.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h4>Generate video gratis</h4>
+          <p>Buka <code>dreamina.capcut.com</code> → AI Video → pilih Seedance 2.0 → paste salah satu prompt di atas → Generate. Kredit harian gratis cukup untuk beberapa klip.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h4>Bersihkan & optimalkan</h4>
+          <p>Kalau ada watermark tersisa, kirim ke saya — saya hapus dengan teknik <code>delogo</code> yang sama seperti video hero (terverifikasi 122/122 frame bersih).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div>
+          <h4>Integrasi ke portofolio</h4>
+          <p>Kirim file video — saya pasang di halaman proyek dengan pemutar yang menghormati <code>prefers-reduced-motion</code>, lazy-load, dan format WebM + MP4.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
