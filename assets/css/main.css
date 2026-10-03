@@ -415,7 +415,30 @@ a { color: inherit; text-decoration: none; }
   transition: border-color 0.35s var(--ease), transform 0.35s var(--ease);
 }
 
-.project:hover { border-color: var(--line); transform: translateY(-2px); }
+/* Hover-lift dipindah ke .project-card-inner: .project dipakai efek
+   scroll-stand (transform-nya ditulis JS), jadi hover tidak boleh menulis
+   transform di sana — kalau tidak, kartu "melompat" saat kursor lewat. */
+/* Pembungkus dalam kartu proyek — pemegang efek tilt 3D (depth.js).
+   transform-style: preserve-3d wajib supaya anak-anaknya bisa berada di
+   lapisan Z berbeda (judul lebih maju dari isi). */
+.project-card-inner {
+  transform-style: preserve-3d;
+  transition: transform 0.35s var(--ease);
+}
+
+/* Isi kartu di lapisan Z berbeda — saat kartu miring, judul bergeser lebih
+   jauh dari isi. Inilah yang membuat kedalaman terasa nyata. */
+.project-card-inner > .project-head { transform: translateZ(28px); }
+.project-card-inner > .project-summary,
+.project-card-inner > .project-problem { transform: translateZ(14px); }
+.project-card-inner > .project-highlights { transform: translateZ(6px); }
+.project-card-inner > .project-foot { transform: translateZ(18px); }
+
+/* Layar sentuh / reduced-motion: lapisan Z dimatikan supaya teks tidak
+   pecah di perangkat yang tidak butuh efek ini. */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .project-card-inner > * { transform: none !important; }
+}
 
 /* Garis aksen kiri untuk proyek unggulan — dikelola di src/bento.css
    (satu aturan untuk semua kartu, muncul saat hover). */
@@ -538,6 +561,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .side-project {
+  position: relative;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-sm);
   padding: 1.15rem;

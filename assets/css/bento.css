@@ -87,7 +87,6 @@
   background: var(--surface-2);
   border-color: var(--hairline-strong);
   box-shadow: var(--shadow-2);
-  transform: translateY(-2px);
 }
 
 .project:hover::before { opacity: 1; }

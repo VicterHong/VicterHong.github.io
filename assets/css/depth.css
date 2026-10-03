@@ -1,0 +1,128 @@
+/* ── DEPTH — efek 3D tingkat Framer/Awwwards ─────────────────────────────────
+   Teknik dari komponen Framer Marketplace & Awwwards 2025:
+     1. Scroll-stand  — kartu "tidur" lalu berdiri saat masuk viewport
+     2. Tilt berlapis — kartu miring, isi bergeser di Z berbeda
+     3. Glare         — sorot specular mengikuti pointer
+     4. Spotlight     — sorot radial mengikuti kursor
+
+   Semua efek hanya memakai transform/opacity (GPU compositing) dan
+   dinonaktifkan total saat prefers-reduced-motion.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── 1. SCROLL-STAND ─────────────────────────────────────────────────────────
+   Kartu masuk dalam keadaan "tidur": miring ke belakang, turun, dan redup.
+   Saat masuk viewport, JS melepas .depth-sleeping → transisi ke tegak.
+
+   Transform-origin di bawah (50% 100%) supaya kartu terlihat "berdiri dari
+   lantai" — bukan berputar di tengah seperti pintu. Ini yang membuat efek
+   terasa seperti mengangkat objek, bukan sekadar fade. */
+.depth-sleeping {
+  transform: perspective(1400px) rotateX(14deg) translateY(38px) scale(0.96);
+  opacity: 0;
+  transform-origin: 50% 100%;
+}
+
+.depth-standing {
+  transform: perspective(1400px) rotateX(0deg) translateY(0) scale(1);
+  opacity: 1;
+  transform-origin: 50% 100%;
+  transition:
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── 2. TILT BERLAPIS ────────────────────────────────────────────────────────
+   Sudut dari CSS variable (--rx/--ry) yang ditulis JS. CSS yang memiliki
+   easing-nya — jadi JS cukup menulis angka, tidak mengganti string transform
+   di setiap event pointer (menghindari style recalc beruntun). */
+.project-card-inner,
+.side-project,
+.terminal {
+  --rx: 0deg;
+  --ry: 0deg;
+  --gx: 50%;
+  --gy: 50%;
+  transform: perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.project-card-inner.is-tilting,
+.side-project.is-tilting,
+.terminal.is-tilting {
+  transition: transform 0.08s linear;
+}
+
+/* Isi kartu di lapisan Z berbeda — aturan lapisan ada di main.css
+   (.project-card-inner > *), supaya hanya ada satu sumber kebenaran. */
+
+/* ── 3. GLARE ────────────────────────────────────────────────────────────────
+   Sorot specular radial yang mengikuti pointer — membuat kartu terasa
+   seperti permukaan kaca/fisik, bukan bidang datar. */
+.depth-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+  background: radial-gradient(
+    420px circle at var(--gx) var(--gy),
+    rgba(255, 255, 255, 0.10),
+    transparent 42%
+  );
+  mix-blend-mode: screen;
+  transition: opacity 0.35s ease;
+}
+
+.is-tilting > .depth-glare { opacity: 1; }
+
+/* ── 4. SPOTLIGHT ────────────────────────────────────────────────────────────
+   Sorot radial di kartu unggulan — mengikuti kursor, di bawah konten.
+   Memakai ::after (bukan ::before) karena bento.css sudah memakai
+   .project::before untuk garis aksen kiri. */
+.project.is-featured {
+  position: relative;
+}
+
+.project.is-featured::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    520px circle at var(--sx, 50%) var(--sy, 50%),
+    rgba(255, 122, 69, 0.09),
+    transparent 45%
+  );
+  transition: opacity 0.4s ease;
+}
+
+.project.is-featured > * { position: relative; z-index: 1; }
+
+/* ── AKSESIBILITAS ───────────────────────────────────────────────────────────
+   Semua efek 3D mati total saat pengguna meminta gerakan minimal, dan saat
+   perangkat sentuh (tilt butuh pointer presisi). */
+@media (prefers-reduced-motion: reduce) {
+  .depth-sleeping,
+  .depth-standing {
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+  .project-card-inner,
+  .side-project,
+  .terminal {
+    transform: none !important;
+    transition: none !important;
+  }
+  .depth-glare { display: none; }
+  .project.is-featured::after { display: none; }
+}
+
+@media (hover: none) {
+  .depth-glare { display: none; }
+}

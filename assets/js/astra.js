@@ -76,8 +76,11 @@ export function initMagnetic(selector = '.btn, .project-link, .contact-link') {
 }
 
 // ── 3. CARD TILT ──────────────────────────────────────────────────────────────
-// Kartu miring halus mengikuti posisi kursor. Sudut maksimum 1.2° — nyaris tak
-// terasa, tapi memberi kedalaman.
+// CATATAN: fungsi ini sekarang TIDAK dipanggil oleh initAstra() — depth.js
+// menggantikannya dengan versi lebih kaya (tilt berlapis + glare + scroll-stand).
+// Dibiarkan diekspor supaya masih bisa dipakai manual untuk elemen yang tidak
+// ditangani depth.js. Jangan pasang keduanya pada elemen yang sama: keduanya
+// menulis properti transform, dan yang terakhir menang.
 export function initTilt(selector = '.project, .side-project, .principle') {
   if (prefersReduced()) return;
   if (window.matchMedia('(hover: none)').matches) return;
@@ -153,7 +156,10 @@ export function initCounters(selector = '[data-count]') {
 }
 
 // ── 5. SCROLL PROGRESS ────────────────────────────────────────────────────────
-// Garis tipis di paling atas: menunjukkan posisi baca.
+// CATATAN: bar progress sekarang berada di dalam .site-header (dikelola app.js
+// watchHeader) supaya menempel pada header sticky. Fungsi ini dibiarkan
+// diekspor untuk halaman yang tidak punya header sticky, tapi TIDAK dipanggil
+// oleh initAstra() — dua bar akan tampil bersamaan kalau dipanggil.
 export function initScrollProgress() {
   if (prefersReduced()) return;
   const bar = document.createElement('div');
@@ -188,8 +194,11 @@ export function initUnderlines(selector = '.site-nav a, .contact-link, .project-
 export function initAstra() {
   initStagger();
   initMagnetic();
-  initTilt();
+  // initTilt() sengaja TIDAK dipanggil: depth.js menangani tilt dengan versi
+  // lebih kaya (lapisan Z + glare + scroll-stand). Memanggil keduanya pada
+  // elemen yang sama membuat transform saling menimpa.
   initCounters();
-  initScrollProgress();
+  // initScrollProgress() juga TIDAK dipanggil — bar progress ada di dalam
+  // header sticky (app.js watchHeader). Memanggil keduanya = dua bar.
   initUnderlines();
 }

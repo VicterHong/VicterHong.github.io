@@ -12,6 +12,7 @@
 
 import { profile, about, services, projects, sideProjects, principles, stats } from './data/projects.js';
 import { initAstra } from './astra.js';
+import { initDepth } from './depth.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -101,13 +102,18 @@ function renderProjects() {
 
   for (const p of projects) {
     const card = el('article', { class: `project${p.featured ? ' is-featured' : ''}` });
+    // Pembungkus dalam: efek scroll-stand menulis transform pada `.project`,
+    // sedangkan tilt menulis transform pada `.project-card-inner`. Dua efek
+    // 3D pada elemen yang sama akan saling menimpa transform — pemisahan ini
+    // yang membuat keduanya bisa hidup berdampingan.
+    const inner = el('div', { class: 'project-card-inner' });
 
-    card.append(el('div', { class: 'project-head' },
+    inner.append(el('div', { class: 'project-head' },
       el('h3', { class: 'project-name', text: p.name }),
       el('span', { class: 'project-sub', text: p.subtitle }),
     ));
-    card.append(el('p', { class: 'project-summary', text: p.summary }));
-    if (p.problem) card.append(el('p', { class: 'project-problem', text: p.problem }));
+    inner.append(el('p', { class: 'project-summary', text: p.summary }));
+    if (p.problem) inner.append(el('p', { class: 'project-problem', text: p.problem }));
 
     const highlights = el('div', { class: 'project-highlights' });
     for (const h of p.highlights) {
@@ -116,7 +122,7 @@ function renderProjects() {
         el('p', { text: h.detail }),
       ));
     }
-    card.append(highlights);
+    inner.append(highlights);
 
     const foot = el('div', { class: 'project-foot' });
 
@@ -152,7 +158,8 @@ function renderProjects() {
     }));
     foot.append(links);
 
-    card.append(foot);
+    inner.append(foot);
+    card.append(inner);
     host.append(card);
   }
 }
@@ -321,6 +328,10 @@ for (const id of ['featuredProjects', 'sideProjects', 'principles', 'contactLink
 
 // Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
 initAstra();
+
+// Efek 3D tingkat Framer/Awwwards — scroll-stand, tilt berlapis, glare,
+// spotlight. Dipanggil setelah render supaya kartu proyek sudah ada.
+initDepth();
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();
