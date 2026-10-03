@@ -23,8 +23,28 @@
 <link rel="stylesheet" href="../../assets/css/narrative.css">
 <link rel="stylesheet" href="../../assets/css/logo.css">
 <link rel="stylesheet" href="../../assets/css/premium.css">
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<script src="../../assets/js/token-turnstile-gate.js"></script>
+<link rel="stylesheet" href="../../assets/css/cf-gate.css">
+<script>
+  // Anti-FOUC: sembunyikan konten sampai gate memutuskan.
+  try {
+    if (!sessionStorage.getItem('cf_clearance_' + location.hostname)) {
+      document.documentElement.classList.add('cf-gating');
+      setTimeout(function () {
+        document.documentElement.classList.remove('cf-gating');
+      }, 8000);
+    }
+  } catch (e) { /* mode privasi ketat: tampilkan halaman apa adanya */ }
+</script>
+<script>
+  // Gerbang verifikasi Cloudflare-style untuk halaman ini (tanpa redirect:
+  // gate membuka halaman yang sama setelah lolos). Site key aman publik.
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    verifyEndpoint: 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile'
+  };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="../../assets/js/cf-gate.js"></script>
 </head>
 <body class="page-project">
 
@@ -227,10 +247,8 @@
   <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
 </footer>
 
-<!-- Cloudflare Turnstile — CAPTCHA tanpa geser.
-     Dimuat async: tidak menghambat render halaman. Widget dirender oleh
-     project.js hanya kalau site key tersedia dari /api/config. -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<!-- Widget Turnstile untuk form permintaan akses dirender oleh project.js
+     ke slot #turnstileSlot. Library sudah dimuat di <head>. -->
 
 <script type="module" src="../../assets/js/project.js?v=8"></script>
 </body>

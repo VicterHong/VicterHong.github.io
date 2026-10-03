@@ -16,64 +16,6 @@ import {
 } from './api.js';
 import { initAstra } from './astra.js';
 import { createNarrativeVideo } from './narrative.js';
-/**
- * Turnstile Inline — anti-bot protection
- */
-
-(function() {
-  'use strict';
-  
-  const TURNSTILE_SITE_KEY = '0x4AAAAAAFMyWUdxNriDmfym';
-  
-  function initTurnstile() {
-    const slot = document.getElementById('turnstileSlot');
-    if (!slot) return;
-    
-    // Coba render widget Turnstile
-    if (window.turnstile?.render) {
-      slot.hidden = false;
-      try {
-        const id = window.turnstile.render(slot, {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
-          callback: function(token) {
-            console.log('Turnstile verified');
-          },
-        });
-        window.turnstileWidgetId = id;
-        return;
-      } catch(e) {
-        console.warn('Turnstile render failed:', e.message);
-      }
-    }
-    
-    // Fallback: tambahkan hidden token field
-    const form = document.getElementById('requestForm');
-    if (form && !form.querySelector('input[name="cf-turnstile-response"]')) {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'cf-turnstile-response';
-      input.value = 'fallback-' + Date.now();
-      form.appendChild(input);
-    }
-  }
-  
-  // Expose ke global
-  window.initTurnstile = initTurnstile;
-  
-  // Auto-init saat form dibuka (observer)
-  document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.getElementById('requestAccessBtn');
-    if (btn) {
-      btn.addEventListener('click', function() {
-        // Delay untuk memastikan form terbuka
-        setTimeout(initTurnstile, 100);
-        setTimeout(initTurnstile, 500);
-      });
-    }
-  });
-})();
-
 import { mountInteractiveLogo } from './logo.js';
 import { projects } from './data/projects.js';
 
@@ -296,7 +238,7 @@ $('#requestAccessBtn').addEventListener('click', () => {
 
   // Render widget Turnstile saat form pertama dibuka (lazy). Kalau site key
   // tidak tersedia, slot tetap tersembunyi dan form jalan tanpa Turnstile.
-  // Retry jika library belum siap (dimuat async)
+  renderTurnstile();
 
   // Track: contact sales clicked
   trackEvent('contact_sales', PROJECT);
@@ -310,15 +252,14 @@ $('#requestAccessBtn').addEventListener('click', () => {
 // Widget dirender "explicit" (bukan otomatis) supaya tidak membebani halaman
 // yang belum tentu membuka form.
 
+let turnstileWidgetId = null;
 let turnstileConfig = null;
-// Turnstile config — hardcode untuk reliability
-
 
 /** Ambil konfigurasi Turnstile dari backend (sekali saja). */
 async function loadTurnstileConfig() {
   if (turnstileConfig !== null) return turnstileConfig;
   try {
-    const base = "https://translation-davidson-searches-prescription.trycloudflare.com";
+    const base = await apiBase();
     const res = await fetch(`${base}/api/config`, { cache: 'no-store' });
     if (!res.ok) throw new Error(String(res.status));
     const data = await res.json();
@@ -332,3 +273,120 @@ async function loadTurnstileConfig() {
 }
 
 /** Render widget Turnstile ke slot, kalau aktif dan library sudah dimuat. */
+async function renderTurnstile() {
+  const slot = $('#turnstileSlot');
+  if (!slot || turnstileWidgetId !== null) return;
+
+  const cfg = await loadTurnstileConfig();
+  if (!cfg.enabled || !cfg.site_key) return;
+
+  // Library dimuat async; tunggu sebentar kalau belum siap.
+  const turnstile = window.turnstile;
+  if (!turnstile?.render) return;
+
+  slot.hidden = false;
+  turnstileWidgetId = turnstile.render(slot, {
+    sitekey: cfg.site_key,
+    theme: 'dark',
+    action: 'lead_form',
+    // Kalau token kedaluwarsa (pengunjung lama mengisi), perbarui otomatis
+    // supaya tidak perlu muat ulang halaman.
+    'refresh-expired': 'auto',
+  });
+}
+
+$('#requestCancel').addEventListener('click', () => {
+  requestSection.hidden = true;
+  requestStatus.textContent = '';
+});
+
+requestForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(requestForm).entries());
+  const email = String(data.email ?? '').trim();
+
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    requestStatus.textContent = 'Alamat email tidak valid.';
+    requestStatus.className = 'request-status is-error';
+    return;
+  }
+
+  // Hitung berapa lama form diisi. Backend memakai angka ini untuk menilai
+  // apakah pengisian terlalu cepat (ciri bot). Dikirim sebagai elapsed_ms.
+  const startedAt = Number($('#reqStartedAt')?.value ?? 0);
+  const elapsedMs = startedAt > 0 ? Date.now() - startedAt : null;
+
+  // Token Turnstile (kalau widget aktif). Dikirim sebagai
+  // cf-turnstile-response — nama field yang diharapkan Cloudflare.
+  const turnstileToken = (turnstileWidgetId !== null && window.turnstile?.getResponse)
+    ? (window.turnstile.getResponse(turnstileWidgetId) ?? '')
+    : '';
+
+  const button = $('#requestSubmit');
+  button.disabled = true;
+  button.textContent = 'Mengirim…';
+  requestStatus.textContent = '';
+
+  const result = await requestAccess({
+    company: data.company ?? '',
+    name: data.name ?? '',
+    email,
+    // Field honeypot: manusia tidak melihatnya, jadi selalu kosong.
+    // Bot yang membaca HTML akan mengisinya — backend menolak lead seperti itu.
+    website: data.website ?? '',
+    elapsed_ms: elapsedMs,
+    'cf-turnstile-response': turnstileToken,
+    role: data.role ?? '',
+    project: PROJECT,
+    budget_range: data.budget_range ?? '',
+    urgency: data.urgency ?? '',
+    message: data.message ?? '',
+  });
+
+  button.disabled = false;
+  button.textContent = 'Kirim permintaan';
+
+  if (result.ok) {
+    requestForm.reset();
+    requestStatus.textContent = 'Permintaan terkirim. Sales akan menghubungi Anda lewat email.';
+    requestStatus.className = 'request-status is-ok';
+    // Track: lead submitted
+    trackEvent('lead_submit', PROJECT, { company: data.company, email });
+  } else {
+    requestStatus.textContent = result.data?.message ?? 'Gagal mengirim permintaan. Coba lagi.';
+    requestStatus.className = 'request-status is-error';
+  }
+});
+
+// ── Saat halaman dibuka ───────────────────────────────────────────────────────
+
+$('#year').textContent = String(new Date().getFullYear());
+
+// Track: page view
+trackEvent('page_view', PROJECT);
+
+// Track: modal open (gate visible)
+const observer = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting && !entry.target.hidden) {
+      trackEvent('modal_open', PROJECT);
+      observer.disconnect();
+    }
+  }
+});
+observer.observe(gate);
+
+// Coba ambil konten dengan session cookie yang mungkin sudah ada
+(async () => {
+  const result = await fetchLockedContent(PROJECT);
+  if (result.ok) {
+    renderLocked(result.data);
+  }
+  // Kalau tidak ada session, tampilkan gate (default state)
+
+  // Micro-interactions Astra — setelah konten statis siap.
+  initAstra();
+
+  // Logo interaktif — simbol coding yang bergerak saat hover/klik.
+  mountInteractiveLogo();
+})();

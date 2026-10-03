@@ -58,6 +58,9 @@ const PUBLIC_LIMITS = {
   '/api/token/session': { limit: 10, windowMs: 60_000 },
   '/api/contact/sales': { limit: 5, windowMs: 60_000 },
   '/api/analytics/track': { limit: 60, windowMs: 60_000 },
+  // Gate verifikasi: cukup longgar untuk pengunjung sah (retry token
+  // kedaluwarsa), cukup ketat untuk menahan pemboman token.
+  '/api/verify-turnstile': { limit: 30, windowMs: 60_000 },
 };
 
 /** Terapkan batas laju. Mengembalikan true kalau permintaan ditolak. */
@@ -411,6 +414,58 @@ export const routes = [
         issued_to: tokenRow.issued_to,
         company: tokenRow.company,
         content,
+      });
+    }),
+  },
+
+  {
+    // Endpoint verifikasi Turnstile untuk gate
+    method: 'POST',
+    pattern: '/api/verify-turnstile',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const token = String(body.token ?? '').trim();
+      
+      if (!token) {
+        return sendJson(res, 400, { 
+          success: false, 
+          error: 'token_missing',
+          message: 'Token Turnstile tidak ada.'
+        });
+      }
+
+      const result = await verifyTurnstile({
+        token,
+        secret: config.turnstileSecretKey,
+        remoteip: clientIp(req),
+      });
+
+      if (!result.ok) {
+        recordEvent({
+          action: 'turnstile_gate',
+          outcome: 'failed',
+          ip: clientIp(req),
+          userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+          detail: result.error,
+        });
+        
+        return sendJson(res, 403, {
+          success: false,
+          error: result.error,
+          message: turnstileMessage(result.error),
+        });
+      }
+
+      recordEvent({
+        action: 'turnstile_gate',
+        outcome: 'ok',
+        ip: clientIp(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+      });
+
+      sendJson(res, 200, {
+        success: true,
+        hostname: result.hostname,
       });
     }),
   },

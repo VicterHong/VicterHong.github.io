@@ -1,0 +1,126 @@
+/* Cloudflare Managed Challenge — replikasi persis.
+   Nilai desain disalin 1:1 dari CSS interstitial asli Cloudflare
+   (challenge-platform) supaya tampilan identik dengan ko-fi.com.
+
+   PENTING: semua aturan di-scope ke #cf-gate supaya tidak merusak
+   tata letak halaman token setelah verifikasi selesai. */
+
+/* Selama gate aktif: konten halaman disembunyikan (anti-FOUC). */
+html.cf-gating body { visibility: hidden; }
+body.cf-gated { background-color: #000; }
+body.cf-gated > *:not(#cf-gate) { display: none !important; }
+
+/* Wadah gate — menutup penuh layar, persis interstitial Cloudflare. */
+#cf-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  overflow: auto;
+  background-color: #000;
+  color: #f2f2f2;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-size: 16px;
+  line-height: 1.15;
+  text-align: start;
+}
+
+#cf-gate *,
+#cf-gate *::before,
+#cf-gate *::after { box-sizing: border-box; }
+
+#cf-gate h1,
+#cf-gate h2,
+#cf-gate p { margin: 0; padding: 0; color: #f2f2f2; }
+
+#cf-gate h1 { line-height: 125%; font-size: 2.5rem; font-weight: 600; }
+#cf-gate h2 { line-height: 125%; font-size: 1.5rem; font-weight: 600; }
+
+#cf-gate a { color: #f2f2f2; text-decoration: underline; }
+#cf-gate a:hover { color: #b9d6ff; }
+#cf-gate a:focus,
+#cf-gate a:active { outline: 2px solid #4693ff; outline-offset: 2px; border-radius: 2px; }
+
+#cf-gate .main-wrapper { display: flex; flex: 1; flex-direction: column; align-items: center; }
+#cf-gate .main-content { margin: 8rem auto; padding-left: 1.5rem; padding-right: 1.5rem; max-width: 60rem; width: 100%; }
+@media (width <= 720px) { #cf-gate .main-content { margin-top: 4rem; } }
+
+/* Baris brand: ikon situs + nama domain */
+#cf-gate .cf-brand { display: flex; gap: 16px; align-items: center; }
+#cf-gate .cf-brand img { width: 2rem; height: 2rem; }
+
+#cf-gate .cf-sub { margin: .5rem 0 2rem; }
+#cf-gate .cf-lead { margin-top: 0; margin-bottom: 2rem; font-weight: 400; color: #b6b6b6; }
+
+/* Blok status */
+#cf-gate .cf-status { margin: 2rem 0; }
+/* Area spinner menyisakan tinggi seperti Cloudflare (GSCv1: 76px),
+   supaya tata letak tidak melompat saat status berganti. */
+#cf-gate #cf-checking { min-height: 76px; }
+#cf-gate .cf-status-title { margin: 0; }
+
+/* Spinner lds-ring — persis Cloudflare */
+#cf-gate .cf-ring { display: inline-block; position: relative; width: 1.875rem; height: 1.875rem; }
+#cf-gate .cf-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 1.875rem;
+  height: 1.875rem;
+  border: .3rem solid;
+  border-radius: 50%;
+  border-color: #b6b6b6 rgba(0, 0, 0, 0) rgba(0, 0, 0, 0);
+  animation: cf-lds-ring 1.2s cubic-bezier(.5, 0, .5, 1) infinite;
+}
+#cf-gate .cf-ring div:nth-child(1) { animation-delay: -.45s; }
+#cf-gate .cf-ring div:nth-child(2) { animation-delay: -.3s; }
+#cf-gate .cf-ring div:nth-child(3) { animation-delay: -.15s; }
+@keyframes cf-lds-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Titik berjalan di akhir judul status — persis Cloudflare (.mXIT7 #rJNdW0::after) */
+#cf-gate .cf-dots::after { content: ""; animation: cf-dots 1.4s steps(4, start) infinite; }
+@keyframes cf-dots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+  100% { content: ""; }
+}
+
+/* Slot widget Turnstile — mode interaction-only: kosong selama verifikasi,
+   hanya terisi kalau Cloudflare meminta interaksi (persis ko-fi.com). */
+#cf-gate #cf-widget { display: grid; }
+#cf-gate #cf-widget:empty { min-height: 0; }
+
+/* Footer — persis Cloudflare */
+#cf-gate .footer {
+  margin: 0 auto;
+  padding-right: 2rem;
+  padding-left: 2rem;
+  width: 100%;
+  max-width: 60rem;
+  line-height: 1.125rem;
+  font-size: .75rem;
+}
+#cf-gate .footer-inner {
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #f2f2f2;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+#cf-gate .footer-wrapper { text-align: center; }
+#cf-gate .footer-link-wrapper { display: flex; gap: 8px; align-items: center; justify-content: center; }
+#cf-gate .footer-divider { border: 1px solid #f2f2f2; height: 12px; }
+#cf-gate .footer-text { color: #f2f2f2; font-size: .75rem; }
+#cf-gate .ray-id { margin-bottom: 4px; }
+#cf-gate code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; }
+
+#cf-gate .cf-hidden { display: none !important; }
+
+/* Pesan untuk pengunjung tanpa JavaScript (seperti Cloudflare). */
+#cf-gate .cf-noscript { margin-top: 2rem; font-weight: 600; }

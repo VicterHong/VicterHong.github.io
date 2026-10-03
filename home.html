@@ -1,247 +1,186 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verifikasi Keamanan — Portfolio Victer</title>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #0a0a0f;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Victer — Automation &amp; Self-hosted Tools</title>
+<meta name="description" content="Saya membangun alat otomasi yang membuat perangkat lama berguna kembali. MINA, Spareparts Inventory, dan lainnya.">
+<meta name="author" content="Victer">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="canonical" href="https://victerhong.github.io/">
+
+<!-- Ikon: SVG untuk browser modern, ICO fallback untuk yang lama -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Open Graph: supaya tautan yang dibagikan tampil rapi -->
+<meta property="og:title" content="Victer — Automation &amp; Self-hosted Tools">
+<meta property="og:description" content="Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://victerhong.github.io/">
+<meta property="og:image" content="https://victerhong.github.io/assets/hero-poster.jpg">
+<meta property="og:locale" content="id_ID">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Victer — Automation &amp; Self-hosted Tools">
+<meta name="twitter:description" content="Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/astra.css">
+<link rel="stylesheet" href="assets/css/cinematic.css">
+<link rel="stylesheet" href="assets/css/logo.css">
+<link rel="stylesheet" href="assets/css/tilt-panel.css">
+<link rel="stylesheet" href="assets/css/premium.css">
+<link rel="stylesheet" href="assets/css/bento.css">
+<link rel="stylesheet" href="assets/css/cf-gate.css">
+<script>
+  // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
+  // kedipan konten sebelum overlay verifikasi muncul (pola Cloudflare).
+  try {
+    if (!sessionStorage.getItem('cf_clearance_' + location.hostname)) {
+      document.documentElement.classList.add('cf-gating');
+      // Jaring pengaman: kalau skrip gate gagal dimuat, halaman tetap tampil.
+      setTimeout(function () {
+        document.documentElement.classList.remove('cf-gating');
+      }, 8000);
     }
-    .gate-container {
-      max-width: 480px;
-      width: 100%;
-      text-align: center;
-    }
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 24px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-    }
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-    .subtitle {
-      color: #888;
-      font-size: 0.95rem;
-      margin-bottom: 32px;
-    }
-    .status-box {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-    .status-text {
-      font-size: 1rem;
-      margin-bottom: 16px;
-    }
-    .status-text.verifying { color: #fbbf24; }
-    .status-text.success { color: #34d399; }
-    .status-text.error { color: #f87171; }
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.1);
-      border-top-color: #6366f1;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .progress-bar {
-      height: 4px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 16px;
-    }
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #6366f1, #8b5cf6);
-      border-radius: 2px;
-      transition: width 0.3s ease;
-      width: 0%;
-    }
-    #turnstile-container {
-      margin: 20px auto;
-      min-height: 65px;
-      display: flex;
-      justify-content: center;
-    }
-    .redirect-info {
-      margin-top: 16px;
-      padding: 12px;
-      background: rgba(99, 102, 241, 0.1);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      color: #a5b4fc;
-    }
-    .footer {
-      margin-top: 40px;
-      font-size: 0.8rem;
-      color: #555;
-    }
-    .hidden { display: none !important; }
-  </style>
+  } catch (e) { /* mode privasi ketat: tampilkan halaman apa adanya */ }
+</script>
 </head>
 <body>
-  <div class="gate-container">
-    <div class="logo">🔒</div>
-    <h1>Verifikasi Keamanan</h1>
-    <p class="subtitle">Portfolio Victer — Protected Access</p>
-    
-    <div class="status-box" id="statusBox">
-      <div class="spinner" id="spinner"></div>
-      <p class="status-text verifying" id="statusText">
-        Melakukan verifikasi keamanan...
-      </p>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width: 20%"></div>
-      </div>
-    </div>
-    
-    <div id="turnstile-container"></div>
-    
-    <div class="redirect-info hidden" id="redirectInfo">
-      Verifikasi berhasil. Menunggu response dari <span id="targetUrl">portfolio-victer.pages.dev</span>...
-    </div>
-    
-    <div class="footer">
-      <p>🛡️ Dilindungi oleh Cloudflare Turnstile</p>
-      <p id="debugInfo" style="margin-top:8px;opacity:0.5"></p>
-    </div>
-  </div>
 
-  <script>
-    const TURNSTILE_SITE_KEY = '0x4AAAAAAFMyWUdxNriDmfym';
-    const TARGET_URL = 'https://portfolio-victer.pages.dev/home.html';
-    const VERIFY_ENDPOINT = 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile';
-    
-    const els = {
-      statusText: document.getElementById('statusText'),
-      spinner: document.getElementById('spinner'),
-      progressFill: document.getElementById('progressFill'),
-      turnstileContainer: document.getElementById('turnstile-container'),
-      redirectInfo: document.getElementById('redirectInfo'),
-      targetUrl: document.getElementById('targetUrl'),
-      debugInfo: document.getElementById('debugInfo')
-    };
-    
-    function setStatus(text, type, progress) {
-      els.statusText.textContent = text;
-      els.statusText.className = 'status-text ' + type;
-      if (progress !== undefined) {
-        els.progressFill.style.width = progress + '%';
-      }
-    }
-    
-    function showTurnstile() {
-      els.spinner.classList.add('hidden');
-      els.turnstileContainer.innerHTML = '';
-      
-      if (window.turnstile) {
-        window.turnstile.render(els.turnstileContainer, {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
-          callback: onTurnstileSuccess,
-          'error-callback': onTurnstileError,
-          'expired-callback': onTurnstileExpired
-        });
-      } else {
-        setStatus('Gagal memuat verifikasi. Refresh halaman.', 'error', 0);
-      }
-    }
-    
-    async function onTurnstileSuccess(token) {
-      setStatus('Verifikasi berhasil. Menunggu response...', 'success', 80);
-      els.redirectInfo.classList.remove('hidden');
-      els.targetUrl.textContent = 'portfolio-victer.pages.dev';
-      
-      try {
-        // Verify token dengan backend
-        const response = await fetch(VERIFY_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-          setStatus('Akses diterima. Mengalihkan...', 'success', 100);
-          // Set cookie/session kemudian redirect
-          document.cookie = 'cf_turnstile_verified=1; path=/; max-age=3600; SameSite=Strict';
-          localStorage.setItem('turnstile_verified', Date.now().toString());
-          
-          setTimeout(() => {
-            window.location.href = TARGET_URL;
-          }, 1500);
-        } else {
-          setStatus('Verifikasi gagal: ' + (result.message || 'Token invalid'), 'error', 0);
-          showTurnstile();
-        }
-      } catch (err) {
-        setStatus('Error koneksi. Coba lagi.', 'error', 0);
-        showTurnstile();
-      }
-    }
-    
-    function onTurnstileError() {
-      setStatus('Verifikasi error. Coba lagi.', 'error', 0);
-      showTurnstile();
-    }
-    
-    function onTurnstileExpired() {
-      setStatus('Verifikasi kadaluarsa. Ulangi.', 'error', 0);
-      showTurnstile();
-    }
-    
-    // Init
-    (function init() {
-      setStatus('Melakukan verifikasi keamanan...', 'verifying', 20);
-      
-      // Cek apakah sudah verified sebelumnya
-      const verified = localStorage.getItem('turnstile_verified');
-      const cookieVerified = document.cookie.includes('cf_turnstile_verified');
-      
-      if (verified && cookieVerified) {
-        const age = Date.now() - parseInt(verified);
-        if (age < 3600000) { // 1 jam
-          setStatus('Sesi aktif. Mengalihkan...', 'success', 100);
-          setTimeout(() => {
-            window.location.href = TARGET_URL;
-          }, 1000);
-          return;
-        }
-      }
-      
-      // Load Turnstile
-      setTimeout(() => {
-        setStatus('Klik verifikasi di bawah untuk melanjutkan', 'verifying', 40);
-        showTurnstile();
-      }, 1500);
-    })();
-  </script>
+<!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
+     Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
+<div class="hero-backdrop" aria-hidden="true">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg">
+    <!-- Sumber diisi oleh app.js kalau berkasnya ada. MP4 untuk kompatibilitas, WebM untuk ukuran kecil. -->
+    <!-- Desktop: scroll-scrub. Mobile: autoplay loop (lihat cinematic.js). -->
+    <!-- Poster: frame terang — supaya background tidak terlihat polos saat
+         autoplay diblokir browser (mode hemat baterai/data). -->
+  </video>
+  <div class="hero-fallback"></div>
+  <div class="hero-grain"></div>
+</div>
+
+<header class="site-header">
+  <a class="brand" href="#zs6xae">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">Victer</span>
+  </a>
+  <nav class="site-nav" aria-label="Navigasi utama">
+    <a href="#s6ahns">Tentang</a>
+    <a href="#cckxsk">Layanan</a>
+    <a href="#utqvwf">Proyek</a>
+    <a href="#5nfyzw">Cara kerja</a>
+    <a href="#89fk39">Kontak</a>
+  </nav>
+</header>
+
+<main id="zs6xae">
+
+  <!-- ── PEMBUKA ─────────────────────────────────────────────────────────────
+       Bukan "passionate developer" generik. Yang ditulis adalah apa yang
+       sebenarnya dikerjakan, dengan angka yang bisa diperiksa. -->
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="hero-kicker">Automation &amp; self-hosted tools</p>
+    <h1 class="hero-title" id="hero-title" data-cine-words>
+      Saya membangun alat yang membuat<br>
+      <span class="accent">perangkat lama berguna kembali.</span>
+    </h1>
+    <p class="hero-lede">
+      Perangkat lunak yang berjalan di tempat Anda sendiri — tanpa langganan, tanpa cloud wajib,
+      dan tetap hidup di laptop 2&nbsp;GB RAM.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
+      <a class="btn btn-ghost" href="https://github.com/VicterHong" target="_blank" rel="noopener">GitHub</a>
+    </div>
+
+    <!-- Angka ringkas. Dihitung dari data proyek, bukan diketik manual. -->
+    <dl class="hero-stats" id="heroStats"></dl>
+  </section>
+
+  <!-- ── TENTANG ─────────────────────────────────────────────────────────────
+       Pembaca perlu tahu ini siapa SEBELUM melihat proyek. Urutan standar
+       portofolio: perkenalan → layanan → bukti kerja → cara kerja → kontak. -->
+  <section class="section" id="s6ahns" aria-labelledby="about-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="about-title" data-reveal data-cine-words>Tentang</h2>
+    </div>
+    <div class="about-layout">
+      <div class="about-body" id="aboutBody"></div>
+      <div class="about-skills" id="aboutSkills" data-stagger></div>
+    </div>
+  </section>
+
+  <!-- ── LAYANAN ─────────────────────────────────────────────────────────────
+       Apa yang bisa dikerjakan — ditulis sebagai hasil, bukan daftar teknologi. -->
+  <section class="section" id="cckxsk" aria-labelledby="services-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="services-title" data-reveal data-cine-words>Layanan</h2>
+      <p class="section-note" data-reveal>
+        Yang bisa saya kerjakan untuk tim atau bisnis Anda.
+      </p>
+    </div>
+    <div class="services-grid" id="servicesGrid" data-stagger></div>
+  </section>
+
+  <!-- ── PROYEK ──────────────────────────────────────────────────────────────
+       Satu proyek unggulan (MINA) dapat ruang paling besar — bukan grid kartu
+       seragam yang membuat semuanya terlihat sama penting. -->
+  <section class="section" id="utqvwf" aria-labelledby="work-title">
+    <div class="section-head">
+      <h2 class="section-title" id="work-title" data-reveal data-cine-words>Proyek</h2>
+      <p class="section-note" data-reveal>
+        Angka di bawah bisa Anda periksa sendiri dengan membuka repositorinya.
+      </p>
+    </div>
+
+    <div id="featuredProjects" class="projects-bento"></div>
+    <div class="side-projects" id="sideProjects" aria-label="Proyek pendukung"></div>
+  </section>
+
+  <!-- ── CARA KERJA ──────────────────────────────────────────────────────────
+       Keyakinan desain yang bisa dipertanggungjawabkan, bukan slogan. -->
+  <section class="section" id="5nfyzw" aria-labelledby="approach-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="approach-title" data-reveal data-cine-words>Cara saya bekerja</h2>
+    </div>
+    <div class="principles" id="principles"></div>
+  </section>
+
+  <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->
+  <section class="section section-contact" id="89fk39" aria-labelledby="contact-title" data-cine-clip>
+    <h2 class="section-title" id="contact-title" data-reveal data-cine-words>Mari bicara</h2>
+    <p class="contact-lede" data-reveal>
+      Terbuka untuk kerja sama, pertanyaan teknis, atau sekadar berbagi ide soal
+      otomasi dan perangkat hemat sumber daya.
+    </p>
+    <div class="contact-links" id="contactLinks" data-reveal></div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
+</footer>
+
+<script type="module" src="assets/js/app.js"></script>
+
+<!-- Gerbang verifikasi: setiap halaman memeriksa clearance (30 menit).
+     Kalau belum ada, overlay Cloudflare-style muncul sebelum konten. -->
+<script>
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    verifyEndpoint: 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile'
+  };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="assets/js/cf-gate.js"></script>
 </body>
 </html>
