@@ -288,6 +288,8 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | **v2.6** 📋 | Custom domain aktif (`victer.is-a.dev`) | PR #54937 open, mergeable clean — menunggu merge maintainer |
 | **v2.7** ✅ | Bot protection profesional (Turnstile gate ala Cloudflare) + validasi form korporat | **Selesai** |
 | **v2.8** ✅ | Backup harian database token (PRD §8) | **Selesai** — cron 03:45, retensi 30 hari, terverifikasi |
+| **v2.9** ✅ | Desain standar Framer/Dribbble + efek 3D (depth) | **Selesai** — hero terminal, scroll-stand, tilt berlapis, glare |
+| **v3.0** ✅ | Production hardening: SEO produksi + uptime monitoring + runbook | **Selesai** — `docs/PRODUCTION.md` |
 
 ### Catatan implementasi v2.3–v2.5
 
