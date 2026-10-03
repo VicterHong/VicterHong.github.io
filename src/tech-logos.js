@@ -12,7 +12,7 @@
  *
  * Sumber: skill-icons (https://api.iconify.design/skill-icons) untuk 10
  * logo; 6 sisanya dibangun mengikuti gaya yang sama persis (tile rounded
- * 256×256, glyph 56-72% tile) karena tidak tersedia di skill-icons.
+ * 256×256, glyph 56-84% tile) karena tidak tersedia di skill-icons.
  *
  * SVG di-inline: nol request eksternal, halaman tetap cepat & privat.
  * Semua id diberi prefiks unik (tl-<nama>-) agar gradient antar-logo tidak
@@ -79,7 +79,7 @@ export const techLogos = {
   systemd: {
     label: 'systemd',
     color: '#30D475',
-    render: () => svg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect rx="60" fill="#242938"/><g transform="translate(31.451 31.451) scale(6.034286)"><path fill="#d2d2d2" d="M2 12v8h3.256v-1.231H3.3v-5.538h1.956V12Zm24.744 0v1.231H28.7v5.538h-1.956V20H30v-8Z"/><path fill="#30d475" d="m17.628 16l5.21-2.769v5.538Z"/><ellipse cx="12.093" cy="16" fill="#30d475" rx="2.93" ry="2.769"/></g></svg>`),
+    render: () => svg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="60" fill="#242938"/><g transform="translate(5.120 5.120) scale(7.680000)"><path fill="#d2d2d2" d="M2 12v8h3.256v-1.231H3.3v-5.538h1.956V12Zm24.744 0v1.231H28.7v5.538h-1.956V20H30v-8Z"/><path fill="#30d475" d="m17.628 16l5.21-2.769v5.538Z"/><ellipse cx="12.093" cy="16" fill="#30d475" rx="2.93" ry="2.769"/></g></svg>`),
   },
   linux: {
     label: 'Linux',
