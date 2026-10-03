@@ -34,6 +34,7 @@ import { recordAnalytics, getFunnel, recentAnalytics, uniqueVisitors } from './a
 import { notifyLead } from './notify.mjs';
 import { checkRateLimit } from './rate-limit.mjs';
 import { scoreLead } from './spam-guard.mjs';
+import { verifyTurnstile, turnstileMessage } from './turnstile.mjs';
 import { slaSummary, slaReport } from './sla.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
@@ -249,6 +250,24 @@ export const routes = [
   },
 
   {
+    // Konfigurasi publik yang dibutuhkan frontend.
+    // Hanya berisi nilai yang memang aman dilihat siapa pun — site key
+    // Turnstile memang dirancang untuk dipasang di HTML publik.
+    // Secret key TIDAK pernah keluar dari server.
+    method: 'GET',
+    pattern: '/api/config',
+    handler: safe(async (req, res) => {
+      sendJson(res, 200, {
+        ok: true,
+        turnstile: {
+          enabled: Boolean(config.turnstileSiteKey),
+          site_key: config.turnstileSiteKey,
+        },
+      });
+    }),
+  },
+
+  {
     method: 'POST',
     pattern: '/api/token/validate',
     handler: safe(async (req, res) => {
@@ -409,10 +428,32 @@ export const routes = [
       const ip = clientIp(req);
       const userAgent = String(req.headers['user-agent'] ?? '').slice(0, 300);
 
+      // ── Cloudflare Turnstile (lapis terkuat) ─────────────────────────────────
+      // Memverifikasi bahwa pengirim adalah MANUSIA. Kalau secret belum
+      // dipasang, verifyTurnstile() mengembalikan skipped dan alur tetap jalan
+      // dengan lapisan penapis lain — situs tidak pernah rusak karena config.
+      const turnstile = await verifyTurnstile({
+        token: String(body['cf-turnstile-response'] ?? body.turnstile_token ?? ''),
+        secret: config.turnstileSecretKey,
+        remoteip: ip,
+      });
+
+      if (!turnstile.ok) {
+        recordEvent({
+          projectSlug: String(body.project ?? ''), action: 'lead_turnstile', outcome: 'failed',
+          ip, userAgent,
+        });
+        return sendJson(res, 403, {
+          ok: false,
+          error: turnstile.error,
+          message: turnstileMessage(turnstile.error),
+        });
+      }
+
       // ── Penjaga spam (Q3) ────────────────────────────────────────────────────
-      // CAPTCHA sengaja tidak dipakai: menambah pihak ketiga, melanggar F6, dan
-      // menambah gesekan di titik konversi terpenting. Gantinya penapisan
-      // berlapis lokal — lihat backend/src/spam-guard.mjs untuk alasannya.
+      // Turnstile memverifikasi MANUSIA, bukan NIAT — manusia yang mengirim
+      // spam tetap lolos. Heuristik isi inilah yang menangkapnya. Keduanya
+      // saling melengkapi, bukan saling menggantikan.
       const spam = scoreLead({ body, ip, userAgent });
 
       if (spam.verdict === 'block') {

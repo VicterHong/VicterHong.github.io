@@ -195,6 +195,11 @@
           <textarea id="reqMessage" name="message" rows="4" maxlength="4000"
                     placeholder="Misalnya: evaluasi arsitektur untuk kemungkinan kerja sama"></textarea>
         </div>
+        <!-- Widget Turnstile: diisi otomatis oleh project.js kalau aktif.
+             Dikosongkan (tanpa elemen) berarti Turnstile nonaktif — form
+             tetap jalan dengan penapis lapis lain. -->
+        <div id="turnstileSlot" class="turnstile-slot" hidden></div>
+
         <div class="request-actions">
           <button class="btn btn-primary" type="submit" id="requestSubmit">Kirim permintaan</button>
           <button class="btn btn-ghost" type="button" id="requestCancel">Batal</button>
@@ -208,6 +213,11 @@
 <footer class="site-footer">
   <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
 </footer>
+
+<!-- Cloudflare Turnstile — CAPTCHA tanpa geser.
+     Dimuat async: tidak menghambat render halaman. Widget dirender oleh
+     project.js hanya kalau site key tersedia dari /api/config. -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 
 <script type="module" src="../../assets/js/project.js?v=8"></script>
 </body>

@@ -466,3 +466,13 @@
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* ── Slot Cloudflare Turnstile ─────────────────────────────────────────────────
+   Wadah widget CAPTCHA. Tersembunyi selama Turnstile nonaktif (atribut hidden
+   di HTML), jadi tidak ada ruang kosong di form. */
+.turnstile-slot {
+  margin: 0.25rem 0 0.75rem;
+  min-height: 65px;   /* tinggi widget Turnstile standar */
+}
+
+.turnstile-slot[hidden] { display: none; }

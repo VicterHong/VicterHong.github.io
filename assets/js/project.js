@@ -12,7 +12,7 @@
 
 import {
   clearToken, createSession, destroySession, fetchLockedContent,
-  requestAccess, storeToken, storedToken, trackEvent, validateToken,
+  requestAccess, storeToken, storedToken, trackEvent, validateToken, apiBase,
 } from './api.js';
 import { initAstra } from './astra.js';
 import { createNarrativeVideo } from './narrative.js';
@@ -236,9 +236,64 @@ $('#requestAccessBtn').addEventListener('click', () => {
   const startedAt = $('#reqStartedAt');
   if (startedAt) startedAt.value = String(Date.now());
 
+  // Render widget Turnstile saat form pertama dibuka (lazy). Kalau site key
+  // tidak tersedia, slot tetap tersembunyi dan form jalan tanpa Turnstile.
+  renderTurnstile();
+
   // Track: contact sales clicked
   trackEvent('contact_sales', PROJECT);
 });
+
+// ── Cloudflare Turnstile ──────────────────────────────────────────────────────
+// CAPTCHA tanpa geser. Site key diambil dari backend (/api/config) supaya
+// tidak perlu hardcode di HTML — dan supaya menyalakan/mematikan Turnstile
+// cukup lewat service.env, tanpa menyentuh frontend.
+//
+// Widget dirender "explicit" (bukan otomatis) supaya tidak membebani halaman
+// yang belum tentu membuka form.
+
+let turnstileWidgetId = null;
+let turnstileConfig = null;
+
+/** Ambil konfigurasi Turnstile dari backend (sekali saja). */
+async function loadTurnstileConfig() {
+  if (turnstileConfig !== null) return turnstileConfig;
+  try {
+    const base = await apiBase();
+    const res = await fetch(`${base}/api/config`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(String(res.status));
+    const data = await res.json();
+    turnstileConfig = data?.turnstile ?? { enabled: false };
+  } catch {
+    // Backend tidak terjangkau: anggap Turnstile nonaktif. Form tetap bisa
+    // dikirim — server tetap menjalankan penapis lapis lain.
+    turnstileConfig = { enabled: false };
+  }
+  return turnstileConfig;
+}
+
+/** Render widget Turnstile ke slot, kalau aktif dan library sudah dimuat. */
+async function renderTurnstile() {
+  const slot = $('#turnstileSlot');
+  if (!slot || turnstileWidgetId !== null) return;
+
+  const cfg = await loadTurnstileConfig();
+  if (!cfg.enabled || !cfg.site_key) return;
+
+  // Library dimuat async; tunggu sebentar kalau belum siap.
+  const turnstile = window.turnstile;
+  if (!turnstile?.render) return;
+
+  slot.hidden = false;
+  turnstileWidgetId = turnstile.render(slot, {
+    sitekey: cfg.site_key,
+    theme: 'dark',
+    action: 'lead_form',
+    // Kalau token kedaluwarsa (pengunjung lama mengisi), perbarui otomatis
+    // supaya tidak perlu muat ulang halaman.
+    'refresh-expired': 'auto',
+  });
+}
 
 $('#requestCancel').addEventListener('click', () => {
   requestSection.hidden = true;
@@ -261,6 +316,12 @@ requestForm.addEventListener('submit', async (event) => {
   const startedAt = Number($('#reqStartedAt')?.value ?? 0);
   const elapsedMs = startedAt > 0 ? Date.now() - startedAt : null;
 
+  // Token Turnstile (kalau widget aktif). Dikirim sebagai
+  // cf-turnstile-response — nama field yang diharapkan Cloudflare.
+  const turnstileToken = (turnstileWidgetId !== null && window.turnstile?.getResponse)
+    ? (window.turnstile.getResponse(turnstileWidgetId) ?? '')
+    : '';
+
   const button = $('#requestSubmit');
   button.disabled = true;
   button.textContent = 'Mengirim…';
@@ -274,6 +335,7 @@ requestForm.addEventListener('submit', async (event) => {
     // Bot yang membaca HTML akan mengisinya — backend menolak lead seperti itu.
     website: data.website ?? '',
     elapsed_ms: elapsedMs,
+    'cf-turnstile-response': turnstileToken,
     role: data.role ?? '',
     project: PROJECT,
     budget_range: data.budget_range ?? '',
