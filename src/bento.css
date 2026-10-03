@@ -23,10 +23,12 @@
   grid-column: 1 / -1;
 }
 
-/* Di dalam kartu unggulan, highlight disusun 3 kolom supaya tidak jadi
-   satu kolom panjang yang melelahkan dibaca. */
+/* Di dalam kartu unggulan, highlight disusun multi-kolom supaya tidak jadi
+   satu kolom panjang yang melelahkan dibaca.
+   auto-fit + minmax membuat baris terakhir mengisi ruang (tidak ada celah
+   kosong seperti pada grid kolom tetap 3 saat jumlah item bukan kelipatan 3). */
 .projects-bento > .project.is-featured .project-highlights {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 /* Kartu biasa: ringkas, tidak perlu highlight besar */
@@ -131,13 +133,16 @@
 
 /* ── LINK DALAM KARTU: UNDERLINE YANG TUMBUH DARI KIRI ──────────────────────────
    Bukan underline statis. Garis tumbuh dari kiri saat hover — detail kecil
-   yang dipakai hampir semua situs premium. */
+   yang dipakai hampir semua situs premium.
+
+   PENTING: pakai ::before, bukan ::after — styles.css memakai ::after untuk
+   panah "→" pada link. Memakai ::after di sini akan menimpa panahnya. */
 .project-link {
   position: relative;
   transition: color var(--dur-base) var(--ease-out-quad);
 }
 
-.project-link::after {
+.project-link::before {
   content: '';
   position: absolute;
   left: 0;
@@ -150,7 +155,7 @@
   transition: transform var(--dur-slow) var(--ease-out-quart);
 }
 
-.project-link:hover::after { transform: scaleX(1); }
+.project-link:hover::before { transform: scaleX(1); }
 
 /* ── SECTION: PEMISAH HAIRLINE + SPASI NAPAS ────────────────────────────────────
    Jarak antar section besar (napas), jarak dalam section rapat. Pola ini yang
@@ -173,5 +178,5 @@
 /* ── REDUCED MOTION ──────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .project:hover { transform: none; }
-  .project-link::after { transition: none; }
+  .project-link::before { transition: none; }
 }
