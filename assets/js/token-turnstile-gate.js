@@ -1,4 +1,4 @@
-// Turnstile Token Gate - Tambahkan ke halaman token
+// Turnstile Token Gate - Professional Style
 (function() {
   const TURNSTILE_SITE_KEY = '0x4AAAAAAFMyWUdxNriDmfym';
   const VERIFY_ENDPOINT = 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile';
@@ -6,39 +6,62 @@
   
   // Cek apakah sudah lewat gate
   const gatePassed = sessionStorage.getItem(GATE_PASSED_KEY);
-  if (gatePassed) {
-    // Sudah lewat gate dalam sesi ini
-    return;
+  if (gatePassed) return;
+  
+  // Generate Ray ID
+  function generateRayId() {
+    const chars = '0123456789abcdef';
+    let id = '';
+    for (let i = 0; i < 16; i++) id += chars[Math.floor(Math.random() * chars.length)];
+    return id;
   }
   
-  // Tampilkan gate overlay
   function showGate() {
     const overlay = document.createElement('div');
     overlay.id = 'token-turnstile-gate';
     overlay.innerHTML = `
-      <div style="position:fixed;inset:0;background:rgba(10,10,15,0.98);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;">
-        <div style="max-width:480px;width:100%;text-align:center;">
-          <div style="width:80px;height:80px;margin:0 auto 24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;">🔒</div>
-          <h1 style="font-size:1.5rem;font-weight:600;margin-bottom:8px;color:#fff;">Verifikasi Keamanan</h1>
-          <p style="color:#888;font-size:0.95rem;margin-bottom:32px;">Akses Token — Protected Content</p>
-          <div id="token-turnstile-container" style="margin:20px auto;min-height:65px;display:flex;justify-content:center;"></div>
-          <p id="token-gate-status" style="margin-top:16px;font-size:0.9rem;color:#fbbf24;">Melakukan verifikasi keamanan...</p>
+      <div style="position:fixed;inset:0;background:#fff;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+        <div style="max-width:500px;width:100%;text-align:center;">
+          <div style="font-size:2rem;font-weight:700;color:#1a1a2e;margin-bottom:40px;">${location.hostname}</div>
+          <div style="width:48px;height:48px;border:3px solid #e0e0e0;border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite;margin:30px auto;"></div>
+          <h1 style="font-size:1.25rem;font-weight:600;color:#1a1a2e;margin-bottom:16px;">Performing security verification</h1>
+          <p style="color:#666;font-size:0.95rem;margin-bottom:24px;line-height:1.7;">
+            This website uses a security service to protect against malicious bots. 
+            This page is displayed while the website verifies you are not a bot.
+          </p>
+          <div style="background:#f8f9fa;border-radius:12px;padding:24px;margin:24px 0;border:1px solid #e9ecef;">
+            <div id="token-turnstile-container" style="min-height:65px;display:flex;justify-content:center;margin:16px 0;"></div>
+            <p id="token-gate-status" style="font-size:0.9rem;color:#888;margin-top:12px;">Waiting for verification...</p>
+          </div>
+          <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e9ecef;font-size:0.8rem;color:#999;font-family:'Courier New',monospace;">
+            Ray ID: ${generateRayId()}
+          </div>
+          <div style="margin-top:40px;font-size:0.75rem;color:#aaa;">
+            <p>Performance and Security by <a href="https://www.cloudflare.com" style="color:#6366f1;text-decoration:none;">Cloudflare</a></p>
+          </div>
         </div>
       </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-color-scheme: dark) {
+          #token-turnstile-gate > div:first-child { background: #0f0f1a !important; color: #e0e0e0 !important; }
+          #token-turnstile-gate h1 { color: #fff !important; }
+          #token-turnstile-gate p { color: #aaa !important; }
+          #token-turnstile-gate > div > div:nth-child(5) { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
+        }
+      </style>
     `;
     document.body.appendChild(overlay);
     
-    // Render Turnstile
     if (window.turnstile) {
       window.turnstile.render(document.getElementById('token-turnstile-container'), {
         sitekey: TURNSTILE_SITE_KEY,
-        theme: 'dark',
+        theme: 'auto',
         callback: function(token) {
           verifyToken(token, overlay);
         },
         'error-callback': function() {
-          document.getElementById('token-gate-status').textContent = 'Verifikasi error. Refresh halaman.';
-          document.getElementById('token-gate-status').style.color = '#f87171';
+          document.getElementById('token-gate-status').textContent = 'Verification error. Please refresh.';
         }
       });
     }
@@ -46,8 +69,7 @@
   
   async function verifyToken(token, overlay) {
     const statusEl = document.getElementById('token-gate-status');
-    statusEl.textContent = 'Verifikasi berhasil. Menunggu response...';
-    statusEl.style.color = '#34d399';
+    statusEl.textContent = 'Verifying token...';
     
     try {
       const response = await fetch(VERIFY_ENDPOINT, {
@@ -59,24 +81,19 @@
       const result = await response.json();
       
       if (result.success) {
-        statusEl.textContent = 'Akses diterima. Memuat konten...';
+        statusEl.textContent = 'Access granted. Loading content...';
         sessionStorage.setItem(GATE_PASSED_KEY, Date.now().toString());
-        
-        // Animasi fade out
         overlay.style.transition = 'opacity 0.5s ease';
         overlay.style.opacity = '0';
         setTimeout(() => overlay.remove(), 500);
       } else {
-        statusEl.textContent = 'Verifikasi gagal. Coba lagi.';
-        statusEl.style.color = '#f87171';
+        statusEl.textContent = 'Verification failed. Please try again.';
       }
     } catch (err) {
-      statusEl.textContent = 'Error koneksi. Refresh halaman.';
-      statusEl.style.color = '#f87171';
+      statusEl.textContent = 'Connection error. Please refresh.';
     }
   }
   
-  // Init saat DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', showGate);
   } else {

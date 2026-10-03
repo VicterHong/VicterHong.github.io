@@ -3,99 +3,135 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verifikasi Keamanan — Portfolio Victer</title>
+  <title>Just a moment...</title>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #0a0a0f;
-      color: #e0e0e0;
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #ffffff;
+      color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      line-height: 1.6;
     }
-    .gate-container {
-      max-width: 480px;
+    .container {
+      max-width: 500px;
       width: 100%;
       text-align: center;
     }
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 24px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
+    .logo-text {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 40px;
+      letter-spacing: -0.5px;
     }
-    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; color: #fff; }
-    .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 32px; }
-    .status-box {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 24px;
+    .spinner-wrapper {
+      margin: 30px 0;
     }
-    .status-text { font-size: 1rem; margin-bottom: 16px; }
-    .status-text.verifying { color: #fbbf24; }
-    .status-text.success { color: #34d399; }
-    .status-text.error { color: #f87171; }
     .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid rgba(255,255,255,0.1);
+      width: 48px;
+      height: 48px;
+      border: 3px solid #e0e0e0;
       border-top-color: #6366f1;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .progress-bar {
-      height: 4px; background: rgba(255,255,255,0.1);
-      border-radius: 2px; overflow: hidden; margin-top: 16px;
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 16px;
     }
-    .progress-fill {
-      height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6);
-      border-radius: 2px; transition: width 0.3s ease; width: 0%;
+    .description {
+      color: #666;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+      line-height: 1.7;
+    }
+    .verification-box {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 24px 0;
+      border: 1px solid #e9ecef;
     }
     #turnstile-container {
-      margin: 20px auto; min-height: 65px;
-      display: flex; justify-content: center;
+      min-height: 65px;
+      display: flex;
+      justify-content: center;
+      margin: 16px 0;
     }
-    .redirect-info {
-      margin-top: 16px; padding: 12px;
-      background: rgba(99, 102, 241, 0.1);
-      border-radius: 8px; font-size: 0.85rem; color: #a5b4fc;
+    .status-text {
+      font-size: 0.9rem;
+      color: #888;
+      margin-top: 12px;
     }
-    .footer { margin-top: 40px; font-size: 0.8rem; color: #555; }
+    .ray-id {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid #e9ecef;
+      font-size: 0.8rem;
+      color: #999;
+      font-family: 'Courier New', monospace;
+    }
+    .footer {
+      margin-top: 40px;
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+    .footer a {
+      color: #6366f1;
+      text-decoration: none;
+    }
+    .footer a:hover { text-decoration: underline; }
     .hidden { display: none !important; }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f0f1a; color: #e0e0e0; }
+      .logo-text { color: #fff; }
+      h1 { color: #fff; }
+      .description { color: #aaa; }
+      .verification-box { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+      .ray-id { border-color: rgba(255,255,255,0.1); }
+    }
   </style>
 </head>
 <body>
-  <div class="gate-container">
-    <div class="logo">🔒</div>
-    <h1>Verifikasi Keamanan</h1>
-    <p class="subtitle">Portfolio Victer — Protected Access</p>
+  <div class="container">
+    <div class="logo-text">portfolio-victer.pages.dev</div>
     
-    <div class="status-box" id="statusBox">
+    <div class="spinner-wrapper">
       <div class="spinner" id="spinner"></div>
-      <p class="status-text verifying" id="statusText">Melakukan verifikasi keamanan...</p>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 20%"></div></div>
     </div>
     
-    <div id="turnstile-container"></div>
-    <div class="redirect-info hidden" id="redirectInfo">
-      Verifikasi berhasil. Menunggu response dari <span id="targetUrl">portfolio-victer.pages.dev</span>...
+    <h1 id="mainTitle">Performing security verification</h1>
+    
+    <p class="description" id="description">
+      This website uses a security service to protect against malicious bots. 
+      This page is displayed while the website verifies you are not a bot.
+    </p>
+    
+    <div class="verification-box" id="verificationBox">
+      <div id="turnstile-container"></div>
+      <p class="status-text" id="statusText">Waiting for verification...</p>
+    </div>
+    
+    <div class="ray-id" id="rayId">
+      Ray ID: <span id="rayIdValue">-</span>
     </div>
     
     <div class="footer">
-      <p>🛡️ Dilindungi oleh Cloudflare Turnstile</p>
+      <p>Performance and Security by <a href="https://www.cloudflare.com" target="_blank">Cloudflare</a></p>
+      <p style="margin-top:8px;"><a href="#" id="privacyLink">Privacy</a> · <a href="#" id="termsLink">Terms</a></p>
     </div>
   </div>
 
@@ -104,40 +140,62 @@
     const TARGET_URL = './home.html';
     const VERIFY_ENDPOINT = 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile';
     
+    // Generate Ray ID (seperti Cloudflare)
+    function generateRayId() {
+      const chars = '0123456789abcdef';
+      let id = '';
+      for (let i = 0; i < 16; i++) {
+        id += chars[Math.floor(Math.random() * chars.length)];
+      }
+      return id;
+    }
+    
+    document.getElementById('rayIdValue').textContent = generateRayId();
+    
     const els = {
-      statusText: document.getElementById('statusText'),
+      mainTitle: document.getElementById('mainTitle'),
+      description: document.getElementById('description'),
       spinner: document.getElementById('spinner'),
-      progressFill: document.getElementById('progressFill'),
+      statusText: document.getElementById('statusText'),
       turnstileContainer: document.getElementById('turnstile-container'),
-      redirectInfo: document.getElementById('redirectInfo'),
-      targetUrl: document.getElementById('targetUrl')
+      verificationBox: document.getElementById('verificationBox')
     };
     
-    function setStatus(text, type, progress) {
-      els.statusText.textContent = text;
-      els.statusText.className = 'status-text ' + type;
-      if (progress !== undefined) els.progressFill.style.width = progress + '%';
+    function setStatus(title, desc, status) {
+      els.mainTitle.textContent = title;
+      els.description.textContent = desc;
+      els.statusText.textContent = status;
     }
     
     function showTurnstile() {
       els.spinner.classList.add('hidden');
       els.turnstileContainer.innerHTML = '';
+      
       if (window.turnstile) {
         window.turnstile.render(els.turnstileContainer, {
           sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
+          theme: 'auto',
+          size: 'normal',
           callback: onTurnstileSuccess,
           'error-callback': onTurnstileError,
-          'expired-callback': onTurnstileExpired
+          'expired-callback': onTurnstileExpired,
+          'timeout-callback': onTurnstileTimeout
         });
       } else {
-        setStatus('Gagal memuat verifikasi. Refresh halaman.', 'error', 0);
+        setStatus(
+          'Verification failed',
+          'Unable to load security verification. Please refresh the page or check your internet connection.',
+          'Error loading verification'
+        );
       }
     }
     
     async function onTurnstileSuccess(token) {
-      setStatus('Verifikasi berhasil. Menunggu response...', 'success', 80);
-      els.redirectInfo.classList.remove('hidden');
+      setStatus(
+        'Verification successful',
+        'Please wait while we redirect you to the requested page.',
+        'Verifying token...'
+      );
       
       try {
         const response = await fetch(VERIFY_ENDPOINT, {
@@ -145,51 +203,95 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
         });
+        
         const result = await response.json();
         
         if (result.success) {
-          setStatus('Akses diterima. Mengalihkan...', 'success', 100);
+          setStatus(
+            'Redirecting...',
+            'You will be redirected to the website shortly.',
+            'Access granted'
+          );
+          
           document.cookie = 'cf_turnstile_verified=1; path=/; max-age=3600; SameSite=Strict';
-          localStorage.setItem('turnstile_verified', Date.now().toString());
-          setTimeout(() => window.location.href = TARGET_URL, 1500);
+          sessionStorage.setItem('turnstile_verified', Date.now().toString());
+          
+          setTimeout(() => {
+            window.location.replace(TARGET_URL);
+          }, 1500);
         } else {
-          setStatus('Verifikasi gagal: ' + (result.message || 'Token invalid'), 'error', 0);
+          setStatus(
+            'Verification failed',
+            'The security verification could not be completed. Please try again.',
+            'Invalid token'
+          );
           showTurnstile();
         }
       } catch (err) {
-        setStatus('Error koneksi. Coba lagi.', 'error', 0);
+        setStatus(
+          'Connection error',
+          'Unable to complete verification. Please check your connection and try again.',
+          'Network error'
+        );
         showTurnstile();
       }
     }
     
     function onTurnstileError() {
-      setStatus('Verifikasi error. Coba lagi.', 'error', 0);
+      setStatus(
+        'Verification error',
+        'An error occurred during verification. Please refresh the page and try again.',
+        'Turnstile error'
+      );
       showTurnstile();
     }
     
     function onTurnstileExpired() {
-      setStatus('Verifikasi kadaluarsa. Ulangi.', 'error', 0);
+      setStatus(
+        'Verification expired',
+        'The verification has expired. Please complete the verification again.',
+        'Token expired'
+      );
       showTurnstile();
     }
     
+    function onTurnstileTimeout() {
+      setStatus(
+        'Verification timeout',
+        'The verification took too long. Please try again.',
+        'Timeout'
+      );
+      showTurnstile();
+    }
+    
+    // Init
     (function init() {
-      setStatus('Melakukan verifikasi keamanan...', 'verifying', 20);
-      const verified = localStorage.getItem('turnstile_verified');
+      // Cek apakah sudah verified
+      const verified = sessionStorage.getItem('turnstile_verified');
       const cookieVerified = document.cookie.includes('cf_turnstile_verified');
       
       if (verified && cookieVerified) {
         const age = Date.now() - parseInt(verified);
         if (age < 3600000) {
-          setStatus('Sesi aktif. Mengalihkan...', 'success', 100);
-          setTimeout(() => window.location.href = TARGET_URL, 1000);
+          setStatus(
+            'Redirecting...',
+            'You have already been verified. Redirecting to the website...',
+            'Session active'
+          );
+          setTimeout(() => window.location.replace(TARGET_URL), 1000);
           return;
         }
       }
       
+      // Tampilkan Turnstile setelah delay
       setTimeout(() => {
-        setStatus('Klik verifikasi di bawah untuk melanjutkan', 'verifying', 40);
+        setStatus(
+          'Performing security verification',
+          'Please complete the verification below to continue.',
+          'Waiting for user...'
+        );
         showTurnstile();
-      }, 1500);
+      }, 2000);
     })();
   </script>
 </body>
