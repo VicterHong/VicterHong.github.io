@@ -14,6 +14,7 @@ import { profile, about, services, projects, sideProjects, principles, stats } f
 import { initAstra } from './astra.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
+import { techGroups, createTechCard } from './tech-logos.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -57,19 +58,65 @@ function renderAbout() {
     host.append(el('p', { text: p }));
   }
 
+  // Grid logo teknologi — gambar asli setiap tech, bukan teks pill.
   const skillsHost = $('#aboutSkills');
-  if (skillsHost) {
-    for (const group of about.skills) {
-      const col = el('div', { class: 'skill-group' },
-        el('h3', { text: group.group }),
-      );
-      const list = el('div', { class: 'skill-tags' });
-      for (const item of group.items) {
-        list.append(el('span', { class: 'tag', text: item }));
-      }
-      col.append(list);
-      skillsHost.append(col);
+  if (!skillsHost) return;
+
+  for (const group of techGroups) {
+    const section = el('div', { class: 'tech-group' });
+    section.append(el('h3', { class: 'tech-group-title', text: group.group }));
+
+    const grid = el('div', { class: 'tech-grid' });
+    for (const key of group.keys) {
+      grid.append(createTechCard(key));
     }
+    section.append(grid);
+    skillsHost.append(section);
+  }
+
+  initTechInteractions(skillsHost);
+}
+
+/**
+ * Interaksi kartu teknologi: tilt 3D mengikuti kursor + pulse saat klik.
+ * Hover warna/glow ditangani CSS — ini hanya menambah kedalaman.
+ */
+function initTechInteractions(root) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const isTouch = window.matchMedia('(hover: none)').matches;
+
+  for (const card of root.querySelectorAll('.tech-card')) {
+    // Klik: pulse (jalan di semua perangkat, termasuk sentuh)
+    card.addEventListener('click', () => {
+      card.classList.remove('is-pulse');
+      void card.offsetWidth; // paksa reflow supaya animasi bisa diulang
+      card.classList.add('is-pulse');
+      setTimeout(() => card.classList.remove('is-pulse'), 520);
+    });
+
+    if (isTouch) continue; // tilt hanya untuk perangkat berkursor
+
+    let raf = null;
+    const maxDeg = 8;
+
+    card.addEventListener('pointermove', (e) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const rect = card.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width - 0.5;
+        const py = (e.clientY - rect.top) / rect.height - 0.5;
+        card.classList.add('is-tilting');
+        card.style.transform =
+          `translateY(-4px) perspective(700px) rotateX(${(-py * maxDeg).toFixed(2)}deg) rotateY(${(px * maxDeg).toFixed(2)}deg)`;
+      });
+    });
+
+    card.addEventListener('pointerleave', () => {
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      card.style.transform = '';
+      card.classList.remove('is-tilting');
+    });
   }
 }
 
