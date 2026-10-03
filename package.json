@@ -1,15 +1,19 @@
 {
   "name": "portfolio-victer",
   "version": "2.5.0",
-  "description": "Victer Portfolio — Token-gated B2B project showcase",
+  "description": "Victer Portfolio — Token-gated B2B project showcase on Cloudflare Edge",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "bash deploy-cloudflare.sh",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:production": "wrangler deploy --env production",
     "cf:dev": "cf dev",
     "cf:build": "cf build",
-    "cf:deploy": "cf deploy"
+    "cf:deploy": "cf deploy",
+    "r2:upload": "wrangler r2 object put portfolio-assets/ --file=",
+    "r2:list": "wrangler r2 object list portfolio-assets",
+    "logs": "wrangler tail",
+    "status": "curl -s https://portfolio-victer.victerphanjaya.workers.dev/health | python3 -m json.tool"
   },
   "dependencies": {
     "cloudflare": "^1.0.0-beta.12"
@@ -17,5 +21,8 @@
   "devDependencies": {
     "wrangler": "^4.147.0",
     "typescript": "^5.6.0"
-  }
+  },
+  "keywords": ["portfolio", "cloudflare", "workers", "b2b", "token-gated"],
+  "author": "Victer",
+  "license": "MIT"
 }
