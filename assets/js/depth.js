@@ -39,7 +39,16 @@ export function initScrollStand(selector = '.project, .principle, .service-card'
   if (!cards.length) return;
 
   // Mulai dari keadaan tidur — CSS menyediakan transisi, JS hanya menandai.
-  for (const card of cards) card.classList.add('depth-sleeping');
+  // Guard: jangan tandai kartu yang sudah berdiri (init ganda akan membuat
+  // elemen punya dua kelas sekaligus — .depth-standing menang di cascade,
+  // tapi state-nya jadi ambigu dan sulit di-debug).
+  const pending = [];
+  for (const card of cards) {
+    if (card.classList.contains('depth-standing')) continue;
+    card.classList.add('depth-sleeping');
+    pending.push(card);
+  }
+  if (!pending.length) return;
 
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
@@ -57,7 +66,21 @@ export function initScrollStand(selector = '.project, .principle, .service-card'
     }
   }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
 
-  for (const card of cards) observer.observe(card);
+  for (const card of pending) observer.observe(card);
+
+  // Jaring pengaman: apa pun yang terjadi pada observer, konten tidak boleh
+  // tertinggal dalam keadaan tak terlihat. Setelah 6 detik, semua kartu
+  // dipaksa berdiri. Ini mencegah skenario terburuk: halaman dengan konten
+  // kosong karena animasi gagal berjalan.
+  setTimeout(() => {
+    for (const card of pending) {
+      if (!card.classList.contains('depth-standing')) {
+        card.classList.remove('depth-sleeping');
+        card.classList.add('depth-standing');
+      }
+    }
+    observer.disconnect();
+  }, 6000);
 }
 
 // ── 2. TILT BERLAPIS + GLARE ──────────────────────────────────────────────────
@@ -68,6 +91,10 @@ export function initDepthTilt(selector = '.project-card-inner, .side-project, .t
   if (prefersReduced() || isTouch()) return;
 
   for (const card of document.querySelectorAll(selector)) {
+    // Guard: jangan pasang dua kali (init ganda = dua glare + dua listener).
+    if (card.dataset.depthTilt === 'on') continue;
+    card.dataset.depthTilt = 'on';
+
     const maxDeg = 4.5;
     let raf = null;
     let glare = card.querySelector(':scope > .depth-glare');
@@ -112,6 +139,10 @@ export function initSpotlight(selector = '.project.is-featured') {
   if (prefersReduced() || isTouch()) return;
 
   for (const card of document.querySelectorAll(selector)) {
+    // Guard: jangan pasang dua kali.
+    if (card.dataset.depthSpot === 'on') continue;
+    card.dataset.depthSpot = 'on';
+
     let raf = null;
     const onMove = (e) => {
       if (raf) return;
