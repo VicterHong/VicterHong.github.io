@@ -79,14 +79,15 @@ let gateVerified = false;
 /** Kunci tombol selama permintaan berjalan; hormati status verifikasi. */
 function setBusy(busy) {
   submit.disabled = busy || !gateVerified;
-  submit.textContent = busy ? 'Memeriksa…' : (gateVerified ? 'Buka' : 'Verifikasi dulu');
+  submit.textContent = busy ? 'Memeriksa…' : 'Buka';
 }
 
 // Tombol Buka terkunci sejak awal — verifikasi keamanan diperiksa lebih dulu.
+// Teks tombol tetap "Buka" (bukan label status); keadaan terkunci ditandai
+// gaya disabled yang jelas (lihat .gate-form .btn:disabled di project.css).
 // Diaktifkan kembali setelah verifikasi berhasil, atau langsung kalau
 // Turnstile memang nonaktif (lihat renderGateTurnstile).
 submit.disabled = true;
-submit.textContent = 'Verifikasi dulu';
 
 /** Tambahkan watermark dinamis ke konten. */
 function addWatermark(container, text) {

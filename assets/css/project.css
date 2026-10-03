@@ -223,6 +223,22 @@
   flex-wrap: wrap;
 }
 
+/* Tombol Buka sebelum verifikasi keamanan berhasil.
+   Tetap bertuliskan "Buka" — bukan label status — tapi diredupkan dan
+   kursor not-allowed supaya jelas belum bisa ditekan. Pola ini sama
+   dengan form pembayaran/pendaftaran besar: tombol tidak berubah teks,
+   hanya keadaannya. */
+.gate-form .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gate-form .btn:disabled:hover {
+  transform: none;
+  background: var(--accent);
+}
+
 .gate-input {
   flex: 1 1 14rem;
   min-width: 0;
