@@ -1,0 +1,18 @@
+{
+  "name": "Victer — Automation & Self-hosted Tools",
+  "short_name": "Victer",
+  "description": "Alat otomasi dan sistem self-hosted yang berjalan di tempat Anda sendiri.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
