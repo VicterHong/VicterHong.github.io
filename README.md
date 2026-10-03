@@ -11,8 +11,8 @@ JavaScript murni tanpa build step.
 
 ```
 /                           Beranda
-/s/                         Halaman proyek (kode acak, privat)
-/s/                         Halaman proyek (kode acak, privat)
+/s/e7kz4swubfvg/            Halaman proyek MINA (kode acak, privat)
+/s/zsvjp554dkt4/            Halaman proyek Spareparts (kode acak, privat)
 
 /assets/css/main.css        Tampilan beranda
 /assets/css/*.css           Modul tampilan (astra, bento, cinematic, dst)
@@ -74,12 +74,55 @@ bukan diketik manual — jadi tidak bisa basi saat proyek baru ditambahkan.
 
 ## Menambah proyek baru
 
-1. Tambahkan entri di `assets/js/data/projects.js`
-2. Buat folder `/<slug>/index.html` (salin dari `mina/index.html` sebagai
-   contoh, sesuaikan `data-project` dan slug)
-3. Tambahkan URL-nya ke `sitemap.xml`
-4. Jika ada video narasi, letakkan di `assets/narrative/` dan tambahkan
+1. Tambahkan entri di `assets/js/data/projects.js` — termasuk `access_codes`
+   (kode acak untuk URL) dan `slug` (kunci internal untuk API)
+2. Buat folder `/s/<kode>/index.html` (salin dari `/s/e7kz4swubfvg/` sebagai
+   contoh, sesuaikan slug proyeknya)
+3. Jika ada video narasi, letakkan di `assets/narrative/` dan tambahkan
    slug-nya ke `AVAILABLE` di `assets/js/narrative.js`
+
+Halaman proyek **tidak didaftarkan di `sitemap.xml`** — URL-nya berkode acak
+dan bersifat privat.
+
+## Merotasi kode proyek
+
+Kode proyek bisa diganti kapan saja (mis. tautan lama tersebar terlalu luas,
+atau pihak ketiga yang memegang tautan sudah tidak bekerja sama). Karena setiap
+proyek menyimpan **daftar** kode (`access_codes`), tautan lama tetap bekerja
+sampai sengaja dihapus.
+
+```js
+// assets/js/data/projects.js
+access_codes: ['kode-baru-12karakter', 'kode-lama-1', 'kode-lama-2'],
+//              ^ dipakai di tautan baru   ^ tetap bekerja untuk tautan lama
+```
+
+Langkah lengkap:
+
+1. Buat kode baru, letakkan di **awal** array `access_codes`
+2. Rename folder `s/<kode-lama>/` → `s/<kode-baru>/`
+3. Buat folder redirect `s/<kode-lama>/index.html` (lihat contoh yang sudah
+   ada — satu baris `location.replace`)
+4. Tautan di beranda otomatis memakai `access_codes[0]`
+
+Setelah tautan lama benar-benar tidak dipakai, hapus kodenya dari
+`access_codes` dan hapus folder redirect-nya — tautan lama lalu berhenti
+bekerja.
+
+## Anchor section
+
+Anchor di beranda memakai kode acak (`/#utqvwf`, bukan `/#work`) supaya nama
+bagian tidak terlihat di URL. Peta kodenya:
+
+```
+zs6xae → atas (top)        utqvwf → proyek (work)
+s6ahns → tentang (about)   5nfyzw → cara kerja (approach)
+cckxsk → layanan (services) 89fk39 → kontak (contact)
+```
+
+Kalau mengubah anchor, perbarui tiga tempat: `id` di `index.html`, `href` di
+navigasi, dan `assets/css/main.css` (navbar mobile menyembunyikan dua tautan
+lewat selektor `href`).
 
 ## Video latar (opsional)
 
