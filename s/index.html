@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mengalihkan… — Victer</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<!--
+  Halaman pengalih untuk kode akses LAMA.
+
+  Kode proyek bisa dirotasi (mis. karena tautan lama tersebar terlalu luas).
+  Halaman ini menjaga tautan lama tetap bekerja: pengunjung yang membuka
+  kode lama otomatis diarahkan ke halaman proyek yang sekarang.
+
+  Kode dialihkan di sisi klien karena GitHub Pages tidak bisa menulis aturan
+  redirect. Untuk keamanan, kode lama sebaiknya dicabut dari `access_codes`
+  setelah tautan lama tidak dipakai lagi — halaman ini lalu bisa dihapus.
+-->
+<style>
+  /* Tampilan minimal: halaman ini hanya sebentar terlihat. */
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #0a0a0b;
+    color: #a1a1aa;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+  }
+  .wrap { text-align: center; }
+  .mark { font-size: 1.6rem; color: #ff7a45; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="mark">{ • }</p>
+  <p>Mengalihkan ke halaman proyek…</p>
+</div>
+
+<script>
+  // Alias lama → kode utama sekarang.
+  // Tambahkan baris baru di sini setiap kali kode dirotasi.
+  var ROUTES = {
+    'xthef8ur': 'e7kz4swubfvg',   // MINA
+    'w8r69sbx': 'zsvjp554dkt4',   // Spareparts
+  };
+
+  var parts = location.pathname.split('/').filter(Boolean);
+  var i = parts.indexOf('s');
+  var old = i >= 0 && parts[i + 1] ? parts[i + 1] : '';
+  var target = ROUTES[old];
+
+  if (target) {
+    // Ganti hanya bagian kode; bagian lain URL (query, hash) tetap dibawa.
+    location.replace('/s/' + target + '/' + location.search + location.hash);
+  } else {
+    location.replace('/');
+  }
+</script>
+
+</body>
+</html>

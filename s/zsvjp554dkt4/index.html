@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.json">
+<title>Spareparts Inventory — Detail Teknis | Victer</title>
+<meta name="description" content="Detail arsitektur Spareparts Inventory System — inventaris suku cadang alat berat dengan FastAPI, PostgreSQL, dan n8n.">
+<meta name="robots" content="noindex">
+
+<meta property="og:title" content="Spareparts Inventory — Detail Teknis">
+<meta property="og:description" content="Arsitektur, alur otomasi, dan keputusan desain. Akses terbatas.">
+<meta property="og:type" content="article">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/css/main.css">
+<link rel="stylesheet" href="../../assets/css/project.css">
+<link rel="stylesheet" href="../../assets/css/astra.css">
+<link rel="stylesheet" href="../../assets/css/narrative.css">
+<link rel="stylesheet" href="../../assets/css/logo.css">
+<link rel="stylesheet" href="../../assets/css/premium.css">
+</head>
+<body class="page-project">
+
+<header class="site-header">
+  <a class="brand" href="../../">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">Victer</span>
+  </a>
+  <nav class="site-nav" aria-label="Navigasi utama">
+    <a href="../../#utqvwf">Proyek</a>
+    <a href="../../#5nfyzw">Cara kerja</a>
+    <a href="../../#89fk39">Kontak</a>
+  </nav>
+</header>
+
+<main>
+  <article class="project-page">
+    <a class="back-link" href="../../#utqvwf">← Semua proyek</a>
+
+    <header class="project-hero">
+      <p class="project-kicker">Proyek</p>
+      <h1 class="project-title">Spareparts Inventory</h1>
+      <p class="project-subtitle">Inventory &amp; logistik untuk suku cadang alat berat</p>
+      <p class="project-lede">
+        Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram.
+        Menggantikan pencatatan manual dengan alur yang bisa diaudit.
+      </p>
+      <dl class="project-facts">
+        <div><dd>5</dd><dt>lapisan sistem</dt></div>
+        <div><dd>Docker</dd><dt>penyiapan</dt></div>
+        <div><dd>n8n</dd><dt>otomasi alur</dt></div>
+      </dl>
+      <div class="stack">
+        <span class="tag">FastAPI</span>
+        <span class="tag">PostgreSQL</span>
+        <span class="tag">Docker</span>
+        <span class="tag">n8n</span>
+        <span class="tag">Telegram</span>
+      </div>
+      <a class="btn btn-ghost" href="https://github.com/VicterHong/spareparts-inventory-system" target="_blank" rel="noopener">Buka repo publik</a>
+    </header>
+
+    <section class="public-section">
+      <h2>Masalah yang diselesaikan</h2>
+      <p>
+        Pencatatan suku cadang secara manual mudah hilang dan sulit ditelusuri saat
+        dibutuhkan. Saat alat berat berhenti karena satu komponen, waktu yang dihabiskan
+        untuk mencari "apakah stoknya ada dan di mana" langsung menjadi biaya.
+      </p>
+    </section>
+
+    <section class="public-section">
+      <h2>Yang bisa diperiksa publik</h2>
+      <ul class="public-list">
+        <li>API FastAPI di atas PostgreSQL, dijalankan lewat Docker agar penyiapan konsisten.</li>
+        <li>n8n menghubungkan kejadian stok dengan notifikasi dan tindakan lanjutan.</li>
+        <li>Bot Telegram supaya tim bisa mengecek dan memperbarui stok tanpa membuka aplikasi lain.</li>
+      </ul>
+    </section>
+
+    <section class="locked-section" id="locked" aria-labelledby="locked-title">
+      <div class="locked-head">
+        <h2 id="locked-title">Detail arsitektur</h2>
+        <span class="locked-badge">
+          <span class="locked-dot" aria-hidden="true"></span>
+          Akses terbatas
+        </span>
+      </div>
+
+      <p class="locked-note">
+        Bagian ini memuat skema data, rancangan alur otomasi, keputusan integrasi, dan
+        catatan operasional. Akses diberikan lewat token yang diterbitkan setelah
+        permintaan disetujui.
+      </p>
+
+      <div class="locked-body" id="lockedBody" aria-hidden="true">
+        <div class="locked-preview">
+          <h3>Struktur data</h3>
+          <p>Bagaimana entitas utama disusun, dan bagaimana riwayat perubahan dijaga.</p>
+          <h3>Alur otomasi</h3>
+          <p>Kejadian apa yang memicu tindakan otomatis, dan kapan manusia tetap yang memutuskan.</p>
+          <h3>Antarmuka tim</h3>
+          <p>Cara tim lapangan mengakses sistem, dan bagaimana kesalahan input ditangani.</p>
+          <h3>Operasional</h3>
+          <p>Strategi cadangan, pemulihan, dan perilaku saat salah satu layanan turun.</p>
+        </div>
+        <div class="locked-veil" aria-hidden="true"></div>
+      </div>
+
+      <div class="locked-gate" id="lockedGate">
+        <div class="gate-card">
+          <h3 class="gate-title">Masukkan token akses</h3>
+          <p class="gate-note">
+            Token diberikan setelah permintaan Anda disetujui. Token berlaku untuk proyek ini saja.
+          </p>
+          <form class="gate-form" id="tokenForm" autocomplete="off">
+            <label class="sr-only" for="tokenInput">Token akses</label>
+            <input class="gate-input mono" id="tokenInput" name="token" type="password"
+                   placeholder="VP-XXXX-XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off" required>
+            <button class="btn btn-primary" type="submit" id="tokenSubmit">Buka</button>
+          </form>
+          <p class="gate-status" id="gateStatus" role="status" aria-live="polite"></p>
+          <div class="gate-actions">
+            <button class="link-btn" type="button" id="requestAccessBtn">Belum punya token? Minta akses</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="locked-content" id="lockedContent" hidden></div>
+    </section>
+
+    <section class="request-section" id="request" hidden>
+      <h2>Minta akses detail</h2>
+      <p class="request-note">
+        Isi data berikut. Permintaan akan ditinjau, dan token dikirim ke email Anda
+        bila disetujui. Tidak ada pembelian otomatis — semua lewat persetujuan.
+      </p>
+      <form class="request-form" id="requestForm" autocomplete="on">
+        <div class="field">
+          <label for="reqCompany">Perusahaan</label>
+          <input id="reqCompany" name="company" type="text" maxlength="200" required>
+        </div>
+        <div class="field">
+          <label for="reqName">Nama Anda</label>
+          <input id="reqName" name="name" type="text" maxlength="200" required>
+        </div>
+        <div class="field">
+          <label for="reqEmail">Email kerja</label>
+          <input id="reqEmail" name="email" type="email" maxlength="300" required>
+        </div>
+        <div class="field">
+          <label for="reqRole">Jabatan / Role</label>
+          <input id="reqRole" name="role" type="text" maxlength="100" placeholder="CTO, Engineering Manager, dll">
+        </div>
+        <div class="field">
+          <label for="reqBudget">Kisaran budget</label>
+          <select id="reqBudget" name="budget_range">
+            <option value="">Pilih kisaran</option>
+            <option value="< 10 juta">&lt; 10 juta</option>
+            <option value="10-50 juta">10 – 50 juta</option>
+            <option value="50-100 juta">50 – 100 juta</option>
+            <option value="100-500 juta">100 – 500 juta</option>
+            <option value="> 500 juta">&gt; 500 juta</option>
+            <option value="Belum tentu">Belum tentu — diskusi dulu</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="reqUrgency">Urgensi</label>
+          <select id="reqUrgency" name="urgency">
+            <option value="">Pilih urgensi</option>
+            <option value="segera">Segera (minggu ini)</option>
+            <option value="bulan ini">Bulan ini</option>
+            <option value="kuartal ini">Kuartal ini</option>
+            <option value="explorasi">Hanya explorasi</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="reqMessage">Keperluan</label>
+          <textarea id="reqMessage" name="message" rows="4" maxlength="4000"
+                    placeholder="Misalnya: evaluasi arsitektur untuk kemungkinan kerja sama"></textarea>
+        </div>
+        <div class="request-actions">
+          <button class="btn btn-primary" type="submit" id="requestSubmit">Kirim permintaan</button>
+          <button class="btn btn-ghost" type="button" id="requestCancel">Batal</button>
+        </div>
+        <p class="request-status" id="requestStatus" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
+</footer>
+
+<script type="module" src="../../assets/js/project.js?v=8"></script>
+</body>
+</html>

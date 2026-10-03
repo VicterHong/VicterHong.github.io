@@ -22,13 +22,17 @@ import { projects } from './data/projects.js';
 /**
  * Petakan kode akses acak → slug internal.
  *
- * URL publik memakai kode acak (mis. /s/xthef8ur/) supaya nama proyek tidak
- * bocor ke tautan, riwayat peramban, atau log server — pola yang dipakai
+ * URL publik memakai kode acak (mis. /s/e7kz4swubfvg/) supaya nama proyek
+ * tidak bocor ke tautan, riwayat peramban, atau log server — pola yang dipakai
  * Notion, Figma, dan Linear. Slug internal tetap dipakai untuk API karena
  * backend menyimpan data dengan kunci itu.
+ *
+ * Setiap proyek boleh punya BEBERAPA kode (`access_codes`): kode utama yang
+ * dipakai sekarang, plus alias lama yang tetap bekerja. Jadi kode bisa
+ * dirotasi kapan saja tanpa memutus tautan yang sudah dibagikan.
  */
 const CODE_TO_SLUG = Object.fromEntries(
-  projects.filter((p) => p.access_code).map((p) => [p.access_code, p.slug]),
+  projects.flatMap((p) => (p.access_codes ?? []).map((c) => [c, p.slug])),
 );
 
 /** Kode akses dari URL: /s/<code>/ → '<code>'. */

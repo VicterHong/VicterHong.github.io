@@ -11,8 +11,8 @@ JavaScript murni tanpa build step.
 
 ```
 /                           Beranda
-/mina/                      Halaman proyek MINA
-/spareparts/                Halaman proyek Spareparts
+/s/                         Halaman proyek (kode acak, privat)
+/s/                         Halaman proyek (kode acak, privat)
 
 /assets/css/main.css        Tampilan beranda
 /assets/css/*.css           Modul tampilan (astra, bento, cinematic, dst)
