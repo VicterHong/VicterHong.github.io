@@ -531,6 +531,32 @@ export const routes = [
         return sendJson(res, 400, { ok: false, error: 'email_tidak_valid', message: 'Alamat email tidak valid.' });
       }
 
+      // ── Validasi field wajib (lapis server) ──────────────────────────────
+      // Klien sudah memvalidasi, tapi klien bisa dilewati (request langsung,
+      // JavaScript dimatikan). Server memeriksa ulang dengan aturan yang sama
+      // supaya lead sampah tidak pernah masuk database.
+      const company = String(body.company ?? '').trim();
+      const name = String(body.name ?? '').trim();
+      const message = String(body.message ?? '').trim();
+      const budgetRange = String(body.budget_range ?? '').trim();
+      const urgency = String(body.urgency ?? '').trim();
+
+      const fieldErrors = [];
+      if (company.length < 3 || !/[A-Za-zÀ-ÿ]/.test(company)) fieldErrors.push('company');
+      if (name.length < 3 || /\d/.test(name) || !/[A-Za-zÀ-ÿ]/.test(name)) fieldErrors.push('name');
+      if (!budgetRange) fieldErrors.push('budget_range');
+      if (!urgency) fieldErrors.push('urgency');
+      if (message.length < 10) fieldErrors.push('message');
+
+      if (fieldErrors.length) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'field_tidak_lengkap',
+          fields: fieldErrors,
+          message: 'Lengkapi kolom bertanda * sebelum mengirim.',
+        });
+      }
+
       const ip = clientIp(req);
       const userAgent = String(req.headers['user-agent'] ?? '').slice(0, 300);
 

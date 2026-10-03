@@ -140,10 +140,11 @@
           <p class="gate-note">
             Token diberikan setelah permintaan Anda disetujui. Token berlaku untuk proyek ini saja.
           </p>
-          <form class="gate-form" id="tokenForm" autocomplete="off">
+          <form class="gate-form" id="tokenForm" autocomplete="off" novalidate>
             <label class="sr-only" for="tokenInput">Token akses</label>
             <input class="gate-input mono" id="tokenInput" name="token" type="password"
-                   placeholder="VP-XXXX-XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off" required>
+                   placeholder="VP-XXXX-XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off"
+                   required aria-required="true">
             <button class="btn btn-primary" type="submit" id="tokenSubmit" disabled>Buka</button>
           </form>
           <!-- Widget Turnstile gerbang token: tombol Buka tetap terkunci
@@ -254,6 +255,6 @@
 <!-- Widget Turnstile untuk form permintaan akses dirender oleh project.js
      ke slot #turnstileSlot. Library sudah dimuat di <head>. -->
 
-<script type="module" src="../../assets/js/project.js?v=13"></script>
+<script type="module" src="../../assets/js/project.js?v=14"></script>
 </body>
 </html>

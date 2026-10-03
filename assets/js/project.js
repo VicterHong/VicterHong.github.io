@@ -240,9 +240,21 @@ form.addEventListener('submit', async (event) => {
     return;
   }
 
-  const token = input.value.trim();
+  // Token dinormalkan ke huruf besar: alfabet token hanya A–Z dan 2–9,
+  // jadi pengunjung yang mengetik huruf kecil tetap bisa membuka.
+  const token = input.value.trim().toUpperCase();
   if (!token) {
-    setStatus('Masukkan token terlebih dahulu.', 'error');
+    setStatus('Masukkan token akses Anda terlebih dahulu.', 'error');
+    input.focus();
+    return;
+  }
+
+  // Format token: VP-XXXX-XXXX-XXXX-XXXX (4 segmen × 4 karakter base32).
+  // Dicek di klien supaya salah ketik ketahuan sebelum request dikirim —
+  // server tetap memeriksa ulang, ini hanya mempercepat umpan balik.
+  if (!/^VP-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(token)) {
+    setStatus('Format token tidak sesuai. Contoh: VP-XXXX-XXXX-XXXX-XXXX.', 'error');
+    input.focus();
     return;
   }
 
@@ -418,11 +430,33 @@ async function renderRequestTurnstile() {
 // menampilkan balon pesan bawaannya; validasi kita yang berbicara.
 
 /** Aturan validasi per field. Urutan = urutan fokus saat gagal. */
+
+/** Nama orang: minimal 3 huruf, harus ada huruf, tidak boleh angka/simbol. */
+function validPersonName(v) {
+  const s = v.trim();
+  if (s.length < 3) return false;
+  if (/\d/.test(s)) return false;                    // nama tidak berisi angka
+  if (!/[A-Za-zÀ-ÿ]/.test(s)) return false;          // harus ada huruf
+  if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' .-]*$/.test(s)) return false; // hanya huruf, spasi, ' . -
+  return true;
+}
+
+/** Nama perusahaan: minimal 3 karakter, harus ada huruf, boleh angka & simbol legal. */
+function validCompanyName(v) {
+  const s = v.trim();
+  if (s.length < 3) return false;
+  if (!/[A-Za-zÀ-ÿ]/.test(s)) return false;          // harus ada huruf
+  if (!/^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9&' .,()\-]*$/.test(s)) return false;
+  return true;
+}
+
 const FIELD_RULES = [
   { id: 'reqCompany', errId: 'errCompany', name: 'Perusahaan',
-    test: (v) => v.trim().length >= 2, message: 'Nama perusahaan wajib diisi (minimal 2 karakter).' },
+    test: validCompanyName,
+    message: 'Masukkan nama perusahaan yang valid (minimal 3 karakter, harus ada huruf).' },
   { id: 'reqName', errId: 'errName', name: 'Nama',
-    test: (v) => v.trim().length >= 2, message: 'Nama Anda wajib diisi (minimal 2 karakter).' },
+    test: validPersonName,
+    message: 'Masukkan nama lengkap Anda (minimal 3 karakter, tanpa angka).' },
   { id: 'reqEmail', errId: 'errEmail', name: 'Email',
     test: (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()),
     message: 'Masukkan alamat email kerja yang valid, misalnya nama@perusahaan.co.id.' },
