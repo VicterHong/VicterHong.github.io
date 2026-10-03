@@ -13,18 +13,21 @@
 import {
   clearToken, createSession, destroySession, fetchLockedContent,
   requestAccess, storeToken, storedToken, trackEvent, validateToken,
-} from '../../src/api.js';
-import { initAstra } from '../../src/astra.js';
-import { createNarrativeVideo } from '../../src/narrative.js';
-import { mountInteractiveLogo } from '../../src/logo.js';
+} from './api.js';
+import { initAstra } from './astra.js';
+import { createNarrativeVideo } from './narrative.js';
+import { mountInteractiveLogo } from './logo.js';
 
 /**
- * Slug proyek dibaca dari URL: /projects/<slug>/index.html
+ * Slug proyek dibaca dari URL yang bersih: /<slug>/
+ * Contoh: /mina/ → 'mina', /spareparts/ → 'spareparts'.
+ * URL tanpa index.html lebih profesional dan lebih baik untuk SEO.
  */
 function currentProject() {
   const parts = window.location.pathname.split('/').filter(Boolean);
-  const i = parts.lastIndexOf('projects');
-  return i >= 0 && parts[i + 1] ? parts[i + 1] : 'mina';
+  // Bagian terakhir adalah slug (URL selalu diakhiri slash)
+  const last = parts[parts.length - 1];
+  return last && !last.includes('.') ? last : 'mina';
 }
 
 const PROJECT = currentProject();

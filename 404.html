@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halaman tidak ditemukan — Victer</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="/assets/css/premium.css">
+<style>
+  /* Halaman 404: sederhana, jelas, dan tetap dalam bahasa visual situs.
+     Satu tugas — mengantar pengunjung kembali ke halaman yang ada. */
+  .err {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem 1.5rem;
+    gap: 0.5rem;
+  }
+  .err-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(3.5rem, 12vw, 6rem);
+    font-weight: 500;
+    letter-spacing: -0.05em;
+    color: var(--accent);
+    margin: 0;
+    line-height: 1;
+  }
+  .err h1 {
+    font-size: clamp(1.3rem, 4vw, 1.9rem);
+    letter-spacing: -0.03em;
+    margin: 0.6rem 0 0;
+    text-wrap: balance;
+  }
+  .err p {
+    color: var(--text-dim);
+    max-width: 46ch;
+    margin: 0.6rem 0 1.6rem;
+    text-wrap: pretty;
+  }
+  .err-links { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+</style>
+</head>
+<body>
+
+<main class="err">
+  <p class="err-code">404</p>
+  <h1>Halaman ini tidak ada</h1>
+  <p>
+    Mungkin tautannya salah ketik, atau halamannya sudah dipindahkan.
+    Yang pasti: bukan Anda yang salah.
+  </p>
+  <div class="err-links">
+    <a class="btn btn-primary" href="/">Kembali ke beranda</a>
+    <a class="btn btn-ghost" href="/#work">Lihat proyek</a>
+  </div>
+</main>
+
+</body>
+</html>

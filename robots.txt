@@ -1,0 +1,18 @@
+# robots.txt — panduan untuk mesin pencari
+# https://victerhong.github.io
+
+User-agent: *
+Allow: /
+
+# Halaman proyek terkunci: isi hanya untuk pemegang token, jangan diindeks.
+# Halaman login-nya sendiri boleh diindeks supaya orang tahu ada konten.
+Disallow: /mina/locked
+Disallow: /spareparts/locked
+Disallow: /api/
+
+# Berkas internal
+Disallow: /backend-url.json
+Disallow: /backend/
+Disallow: /docs/
+
+Sitemap: https://victerhong.github.io/sitemap.xml

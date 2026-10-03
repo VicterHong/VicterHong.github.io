@@ -20,13 +20,13 @@ const AVAILABLE = new Set(['mina', 'spareparts', 'portal', 'hero']);
 
 /**
  * Akar situs — dihitung dari lokasi modul ini.
- * Modul selalu di <root>/src/narrative.js, jadi naik dua tingkat dari file ini
- * menghasilkan akar situs. Ini membuat video tetap ketemu baik halaman berada
- * di root maupun di subfolder seperti /projects/mina/.
+ * Modul ada di <root>/assets/js/narrative.js, jadi naik tiga tingkat dari
+ * file ini menghasilkan akar situs. Ini membuat video tetap ketemu baik
+ * halaman berada di root maupun di subfolder seperti /mina/.
  */
 function siteRoot() {
   const url = new URL(import.meta.url);
-  return new URL('../', url).href;
+  return new URL('../../../', url).href;
 }
 
 /**

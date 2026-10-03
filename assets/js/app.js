@@ -140,7 +140,7 @@ function renderProjects() {
     if (p.gated) {
       links.append(el('a', {
         class: 'project-link project-link-detail',
-        href: `projects/${p.slug}/`,
+        href: `/${p.slug}/`,
         text: 'Detail teknis',
       }));
     }
