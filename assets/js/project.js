@@ -352,7 +352,11 @@ async function renderGateTurnstile() {
         callback: () => {
           gateVerified = true;
           setBusy(false);
-          if (!status.textContent.trim()) setStatus('Verifikasi berhasil. Masukkan token Anda.', 'ok');
+          // Tidak ada pesan sukses. Widget Turnstile sendiri sudah
+          // menampilkan centang hijau, dan tombol berubah dari
+          // "Verifikasi dulu" → "Buka" — indikator yang cukup. Pesan
+          // tambahan hanya menambah noise di alur produksi.
+          setStatus('');
         },
         'expired-callback': () => {
           gateVerified = false;
