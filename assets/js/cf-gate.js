@@ -118,12 +118,16 @@
   /**
    * Widget tersembunyi selama verifikasi (interaction-only), persis
    * Cloudflare. Baru muncul kalau Cloudflare meminta interaksi.
+   * language 'id' + size 'flexible' = tampilan yang sama dengan interstitial
+   * Cloudflare berbahasa Indonesia (widget melebar penuh, teks Indonesia).
    */
   function widgetOptions(onToken, onRetry) {
     return {
       sitekey: cfg().siteKey,
       theme: 'dark',
       appearance: 'interaction-only',
+      language: 'id',
+      size: 'flexible',
       callback: onToken,
       'error-callback': onRetry,
       'expired-callback': onRetry,

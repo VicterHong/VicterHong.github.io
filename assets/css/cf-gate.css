@@ -92,8 +92,9 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 }
 
 /* Slot widget Turnstile — mode interaction-only: kosong selama verifikasi,
-   hanya terisi kalau Cloudflare meminta interaksi (persis ko-fi.com). */
-#cf-gate #cf-widget { display: grid; }
+   hanya terisi kalau Cloudflare meminta interaksi (persis ko-fi.com).
+   Lebar dibatasi supaya widget tidak melebar penuh seperti blok konten. */
+#cf-gate #cf-widget { display: grid; max-width: 320px; }
 #cf-gate #cf-widget:empty { min-height: 0; }
 
 /* Footer — persis Cloudflare */
