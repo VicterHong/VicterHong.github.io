@@ -176,8 +176,13 @@ function renderLocked(payload) {
     body.hidden = false;
     gate.hidden = false;
     input.value = '';
-    // Token Turnstile sekali pakai — minta yang baru untuk sesi berikutnya.
-    if (gateWidgetId !== null && window.turnstile?.reset) window.turnstile.reset(gateWidgetId);
+    // Token Turnstile sekali pakai — minta yang baru untuk sesi berikutnya,
+    // dan kunci tombol lagi sampai verifikasi ulang berhasil.
+    if (gateWidgetId !== null && window.turnstile?.reset) {
+      gateVerified = false;
+      setBusy(false);
+      window.turnstile.reset(gateWidgetId);
+    }
     setStatus('Sesi ditutup. Token dihapus dari peramban ini.', 'ok');
   });
   foot.append(lockBtn);
