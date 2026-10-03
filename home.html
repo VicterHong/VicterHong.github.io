@@ -68,41 +68,71 @@
 </div>
 
 <header class="site-header">
-  <a class="brand" href="#zs6xae">
-    <span class="brand-mark" aria-hidden="true"></span>
-    <span class="brand-text">Victer</span>
-  </a>
-  <nav class="site-nav" aria-label="Navigasi utama">
-    <a href="#s6ahns">Tentang</a>
-    <a href="#cckxsk">Layanan</a>
-    <a href="#utqvwf">Proyek</a>
-    <a href="#5nfyzw">Cara kerja</a>
-    <a href="#89fk39">Kontak</a>
-  </nav>
+  <div class="site-header-inner">
+    <a class="brand" href="#zs6xae">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">Victer</span>
+    </a>
+    <nav class="site-nav" aria-label="Navigasi utama">
+      <a href="#s6ahns">Tentang</a>
+      <a href="#cckxsk">Layanan</a>
+      <a href="#utqvwf">Proyek</a>
+      <a href="#5nfyzw">Cara kerja</a>
+      <a href="#89fk39">Kontak</a>
+    </nav>
+    <a class="nav-cta" href="#89fk39">Hubungi</a>
+  </div>
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
 </header>
 
 <main id="zs6xae">
 
   <!-- ── PEMBUKA ─────────────────────────────────────────────────────────────
-       Bukan "passionate developer" generik. Yang ditulis adalah apa yang
-       sebenarnya dikerjakan, dengan angka yang bisa diperiksa. -->
+       Dua kolom: kiri menjelaskan, kanan MEMBUKTIKAN. Terminal window berisi
+       output nyata MINA — pola hero yang dipakai Framer/Vercel/Linear:
+       jangan cuma bilang "saya bangun alat", tunjukkan alatnya bekerja. -->
   <section class="hero" aria-labelledby="hero-title">
-    <p class="hero-kicker">Automation &amp; self-hosted tools</p>
-    <h1 class="hero-title" id="hero-title" data-cine-words>
-      Saya membangun alat yang membuat<br>
-      <span class="accent">perangkat lama berguna kembali.</span>
-    </h1>
-    <p class="hero-lede">
-      Perangkat lunak yang berjalan di tempat Anda sendiri — tanpa langganan, tanpa cloud wajib,
-      dan tetap hidup di laptop 2&nbsp;GB RAM.
-    </p>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
-      <a class="btn btn-ghost" href="https://github.com/VicterHong" target="_blank" rel="noopener">GitHub</a>
+    <div class="hero-copy">
+      <p class="hero-kicker">Automation &amp; self-hosted tools</p>
+      <h1 class="hero-title" id="hero-title" data-cine-words>
+        Saya membangun alat<br>
+        yang membuat <span class="accent">perangkat lama</span><br>
+        <span class="accent">berguna kembali.</span>
+      </h1>
+      <p class="hero-lede">
+        Perangkat lunak yang berjalan di tempat Anda sendiri — tanpa langganan, tanpa cloud wajib,
+        dan tetap hidup di laptop 2&nbsp;GB RAM.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
+        <a class="btn btn-ghost" href="https://github.com/VicterHong" target="_blank" rel="noopener">GitHub</a>
+      </div>
+
+      <!-- Angka ringkas. Dihitung dari data proyek, bukan diketik manual. -->
+      <dl class="hero-stats" id="heroStats"></dl>
     </div>
 
-    <!-- Angka ringkas. Dihitung dari data proyek, bukan diketik manual. -->
-    <dl class="hero-stats" id="heroStats"></dl>
+    <div class="hero-visual" aria-hidden="true">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">mina@home:~</span>
+        </div>
+        <div class="terminal-body">
+          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina status</span></p>
+          <p class="tline tdim">Menghubungi 192.168.1.42…</p>
+          <p class="tline"><span class="tok">●</span> Mesin aktif — 24&nbsp;MB RAM</p>
+          <p class="tline"><span class="tok">●</span> Telegram, Discord siap</p>
+          <p class="tline"><span class="tok">●</span> Uptime 47 hari</p>
+          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina run backup</span></p>
+          <p class="tline tdim">Menjalankan di laptop lama…</p>
+          <p class="tline"><span class="tok">✓</span> Selesai dalam 1,8&nbsp;detik</p>
+          <p class="tline tcaret"><span class="tprompt">$</span> <span class="caret"></span></p>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ── TENTANG ─────────────────────────────────────────────────────────────

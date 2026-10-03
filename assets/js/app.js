@@ -280,9 +280,19 @@ function observeReveals() {
 // ── KEPALA SAAT DIGULIR ────────────────────────────────────────────────────────
 function watchHeader() {
   const header = $('.site-header');
-  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 24);
+  const bar = $('#scrollProgress');
+  const onScroll = () => {
+    header.classList.toggle('is-scrolled', window.scrollY > 24);
+    // Progress bar: persentase halaman yang sudah digulir.
+    if (bar) {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? Math.min(100, (window.scrollY / max) * 100) : 0;
+      bar.style.width = pct.toFixed(1) + '%';
+    }
+  };
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
 }
 
 // ── JALANKAN ───────────────────────────────────────────────────────────────────
