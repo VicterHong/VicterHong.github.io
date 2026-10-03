@@ -47,12 +47,14 @@
   opacity: 0.85;
 }
 
-/* 5. Link underline — tumbuh dari kiri */
+/* 5. Link underline — tumbuh dari kiri.
+   Memakai ::before, BUKAN ::after: styles.css memakai ::after untuk panah
+   "→" pada .project-link. Kalau underline memakai ::after, panahnya hilang. */
 .astra-underline {
   position: relative;
 }
 
-.astra-underline::after {
+.astra-underline::before {
   content: '';
   position: absolute;
   left: 0;
@@ -65,8 +67,8 @@
   transition: transform 0.3s var(--ease);
 }
 
-.astra-underline:hover::after,
-.astra-underline:focus-visible::after {
+.astra-underline:hover::before,
+.astra-underline:focus-visible::before {
   transform: scaleX(1);
 }
 
@@ -78,7 +80,7 @@
     transition: none;
   }
   .astra-progress { display: none; }
-  .astra-underline::after { display: none; }
+  .astra-underline::before { display: none; }
   .btn, .project-link, .contact-link,
   .project, .side-project, .principle {
     transition: none;
