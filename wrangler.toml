@@ -3,24 +3,11 @@ main = "workers/site.ts"
 compatibility_date = "2025-10-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Environment variables
 [vars]
 ENVIRONMENT = "production"
 
-# Staging environment
 [env.staging]
 name = "portfolio-victer-staging"
 
-# Production environment  
 [env.production]
 name = "portfolio-victer-production"
-
-# R2 bucket
-[[r2_buckets]]
-binding = "ASSETS"
-bucket_name = "portfolio-assets"
-
-# Analytics
-[[analytics_engine_datasets]]
-binding = "ANALYTICS"
-dataset = "portfolio-analytics"

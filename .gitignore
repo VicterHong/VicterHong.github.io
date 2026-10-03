@@ -9,3 +9,4 @@ backend/src/config.mjs
 backend/.env
 backend/node_modules/
 backend/test/
+.env

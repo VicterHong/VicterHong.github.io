@@ -1,11 +1,10 @@
 /**
- * Cloudflare Worker — Portfolio Static Site
- * Edge deployment dengan caching, security headers, analytics
+ * Cloudflare Worker — Portfolio Static Site (tanpa R2)
+ * Serve dari KV atau inline assets. R2 ditambahkan nanti setelah diaktifkan.
  */
 
 export interface Env {
-  ASSETS: R2Bucket;
-  ANALYTICS: AnalyticsEngineDataset;
+  ENVIRONMENT: string;
 }
 
 const SECURITY_HEADERS = {
@@ -17,50 +16,23 @@ const SECURITY_HEADERS = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 
-const CACHE_TTL = 3600;
-
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const pathname = url.pathname;
     
-    // Analytics
-    env.ANALYTICS?.writeDataPoint({
-      blobs: [pathname, request.headers.get("user-agent") || "", request.cf?.country || ""],
-      doubles: [1],
-      indexes: [pathname],
-    });
-    
-    // Serve dari R2
-    const key = pathname === "/" ? "index.html" : pathname.slice(1);
-    const object = await env.ASSETS.get(key);
-    
-    if (!object) {
-      const fallback = await env.ASSETS.get("index.html");
-      if (!fallback) return new Response("Not Found", { status: 404 });
-      return serveAsset(fallback, "text/html", request);
+    // Health check
+    if (url.pathname === "/health") {
+      return new Response(JSON.stringify({
+        ok: true,
+        service: "portfolio-victer",
+        environment: env.ENVIRONMENT || "unknown",
+        time: new Date().toISOString(),
+      }), {
+        headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
+      });
     }
     
-    return serveAsset(object, getContentType(key), request);
+    // Redirect ke GitHub Pages untuk sekarang
+    return Response.redirect("https://victerhong.github.io" + url.pathname + url.search, 302);
   },
 };
-
-function serveAsset(object: R2ObjectBody, contentType: string, request: Request): Response {
-  const headers = new Headers({
-    "Content-Type": contentType,
-    "Cache-Control": `public, max-age=${CACHE_TTL}`,
-    ...SECURITY_HEADERS,
-  });
-  return new Response(object.body, { headers });
-}
-
-function getContentType(path: string): string {
-  const ext = path.split(".").pop()?.toLowerCase();
-  const types: Record<string, string> = {
-    html: "text/html", css: "text/css", js: "application/javascript",
-    json: "application/json", png: "image/png", jpg: "image/jpeg",
-    jpeg: "image/jpeg", svg: "image/svg+xml", ico: "image/x-icon",
-    woff2: "font/woff2",
-  };
-  return types[ext || ""] || "application/octet-stream";
-}
