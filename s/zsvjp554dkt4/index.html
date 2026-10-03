@@ -166,44 +166,52 @@
         Isi data berikut. Permintaan akan ditinjau, dan token dikirim ke email Anda
         bila disetujui. Tidak ada pembelian otomatis — semua lewat persetujuan.
       </p>
-      <form class="request-form" id="requestForm" autocomplete="on">
+      <form class="request-form" id="requestForm" autocomplete="on" novalidate>
         <div class="field">
-          <label for="reqCompany">Perusahaan</label>
-          <input id="reqCompany" name="company" type="text" maxlength="200" required>
+          <label for="reqCompany">Perusahaan <span class="field-req" aria-hidden="true">*</span></label>
+          <input id="reqCompany" name="company" type="text" maxlength="200" required
+                 aria-required="true" placeholder="PT Contoh Teknologi">
+          <p class="field-error" id="errCompany" role="alert"></p>
         </div>
         <div class="field">
-          <label for="reqName">Nama Anda</label>
-          <input id="reqName" name="name" type="text" maxlength="200" required>
+          <label for="reqName">Nama Anda <span class="field-req" aria-hidden="true">*</span></label>
+          <input id="reqName" name="name" type="text" maxlength="200" required
+                 aria-required="true" placeholder="Nama lengkap">
+          <p class="field-error" id="errName" role="alert"></p>
         </div>
         <div class="field">
-          <label for="reqEmail">Email kerja</label>
-          <input id="reqEmail" name="email" type="email" maxlength="300" required>
+          <label for="reqEmail">Email kerja <span class="field-req" aria-hidden="true">*</span></label>
+          <input id="reqEmail" name="email" type="email" maxlength="300" required
+                 aria-required="true" placeholder="nama@perusahaan.co.id">
+          <p class="field-error" id="errEmail" role="alert"></p>
         </div>
         <div class="field">
           <label for="reqRole">Jabatan / Role</label>
           <input id="reqRole" name="role" type="text" maxlength="100" placeholder="CTO, Engineering Manager, dll">
         </div>
         <div class="field">
-          <label for="reqBudget">Kisaran budget</label>
-          <select id="reqBudget" name="budget_range">
-            <option value="">Pilih kisaran</option>
-            <option value="< 10 juta">&lt; 10 juta</option>
-            <option value="10-50 juta">10 – 50 juta</option>
-            <option value="50-100 juta">50 – 100 juta</option>
-            <option value="100-500 juta">100 – 500 juta</option>
-            <option value="> 500 juta">&gt; 500 juta</option>
-            <option value="Belum tentu">Belum tentu — diskusi dulu</option>
+          <label for="reqBudget">Kisaran budget <span class="field-req" aria-hidden="true">*</span></label>
+          <select id="reqBudget" name="budget_range" required aria-required="true">
+            <option value="" selected disabled>Pilih kisaran budget</option>
+            <option value="< Rp 10 juta">&lt; Rp 10 juta</option>
+            <option value="Rp 10 – 50 juta">Rp 10 – 50 juta</option>
+            <option value="Rp 50 – 100 juta">Rp 50 – 100 juta</option>
+            <option value="Rp 100 – 500 juta">Rp 100 – 500 juta</option>
+            <option value="> Rp 500 juta">&gt; Rp 500 juta</option>
+            <option value="Belum ditentukan">Belum ditentukan — perlu diskusi</option>
           </select>
+          <p class="field-error" id="errBudget" role="alert"></p>
         </div>
         <div class="field">
-          <label for="reqUrgency">Urgensi</label>
-          <select id="reqUrgency" name="urgency">
-            <option value="">Pilih urgensi</option>
-            <option value="segera">Segera (minggu ini)</option>
+          <label for="reqUrgency">Urgensi <span class="field-req" aria-hidden="true">*</span></label>
+          <select id="reqUrgency" name="urgency" required aria-required="true">
+            <option value="" selected disabled>Pilih urgensi kebutuhan</option>
+            <option value="segera">Segera — dalam 1 minggu</option>
             <option value="bulan ini">Bulan ini</option>
             <option value="kuartal ini">Kuartal ini</option>
-            <option value="explorasi">Hanya explorasi</option>
+            <option value="eksplorasi">Eksplorasi — belum ada tenggat</option>
           </select>
+          <p class="field-error" id="errUrgency" role="alert"></p>
         </div>
         <!-- Honeypot anti-bot: field ini disembunyikan lewat CSS.
              Manusia tidak melihatnya; bot yang membaca HTML akan mengisinya.
@@ -217,9 +225,11 @@
         <input type="hidden" id="reqStartedAt" name="elapsed_ms" value="">
 
         <div class="field">
-          <label for="reqMessage">Keperluan</label>
-          <textarea id="reqMessage" name="message" rows="4" maxlength="4000"
+          <label for="reqMessage">Keperluan <span class="field-req" aria-hidden="true">*</span></label>
+          <textarea id="reqMessage" name="message" rows="4" maxlength="4000" required
+                    aria-required="true"
                     placeholder="Misalnya: evaluasi arsitektur untuk kemungkinan kerja sama"></textarea>
+          <p class="field-error" id="errMessage" role="alert"></p>
         </div>
         <!-- Widget Turnstile: diisi otomatis oleh project.js kalau aktif.
              Dikosongkan (tanpa elemen) berarti Turnstile nonaktif — form
@@ -230,6 +240,7 @@
           <button class="btn btn-primary" type="submit" id="requestSubmit">Kirim permintaan</button>
           <button class="btn btn-ghost" type="button" id="requestCancel">Batal</button>
         </div>
+        <p class="field-note"><span class="field-req" aria-hidden="true">*</span> Wajib diisi</p>
         <p class="request-status" id="requestStatus" role="status" aria-live="polite"></p>
       </form>
     </section>
@@ -243,6 +254,6 @@
 <!-- Widget Turnstile untuk form permintaan akses dirender oleh project.js
      ke slot #turnstileSlot. Library sudah dimuat di <head>. -->
 
-<script type="module" src="../../assets/js/project.js?v=12"></script>
+<script type="module" src="../../assets/js/project.js?v=13"></script>
 </body>
 </html>

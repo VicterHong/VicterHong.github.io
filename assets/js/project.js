@@ -412,21 +412,100 @@ async function renderRequestTurnstile() {
   });
 }
 
+// ── Validasi form permintaan ──────────────────────────────────────────────────
+// Pesan berbahasa Indonesia yang spesifik, bukan bawaan peramban
+// ("Harap isi bidang ini") — form pakai novalidate supaya peramban tidak
+// menampilkan balon pesan bawaannya; validasi kita yang berbicara.
+
+/** Aturan validasi per field. Urutan = urutan fokus saat gagal. */
+const FIELD_RULES = [
+  { id: 'reqCompany', errId: 'errCompany', name: 'Perusahaan',
+    test: (v) => v.trim().length >= 2, message: 'Nama perusahaan wajib diisi (minimal 2 karakter).' },
+  { id: 'reqName', errId: 'errName', name: 'Nama',
+    test: (v) => v.trim().length >= 2, message: 'Nama Anda wajib diisi (minimal 2 karakter).' },
+  { id: 'reqEmail', errId: 'errEmail', name: 'Email',
+    test: (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()),
+    message: 'Masukkan alamat email kerja yang valid, misalnya nama@perusahaan.co.id.' },
+  { id: 'reqBudget', errId: 'errBudget', name: 'Kisaran budget',
+    test: (v) => v !== '', message: 'Pilih kisaran budget supaya permintaan bisa ditinjau dengan tepat.' },
+  { id: 'reqUrgency', errId: 'errUrgency', name: 'Urgensi',
+    test: (v) => v !== '', message: 'Pilih urgensi kebutuhan Anda.' },
+  { id: 'reqMessage', errId: 'errMessage', name: 'Keperluan',
+    test: (v) => v.trim().length >= 10, message: 'Jelaskan keperluan Anda (minimal 10 karakter).' },
+];
+
+/** Tampilkan pesan error di bawah field + tandai field. */
+function setFieldError(field, errId, message) {
+  const err = document.getElementById(errId);
+  const wrap = field.closest('.field');
+  if (message) {
+    if (err) err.textContent = message;
+    wrap?.classList.add('is-invalid');
+    field.setAttribute('aria-invalid', 'true');
+  } else {
+    if (err) err.textContent = '';
+    wrap?.classList.remove('is-invalid');
+    field.removeAttribute('aria-invalid');
+  }
+}
+
+/** Bersihkan semua error. */
+function clearFieldErrors() {
+  for (const rule of FIELD_RULES) {
+    const field = document.getElementById(rule.id);
+    if (field) setFieldError(field, rule.errId, '');
+  }
+}
+
+/**
+ * Validasi seluruh form. Mengembalikan data form kalau valid, atau null
+ * (sekaligus menampilkan error di field pertama yang bermasalah).
+ */
+function validateRequestForm() {
+  clearFieldErrors();
+  let firstInvalid = null;
+
+  for (const rule of FIELD_RULES) {
+    const field = document.getElementById(rule.id);
+    if (!field) continue;
+    if (!rule.test(field.value)) {
+      setFieldError(field, rule.errId, rule.message);
+      if (!firstInvalid) firstInvalid = field;
+    }
+  }
+
+  if (firstInvalid) {
+    firstInvalid.focus();
+    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return null;
+  }
+  return Object.fromEntries(new FormData(requestForm).entries());
+}
+
+// Error hilang begitu pengunjung memperbaiki field-nya.
+for (const rule of FIELD_RULES) {
+  const field = document.getElementById(rule.id);
+  if (!field) continue;
+  const event = field.tagName === 'SELECT' ? 'change' : 'input';
+  field.addEventListener(event, () => {
+    if (rule.test(field.value)) setFieldError(field, rule.errId, '');
+  });
+}
+
 $('#requestCancel').addEventListener('click', () => {
   requestSection.hidden = true;
   requestStatus.textContent = '';
+  clearFieldErrors();
 });
 
 requestForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const data = Object.fromEntries(new FormData(requestForm).entries());
-  const email = String(data.email ?? '').trim();
 
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    requestStatus.textContent = 'Alamat email tidak valid.';
-    requestStatus.className = 'request-status is-error';
-    return;
-  }
+  // Validasi dulu — pesan spesifik per field, fokus ke yang pertama salah.
+  const data = validateRequestForm();
+  if (!data) return;
+
+  const email = String(data.email ?? '').trim();
 
   // Hitung berapa lama form diisi. Backend memakai angka ini untuk menilai
   // apakah pengisian terlalu cepat (ciri bot). Dikirim sebagai elapsed_ms.

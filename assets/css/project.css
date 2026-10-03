@@ -413,7 +413,36 @@
   color: var(--text-dim);
 }
 
+/* Tanda wajib: bintang merah — konvensi form korporat. */
+.field-req {
+  color: #ff6b5c;
+  font-weight: 600;
+}
+
+/* Pesan error per field — hanya muncul saat ada isi. */
+.field-error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #ff8b6b;
+}
+
+.field-error:empty { display: none; }
+
+/* Field yang gagal validasi ditandai garis merah. */
+.field.is-invalid input,
+.field.is-invalid select,
+.field.is-invalid textarea {
+  border-color: #ff6b5c;
+}
+
+.field-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
 .field input,
+.field select,
 .field textarea {
   padding: 0.7rem 0.85rem;
   font: inherit;
@@ -426,10 +455,35 @@
   transition: border-color 0.2s var(--ease);
 }
 
+/* Select: panah bawaan diganti panah sendiri supaya tampil konsisten
+   lintas peramban (bawaan Chrome/Firefox/Safari berbeda-beda). */
+.field select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.4rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%238b8b94' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  cursor: pointer;
+}
+
+/* Opsi placeholder (belum dipilih) diredupkan supaya jelas bukan pilihan sah. */
+.field select:invalid,
+.field select option[value=""][disabled] {
+  color: var(--text-dim);
+}
+
 .field input:focus,
+.field select:focus,
 .field textarea:focus {
   outline: none;
   border-color: var(--accent-line);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-dim);
+  opacity: 0.7;
 }
 
 .request-actions {
