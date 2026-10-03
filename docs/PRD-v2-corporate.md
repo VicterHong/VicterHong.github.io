@@ -187,7 +187,7 @@ Setiap interaksi dicatat di audit log; token dicabut otomatis jika anomali
 | **Performa** | Halaman publik < 1 MB total; konten terkunci di-load lazy |
 | **Ketersediaan** | Uptime 99% untuk landing; token service dapat maintenance window |
 | **Skalabilitas** | Arsitektur stateless; database SQLite/PostgreSQL ringan |
-| **Backup** | Token database di-backup otomatis harian |
+| **Backup** | Token database di-backup otomatis harian — ✅ `backend/scripts/backup.mjs`, cron 03:45, VACUUM INTO + integrity_check, retensi 30 hari |
 | **Audit** | Semua penerbitan, pencabutan, dan akses token tercatat |
 
 ---
@@ -285,7 +285,9 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | **v2.3** ✅ | GPT Astra micro-interactions di seluruh halaman | **Selesai** |
 | **v2.4** ✅ | Enterprise package + SLA + custom domain | **Selesai** (domain perlu keputusan pemilik) |
 | **v2.5** ✅ | Anti-spam form (Q3) + persetujuan syarat akses (Q5) | **Selesai** |
-| **v2.6** | Custom domain aktif (`victer.id` / `victer.dev`) | Menunggu keputusan pemilik |
+| **v2.6** 📋 | Custom domain aktif (`victer.is-a.dev`) | PR #54937 open, mergeable clean — menunggu merge maintainer |
+| **v2.7** ✅ | Bot protection profesional (Turnstile gate ala Cloudflare) + validasi form korporat | **Selesai** |
+| **v2.8** ✅ | Backup harian database token (PRD §8) | **Selesai** — cron 03:45, retensi 30 hari, terverifikasi |
 
 ### Catatan implementasi v2.3–v2.5
 
@@ -305,7 +307,10 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | URL berkode acak | ✅ | `/s/<kode-12-karakter>/`, alias + redirect untuk rotasi |
 | Anchor ter-obfuscate | ✅ | `/#utqvwf` alih-alih `/#work` |
 | Struktur korporat | ✅ | `/assets/css/`, `/assets/js/`, robots, sitemap, 404, manifest |
-| Tes backend | ✅ | 65 tes (naik dari 22 di v2.0) |
+| Bot protection (v2.7) | ✅ | Turnstile gate ala Cloudflare (id locale, dark) — halaman utama + semua halaman token; tombol terkunci sampai verifikasi; verifikasi server-side sebelum token diperiksa |
+| Form korporat (v2.7) | ✅ | Bintang merah field wajib, validasi spesifik per field (novalidate), minimum realistis (nama & perusahaan ≥3 karakter), opsi budget/urgensi format Rp |
+| Backup harian (v2.8) | ✅ | `backend/scripts/backup.mjs` — cron 03:45, VACUUM INTO + integrity_check, retensi 30 hari |
+| Tes backend | ✅ | 105 tes (naik dari 65 di v2.5) |
 
 ---
 

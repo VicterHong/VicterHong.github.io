@@ -349,6 +349,57 @@ node src/admin-cli.mjs issue --project mina --to "PT Contoh" --days 30
 
 ---
 
+## Backup database (otomatis)
+
+PRD §8 mewajibkan backup harian. Sudah berjalan lewat cron:
+
+```
+45 3 * * * node /home/ubuntu/portfolio-victer/backend/scripts/backup.mjs
+```
+
+**Cara kerja:** `VACUUM INTO` membaca snapshot konsisten tanpa menghentikan
+layanan (SQLite WAL mendukung pembaca bersamaan penulis). Salinan
+**diverifikasi** dengan `PRAGMA integrity_check` + hitungan baris — kalau
+rusak, file dihapus dan backup dianggap gagal (backup rusak lebih
+berbahaya daripada tidak ada backup).
+
+**Lokasi:** `~/.portfolio-token/backups/tokens-<stamp>.db` (izin 600, folder 700)
+**Retensi:** 30 hari (otomatis dihapus setelahnya)
+**Log:** `~/.portfolio-token/backup.log`
+
+### Menjalankan backup manual
+
+```bash
+node backend/scripts/backup.mjs
+# [2026-10-03T17:18:12] ✅ backup ~/.portfolio-token/backups/tokens-20261003171812.db
+#   (268 KB) — 8 token, 219 event, 0 lead, 0 arsip lama dihapus
+```
+
+### Memulihkan dari backup
+
+```bash
+# 1. Hentikan layanan
+sudo systemctl stop portfolio-token
+
+# 2. Ganti database dengan salinan (pilih file terbaru)
+cp ~/.portfolio-token/tokens.db ~/.portfolio-token/tokens.db.rusak   # simpan yang rusak
+cp ~/.portfolio-token/backups/tokens-<stamp>.db ~/.portfolio-token/tokens.db
+rm -f ~/.portfolio-token/tokens.db-wal ~/.portfolio-token/tokens.db-shm
+
+# 3. Verifikasi lalu jalankan kembali
+node -e "const{DatabaseSync}=require('node:sqlite');const d=new DatabaseSync(process.env.HOME+'/.portfolio-token/tokens.db',{readOnly:true});console.log(d.prepare('SELECT COUNT(*) AS n FROM tokens').get())"
+sudo systemctl start portfolio-token
+curl -s http://127.0.0.1:8788/api/health
+```
+
+### Menyesuaikan retensi
+
+```bash
+BACKUP_RETENTION_DAYS=90 node backend/scripts/backup.mjs
+```
+
+---
+
 ## Menambah proyek baru
 
 1. Buat folder `<kode>/index.html` — salin dari `s/e7kz4swubfvg/index.html`
