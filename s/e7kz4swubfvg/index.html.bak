@@ -23,8 +23,6 @@
 <link rel="stylesheet" href="../../assets/css/narrative.css">
 <link rel="stylesheet" href="../../assets/css/logo.css">
 <link rel="stylesheet" href="../../assets/css/premium.css">
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<script src="../../assets/js/token-turnstile-gate.js"></script>
 </head>
 <body class="page-project">
 

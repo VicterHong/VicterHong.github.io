@@ -34,8 +34,17 @@
       justify-content: center;
       font-size: 32px;
     }
-    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; color: #fff; }
-    .subtitle { color: #888; font-size: 0.95rem; margin-bottom: 32px; }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    .subtitle {
+      color: #888;
+      font-size: 0.95rem;
+      margin-bottom: 32px;
+    }
     .status-box {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
@@ -43,12 +52,16 @@
       padding: 24px;
       margin-bottom: 24px;
     }
-    .status-text { font-size: 1rem; margin-bottom: 16px; }
+    .status-text {
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
     .status-text.verifying { color: #fbbf24; }
     .status-text.success { color: #34d399; }
     .status-text.error { color: #f87171; }
     .spinner {
-      width: 40px; height: 40px;
+      width: 40px;
+      height: 40px;
       border: 3px solid rgba(255,255,255,0.1);
       border-top-color: #6366f1;
       border-radius: 50%;
@@ -57,23 +70,38 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .progress-bar {
-      height: 4px; background: rgba(255,255,255,0.1);
-      border-radius: 2px; overflow: hidden; margin-top: 16px;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 16px;
     }
     .progress-fill {
-      height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6);
-      border-radius: 2px; transition: width 0.3s ease; width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      width: 0%;
     }
     #turnstile-container {
-      margin: 20px auto; min-height: 65px;
-      display: flex; justify-content: center;
+      margin: 20px auto;
+      min-height: 65px;
+      display: flex;
+      justify-content: center;
     }
     .redirect-info {
-      margin-top: 16px; padding: 12px;
+      margin-top: 16px;
+      padding: 12px;
       background: rgba(99, 102, 241, 0.1);
-      border-radius: 8px; font-size: 0.85rem; color: #a5b4fc;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #a5b4fc;
     }
-    .footer { margin-top: 40px; font-size: 0.8rem; color: #555; }
+    .footer {
+      margin-top: 40px;
+      font-size: 0.8rem;
+      color: #555;
+    }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -85,23 +113,29 @@
     
     <div class="status-box" id="statusBox">
       <div class="spinner" id="spinner"></div>
-      <p class="status-text verifying" id="statusText">Melakukan verifikasi keamanan...</p>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 20%"></div></div>
+      <p class="status-text verifying" id="statusText">
+        Melakukan verifikasi keamanan...
+      </p>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width: 20%"></div>
+      </div>
     </div>
     
     <div id="turnstile-container"></div>
+    
     <div class="redirect-info hidden" id="redirectInfo">
       Verifikasi berhasil. Menunggu response dari <span id="targetUrl">portfolio-victer.pages.dev</span>...
     </div>
     
     <div class="footer">
       <p>🛡️ Dilindungi oleh Cloudflare Turnstile</p>
+      <p id="debugInfo" style="margin-top:8px;opacity:0.5"></p>
     </div>
   </div>
 
   <script>
     const TURNSTILE_SITE_KEY = '0x4AAAAAAFMyWUdxNriDmfym';
-    const TARGET_URL = './home.html';
+    const TARGET_URL = 'https://portfolio-victer.pages.dev/home.html';
     const VERIFY_ENDPOINT = 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile';
     
     const els = {
@@ -110,18 +144,22 @@
       progressFill: document.getElementById('progressFill'),
       turnstileContainer: document.getElementById('turnstile-container'),
       redirectInfo: document.getElementById('redirectInfo'),
-      targetUrl: document.getElementById('targetUrl')
+      targetUrl: document.getElementById('targetUrl'),
+      debugInfo: document.getElementById('debugInfo')
     };
     
     function setStatus(text, type, progress) {
       els.statusText.textContent = text;
       els.statusText.className = 'status-text ' + type;
-      if (progress !== undefined) els.progressFill.style.width = progress + '%';
+      if (progress !== undefined) {
+        els.progressFill.style.width = progress + '%';
+      }
     }
     
     function showTurnstile() {
       els.spinner.classList.add('hidden');
       els.turnstileContainer.innerHTML = '';
+      
       if (window.turnstile) {
         window.turnstile.render(els.turnstileContainer, {
           sitekey: TURNSTILE_SITE_KEY,
@@ -138,20 +176,27 @@
     async function onTurnstileSuccess(token) {
       setStatus('Verifikasi berhasil. Menunggu response...', 'success', 80);
       els.redirectInfo.classList.remove('hidden');
+      els.targetUrl.textContent = 'portfolio-victer.pages.dev';
       
       try {
+        // Verify token dengan backend
         const response = await fetch(VERIFY_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
         });
+        
         const result = await response.json();
         
         if (result.success) {
           setStatus('Akses diterima. Mengalihkan...', 'success', 100);
+          // Set cookie/session kemudian redirect
           document.cookie = 'cf_turnstile_verified=1; path=/; max-age=3600; SameSite=Strict';
           localStorage.setItem('turnstile_verified', Date.now().toString());
-          setTimeout(() => window.location.href = TARGET_URL, 1500);
+          
+          setTimeout(() => {
+            window.location.href = TARGET_URL;
+          }, 1500);
         } else {
           setStatus('Verifikasi gagal: ' + (result.message || 'Token invalid'), 'error', 0);
           showTurnstile();
@@ -172,20 +217,26 @@
       showTurnstile();
     }
     
+    // Init
     (function init() {
       setStatus('Melakukan verifikasi keamanan...', 'verifying', 20);
+      
+      // Cek apakah sudah verified sebelumnya
       const verified = localStorage.getItem('turnstile_verified');
       const cookieVerified = document.cookie.includes('cf_turnstile_verified');
       
       if (verified && cookieVerified) {
         const age = Date.now() - parseInt(verified);
-        if (age < 3600000) {
+        if (age < 3600000) { // 1 jam
           setStatus('Sesi aktif. Mengalihkan...', 'success', 100);
-          setTimeout(() => window.location.href = TARGET_URL, 1000);
+          setTimeout(() => {
+            window.location.href = TARGET_URL;
+          }, 1000);
           return;
         }
       }
       
+      // Load Turnstile
       setTimeout(() => {
         setStatus('Klik verifikasi di bawah untuk melanjutkan', 'verifying', 40);
         showTurnstile();
