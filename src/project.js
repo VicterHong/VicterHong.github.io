@@ -16,6 +16,7 @@ import {
 } from '../../src/api.js';
 import { initAstra } from '../../src/astra.js';
 import { createNarrativeVideo } from '../../src/narrative.js';
+import { mountInteractiveLogo } from '../../src/logo.js';
 
 /**
  * Slug proyek dibaca dari URL: /projects/<slug>/index.html
@@ -287,4 +288,7 @@ observer.observe(gate);
 
   // Micro-interactions Astra — setelah konten statis siap.
   initAstra();
+
+  // Logo interaktif — simbol coding yang bergerak saat hover/klik.
+  mountInteractiveLogo();
 })();

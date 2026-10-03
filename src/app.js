@@ -13,6 +13,7 @@
 import { profile, about, services, projects, sideProjects, principles, stats } from './data/projects.js';
 import { initAstra } from './astra.js';
 import { initCinematic } from './cinematic.js';
+import { mountInteractiveLogo } from './logo.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -297,6 +298,9 @@ for (const id of ['featuredProjects', 'sideProjects', 'principles', 'contactLink
 
 // Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
 initAstra();
+
+// Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
+mountInteractiveLogo();
 
 // Efek sinematik (teknik PRIOR, vanilla) — clip reveal, parallax, text stagger,
 // scroll-scrub video, hero fade. Semua hormati prefers-reduced-motion.
