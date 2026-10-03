@@ -1,5 +1,6 @@
 # robots.txt — panduan untuk mesin pencari
-# https://victerhong.github.io
+# Situs produksi: https://portfolio-victer.pages.dev
+# Cermin: https://victerhong.github.io (cadangan)
 
 User-agent: *
 Allow: /
@@ -13,4 +14,4 @@ Disallow: /backend-url.json
 Disallow: /backend/
 Disallow: /docs/
 
-Sitemap: https://victerhong.github.io/sitemap.xml
+Sitemap: https://portfolio-victer.pages.dev/sitemap.xml
