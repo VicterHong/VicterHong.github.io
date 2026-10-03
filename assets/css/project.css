@@ -476,3 +476,12 @@
 }
 
 .turnstile-slot[hidden] { display: none; }
+
+/* Gerbang token: widget verifikasi di bawah form token. Tombol Buka tetap
+   terkunci sampai widget ini lolos — mencegah percobaan token otomatis. */
+.gate-turnstile {
+  margin: 0.85rem 0 0;
+  min-height: 65px;
+}
+
+.gate-turnstile[hidden] { display: none; }

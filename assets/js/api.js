@@ -87,11 +87,14 @@ async function call(path, { method = 'GET', body = null, token = '', useCredenti
 /**
  * Tukar token dengan session cookie.
  * Kalau berhasil, server set httpOnly cookie 'portfolio_session'.
+ *
+ * `extra` dipakai untuk membawa token Turnstile (cf-turnstile-response) —
+ * server menolak pembuatan sesi tanpa verifikasi manusia saat Turnstile aktif.
  */
-export function createSession(token, project) {
+export function createSession(token, project, extra = {}) {
   return call('/api/token/session', {
     method: 'POST',
-    body: { token, project },
+    body: { token, project, ...extra },
     useCredentials: true,
   });
 }

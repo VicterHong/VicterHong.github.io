@@ -70,11 +70,23 @@ function setStatus(message, kind = '') {
   status.className = 'gate-status' + (kind ? ` is-${kind}` : '');
 }
 
-/** Kunci tombol selama permintaan berjalan. */
+/**
+ * Status verifikasi Turnstile untuk form token.
+ * false = tombol Buka terkunci (keadaan awal saat Turnstile aktif).
+ */
+let gateVerified = false;
+
+/** Kunci tombol selama permintaan berjalan; hormati status verifikasi. */
 function setBusy(busy) {
-  submit.disabled = busy;
-  submit.textContent = busy ? 'Memeriksa…' : 'Buka';
+  submit.disabled = busy || !gateVerified;
+  submit.textContent = busy ? 'Memeriksa…' : (gateVerified ? 'Buka' : 'Verifikasi dulu');
 }
+
+// Tombol Buka terkunci sejak awal — verifikasi keamanan diperiksa lebih dulu.
+// Diaktifkan kembali setelah verifikasi berhasil, atau langsung kalau
+// Turnstile memang nonaktif (lihat renderGateTurnstile).
+submit.disabled = true;
+submit.textContent = 'Verifikasi dulu';
 
 /** Tambahkan watermark dinamis ke konten. */
 function addWatermark(container, text) {
@@ -164,6 +176,8 @@ function renderLocked(payload) {
     body.hidden = false;
     gate.hidden = false;
     input.value = '';
+    // Token Turnstile sekali pakai — minta yang baru untuk sesi berikutnya.
+    if (gateWidgetId !== null && window.turnstile?.reset) window.turnstile.reset(gateWidgetId);
     setStatus('Sesi ditutup. Token dihapus dari peramban ini.', 'ok');
   });
   foot.append(lockBtn);
@@ -175,8 +189,15 @@ async function unlock(token) {
   setBusy(true);
   setStatus('Memeriksa token…');
 
+  // Token Turnstile dari widget gerbang (kalau aktif). Server menolak
+  // pembuatan sesi tanpa verifikasi manusia — lapis kedua yang tidak bisa
+  // dilewati dengan mengirim request langsung.
+  const turnstileToken = (gateWidgetId !== null && window.turnstile?.getResponse)
+    ? (window.turnstile.getResponse(gateWidgetId) ?? '')
+    : '';
+
   // Step 1: Buat session cookie
-  const sess = await createSession(token, PROJECT);
+  const sess = await createSession(token, PROJECT, { 'cf-turnstile-response': turnstileToken });
   if (!sess.ok) {
     setBusy(false);
     const message = sess.data?.message
@@ -205,6 +226,14 @@ async function unlock(token) {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+
+  // Lapis pertama (klien): jangan izinkan kirim sebelum verifikasi berhasil.
+  // Lapis kedua (server) tetap memeriksa — ini mencegah percobaan sia-sia.
+  if (gateWidgetId !== null && !gateVerified) {
+    setStatus('Selesaikan verifikasi keamanan dulu.', 'error');
+    return;
+  }
+
   const token = input.value.trim();
   if (!token) {
     setStatus('Masukkan token terlebih dahulu.', 'error');
@@ -215,6 +244,15 @@ form.addEventListener('submit', async (event) => {
   trackEvent('token_attempt', PROJECT);
 
   const ok = await unlock(token);
+
+  // Token Turnstile sekali pakai — reset supaya percobaan berikutnya
+  // mendapat token baru (kalau tidak, server menolak "timeout-or-duplicate").
+  if (gateWidgetId !== null && window.turnstile?.reset) {
+    gateVerified = false;
+    setBusy(false);
+    window.turnstile.reset(gateWidgetId);
+  }
+
   if (ok) {
     // Token hanya disimpan di sessionStorage sebagai backup (cookie adalah utama)
     storeToken(token);
@@ -236,23 +274,30 @@ $('#requestAccessBtn').addEventListener('click', () => {
   const startedAt = $('#reqStartedAt');
   if (startedAt) startedAt.value = String(Date.now());
 
-  // Render widget Turnstile saat form pertama dibuka (lazy). Kalau site key
-  // tidak tersedia, slot tetap tersembunyi dan form jalan tanpa Turnstile.
-  renderTurnstile();
+  // Render widget Turnstile saat form pertama dibuka (lazy). Tombol Kirim
+  // terkunci sampai verifikasi berhasil. Kalau site key tidak tersedia,
+  // slot tetap tersembunyi dan form jalan tanpa Turnstile.
+  renderRequestTurnstile();
 
   // Track: contact sales clicked
   trackEvent('contact_sales', PROJECT);
 });
 
 // ── Cloudflare Turnstile ──────────────────────────────────────────────────────
-// CAPTCHA tanpa geser. Site key diambil dari backend (/api/config) supaya
-// tidak perlu hardcode di HTML — dan supaya menyalakan/mematikan Turnstile
-// cukup lewat service.env, tanpa menyentuh frontend.
+// Dua widget, dua gerbang:
+//   1. #gateTurnstile  — form token akses. Tombol "Buka" TERKUNCI sampai
+//      verifikasi berhasil. Token ikut dikirim saat membuat sesi; server
+//      menolak sesi tanpa verifikasi (lapis kedua — tidak bisa dilewati
+//      dengan mematikan JavaScript atau mengirim request langsung).
+//   2. #turnstileSlot  — form permintaan akses. Tombol "Kirim permintaan"
+//      terkunci sampai verifikasi berhasil.
 //
-// Widget dirender "explicit" (bukan otomatis) supaya tidak membebani halaman
-// yang belum tentu membuka form.
+// Site key diambil dari backend (/api/config) — menyalakan/mematikan
+// Turnstile cukup lewat service.env, tanpa menyentuh frontend.
+// Kalau Turnstile nonaktif, tombol langsung aktif dan form jalan seperti biasa.
 
-let turnstileWidgetId = null;
+let gateWidgetId = null;
+let requestWidgetId = null;
 let turnstileConfig = null;
 
 /** Ambil konfigurasi Turnstile dari backend (sekali saja). */
@@ -272,26 +317,88 @@ async function loadTurnstileConfig() {
   return turnstileConfig;
 }
 
-/** Render widget Turnstile ke slot, kalau aktif dan library sudah dimuat. */
-async function renderTurnstile() {
-  const slot = $('#turnstileSlot');
-  if (!slot || turnstileWidgetId !== null) return;
+/** Tunggu library Turnstile (dimuat async) siap dipakai. */
+function waitForTurnstile(cb, tries = 60) {
+  if (window.turnstile?.render) { cb(); return; }
+  if (tries <= 0) return;
+  setTimeout(() => waitForTurnstile(cb, tries - 1), 250);
+}
+
+/** Widget gerbang token: tombol Buka terkunci sampai verifikasi berhasil. */
+async function renderGateTurnstile() {
+  const slot = $('#gateTurnstile');
+  if (!slot || gateWidgetId !== null) return;
 
   const cfg = await loadTurnstileConfig();
-  if (!cfg.enabled || !cfg.site_key) return;
+  if (!cfg.enabled || !cfg.site_key) {
+    // Turnstile nonaktif — jangan blokir pengunjung.
+    gateVerified = true;
+    setBusy(false);
+    return;
+  }
 
-  // Library dimuat async; tunggu sebentar kalau belum siap.
-  const turnstile = window.turnstile;
-  if (!turnstile?.render) return;
+  waitForTurnstile(() => {
+    slot.hidden = false;
+    try {
+      gateWidgetId = window.turnstile.render(slot, {
+        sitekey: cfg.site_key,
+        theme: 'dark',
+        action: 'token_gate',
+        callback: () => {
+          gateVerified = true;
+          setBusy(false);
+          if (!status.textContent.trim()) setStatus('Verifikasi berhasil. Masukkan token Anda.', 'ok');
+        },
+        'expired-callback': () => {
+          gateVerified = false;
+          setBusy(false);
+          setStatus('Verifikasi kedaluwarsa. Selesaikan ulang untuk melanjutkan.', 'error');
+        },
+        'error-callback': () => {
+          gateVerified = false;
+          setBusy(false);
+          setStatus('Verifikasi keamanan bermasalah. Muat ulang halaman.', 'error');
+        },
+      });
+    } catch {
+      setStatus('Verifikasi keamanan bermasalah. Muat ulang halaman.', 'error');
+    }
+  });
 
-  slot.hidden = false;
-  turnstileWidgetId = turnstile.render(slot, {
-    sitekey: cfg.site_key,
-    theme: 'dark',
-    action: 'lead_form',
-    // Kalau token kedaluwarsa (pengunjung lama mengisi), perbarui otomatis
-    // supaya tidak perlu muat ulang halaman.
-    'refresh-expired': 'auto',
+  // Kalau library tidak kunjung termuat (adblock/jaringan), beri tahu
+  // pengunjung. Tombol tetap terkunci — server memang menolak tanpa
+  // verifikasi, jadi membiarkannya terbuka hanya membuang percobaan.
+  setTimeout(() => {
+    if (gateWidgetId === null && !gateVerified) {
+      setStatus('Verifikasi keamanan tidak dapat dimuat. Muat ulang halaman atau matikan pemblokir.', 'error');
+    }
+  }, 15000);
+}
+
+/** Widget form permintaan: tombol Kirim terkunci sampai verifikasi berhasil. */
+async function renderRequestTurnstile() {
+  const slot = $('#turnstileSlot');
+  if (!slot || requestWidgetId !== null) return;
+
+  const cfg = await loadTurnstileConfig();
+  if (!cfg.enabled || !cfg.site_key) return; // form jalan tanpa Turnstile
+
+  const button = $('#requestSubmit');
+  button.disabled = true; // aktif setelah verifikasi berhasil
+
+  waitForTurnstile(() => {
+    slot.hidden = false;
+    requestWidgetId = window.turnstile.render(slot, {
+      sitekey: cfg.site_key,
+      theme: 'dark',
+      action: 'lead_form',
+      // Kalau token kedaluwarsa (pengunjung lama mengisi), perbarui otomatis
+      // supaya tidak perlu muat ulang halaman.
+      'refresh-expired': 'auto',
+      callback: () => { button.disabled = false; },
+      'expired-callback': () => { button.disabled = true; },
+      'error-callback': () => { button.disabled = true; },
+    });
   });
 }
 
@@ -318,8 +425,8 @@ requestForm.addEventListener('submit', async (event) => {
 
   // Token Turnstile (kalau widget aktif). Dikirim sebagai
   // cf-turnstile-response — nama field yang diharapkan Cloudflare.
-  const turnstileToken = (turnstileWidgetId !== null && window.turnstile?.getResponse)
-    ? (window.turnstile.getResponse(turnstileWidgetId) ?? '')
+  const turnstileToken = (requestWidgetId !== null && window.turnstile?.getResponse)
+    ? (window.turnstile.getResponse(requestWidgetId) ?? '')
     : '';
 
   const button = $('#requestSubmit');
@@ -345,6 +452,12 @@ requestForm.addEventListener('submit', async (event) => {
 
   button.disabled = false;
   button.textContent = 'Kirim permintaan';
+
+  // Token Turnstile sekali pakai — reset supaya percobaan berikutnya
+  // mendapat token baru.
+  if (requestWidgetId !== null && window.turnstile?.reset) {
+    window.turnstile.reset(requestWidgetId);
+  }
 
   if (result.ok) {
     requestForm.reset();
@@ -383,6 +496,11 @@ observer.observe(gate);
     renderLocked(result.data);
   }
   // Kalau tidak ada session, tampilkan gate (default state)
+
+  // Gerbang verifikasi untuk form token: tombol Buka terkunci sampai
+  // verifikasi berhasil. Kalau konten sudah terbuka (sesi aktif), widget
+  // tidak perlu dirender.
+  if (contentHost.hidden) renderGateTurnstile();
 
   // Micro-interactions Astra — setelah konten statis siap.
   initAstra();

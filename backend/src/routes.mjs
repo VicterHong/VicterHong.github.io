@@ -242,6 +242,50 @@ function verifySession(req, { projectSlug = '', action = 'content' } = {}) {
   return { tokenRow, sessionRow };
 }
 
+/**
+ * Verifikasi Turnstile untuk aksi sensitif (gerbang token, sesi).
+ *
+ * Dipakai SEBELUM token diperiksa — jadi bot tidak bisa menebak token
+ * sama sekali kalau belum lolos verifikasi manusia.
+ *
+ * Mengembalikan { ok: true } kalau lolos (atau Turnstile memang nonaktif —
+ * situs tidak boleh rusak karena konfigurasi kosong), atau
+ * { ok: false, status, body } kalau ditolak.
+ *
+ * `secret` bisa dioper eksplisit supaya bisa diuji tanpa menyentuh
+ * konfigurasi produksi.
+ */
+export async function turnstileGate(req, body, { action = 'turnstile_gate', secret } = {}) {
+  const effectiveSecret = secret ?? config.turnstileSecretKey;
+  const result = await verifyTurnstile({
+    token: String(body['cf-turnstile-response'] ?? body.turnstile_token ?? ''),
+    secret: effectiveSecret,
+    remoteip: clientIp(req),
+  });
+
+  if (result.ok) {
+    if (!result.skipped) {
+      recordEvent({
+        action, outcome: 'ok',
+        ip: clientIp(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+      });
+    }
+    return { ok: true, skipped: result.skipped === true };
+  }
+
+  recordEvent({
+    action, outcome: 'gagal', detail: result.error,
+    ip: clientIp(req),
+    userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+  });
+  return {
+    ok: false,
+    status: 403,
+    body: { ok: false, error: result.error, message: turnstileMessage(result.error) },
+  };
+}
+
 /** Semua rute, dengan pola dan handler. */
 export const routes = [
   {
@@ -304,7 +348,14 @@ export const routes = [
         return sendJson(res, 400, { ok: false, error: 'proyek_tidak_valid', message: 'Slug proyek tidak valid.' });
       }
 
-      // Verifikasi token dulu
+      // ── Gerbang Turnstile (sebelum token diperiksa) ──────────────────────
+      // Memverifikasi pengunjung adalah MANUSIA dulu, baru tokennya dinilai.
+      // Efeknya: skrip bot tidak bisa menebak/menguji token sama sekali —
+      // percobaan tanpa verifikasi ditolak sebelum menyentuh database token.
+      const gate = await turnstileGate(req, body, { action: 'session_turnstile' });
+      if (!gate.ok) return sendJson(res, gate.status, gate.body);
+
+      // Verifikasi token
       const { row, error } = verifyToken(req, body, { projectSlug: slug, action: 'session_create' });
       if (error) return sendJson(res, error.status, error.body);
 
