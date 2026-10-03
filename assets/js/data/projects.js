@@ -76,6 +76,10 @@ export const services = [
 export const projects = [
   {
     slug: 'mina',
+    // Kode akses acak — inilah yang muncul di URL, bukan nama proyek.
+    // URL publik: /s/xthef8ur/ (opaque, seperti Notion/Figma).
+    // Nama proyek tetap dipakai untuk API dan data internal.
+    access_code: 'xthef8ur',
     featured: true,
     gated: true,
     name: 'MINA',
@@ -115,6 +119,8 @@ export const projects = [
   },
   {
     slug: 'spareparts',
+    // URL publik: /s/w8r69sbx/ — kode acak, bukan nama proyek.
+    access_code: 'w8r69sbx',
     gated: true,
     name: 'Spareparts Inventory System',
     subtitle: 'Inventory & logistik untuk suku cadang alat berat',

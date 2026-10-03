@@ -17,20 +17,35 @@ import {
 import { initAstra } from './astra.js';
 import { createNarrativeVideo } from './narrative.js';
 import { mountInteractiveLogo } from './logo.js';
+import { projects } from './data/projects.js';
 
 /**
- * Slug proyek dibaca dari URL yang bersih: /<slug>/
- * Contoh: /mina/ → 'mina', /spareparts/ → 'spareparts'.
- * URL tanpa index.html lebih profesional dan lebih baik untuk SEO.
+ * Petakan kode akses acak → slug internal.
+ *
+ * URL publik memakai kode acak (mis. /s/xthef8ur/) supaya nama proyek tidak
+ * bocor ke tautan, riwayat peramban, atau log server — pola yang dipakai
+ * Notion, Figma, dan Linear. Slug internal tetap dipakai untuk API karena
+ * backend menyimpan data dengan kunci itu.
  */
-function currentProject() {
+const CODE_TO_SLUG = Object.fromEntries(
+  projects.filter((p) => p.access_code).map((p) => [p.access_code, p.slug]),
+);
+
+/** Kode akses dari URL: /s/<code>/ → '<code>'. */
+function currentCode() {
   const parts = window.location.pathname.split('/').filter(Boolean);
-  // Bagian terakhir adalah slug (URL selalu diakhiri slash)
-  const last = parts[parts.length - 1];
-  return last && !last.includes('.') ? last : 'mina';
+  const i = parts.indexOf('s');
+  return i >= 0 && parts[i + 1] ? parts[i + 1] : '';
+}
+
+/** Slug internal untuk API. Fallback ke proyek pertama kalau kode tak dikenal. */
+function currentProject() {
+  const code = currentCode();
+  return CODE_TO_SLUG[code] ?? projects.find((p) => p.gated)?.slug ?? 'mina';
 }
 
 const PROJECT = currentProject();
+const ACCESS_CODE = currentCode();
 
 const $ = (sel) => document.querySelector(sel);
 

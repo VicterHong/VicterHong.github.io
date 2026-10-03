@@ -137,10 +137,12 @@ function renderProjects() {
 
     const links = el('div', { class: 'project-links' });
     // Proyek dengan bagian terkunci punya halaman detail sendiri.
+    // URL memakai kode akses acak (/s/<code>/) supaya nama proyek tidak
+    // muncul di tautan — pola yang dipakai Notion, Figma, Linear.
     if (p.gated) {
       links.append(el('a', {
         class: 'project-link project-link-detail',
-        href: `/${p.slug}/`,
+        href: `/s/${p.access_code}/`,
         text: 'Detail teknis',
       }));
     }

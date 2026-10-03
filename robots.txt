@@ -4,11 +4,9 @@
 User-agent: *
 Allow: /
 
-# Halaman proyek terkunci: isi hanya untuk pemegang token, jangan diindeks.
-# Halaman login-nya sendiri boleh diindeks supaya orang tahu ada konten.
-Disallow: /mina/locked
-Disallow: /spareparts/locked
-Disallow: /api/
+# Halaman proyek memakai URL berkode acak dan bersifat privat.
+# Jangan diindeks: pemilik tautan saja yang boleh tahu alamatnya.
+Disallow: /s/
 
 # Berkas internal
 Disallow: /backend-url.json
