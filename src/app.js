@@ -14,7 +14,8 @@ import { profile, about, services, projects, sideProjects, principles, stats } f
 import { initAstra } from './astra.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
-import { techGroups, createTechCard } from './tech-logos.js';
+import { techGroups, techLogos, createTechCard } from './tech-logos.js';
+import { createTiltPanel } from './tilt-panel.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -58,64 +59,26 @@ function renderAbout() {
     host.append(el('p', { text: p }));
   }
 
-  // Grid logo teknologi — gambar asli setiap tech, bukan teks pill.
+  // Panel tech-stack: SATU kartu besar dengan semua logo, tilt 3D bersama.
+  // Menggantikan 16 kartu terpisah yang masing-masing tilt sendiri (terlihat
+  // terpecah). Satu panel = kesan tech-stack card yang kohesif.
   const skillsHost = $('#aboutSkills');
   if (!skillsHost) return;
 
-  for (const group of techGroups) {
-    const section = el('div', { class: 'tech-group' });
-    section.append(el('h3', { class: 'tech-group-title', text: group.group }));
+  const panel = createTiltPanel(techGroups, techLogos, createTechCard);
+  skillsHost.append(panel);
 
-    const grid = el('div', { class: 'tech-grid' });
-    for (const key of group.keys) {
-      grid.append(createTechCard(key));
-    }
-    section.append(grid);
-    skillsHost.append(section);
-  }
-
-  initTechInteractions(skillsHost);
+  initTechPulse(skillsHost);
 }
 
-/**
- * Interaksi kartu teknologi: tilt 3D mengikuti kursor + pulse saat klik.
- * Hover warna/glow ditangani CSS — ini hanya menambah kedalaman.
- */
-function initTechInteractions(root) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const isTouch = window.matchMedia('(hover: none)').matches;
-
-  for (const card of root.querySelectorAll('.tech-card')) {
-    // Klik: pulse (jalan di semua perangkat, termasuk sentuh)
-    card.addEventListener('click', () => {
-      card.classList.remove('is-pulse');
-      void card.offsetWidth; // paksa reflow supaya animasi bisa diulang
-      card.classList.add('is-pulse');
-      setTimeout(() => card.classList.remove('is-pulse'), 520);
-    });
-
-    if (isTouch) continue; // tilt hanya untuk perangkat berkursor
-
-    let raf = null;
-    const maxDeg = 8;
-
-    card.addEventListener('pointermove', (e) => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = null;
-        const rect = card.getBoundingClientRect();
-        const px = (e.clientX - rect.left) / rect.width - 0.5;
-        const py = (e.clientY - rect.top) / rect.height - 0.5;
-        card.classList.add('is-tilting');
-        card.style.transform =
-          `translateY(-4px) perspective(700px) rotateX(${(-py * maxDeg).toFixed(2)}deg) rotateY(${(px * maxDeg).toFixed(2)}deg)`;
-      });
-    });
-
-    card.addEventListener('pointerleave', () => {
-      if (raf) { cancelAnimationFrame(raf); raf = null; }
-      card.style.transform = '';
-      card.classList.remove('is-tilting');
+/** Pulse saat logo diklik — jalan di semua perangkat, termasuk sentuh. */
+function initTechPulse(root) {
+  for (const item of root.querySelectorAll('.tech-item')) {
+    item.addEventListener('click', () => {
+      item.classList.remove('is-pulse');
+      void item.offsetWidth; // paksa reflow supaya animasi bisa diulang
+      item.classList.add('is-pulse');
+      setTimeout(() => item.classList.remove('is-pulse'), 480);
     });
   }
 }

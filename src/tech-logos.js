@@ -215,16 +215,16 @@ export const techGroups = [
 ];
 
 /**
- * Buat kartu logo satu teknologi.
+ * Buat item logo satu teknologi (untuk panel tilt).
  * @param {string} key kunci di techLogos
  * @returns {HTMLElement}
  */
 export function createTechCard(key) {
   const entry = techLogos[key];
-  const card = document.createElement('div');
-  card.className = 'tech-card';
-  card.style.setProperty('--tech-color', entry.color);
-  card.setAttribute('title', entry.label);
+  const item = document.createElement('div');
+  item.className = 'tech-item';
+  item.style.setProperty('--tech-color', entry.color);
+  item.setAttribute('title', entry.label);
 
   const iconWrap = document.createElement('div');
   iconWrap.className = 'tech-icon';
@@ -234,6 +234,6 @@ export function createTechCard(key) {
   name.className = 'tech-name';
   name.textContent = entry.label;
 
-  card.append(iconWrap, name);
-  return card;
+  item.append(iconWrap, name);
+  return item;
 }
