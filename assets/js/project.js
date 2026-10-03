@@ -23,7 +23,7 @@ import { createNarrativeVideo } from './narrative.js';
 (function() {
   'use strict';
   
-  const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
+  const TURNSTILE_SITE_KEY = '0x4AAAAAAFMyWUdxNriDmfym';
   
   function initTurnstile() {
     const slot = document.getElementById('turnstileSlot');
