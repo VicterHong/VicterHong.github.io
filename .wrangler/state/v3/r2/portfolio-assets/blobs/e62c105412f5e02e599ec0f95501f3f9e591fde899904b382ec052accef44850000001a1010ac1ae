@@ -1,0 +1,558 @@
+/* ── DASAR ─────────────────────────────────────────────────────────────────────
+   Palet gelap dengan satu warna aksen. Sengaja tidak memakai gradien ungu-biru
+   yang jadi tanda "template AI" — satu aksen hangat lebih mudah diingat.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg: #0a0a0b;
+  --bg-soft: #121214;
+  --bg-card: #16161a;
+  --line: #26262c;
+  --line-soft: #1e1e23;
+  --text: #f4f4f6;
+  --text-dim: #a1a1aa;
+  --text-faint: #6b6b75;
+  --accent: #ff7a45;
+  --accent-soft: rgba(255, 122, 69, 0.12);
+  --accent-line: rgba(255, 122, 69, 0.35);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --maxw: 1080px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+a { color: inherit; text-decoration: none; }
+
+/* ── LATAR ANIMASI ─────────────────────────────────────────────────────────────
+   Video jadi lapisan paling bawah, dengan gradien sebagai cadangan. Video TIDAK
+   menutupi teks: kontras dijaga oleh lapisan gelap di atasnya, dan video
+   dimatikan otomatis kalau pengguna meminta gerakan minimal.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.hero-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease);
+}
+
+/* Poster terlihat sejak awal — kalau video diblokir (hemat baterai/data),
+   background tetap hidup, bukan gradien polos. */
+.hero-video[poster] { opacity: 0.5; }
+
+/* Video latar: opacity dinaikkan supaya benar-benar terlihat. Nilai lama 0.28
+   terlalu redup — di layar mobile video tampak seperti gradien polos. */
+.hero-video.is-ready { opacity: 0.55; }
+
+/* Cadangan: gradien yang bergerak sangat lambat. Terlihat hidup, tidak mengganggu. */
+.hero-fallback {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 60% 50% at 22% 18%, rgba(255, 122, 69, 0.16), transparent 62%),
+    radial-gradient(ellipse 50% 45% at 78% 72%, rgba(88, 120, 255, 0.12), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 50% 100%, rgba(255, 122, 69, 0.07), transparent 70%);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to   { transform: translate3d(2%, 2%, 0) scale(1.08); }
+}
+
+/* Lapisan gelap + butiran halus: menjaga teks tetap terbaca di atas video apa pun.
+   Sebelumnya overlay ini 86% gelap di tengah — bersama video opacity 0.34,
+   video jadi praktis tak terlihat (terutama di layar mobile kecil).
+   Sekarang: overlay lebih ringan di area atas (tempat video terlihat), tetap
+   gelap di bawah (tempat teks panjang) supaya kontras terjaga. */
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(10,10,11,0.30) 0%,
+      rgba(10,10,11,0.52) 42%,
+      rgba(10,10,11,0.78) 68%,
+      var(--bg) 100%);
+}
+
+.hero-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── KEPALA ──────────────────────────────────────────────────────────────────── */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 1.1rem 1.5rem;
+  backdrop-filter: blur(14px);
+  background: linear-gradient(180deg, rgba(10,10,11,0.86), rgba(10,10,11,0.42));
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s var(--ease);
+}
+
+.site-header.is-scrolled { border-bottom-color: var(--line-soft); }
+
+.brand { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 600; letter-spacing: -0.01em; }
+
+.brand-mark {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 14px var(--accent-line);
+}
+
+.site-nav { display: flex; gap: 1.6rem; font-size: 0.9rem; color: var(--text-dim); }
+.site-nav a { transition: color 0.2s var(--ease); }
+.site-nav a:hover { color: var(--text); }
+
+@media (max-width: 720px) {
+  /* Lima menu + logo tidak muat di layar sempit. "Cara kerja" disembunyikan
+     (masih bisa diakses lewat scroll halaman) supaya sisanya tidak berdesakan. */
+  .site-nav { gap: 1rem; font-size: 0.82rem; }
+  .site-nav a[href="#5nfyzw"] { display: none; }
+  .brand-text { display: none; }
+}
+
+@media (max-width: 420px) {
+  .site-nav { gap: 0.75rem; font-size: 0.78rem; }
+  .site-nav a[href="#cckxsk"] { display: none; }
+}
+
+/* ── PEMBUKA ─────────────────────────────────────────────────────────────────── */
+
+.hero {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 5.5rem 1.5rem 4rem;
+  min-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hero-kicker {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 1.4rem;
+}
+
+.hero-title {
+  font-size: clamp(2.1rem, 5.4vw, 3.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  margin: 0 0 1.5rem;
+}
+
+.hero-title .accent {
+  background: linear-gradient(100deg, var(--accent), #ffb08a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Kata-kata di dalam .accent juga butuh gradient sendiri.
+   Saat teks dipecah jadi .cine-word dengan transform, browser mobile membuat
+   layer compositing baru — background-clip: text dari parent tidak menempel
+   lagi ke glyph anak, dan teks jadi transparan tanpa gradient (tak terlihat).
+   Memberi gradient langsung ke tiap kata memperbaiki ini. */
+.hero-title .accent .cine-word {
+  background: linear-gradient(100deg, var(--accent), #ffb08a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-lede {
+  font-size: clamp(1rem, 2vw, 1.16rem);
+  color: var(--text-dim);
+  max-width: 58ch;
+  margin: 0 0 2.2rem;
+}
+
+.hero-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 3.4rem; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.72rem 1.35rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: transform 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.btn:hover { transform: translateY(-2px); }
+
+.btn-primary { background: var(--accent); color: #1a0d06; }
+.btn-primary:hover { background: #ff8b5c; }
+
+.btn-ghost { border-color: var(--line); color: var(--text-dim); }
+.btn-ghost:hover { border-color: var(--accent-line); color: var(--text); }
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.4rem;
+  margin: 0;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.hero-stats div { display: flex; flex-direction: column; gap: 0.15rem; }
+.hero-stats dt { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); order: 2; }
+.hero-stats dd { margin: 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; order: 1; font-family: 'JetBrains Mono', monospace; }
+
+/* ── BAGIAN UMUM ─────────────────────────────────────────────────────────────── */
+
+.section {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem;
+}
+
+.section-head { margin-bottom: 2.6rem; }
+
+.section-title {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -0.025em;
+  font-weight: 650;
+  margin: 0 0 0.6rem;
+}
+
+.section-note { color: var(--text-faint); font-size: 0.94rem; margin: 0; max-width: 56ch; }
+
+/* ── PROYEK UNGGULAN ─────────────────────────────────────────────────────────── */
+
+.project {
+  position: relative;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--bg-card), var(--bg-soft));
+  padding: 2.2rem;
+  margin-bottom: 1.6rem;
+  overflow: hidden;
+  transition: border-color 0.35s var(--ease), transform 0.35s var(--ease);
+}
+
+.project:hover { border-color: var(--line); transform: translateY(-2px); }
+
+/* Garis aksen kiri untuk proyek unggulan — dikelola di src/bento.css
+   (satu aturan untuk semua kartu, muncul saat hover). */
+
+.project-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem; margin-bottom: 0.35rem; }
+.project-name { font-size: 1.5rem; font-weight: 650; letter-spacing: -0.02em; margin: 0; }
+.project-sub { color: var(--text-faint); font-size: 0.9rem; }
+
+.project-summary { color: var(--text-dim); max-width: 68ch; margin: 0.9rem 0 1.5rem; }
+
+.project-problem {
+  border-left: 2px solid var(--line);
+  padding-left: 1rem;
+  margin: 0 0 1.7rem;
+  color: var(--text-faint);
+  font-size: 0.93rem;
+  max-width: 66ch;
+}
+
+.project-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+  gap: 1.15rem;
+  margin-bottom: 1.7rem;
+}
+
+.highlight {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 1.05rem 1.15rem;
+  background: rgba(255,255,255,0.012);
+}
+
+.highlight h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.highlight p { margin: 0; font-size: 0.87rem; color: var(--text-dim); line-height: 1.6; }
+
+.project-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.2rem;
+  justify-content: space-between;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.project-metrics { display: flex; flex-wrap: wrap; gap: 1.6rem; }
+.project-metrics div { display: flex; flex-direction: column; }
+.project-metrics dt { font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-faint); order: 2; }
+.project-metrics dd { margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 1.16rem; font-weight: 500; color: var(--accent); order: 1; }
+
+.stack { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+.tag {
+  font-size: 0.74rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-faint);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 0.24rem 0.68rem;
+  transition: border-color 0.25s var(--ease), color 0.25s var(--ease);
+}
+
+.project:hover .tag { border-color: var(--line); color: var(--text-dim); }
+
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Panah "→" pada link, di belakang teks. */
+.project-link::after { content: '→'; transition: transform 0.25s var(--ease); }
+.project-link:hover::after { transform: translateX(4px); }
+
+/* Dua tautan berdampingan: "Detail teknis" (halaman dalam situs) dan "Buka repo" (keluar). */
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.project-link-detail {
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  transition: background 0.2s var(--ease);
+}
+
+.project-link-detail::after { content: none; }
+.project-link-detail:hover { background: var(--accent-soft); }
+
+/* ── PROYEK PENDUKUNG ────────────────────────────────────────────────────────── */
+
+.side-projects {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  gap: 1rem;
+  margin-top: 2.6rem;
+}
+
+.side-project {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 1.15rem;
+  background: rgba(255,255,255,0.012);
+  transition: border-color 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+.side-project:hover { border-color: var(--accent-line); transform: translateY(-2px); }
+
+.side-project h3 { margin: 0 0 0.4rem; font-size: 1rem; font-weight: 600; }
+.side-project p { margin: 0 0 0.85rem; font-size: 0.86rem; color: var(--text-dim); line-height: 1.55; }
+.side-project .stack { gap: 0.35rem; }
+.side-project .tag { font-size: 0.7rem; padding: 0.18rem 0.55rem; }
+
+/* ── PRINSIP ─────────────────────────────────────────────────────────────────── */
+
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 1.3rem; }
+
+.principle {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 1.3rem;
+  transition: border-color 0.35s var(--ease);
+}
+
+.principle:hover { border-top-color: var(--accent-line); }
+.principle h3 { margin: 0 0 0.5rem; font-size: 1.02rem; font-weight: 600; }
+.principle p { margin: 0; font-size: 0.89rem; color: var(--text-dim); line-height: 1.62; }
+
+/* ── TENTANG ─────────────────────────────────────────────────────────────────── */
+
+.about-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+}
+
+.about-body p {
+  color: var(--text-dim);
+  max-width: 62ch;
+  margin: 0 0 1.15rem;
+  line-height: 1.72;
+}
+
+.about-body p:last-child { margin-bottom: 0; }
+
+/* CSS skill-group/skill-tags lama dihapus — digantikan panel tilt
+   (src/tilt-panel.css). about-skills kini hanya wadah panel. */
+.about-skills { display: block; }
+
+/* ── LAYANAN ─────────────────────────────────────────────────────────────────── */
+
+.services-grid {
+  display: grid;
+  /* Dua kolom: dengan 4 kartu hasilnya 2×2 yang seimbang.
+     Tiga kolom menyisakan satu kartu menggantung di baris kedua. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .services-grid { grid-template-columns: 1fr; }
+}
+
+.service-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.6rem 1.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  /* Latar semi-solid + blur: teks tetap terbaca meski video hero bergerak
+     di belakangnya. Transparansi penuh membuat deskripsi tenggelam. */
+  background: rgba(19, 19, 22, 0.88);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+.service-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  line-height: 1.65;
+}
+
+.service-card:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-3px);
+}
+
+.service-card h3 {
+  font-size: 1.06rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+
+/* ── KONTAK ──────────────────────────────────────────────────────────────────── */
+
+.section-contact { text-align: center; padding-bottom: 6rem; }
+.contact-lede { color: var(--text-dim); max-width: 52ch; margin: 0 auto 2rem; }
+.contact-links { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
+
+.contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  transition: border-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+
+.contact-link:hover { border-color: var(--accent-line); color: var(--text); transform: translateY(-2px); }
+
+/* ── KAKI ────────────────────────────────────────────────────────────────────── */
+
+.site-footer {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.site-footer p { margin: 0; }
+
+/* ── MUNCUL SAAT DIGULIR ───────────────────────────────────────────────────────
+   Elemen naik perlahan saat masuk layar. Kalau pengguna meminta gerakan minimal,
+   semuanya langsung terlihat — tidak ada konten yang tersembunyi.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+}
+
+[data-reveal].is-visible { opacity: 1; transform: none; }
+
+/* Jaring pengaman: kalau JavaScript gagal dimuat atau IntersectionObserver tidak
+   ada, jangan biarkan konten tersembunyi selamanya. Kelas .js-ready dipasang oleh
+   app.js saat init berhasil; tanpa itu, konten langsung terlihat. */
+html:not(.js-ready) [data-reveal] { opacity: 1; transform: none; }
+html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  [data-reveal] { opacity: 1; transform: none; }
+  .hero-video { display: none; }
+  html { scroll-behavior: auto; }
+}
+
+@media (max-width: 640px) {
+  .hero { padding: 3.6rem 1.25rem 3rem; min-height: auto; }
+  .project { padding: 1.5rem; }
+  .project-foot { flex-direction: column; align-items: flex-start; }
+  .section { padding: 3.2rem 1.25rem; }
+}

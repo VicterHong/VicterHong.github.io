@@ -6,6 +6,10 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "production"
 
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "portfolio-assets"
+
 [env.staging]
 name = "portfolio-victer-staging"
 

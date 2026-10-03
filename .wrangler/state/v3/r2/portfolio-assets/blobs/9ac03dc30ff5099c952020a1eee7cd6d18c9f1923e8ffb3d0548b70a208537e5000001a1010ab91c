@@ -1,0 +1,47 @@
+/* ── LOGO INTERAKTIF ───────────────────────────────────────────────────────────
+   Simbol coding yang bergerak: kurung membuka saat hover, berputar saat klik,
+   kursor berkedip. Semua transform/opacity — tidak memicu layout.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.brand-mark-live {
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  overflow: visible;
+  will-change: transform;
+  transition: filter 0.3s var(--ease);
+}
+
+.brand-mark-live:hover { filter: drop-shadow(0 0 8px var(--accent-line)); }
+
+/* Kurung */
+.logo-bracket {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  will-change: transform;
+}
+
+/* Titik tengah */
+.logo-dot {
+  fill: var(--accent);
+  will-change: opacity;
+}
+
+/* Garis kursor */
+.logo-bar {
+  fill: var(--accent);
+  will-change: opacity;
+}
+
+/* Mode gerakan minimal: tampil statis */
+.logo-static .logo-bracket { transform: none; }
+.logo-static .logo-dot,
+.logo-static .logo-bar { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark-live { transition: none; }
+  .brand-mark-live:hover { filter: none; }
+}

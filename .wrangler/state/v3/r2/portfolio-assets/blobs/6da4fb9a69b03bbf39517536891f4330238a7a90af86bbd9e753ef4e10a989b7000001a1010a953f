@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Victer — Automation &amp; Self-hosted Tools</title>
+<meta name="description" content="Saya membangun alat otomasi yang membuat perangkat lama berguna kembali. MINA, Spareparts Inventory, dan lainnya.">
+<meta name="author" content="Victer">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="canonical" href="https://victerhong.github.io/">
+
+<!-- Ikon: SVG untuk browser modern, ICO fallback untuk yang lama -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Open Graph: supaya tautan yang dibagikan tampil rapi -->
+<meta property="og:title" content="Victer — Automation &amp; Self-hosted Tools">
+<meta property="og:description" content="Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://victerhong.github.io/">
+<meta property="og:image" content="https://victerhong.github.io/assets/hero-poster.jpg">
+<meta property="og:locale" content="id_ID">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Victer — Automation &amp; Self-hosted Tools">
+<meta name="twitter:description" content="Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/astra.css">
+<link rel="stylesheet" href="assets/css/cinematic.css">
+<link rel="stylesheet" href="assets/css/logo.css">
+<link rel="stylesheet" href="assets/css/tilt-panel.css">
+<link rel="stylesheet" href="assets/css/premium.css">
+<link rel="stylesheet" href="assets/css/bento.css">
+</head>
+<body>
+
+<!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
+     Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
+<div class="hero-backdrop" aria-hidden="true">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg">
+    <!-- Sumber diisi oleh app.js kalau berkasnya ada. MP4 untuk kompatibilitas, WebM untuk ukuran kecil. -->
+    <!-- Desktop: scroll-scrub. Mobile: autoplay loop (lihat cinematic.js). -->
+    <!-- Poster: frame terang — supaya background tidak terlihat polos saat
+         autoplay diblokir browser (mode hemat baterai/data). -->
+  </video>
+  <div class="hero-fallback"></div>
+  <div class="hero-grain"></div>
+</div>
+
+<header class="site-header">
+  <a class="brand" href="#zs6xae">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">Victer</span>
+  </a>
+  <nav class="site-nav" aria-label="Navigasi utama">
+    <a href="#s6ahns">Tentang</a>
+    <a href="#cckxsk">Layanan</a>
+    <a href="#utqvwf">Proyek</a>
+    <a href="#5nfyzw">Cara kerja</a>
+    <a href="#89fk39">Kontak</a>
+  </nav>
+</header>
+
+<main id="zs6xae">
+
+  <!-- ── PEMBUKA ─────────────────────────────────────────────────────────────
+       Bukan "passionate developer" generik. Yang ditulis adalah apa yang
+       sebenarnya dikerjakan, dengan angka yang bisa diperiksa. -->
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="hero-kicker">Automation &amp; self-hosted tools</p>
+    <h1 class="hero-title" id="hero-title" data-cine-words>
+      Saya membangun alat yang membuat<br>
+      <span class="accent">perangkat lama berguna kembali.</span>
+    </h1>
+    <p class="hero-lede">
+      Perangkat lunak yang berjalan di tempat Anda sendiri — tanpa langganan, tanpa cloud wajib,
+      dan tetap hidup di laptop 2&nbsp;GB RAM.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
+      <a class="btn btn-ghost" href="https://github.com/VicterHong" target="_blank" rel="noopener">GitHub</a>
+    </div>
+
+    <!-- Angka ringkas. Dihitung dari data proyek, bukan diketik manual. -->
+    <dl class="hero-stats" id="heroStats"></dl>
+  </section>
+
+  <!-- ── TENTANG ─────────────────────────────────────────────────────────────
+       Pembaca perlu tahu ini siapa SEBELUM melihat proyek. Urutan standar
+       portofolio: perkenalan → layanan → bukti kerja → cara kerja → kontak. -->
+  <section class="section" id="s6ahns" aria-labelledby="about-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="about-title" data-reveal data-cine-words>Tentang</h2>
+    </div>
+    <div class="about-layout">
+      <div class="about-body" id="aboutBody"></div>
+      <div class="about-skills" id="aboutSkills" data-stagger></div>
+    </div>
+  </section>
+
+  <!-- ── LAYANAN ─────────────────────────────────────────────────────────────
+       Apa yang bisa dikerjakan — ditulis sebagai hasil, bukan daftar teknologi. -->
+  <section class="section" id="cckxsk" aria-labelledby="services-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="services-title" data-reveal data-cine-words>Layanan</h2>
+      <p class="section-note" data-reveal>
+        Yang bisa saya kerjakan untuk tim atau bisnis Anda.
+      </p>
+    </div>
+    <div class="services-grid" id="servicesGrid" data-stagger></div>
+  </section>
+
+  <!-- ── PROYEK ──────────────────────────────────────────────────────────────
+       Satu proyek unggulan (MINA) dapat ruang paling besar — bukan grid kartu
+       seragam yang membuat semuanya terlihat sama penting. -->
+  <section class="section" id="utqvwf" aria-labelledby="work-title">
+    <div class="section-head">
+      <h2 class="section-title" id="work-title" data-reveal data-cine-words>Proyek</h2>
+      <p class="section-note" data-reveal>
+        Angka di bawah bisa Anda periksa sendiri dengan membuka repositorinya.
+      </p>
+    </div>
+
+    <div id="featuredProjects" class="projects-bento"></div>
+    <div class="side-projects" id="sideProjects" aria-label="Proyek pendukung"></div>
+  </section>
+
+  <!-- ── CARA KERJA ──────────────────────────────────────────────────────────
+       Keyakinan desain yang bisa dipertanggungjawabkan, bukan slogan. -->
+  <section class="section" id="5nfyzw" aria-labelledby="approach-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="approach-title" data-reveal data-cine-words>Cara saya bekerja</h2>
+    </div>
+    <div class="principles" id="principles"></div>
+  </section>
+
+  <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->
+  <section class="section section-contact" id="89fk39" aria-labelledby="contact-title" data-cine-clip>
+    <h2 class="section-title" id="contact-title" data-reveal data-cine-words>Mari bicara</h2>
+    <p class="contact-lede" data-reveal>
+      Terbuka untuk kerja sama, pertanyaan teknis, atau sekadar berbagi ide soal
+      otomasi dan perangkat hemat sumber daya.
+    </p>
+    <div class="contact-links" id="contactLinks" data-reveal></div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
+</footer>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
