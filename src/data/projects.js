@@ -26,6 +26,47 @@ export const profile = {
 };
 
 /**
+ * Bagian "Tentang" — memperkenalkan siapa pemilik portofolio SEBELUM
+ * menampilkan proyek. Pembaca perlu tahu ini siapa dan bisa apa dulu.
+ */
+export const about = {
+  paragraphs: [
+    'Saya Victer — pengembang yang fokus pada alat otomasi dan sistem self-hosted. Saya percaya perangkat lunak yang baik tidak harus menuntut perangkat baru atau langganan bulanan.',
+    'Selama beberapa tahun terakhir saya membangun sistem yang berjalan di perangkat sederhana: remote control yang hidup di laptop 2 GB RAM, bot keluarga dengan kontrol anti-ban berlapis, dan sistem inventaris yang menggantikan pencatatan manual.',
+    'Pendekatan saya sederhana: hemat sumber daya sejak desain, keamanan yang serius bukan tempelan, dan setiap klaim bisa dibuktikan dengan membuka repositorinya.',
+  ],
+  skills: [
+    { group: 'Bahasa', items: ['Python', 'JavaScript', 'TypeScript', 'SQL'] },
+    { group: 'Backend', items: ['FastAPI', 'Node.js', 'PostgreSQL', 'SQLite'] },
+    { group: 'Infrastruktur', items: ['Docker', 'systemd', 'Linux', 'Cloudflare'] },
+    { group: 'Integrasi', items: ['Telegram', 'Discord', 'WhatsApp', 'n8n'] },
+  ],
+};
+
+/**
+ * Bagian "Layanan" — apa yang bisa dikerjakan untuk calon klien.
+ * Ditulis sebagai hasil yang bisa dibayangkan, bukan daftar teknologi.
+ */
+export const services = [
+  {
+    title: 'Otomasi alur kerja',
+    body: 'Mengubah proses manual yang berulang menjadi alur otomatis yang bisa diaudit — dari pencatatan stok sampai laporan terjadwal.',
+  },
+  {
+    title: 'Bot & integrasi',
+    body: 'Bot Telegram, Discord, atau WhatsApp yang terhubung ke sistem Anda. Reaktif, tidak berisik, dengan kontrol anti-ban berlapis.',
+  },
+  {
+    title: 'Sistem self-hosted',
+    body: 'Aplikasi yang berjalan di server atau perangkat Anda sendiri — tanpa langganan, tanpa ketergantungan cloud yang wajib.',
+  },
+  {
+    title: 'Audit & perbaikan',
+    body: 'Meninjau sistem yang sudah berjalan: menemukan titik lemah keamanan, pemborosan sumber daya, dan bagian yang rapuh.',
+  },
+];
+
+/**
  * Proyek unggulan. `metrics` hanya berisi angka yang bisa diverifikasi dari repo.
  *
  * `gated: true` menandai proyek yang punya halaman detail dengan bagian terkunci.

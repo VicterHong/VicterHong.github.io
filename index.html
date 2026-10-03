@@ -39,6 +39,8 @@
     <span class="brand-text">Victer</span>
   </a>
   <nav class="site-nav" aria-label="Navigasi utama">
+    <a href="#about">Tentang</a>
+    <a href="#services">Layanan</a>
     <a href="#work">Proyek</a>
     <a href="#approach">Cara kerja</a>
     <a href="#contact">Kontak</a>
@@ -69,12 +71,37 @@
     <dl class="hero-stats" id="heroStats"></dl>
   </section>
 
+  <!-- ── TENTANG ─────────────────────────────────────────────────────────────
+       Pembaca perlu tahu ini siapa SEBELUM melihat proyek. Urutan standar
+       portofolio: perkenalan → layanan → bukti kerja → cara kerja → kontak. -->
+  <section class="section" id="about" aria-labelledby="about-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="about-title" data-reveal data-cine-words>Tentang</h2>
+    </div>
+    <div class="about-layout">
+      <div class="about-body" id="aboutBody"></div>
+      <div class="about-skills" id="aboutSkills" data-stagger></div>
+    </div>
+  </section>
+
+  <!-- ── LAYANAN ─────────────────────────────────────────────────────────────
+       Apa yang bisa dikerjakan — ditulis sebagai hasil, bukan daftar teknologi. -->
+  <section class="section" id="services" aria-labelledby="services-title" data-cine-clip>
+    <div class="section-head">
+      <h2 class="section-title" id="services-title" data-reveal data-cine-words>Layanan</h2>
+      <p class="section-note" data-reveal>
+        Yang bisa saya kerjakan untuk tim atau bisnis Anda.
+      </p>
+    </div>
+    <div class="services-grid" id="servicesGrid" data-stagger></div>
+  </section>
+
   <!-- ── PROYEK ──────────────────────────────────────────────────────────────
        Satu proyek unggulan (MINA) dapat ruang paling besar — bukan grid kartu
        seragam yang membuat semuanya terlihat sama penting. -->
   <section class="section" id="work" aria-labelledby="work-title">
     <div class="section-head">
-      <h2 class="section-title" id="work-title" data-reveal>Proyek</h2>
+      <h2 class="section-title" id="work-title" data-reveal data-cine-words>Proyek</h2>
       <p class="section-note" data-reveal>
         Angka di bawah bisa Anda periksa sendiri dengan membuka repositorinya.
       </p>

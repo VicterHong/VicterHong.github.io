@@ -10,7 +10,7 @@
  * belum dijalankan), gradien cadangan yang tampil — bukan kotak hitam kosong.
  */
 
-import { profile, projects, sideProjects, principles, stats } from './data/projects.js';
+import { profile, about, services, projects, sideProjects, principles, stats } from './data/projects.js';
 import { initAstra } from './astra.js';
 import { initCinematic } from './cinematic.js';
 
@@ -44,6 +44,42 @@ function renderStats() {
     host.append(el('div', {},
       el('dd', { 'data-count': entry.value.replace(/\./g, ''), text: entry.value }),
       el('dt', { text: entry.label }),
+    ));
+  }
+}
+
+// ── TENTANG ────────────────────────────────────────────────────────────────────
+function renderAbout() {
+  const host = $('#aboutBody');
+  if (!host) return;
+  for (const p of about.paragraphs) {
+    host.append(el('p', { text: p }));
+  }
+
+  const skillsHost = $('#aboutSkills');
+  if (skillsHost) {
+    for (const group of about.skills) {
+      const col = el('div', { class: 'skill-group' },
+        el('h3', { text: group.group }),
+      );
+      const list = el('div', { class: 'skill-tags' });
+      for (const item of group.items) {
+        list.append(el('span', { class: 'tag', text: item }));
+      }
+      col.append(list);
+      skillsHost.append(col);
+    }
+  }
+}
+
+// ── LAYANAN ────────────────────────────────────────────────────────────────────
+function renderServices() {
+  const host = $('#servicesGrid');
+  if (!host) return;
+  for (const s of services) {
+    host.append(el('article', { class: 'service-card' },
+      el('h3', { text: s.title }),
+      el('p', { text: s.body }),
     ));
   }
 }
@@ -241,6 +277,8 @@ function watchHeader() {
 document.documentElement.classList.add('js-ready');
 
 renderStats();
+renderAbout();
+renderServices();
 renderProjects();
 renderSideProjects();
 renderPrinciples();

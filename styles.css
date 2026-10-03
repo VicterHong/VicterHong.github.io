@@ -146,9 +146,17 @@ a { color: inherit; text-decoration: none; }
 .site-nav a { transition: color 0.2s var(--ease); }
 .site-nav a:hover { color: var(--text); }
 
-@media (max-width: 620px) {
+@media (max-width: 720px) {
+  /* Lima menu + logo tidak muat di layar sempit. "Cara kerja" disembunyikan
+     (masih bisa diakses lewat scroll halaman) supaya sisanya tidak berdesakan. */
   .site-nav { gap: 1rem; font-size: 0.82rem; }
+  .site-nav a[href="#approach"] { display: none; }
   .brand-text { display: none; }
+}
+
+@media (max-width: 420px) {
+  .site-nav { gap: 0.75rem; font-size: 0.78rem; }
+  .site-nav a[href="#services"] { display: none; }
 }
 
 /* ── PEMBUKA ─────────────────────────────────────────────────────────────────── */
@@ -419,6 +427,102 @@ a { color: inherit; text-decoration: none; }
 .principle:hover { border-top-color: var(--accent-line); }
 .principle h3 { margin: 0 0 0.5rem; font-size: 1.02rem; font-weight: 600; }
 .principle p { margin: 0; font-size: 0.89rem; color: var(--text-dim); line-height: 1.62; }
+
+/* ── TENTANG ─────────────────────────────────────────────────────────────────── */
+
+.about-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+}
+
+.about-body p {
+  color: var(--text-dim);
+  max-width: 62ch;
+  margin: 0 0 1.15rem;
+  line-height: 1.72;
+}
+
+.about-body p:last-child { margin-bottom: 0; }
+
+.about-skills {
+  display: grid;
+  gap: 1.4rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.skill-group h3 {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin: 0 0 0.6rem;
+}
+
+.skill-tags { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+/* Chip keahlian di kartu Tentang: kontras tinggi supaya terbaca jelas.
+   Latar chip solid + teks terang, karena background halaman beranimasi. */
+.skill-tags .tag {
+  background: var(--bg);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+@media (max-width: 860px) {
+  .about-layout { grid-template-columns: 1fr; gap: 2rem; }
+}
+
+/* ── LAYANAN ─────────────────────────────────────────────────────────────────── */
+
+.services-grid {
+  display: grid;
+  /* Dua kolom: dengan 4 kartu hasilnya 2×2 yang seimbang.
+     Tiga kolom menyisakan satu kartu menggantung di baris kedua. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .services-grid { grid-template-columns: 1fr; }
+}
+
+.service-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.6rem 1.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  /* Latar semi-solid + blur: teks tetap terbaca meski video hero bergerak
+     di belakangnya. Transparansi penuh membuat deskripsi tenggelam. */
+  background: rgba(19, 19, 22, 0.88);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+.service-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  line-height: 1.65;
+}
+
+.service-card:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-3px);
+}
+
+.service-card h3 {
+  font-size: 1.06rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
 
 /* ── KONTAK ──────────────────────────────────────────────────────────────────── */
 
