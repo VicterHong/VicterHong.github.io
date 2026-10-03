@@ -72,11 +72,11 @@ export function consecutiveFailures(tokenId) {
 }
 
 /** Permintaan akses dari form publik. */
-export function recordLead({ company = '', name = '', email, role = '', projectSlug = '', budgetRange = '', urgency = '', message = '', ip = '', userAgent = '' }) {
+export function recordLead({ company = '', name = '', email, role = '', projectSlug = '', budgetRange = '', urgency = '', message = '', ip = '', userAgent = '', status = 'new' }) {
   const info = getDb().prepare(`
-    INSERT INTO sales_leads (company, name, email, role, project_slug, budget_range, urgency, message, ip, user_agent, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(company, name, email, role, projectSlug, budgetRange, urgency, message, ip, userAgent, now());
+    INSERT INTO sales_leads (company, name, email, role, project_slug, budget_range, urgency, message, ip, user_agent, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(company, name, email, role, projectSlug, budgetRange, urgency, message, ip, userAgent, status, now());
   return { id: Number(info.lastInsertRowid) };
 }
 
@@ -88,4 +88,22 @@ export function listLeads({ limit = 100, status = null } = {}) {
     SELECT id, company, name, email, role, project_slug, budget_range, urgency, message, status, created_at
     FROM sales_leads ${where} ORDER BY created_at DESC LIMIT ?
   `).all(...params);
+}
+
+/** Status lead yang sah. Menjaga nilai kolom tetap konsisten. */
+export const LEAD_STATUSES = new Set(['new', 'contacted', 'review', 'spam']);
+
+/**
+ * Ubah status lead (mis. dari 'review' jadi 'contacted' setelah ditinjau).
+ * @param {number} id id lead
+ * @param {string} status status baru
+ * @returns {{ok: boolean, changes?: number, error?: string}}
+ */
+export function updateLeadStatus(id, status) {
+  if (!id) return { ok: false, error: 'id_wajib' };
+  if (!LEAD_STATUSES.has(status)) {
+    return { ok: false, error: `status_tidak_valid: ${status}` };
+  }
+  const info = getDb().prepare('UPDATE sales_leads SET status = ? WHERE id = ?').run(status, Number(id));
+  return { ok: true, changes: Number(info.changes) };
 }

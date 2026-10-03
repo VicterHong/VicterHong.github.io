@@ -179,6 +179,17 @@
             <option value="explorasi">Hanya explorasi</option>
           </select>
         </div>
+        <!-- Honeypot anti-bot: field ini disembunyikan lewat CSS.
+             Manusia tidak melihatnya; bot yang membaca HTML akan mengisinya.
+             Kalau terisi, lead ditolak tanpa disimpan (lihat spam-guard.mjs). -->
+        <div class="field field-hp" aria-hidden="true">
+          <label for="reqWebsite">Website</label>
+          <input id="reqWebsite" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+        <!-- Waktu mulai mengisi form. Bot mengirim dalam milidetik;
+             manusia butuh beberapa detik. Dipakai untuk skor spam. -->
+        <input type="hidden" id="reqStartedAt" name="elapsed_ms" value="">
+
         <div class="field">
           <label for="reqMessage">Keperluan</label>
           <textarea id="reqMessage" name="message" rows="4" maxlength="4000"

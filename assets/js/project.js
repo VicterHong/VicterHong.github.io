@@ -231,6 +231,11 @@ $('#requestAccessBtn').addEventListener('click', () => {
   requestSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('#reqCompany').focus();
 
+  // Catat waktu form mulai terlihat. Dipakai backend untuk menilai apakah
+  // pengisian terlalu cepat (ciri bot) — lihat backend/src/spam-guard.mjs.
+  const startedAt = $('#reqStartedAt');
+  if (startedAt) startedAt.value = String(Date.now());
+
   // Track: contact sales clicked
   trackEvent('contact_sales', PROJECT);
 });
@@ -251,6 +256,11 @@ requestForm.addEventListener('submit', async (event) => {
     return;
   }
 
+  // Hitung berapa lama form diisi. Backend memakai angka ini untuk menilai
+  // apakah pengisian terlalu cepat (ciri bot). Dikirim sebagai elapsed_ms.
+  const startedAt = Number($('#reqStartedAt')?.value ?? 0);
+  const elapsedMs = startedAt > 0 ? Date.now() - startedAt : null;
+
   const button = $('#requestSubmit');
   button.disabled = true;
   button.textContent = 'Mengirim…';
@@ -260,6 +270,10 @@ requestForm.addEventListener('submit', async (event) => {
     company: data.company ?? '',
     name: data.name ?? '',
     email,
+    // Field honeypot: manusia tidak melihatnya, jadi selalu kosong.
+    // Bot yang membaca HTML akan mengisinya — backend menolak lead seperti itu.
+    website: data.website ?? '',
+    elapsed_ms: elapsedMs,
     role: data.role ?? '',
     project: PROJECT,
     budget_range: data.budget_range ?? '',

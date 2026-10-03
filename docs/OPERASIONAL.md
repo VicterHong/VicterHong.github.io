@@ -4,7 +4,7 @@ Panduan untuk pemilik portofolio: cara menerbitkan token akses, mencabutnya, dan
 membaca catatan akses.
 
 **Live:** https://victerhong.github.io
-**Halaman proyek:** https://victerhong.github.io/projects/mina/
+**Halaman proyek:** https://victerhong.github.io/s/e7kz4swubfvg/
 
 ---
 
@@ -202,6 +202,70 @@ sudo systemctl restart portfolio-token
 
 ---
 
+## Meninjau lead mencurigakan (anti-spam)
+
+Form permintaan akses disaring otomatis tanpa CAPTCHA — lihat alasan lengkapnya
+di `docs/PRD-v2-corporate.md` §15 (Keputusan Q3). Hasil penyaringan:
+
+| Verdict | Arti | Tindakan |
+|---------|------|----------|
+| `allow` | Bersih | Lead masuk dengan status `new` — langsung bisa dibalas |
+| `review` | Mencurigakan | Lead masuk dengan status `review` — tinjau dulu sebelum dibalas |
+| `block` | Hampir pasti bot | **Tidak disimpan.** Tetap dibalas sukses supaya bot tidak belajar |
+
+Lihat lead yang menunggu tinjauan:
+
+```bash
+cd ~/portfolio-victer/backend
+node src/admin-cli.mjs review
+```
+
+Setelah meninjau, ubah statusnya:
+
+```bash
+node src/admin-cli.mjs mark --id 12 --status new    # ternyata sah → balas
+node src/admin-cli.mjs mark --id 12 --status spam   # ternyata spam → abaikan
+```
+
+Lihat semua lead dengan status tertentu:
+
+```bash
+node src/admin-cli.mjs leads --status review
+node src/admin-cli.mjs leads --status new --limit 20
+```
+
+Notifikasi webhook juga menandai lead mencurigakan dengan skor dan alasannya,
+jadi Anda tahu sebelum membalas.
+
+---
+
+## Persetujuan syarat akses
+
+Sebelum konten terkunci dibuka, pemegang token menyetujui syarat akses (NDA
+ringan). Teks syaratnya ber-versi — kalau teks berubah, pemegang token diminta
+menyetujui ulang.
+
+Mengubah teks syarat:
+
+1. Sunting `TERMS_TEXT` dan naikkan `TERMS_VERSION` di `backend/src/consent.mjs`
+2. Restart layanan: `sudo systemctl restart portfolio-token`
+3. Pemegang token yang menyetujui versi lama akan diminta menyetujui ulang
+   (persetujuan lama tetap tersimpan untuk audit)
+
+Lihat persetujuan yang tercatat:
+
+```bash
+node -e "
+import('node:sqlite').then(({ DatabaseSync }) => {
+  const db = new DatabaseSync(process.env.HOME + '/.portfolio-token/tokens.db');
+  console.log(db.prepare('SELECT token_id, terms_version, ip, created_at FROM consents ORDER BY created_at DESC LIMIT 20').all());
+  db.close();
+});
+"
+```
+
+---
+
 ## Layanan yang berjalan
 
 | Layanan | Fungsi | Perintah |
@@ -287,7 +351,7 @@ node src/admin-cli.mjs issue --project mina --to "PT Contoh" --days 30
 
 ## Menambah proyek baru
 
-1. Buat folder `projects/<slug>/index.html` — salin dari `projects/mina/index.html`
+1. Buat folder `<kode>/index.html` — salin dari `s/e7kz4swubfvg/index.html`
    dan sesuaikan teksnya.
 2. Tambahkan `gated: true` pada proyek di `src/data/projects.js`.
 3. Isi konten terkunci di `~/.portfolio-token/content/<slug>.json`.

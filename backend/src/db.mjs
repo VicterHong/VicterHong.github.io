@@ -136,6 +136,17 @@ CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics_events(event_type, cr
 CREATE INDEX IF NOT EXISTS idx_analytics_project ON analytics_events(project_slug, created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_token ON analytics_events(token_id, created_at);
 
+CREATE TABLE IF NOT EXISTS consents (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  token_id      INTEGER NOT NULL,
+  terms_version TEXT NOT NULL,
+  ip            TEXT NOT NULL DEFAULT '',
+  user_agent    TEXT NOT NULL DEFAULT '',
+  created_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_consents_token ON consents(token_id, created_at);
+
 CREATE TABLE IF NOT EXISTS sla_heartbeats (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   checked_at  INTEGER NOT NULL,

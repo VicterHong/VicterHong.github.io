@@ -284,8 +284,10 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | **v2.2** ✅ | Fable 5.1 project narrative videos | **Selesai** (dibuat programatik, tanpa watermark) |
 | **v2.3** ✅ | GPT Astra micro-interactions di seluruh halaman | **Selesai** |
 | **v2.4** ✅ | Enterprise package + SLA + custom domain | **Selesai** (domain perlu keputusan pemilik) |
+| **v2.5** ✅ | Anti-spam form (Q3) + persetujuan syarat akses (Q5) | **Selesai** |
+| **v2.6** | Custom domain aktif (`victer.id` / `victer.dev`) | Menunggu keputusan pemilik |
 
-### Catatan implementasi v2.3–v2.4
+### Catatan implementasi v2.3–v2.5
 
 | Fitur | Status | Catatan |
 |-------|--------|---------|
@@ -298,6 +300,12 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | Admin dashboard web | ✅ | 6 tab, akses via SSH tunnel saja |
 | Custom domain | 📋 | Panduan lengkap di `docs/CUSTOM-DOMAIN.md` — menunggu keputusan domain |
 | Security hardening | ✅ | Laporan di `docs/AUDIT-KEAMANAN.md` |
+| Anti-spam form (Q3) | ✅ | 4 lapis tanpa pihak ketiga; CLI `review` + `mark` |
+| Persetujuan syarat (Q5) | ✅ | Teks ber-versi, tabel `consents`, `needsConsent` |
+| URL berkode acak | ✅ | `/s/<kode-12-karakter>/`, alias + redirect untuk rotasi |
+| Anchor ter-obfuscate | ✅ | `/#utqvwf` alih-alih `/#work` |
+| Struktur korporat | ✅ | `/assets/css/`, `/assets/js/`, robots, sitemap, 404, manifest |
+| Tes backend | ✅ | 65 tes (naik dari 22 di v2.0) |
 
 ---
 
@@ -330,13 +338,57 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 
 ## 15. Pertanyaan Terbuka untuk Diputuskan
 
-| # | Pertanyaan | Dampak |
+| # | Pertanyaan | Status |
 |---|-----------|--------|
-| Q1 | Backend pakai FastAPI (Python) atau Express (Node)? | Stack teknis, kecepatan development |
-| Q2 | Database token pakai SQLite atau langsung PostgreSQL? | Skalabilitas, backup |
-| Q3 | Apakah perlu CAPTCHA pada form sales? | Spam vs UX |
-| Q4 | Apakah konten terkunci dienkripsi di transit (HTTPS saja cukup)? | Keamanan |
-| Q5 | Apakah perlu NDA digital sebelum token diterbitkan? | Legal, sales flow |
+| Q1 | Backend pakai FastAPI (Python) atau Express (Node)? | ✅ **Diputuskan:** Node murni, nol dependency (`node:sqlite`, `node:http`, `node:crypto`) |
+| Q2 | Database token pakai SQLite atau langsung PostgreSQL? | ✅ **Diputuskan:** SQLite (WAL) — cukup untuk ribuan token, portable, backup mudah |
+| Q3 | Apakah perlu CAPTCHA pada form sales? | ✅ **Diputuskan:** TIDAK. Penapisan berlapis lokal sebagai gantinya (lihat v2.5 di bawah) |
+| Q4 | Apakah konten terkunci dienkripsi di transit? | ✅ **Diputuskan:** HTTPS wajib (Cloudflare Tunnel), konten tidak disimpan di repo publik |
+| Q5 | Apakah perlu NDA digital sebelum token diterbitkan? | ✅ **Diputuskan:** Ya, NDA ringan — persetujuan elektronik ber-versi (lihat v2.5 di bawah) |
+
+### Keputusan Q3 — Kenapa tanpa CAPTCHA
+
+CAPTCHA pihak ketiga (reCAPTCHA/hCaptcha) ditolak karena tiga alasan:
+
+1. **Melanggar prinsip privasi (F6 + §8).** PRD menyatakan "tidak ada pelacakan
+   pihak ketiga" dan "audit log disimpan di VPS sendiri". CAPTCHA mengirim data
+   pengunjung ke layanan luar — calon klien enterprise bisa keberatan.
+2. **Menambah gesekan di titik konversi terpenting.** Form permintaan akses
+   adalah satu-satunya jalur menuju revenue. Setiap langkah tambahan menurunkan
+   konversi.
+3. **Tidak perlu.** Form ini volume-rendah (lead enterprise, bukan pendaftaran
+   massal). Bot yang lolos pun hanya mengotori daftar lead — tidak bisa
+   mengakses konten terkunci.
+
+**Gantinya — penapisan berlapis (`backend/src/spam-guard.mjs`):**
+
+| Lapis | Teknik | Efek |
+|-------|--------|------|
+| 1 | Honeypot (field tersembunyi) | Bot yang membaca HTML mengisinya → lead ditolak |
+| 2 | Waktu isi form | Pengisian < 3 detik → skor naik (bot mengirim dalam milidetik) |
+| 3 | Batas laju per-IP | Sudah ada di `rate-limit.mjs` (5 permintaan/menit) |
+| 4 | Heuristik isi | Email sekali-pakai, tautan berlebihan, kata kunci spam, UA bot |
+
+Hasil: `verdict` allow / review / block. Lead "block" **tidak disimpan** tapi
+tetap dibalas sukses (bot tidak belajar dari respons).
+
+### Keputusan Q5 — NDA ringan, bukan dokumen hukum
+
+NDA penuh (PDF + tanda tangan) ditolak karena menambah gesekan berhari-hari
+pada alur sales. Yang dibutuhkan bukan dokumen hukum, tapi **bukti bahwa
+pemegang token tahu kontennya rahasia dan menyetujui konsekuensinya**.
+
+**Implementasi (`backend/src/consent.mjs`):**
+
+- Teks syarat **ber-versi** (`TERMS_VERSION`) — persetujuan lama tetap bisa
+  diaudit terhadap versi yang mereka setujui saat itu
+- Persetujuan dicatat: token_id, versi, waktu, IP, user-agent
+- Kalau teks berubah, pemegang token diminta menyetujui ulang
+  (`consentStatus()` mengembalikan `needsConsent: true`)
+- Isi syarat: kerahasiaan, penggunaan terbatas, tidak dibagikan, jejak akses,
+  hak pencabutan, tanpa garansi
+
+Untuk deal enterprise besar, NDA penuh tetap ditangani terpisah oleh sales.
 
 ---
 

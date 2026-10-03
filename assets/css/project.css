@@ -447,3 +447,22 @@
 
   .request-section { padding: 1.35rem; }
 }
+
+/* ── Honeypot anti-bot ─────────────────────────────────────────────────────────
+   Field yang hanya diisi bot. Disembunyikan dengan cara yang tidak bisa
+   dideteksi bot sederhana: bukan `display: none` (banyak bot memeriksa itu),
+   tapi diposisikan di luar layar dengan ukuran nol.
+
+   Catatan: jangan pakai `visibility: hidden` atau `display: none` — bot yang
+   lebih pintar melewati field seperti itu. Posisi di luar viewport lebih
+   meyakinkan. */
+.field-hp {
+  position: absolute !important;
+  left: -9999px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

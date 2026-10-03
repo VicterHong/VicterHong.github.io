@@ -16,7 +16,7 @@
 import { config, validateConfig } from './config.mjs';
 import { openDb } from './db.mjs';
 import { getToken, issueToken, listTokens, revokeToken } from './tokens.mjs';
-import { listLeads, recentEvents } from './audit.mjs';
+import { listLeads, recentEvents, updateLeadStatus } from './audit.mjs';
 import { getFunnel, uniqueVisitors } from './analytics.mjs';
 import { sendNotification } from './notify.mjs';
 import { slaReport, slaSummary } from './sla.mjs';
@@ -56,7 +56,9 @@ Perintah:
   show      --id <token_id>
   revoke    --id <token_id> [--reason <teks>]
   audit     [--project <slug>] [--token <token_id>] [--limit <n>]
-  leads     [--status new|contacted] [--limit <n>]
+  leads     [--status new|contacted|review] [--limit <n>]
+  review    [--limit <n>]            lead yang ditandai mencurigakan (status review)
+  mark      --id <lead_id> --status <new|contacted|review|spam>  ubah status lead
   funnel    [--project <slug>] [--days <n>]
   visitors  [--project <slug>] [--days <n>]
   sla       [--days <n>]     Laporan SLA (uptime, latency, error rate)
@@ -219,6 +221,45 @@ async function main() {
       }
       console.log('  Total:', leads.length);
       console.log('');
+      return 0;
+    }
+
+    case 'review': {
+      // Lead yang ditandai mencurigakan oleh spam-guard. Ditinjau manual:
+      // kalau ternyata sah → mark --status new; kalau spam → mark --status spam.
+      const leads = listLeads({ limit: args.limit ? Number(args.limit) : 50, status: 'review' });
+      if (!leads.length) { console.log('(tidak ada lead mencurigakan)'); return 0; }
+      console.log('');
+      console.log('  Lead berikut ditandai sistem sebagai mencurigakan.');
+      console.log('  Tinjau isinya, lalu: mark --id <id> --status new   (sah)');
+      console.log('                   atau mark --id <id> --status spam  (spam)');
+      console.log('');
+      for (const l of leads) {
+        console.log('  ──', fmt(l.created_at), '· id', l.id);
+        console.log('     Perusahaan  :', l.company || '—');
+        console.log('     Nama        :', l.name || '—');
+        console.log('     Email       :', l.email);
+        console.log('     IP          :', l.ip || '—');
+        console.log('     Proyek      :', l.project_slug || '—');
+        if (l.message) console.log('     Pesan       :', l.message.slice(0, 200));
+        console.log('');
+      }
+      console.log('  Total menunggu tinjauan:', leads.length);
+      console.log('');
+      return 0;
+    }
+
+    case 'mark': {
+      const id = args.id ? Number(args.id) : 0;
+      const status = String(args.status ?? '');
+      if (!id || !status) {
+        console.error('Pakai: mark --id <lead_id> --status <new|contacted|review|spam>');
+        return 2;
+      }
+      const r = updateLeadStatus(id, status);
+      if (!r.ok) { console.error('Gagal:', r.error); return 1; }
+      if (r.changes === 0) { console.error(`Lead id ${id} tidak ditemukan.`); return 1; }
+      console.log(`✓ Lead ${id} → status "${status}"`);
       return 0;
     }
 

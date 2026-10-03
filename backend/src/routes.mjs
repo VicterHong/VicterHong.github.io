@@ -33,6 +33,7 @@ import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
 import { recordAnalytics, getFunnel, recentAnalytics, uniqueVisitors } from './analytics.mjs';
 import { notifyLead } from './notify.mjs';
 import { checkRateLimit } from './rate-limit.mjs';
+import { scoreLead } from './spam-guard.mjs';
 import { slaSummary, slaReport } from './sla.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
@@ -404,6 +405,32 @@ export const routes = [
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
         return sendJson(res, 400, { ok: false, error: 'email_tidak_valid', message: 'Alamat email tidak valid.' });
       }
+
+      const ip = clientIp(req);
+      const userAgent = String(req.headers['user-agent'] ?? '').slice(0, 300);
+
+      // ── Penjaga spam (Q3) ────────────────────────────────────────────────────
+      // CAPTCHA sengaja tidak dipakai: menambah pihak ketiga, melanggar F6, dan
+      // menambah gesekan di titik konversi terpenting. Gantinya penapisan
+      // berlapis lokal — lihat backend/src/spam-guard.mjs untuk alasannya.
+      const spam = scoreLead({ body, ip, userAgent });
+
+      if (spam.verdict === 'block') {
+        // Balas seolah berhasil supaya bot tidak belajar dari respons.
+        // Lead TIDAK disimpan.
+        recordEvent({
+          projectSlug: String(body.project ?? ''), action: 'lead_spam', outcome: 'blocked',
+          ip, userAgent,
+        });
+        return sendJson(res, 200, {
+          ok: true,
+          message: 'Permintaan Anda tercatat. Sales akan menghubungi Anda.',
+        });
+      }
+
+      // Status lead: 'new' untuk yang bersih, 'review' untuk yang mencurigakan.
+      const status = spam.verdict === 'review' ? 'review' : 'new';
+
       const result = recordLead({
         company: String(body.company ?? '').slice(0, 200),
         name: String(body.name ?? '').slice(0, 200),
@@ -413,25 +440,28 @@ export const routes = [
         budgetRange: String(body.budget_range ?? '').slice(0, 100),
         urgency: String(body.urgency ?? '').slice(0, 50),
         message: String(body.message ?? '').slice(0, 4000),
-        ip: clientIp(req),
-        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        ip,
+        userAgent,
+        status,
       });
       recordEvent({
-        projectSlug: String(body.project ?? ''), action: 'lead', outcome: 'ok',
-        ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        projectSlug: String(body.project ?? ''), action: 'lead',
+        outcome: status === 'review' ? 'review' : 'ok',
+        ip, userAgent,
       });
       // Record analytics: lead_submit
       recordAnalytics({
         eventType: 'lead_submit',
         projectSlug: String(body.project ?? ''),
-        ip: clientIp(req),
+        ip,
         country: clientCountry(req),
-        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        userAgent,
         referrer: String(req.headers.referer ?? ''),
         metadata: { company: String(body.company ?? ''), email: String(body.email ?? '') },
       });
 
-      // Notifikasi webhook (fire-and-forget, tidak menunda respons)
+      // Notifikasi webhook (fire-and-forget, tidak menunda respons).
+      // Lead mencurigakan ditandai supaya bisa ditinjau sebelum dibalas.
       notifyLead({
         company: String(body.company ?? ''),
         name: String(body.name ?? ''),
@@ -441,6 +471,8 @@ export const routes = [
         budgetRange: String(body.budget_range ?? ''),
         urgency: String(body.urgency ?? ''),
         message: String(body.message ?? ''),
+        spamScore: spam.score,
+        spamReasons: spam.reasons,
       });
 
       sendJson(res, 200, { ok: true, id: result.id, message: 'Permintaan Anda tercatat. Sales akan menghubungi Anda.' });
