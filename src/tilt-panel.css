@@ -103,15 +103,16 @@
   transform: translateZ(12px) scale(1.06);
 }
 
-/* Logo: abu → berwarna saat hover.
-   Brightness dinaikkan supaya logo gelap (Node.js, SQLite) tetap terlihat
-   sebelum hover — sebelumnya terlalu samar di tema gelap. */
+/* Logo: ditampilkan abu dulu, berwarna saat hover.
+   Logo resmi punya warna merek sendiri — filter grayscale menyatukannya
+   dengan tema, lalu hover mengembalikan warna aslinya.
+   Brightness tinggi supaya logo gelap (SQLite, n8n) tetap terlihat. */
 .tech-icon {
   width: 30px;
   height: 30px;
   display: grid;
   place-items: center;
-  filter: grayscale(1) brightness(2.1) opacity(0.62);
+  filter: grayscale(1) brightness(1.8) opacity(0.7);
   transition: filter 0.32s var(--ease);
 }
 
