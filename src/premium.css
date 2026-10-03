@@ -1,0 +1,236 @@
+/* ── TEKNIK PREMIUM — dari Linear, Vercel, Stripe ───────────────────────────────
+   Lapisan polish yang diterapkan di atas styles.css. Semua teknik di sini
+   berasal dari praktik yang didokumentasikan publik oleh tim desain produk
+   premium (Linear Method, Vercel Geist, Stripe Dashboard craft notes).
+
+   Prinsip yang diterapkan:
+   1. LUMINANCE STACKING (Linear) — di tema gelap, elevasi diungkapkan dengan
+      permukaan yang SEDIKIT LEBIH TERANG, bukan drop-shadow gelap. Shadow
+      gelap di atas permukaan gelap terlihat seperti lubang, bukan ketinggian.
+   2. HAIRLINE BORDERS (Linear) — border putih transparan bertingkat
+      (0.06 / 0.08 / 0.10) untuk mengomunikasikan hierarki.
+   3. STACKED SHADOWS (Vercel) — beberapa bayangan kecil berlapis, bukan satu
+      drop-shadow besar. Ditambah inset ring supaya tepi kartu tetap tajam.
+   4. FOCUS RING BERLAPIS (Linear) — dua cincin: 2px + 4px dengan opasitas
+      berbeda. Cincin satu lapis terlihat terlalu tipis di latar gelap.
+   5. TABULAR NUMBERS (Stripe) — angka statistik disejajarkan secara tabular
+      supaya kolom angka tidak "bergoyang".
+   6. NEGATIVE TRACKING AGRESIF (Linear/Vercel) — headline besar dirapatkan
+      proporsional dengan ukurannya (~4% ukuran font).
+   7. MOTION CURVES TERDEFINISI (Linear) — kurva easing yang dirancang,
+      bukan default browser. Cepat dan tepat, tidak memantul.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Surface ladder (luminance stacking) ─────────────────────────────────────
+     Empat tingkat permukaan. Setiap tingkat ~2-4% lebih terang dari sebelumnya.
+     Ini pengganti shadow untuk elevasi di tema gelap. */
+  --surface-0: #0a0a0b;   /* canvas — latar halaman */
+  --surface-1: #101012;   /* panel istirahat */
+  --surface-2: #141417;   /* kartu terangkat */
+  --surface-3: #18181c;   /* elemen melayang (popover) */
+
+  /* ── Hairline bertingkat (Linear) ────────────────────────────────────────────
+     Border putih transparan, bukan warna solid. Tiga tingkat kepentingan. */
+  --hairline: rgba(255, 255, 255, 0.06);          /* standar */
+  --hairline-soft: rgba(255, 255, 255, 0.04);     /* pemisah halus */
+  --hairline-strong: rgba(255, 255, 255, 0.10);   /* tepi elemen aktif */
+
+  /* ── Stacked shadows (Vercel) ────────────────────────────────────────────────
+     Tiga lapis offset kecil + inset ring. Jauh lebih halus dari satu shadow
+     besar, dan inset ring menjaga tepi kartu tetap terbaca. */
+  --shadow-1:
+    0 1px 1px rgba(0, 0, 0, 0.18),
+    0 2px 4px rgba(0, 0, 0, 0.14),
+    inset 0 0 0 1px var(--hairline);
+  --shadow-2:
+    0 2px 4px rgba(0, 0, 0, 0.20),
+    0 8px 16px -8px rgba(0, 0, 0, 0.30),
+    inset 0 0 0 1px var(--hairline);
+  --shadow-3:
+    0 4px 8px rgba(0, 0, 0, 0.24),
+    0 16px 32px -12px rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px var(--hairline-strong);
+
+  /* ── Motion curves (Linear) ──────────────────────────────────────────────────
+     Kurva dirancang, bukan default. Cepat di awal, mendarat halus.
+     Tidak ada bounce/overshoot — itu untuk mainan, bukan alat profesional. */
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 320ms;
+
+  /* ── Focus ring berlapis (Linear) ────────────────────────────────────────────
+     Dua cincin dengan opasitas berbeda. Satu cincin terlalu tipis di gelap. */
+  --focus-ring:
+    0 0 0 2px rgba(255, 122, 69, 0.45),
+    0 0 0 4px rgba(255, 122, 69, 0.18);
+}
+
+/* ── FOKUS KEYBOARD YANG DIRANCANG ──────────────────────────────────────────────
+   Bukan outline default browser. Terlihat jelas, konsisten di semua elemen
+   interaktif, dan hanya muncul saat navigasi keyboard (:focus-visible). */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+  transition: box-shadow var(--dur-fast) var(--ease-out-quad);
+}
+
+/* ── KARTU: SURFACE LADDER + STACKED SHADOW ────────────────────────────────────
+   Kartu naik satu tingkat luminansi dari latar, dengan hairline dan stacked
+   shadow. Hover menaikkan satu tingkat lagi — bukan menggeser posisi. */
+.project-card,
+.about-body,
+.about-skills,
+.contact-card {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-1);
+  transition:
+    background var(--dur-base) var(--ease-out-quad),
+    border-color var(--dur-base) var(--ease-out-quad),
+    box-shadow var(--dur-base) var(--ease-out-quad);
+}
+
+.project-card:hover {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  box-shadow: var(--shadow-2);
+}
+
+/* ── ANGKA TABULAR (Stripe) ────────────────────────────────────────────────────
+   Statistik dan metrik memakai angka lebar-tetap supaya kolom angka tidak
+   bergoyang saat nilainya berubah (mis. saat counter beranimasi). */
+.hero-stats dd,
+.project-metrics dd,
+[data-count],
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ── TRACKING NEGATIF PROPORSIONAL (Linear/Vercel) ─────────────────────────────
+   Headline besar dirapatkan ~3-4% dari ukuran font. Semakin besar teksnya,
+   semakin rapat — ini yang membuat tipografi display terasa "dirancang",
+   bukan sekadar diperbesar. */
+.hero h1,
+.hero-title {
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.section-title,
+.section h2 {
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.project-name {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Paragraf: jangan biarkan baris terakhir hanya berisi satu kata */
+.about-body p,
+.project-body p,
+.contact-card p {
+  text-wrap: pretty;
+}
+
+/* ── GLOW AMBIENT DI HERO (Linear) ─────────────────────────────────────────────
+   Satu glow radial hangat di belakang headline. Linear memakai versi indigo
+   untuk tujuan sama: memberi kedalaman atmosferik tanpa gradien dekoratif.
+   Hanya SATU sumber cahaya — bukan gradien ungu-biru multi-warna. */
+.hero {
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: -20% 0 auto;
+  height: 70%;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 60% 100% at 50% 0%,
+    rgba(255, 122, 69, 0.10) 0%,
+    rgba(255, 122, 69, 0.04) 35%,
+    transparent 70%
+  );
+  z-index: -1;
+}
+
+/* ── SELEKSI TEKS BERWARNA AKSEN ───────────────────────────────────────────────
+   Detail kecil yang membuat situs terasa diperhatikan sampai level teks. */
+::selection {
+  background: rgba(255, 122, 69, 0.28);
+  color: var(--text);
+}
+
+/* ── SCROLLBAR HALUS ───────────────────────────────────────────────────────────
+   Scrollbar tipis yang menyatu dengan tema, bukan scrollbar OS default. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.20); background-clip: content-box; }
+
+/* ── TOMBOL: MICROSTATES LENGKAP (Linear) ──────────────────────────────────────
+   Setiap tombol punya enam keadaan: default, hover, focus, active, disabled,
+   loading. Ini yang membedakan UI "selesai" dari UI "cukup". */
+.btn,
+button.btn {
+  transition:
+    background var(--dur-base) var(--ease-out-quad),
+    border-color var(--dur-base) var(--ease-out-quad),
+    transform var(--dur-fast) var(--ease-out-quad),
+    box-shadow var(--dur-base) var(--ease-out-quad);
+}
+
+.btn:active,
+button.btn:active {
+  transform: translateY(1px) scale(0.99);
+  transition-duration: 60ms;
+}
+
+.btn:disabled,
+button.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── PEMISAH HAIRLINE YANG DIRANCANG ───────────────────────────────────────────
+   Bukan <hr> default. Gradien yang memudar ke kanan. */
+hr,
+.section-divider {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--hairline) 0%, transparent 100%);
+  margin: 0;
+}
+
+/* ── REDUCED MOTION ────────────────────────────────────────────────────────────
+   Semua efek premium tetap menghormati preferensi pengguna. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .hero::before { display: none; }
+}

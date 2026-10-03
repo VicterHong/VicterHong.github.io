@@ -1,0 +1,177 @@
+/* ── BENTO GRID — tata letak premium ────────────────────────────────────────────
+   Bento grid adalah tata letak di mana kartu-kartu menempati ukuran berbeda
+   dalam satu grid rapi — dipakai Apple, Vercel, Linear, dan hampir semua
+   landing page premium sejak 2023.
+
+   Kenapa terasa premium: hierarki visual terbentuk dari UKURAN, bukan dari
+   warna atau hiasan. Kartu penting jadi lebih besar; yang pendukung lebih
+   kecil. Mata langsung tahu mana yang utama tanpa perlu label.
+
+   Diterapkan di sini: kartu proyek unggulan (featured) menempati 2 kolom,
+   proyek lain 1 kolom. Di layar sempit semua jadi 1 kolom.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.projects-bento {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 2.5rem;
+}
+
+/* Kartu unggulan: menempati lebar penuh (2 kolom) */
+.projects-bento > .project.is-featured {
+  grid-column: 1 / -1;
+}
+
+/* Di dalam kartu unggulan, highlight disusun 3 kolom supaya tidak jadi
+   satu kolom panjang yang melelahkan dibaca. */
+.projects-bento > .project.is-featured .project-highlights {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Kartu biasa: ringkas, tidak perlu highlight besar */
+.projects-bento > .project:not(.is-featured) .project-highlights {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 860px) {
+  .projects-bento {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .projects-bento > .project.is-featured .project-highlights {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── KARTU PROYEK: POLISH PREMIUM ───────────────────────────────────────────────
+   Kartu dinaikkan satu tingkat luminansi, dengan hairline dan stacked shadow.
+   Hover: naik satu tingkat lagi + aksen tipis di tepi kiri (penanda "aktif"). */
+.project {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  transition:
+    background var(--dur-base) var(--ease-out-quad),
+    border-color var(--dur-base) var(--ease-out-quad),
+    box-shadow var(--dur-base) var(--ease-out-quad),
+    transform var(--dur-base) var(--ease-out-quad);
+}
+
+.project::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: linear-gradient(180deg, var(--accent) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-out-quad);
+  pointer-events: none;
+}
+
+.project:hover {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  box-shadow: var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+.project:hover::before { opacity: 1; }
+
+/* Kartu unggulan: aksen lebih tegas + glow ambient di sudut */
+.project.is-featured {
+  background:
+    radial-gradient(ellipse 70% 100% at 100% 0%, rgba(255, 122, 69, 0.06) 0%, transparent 60%),
+    var(--surface-1);
+  border-color: var(--hairline-strong);
+}
+
+.project.is-featured:hover {
+  background:
+    radial-gradient(ellipse 70% 100% at 100% 0%, rgba(255, 122, 69, 0.10) 0%, transparent 60%),
+    var(--surface-2);
+}
+
+/* ── TAG TEKNOLOGI: CHIP HAIRLINE ───────────────────────────────────────────────
+   Chip dengan hairline, bukan border solid. Hover memakai warna aksen tipis. */
+.project .tag,
+.stack .tag {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--hairline);
+  color: var(--text-dim);
+  transition:
+    background var(--dur-base) var(--ease-out-quad),
+    border-color var(--dur-base) var(--ease-out-quad),
+    color var(--dur-base) var(--ease-out-quad);
+}
+
+.project .tag:hover,
+.stack .tag:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+
+/* ── METRIK PROYEK: ANGKA TABULAR + HAIRLINE PEMISAH ────────────────────────────
+   Angka lebar-tetap (tabular) supaya tidak bergoyang. Dipisah hairline
+   vertikal tipis, bukan border penuh. */
+.project-metrics {
+  border-top: 1px solid var(--hairline);
+  padding-top: 1rem;
+}
+
+.project-metrics dd {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
+}
+
+/* ── LINK DALAM KARTU: UNDERLINE YANG TUMBUH DARI KIRI ──────────────────────────
+   Bukan underline statis. Garis tumbuh dari kiri saat hover — detail kecil
+   yang dipakai hampir semua situs premium. */
+.project-link {
+  position: relative;
+  transition: color var(--dur-base) var(--ease-out-quad);
+}
+
+.project-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-slow) var(--ease-out-quart);
+}
+
+.project-link:hover::after { transform: scaleX(1); }
+
+/* ── SECTION: PEMISAH HAIRLINE + SPASI NAPAS ────────────────────────────────────
+   Jarak antar section besar (napas), jarak dalam section rapat. Pola ini yang
+   membuat halaman terasa "dirancang" bukan "ditumpuk". */
+.section {
+  position: relative;
+}
+
+.section + .section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(var(--maxw), calc(100% - 3rem));
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--hairline) 20%, var(--hairline) 80%, transparent 100%);
+}
+
+/* ── REDUCED MOTION ──────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .project:hover { transform: none; }
+  .project-link::after { transition: none; }
+}
