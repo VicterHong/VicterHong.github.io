@@ -156,7 +156,17 @@ main { padding: 1.5rem 1.25rem 4rem; max-width: 1200px; margin: 0 auto; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  overflow: hidden;
+  /* WAJIB overflow-x: tabel token punya 8 kolom — di HP harus bisa
+     di-scroll ke samping. 'hidden' memotong isinya (bug lama). */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+/* Area tabel di dalam panel baru juga bisa di-scroll */
+.panel > div[id$="Table"], .panel > div[id$="List"], .panel > div[id$="Items"] {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .table-head {
   display: flex;
@@ -246,6 +256,7 @@ tbody tr:hover { background: var(--surface-2); }
   text-align: left; padding: 0.5rem 0.75rem; color: var(--muted);
   font-weight: 500; font-size: 0.72rem; text-transform: uppercase;
   letter-spacing: 0.04em; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 .panel table td {
   padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--surface-2);
@@ -261,6 +272,97 @@ tbody tr:hover { background: var(--surface-2); }
 .panel select {
   background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 0.25rem 0.5rem; border-radius: 5px; font-size: 0.75rem;
+}
+
+/* ══ TABEL RESPONSIF ══════════════════════════════════════════════════════════
+   Masalah: tabel token punya 8 kolom dengan teks panjang (label, catatan).
+   Di HP, tabel sempit membuat kolom saling menindih dan tidak terbaca.
+
+   Solusi dua lapis:
+     1. Layar ≥ 641px : scroll horizontal biasa (tabel utuh, geser ke samping)
+     2. Layar ≤ 640px : MODE KARTU — tiap baris jadi kartu bertumpuk,
+        label kolom muncul di kiri (dari atribut data-label yang diisi JS).
+        Tidak perlu geser sama sekali.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Semua tabel: minimal bisa digeser ke samping, tidak pernah terpotong. */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+/* Kolom yang berisi teks panjang: jangan memaksa lebar, biarkan membungkus. */
+td, th { word-break: break-word; }
+
+@media (max-width: 640px) {
+  /* ── Mode kartu untuk tabel data ── */
+  .table-wrap table thead { display: none; }
+
+  .table-wrap table,
+  .table-wrap table tbody,
+  .table-wrap table tr,
+  .table-wrap table td { display: block; width: 100%; }
+
+  .table-wrap table tr {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.25rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .table-wrap table td {
+    border: none;
+    padding: 0.4rem 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    text-align: right;
+  }
+
+  /* Label kolom muncul di kiri — diisi oleh JS (data-label) */
+  .table-wrap table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    text-align: left;
+    flex-shrink: 0;
+    max-width: 45%;
+  }
+
+  /* Sel tanpa label (mis. tombol aksi) tampil penuh */
+  .table-wrap table td:not([data-label]) { justify-content: flex-end; }
+
+  /* Sel dengan label kosong (kolom aksi tanpa header) — sembunyikan ::before
+     supaya tidak ada ruang kosong aneh di kiri tombol. */
+  .table-wrap table td[data-label=""]::before { display: none; }
+
+  /* Form grid jadi satu kolom */
+  .field-row { grid-template-columns: 1fr; }
+  .funnel-label { width: 100px; font-size: 0.75rem; }
+
+  /* Tab: bisa digeser + sedikit lebih rapat */
+  .tabs { padding: 0.5rem 0.75rem 0; }
+  .tab { font-size: 0.78rem; padding: 0.5rem 0.6rem; white-space: nowrap; }
+
+  /* Header halaman: tumpuk vertikal */
+  header { padding: 0.75rem; }
+  .table-head { padding: 0.75rem; }
+  .table-head h2 { font-size: 0.875rem; }
+
+  /* Tombol lebih besar supaya mudah disentuh (target ≥ 40px) */
+  .btn-sm { padding: 0.4rem 0.7rem; font-size: 0.8rem; }
+}
+
+/* Layar sangat kecil: rapatkan lagi */
+@media (max-width: 380px) {
+  .table-wrap table td { font-size: 0.72rem; }
+  .table-wrap table td::before { font-size: 0.65rem; }
 }
 .btn-primary {
   background: var(--accent);
@@ -367,12 +469,9 @@ tbody tr:hover { background: var(--surface-2); }
 .toast.ok { border-color: var(--ok); color: var(--ok); }
 .toast.err { border-color: var(--err); color: var(--err); }
 
-@media (max-width: 640px) {
-  .field-row { grid-template-columns: 1fr; }
-  .funnel-label { width: 100px; font-size: 0.75rem; }
-  table { font-size: 0.75rem; }
-  th, td { padding: 0.5rem; }
-}
+/* Media query lama dihapus — digantikan oleh blok "TABEL RESPONSIF" di atas,
+   yang menangani mode kartu + scroll. Menyisakan dua aturan di sini akan
+   menimpa (override) aturan mode kartu karena urutan cascade. */
 </style>
 </head>
 <body>
@@ -714,11 +813,11 @@ async function loadOverview() {
     ? '<div class="empty">Belum ada permintaan akses.</div>'
     : `<table><thead><tr><th>Tanggal</th><th>Perusahaan</th><th>Email</th><th>Proyek</th><th>Urgensi</th></tr></thead><tbody>${
         recent.map((l) => `<tr>
-          <td class="mono">${fmtDate(l.created_at)}</td>
-          <td>${escapeHtml(l.company || '—')}</td>
-          <td class="mono">${escapeHtml(l.email)}</td>
-          <td>${escapeHtml(l.project_slug || '—')}</td>
-          <td>${escapeHtml(l.urgency || '—')}</td>
+          <td class="mono" data-label="Tanggal">${fmtDate(l.created_at)}</td>
+          <td data-label="Perusahaan">${escapeHtml(l.company || '—')}</td>
+          <td class="mono" data-label="Email">${escapeHtml(l.email)}</td>
+          <td data-label="Proyek">${escapeHtml(l.project_slug || '—')}</td>
+          <td data-label="Urgensi">${escapeHtml(l.urgency || '—')}</td>
         </tr>`).join('')
       }</tbody></table>`;
 }
@@ -744,14 +843,14 @@ async function loadTokens() {
     <th>Terbit</th><th>Kedaluwarsa</th><th></th>
   </tr></thead><tbody>${
     rows.map((t) => `<tr>
-      <td class="mono">${escapeHtml(t.id)}</td>
-      <td>${escapeHtml(t.project_slug)}</td>
-      <td><span class="pill ${t.tier}">${t.tier}</span></td>
-      <td>${escapeHtml(t.issued_to || t.company || '—')}</td>
-      <td><span class="pill ${t.status}">${t.status}</span></td>
-      <td class="mono">${fmtDate(t.issued_at)}</td>
-      <td class="mono">${t.expires_at ? fmtDate(t.expires_at) : '∞'}</td>
-      <td>${t.status === 'active' ? `<button class="btn-sm" data-revoke="${escapeHtml(t.id)}">Cabut</button>` : ''}</td>
+      <td class="mono" data-label="ID">${escapeHtml(t.id)}</td>
+      <td data-label="Proyek">${escapeHtml(t.project_slug)}</td>
+      <td data-label="Tier"><span class="pill ${t.tier}">${t.tier}</span></td>
+      <td data-label="Untuk">${escapeHtml(t.issued_to || t.company || '—')}</td>
+      <td data-label="Status"><span class="pill ${t.status}">${t.status}</span></td>
+      <td class="mono" data-label="Terbit">${fmtDate(t.issued_at)}</td>
+      <td class="mono" data-label="Kedaluwarsa">${t.expires_at ? fmtDate(t.expires_at) : '∞'}</td>
+      <td data-label="">${t.status === 'active' ? `<button class="btn-sm" data-revoke="${escapeHtml(t.id)}">Cabut</button>` : ''}</td>
     </tr>`).join('')
   }</tbody></table>`;
 
@@ -875,15 +974,15 @@ async function loadLeads() {
     <th>Peran</th><th>Proyek</th><th>Budget</th><th>Urgensi</th><th>Pesan</th>
   </tr></thead><tbody>${
     rows.map((l) => `<tr>
-      <td class="mono">${fmtDate(l.created_at)}</td>
-      <td>${escapeHtml(l.company || '—')}</td>
-      <td>${escapeHtml(l.name || '—')}</td>
-      <td class="mono">${escapeHtml(l.email)}</td>
-      <td>${escapeHtml(l.role || '—')}</td>
-      <td>${escapeHtml(l.project_slug || '—')}</td>
-      <td>${escapeHtml(l.budget_range || '—')}</td>
-      <td>${escapeHtml(l.urgency || '—')}</td>
-      <td style="max-width:220px">${escapeHtml((l.message || '').slice(0, 160))}</td>
+      <td class="mono" data-label="Tanggal">${fmtDate(l.created_at)}</td>
+      <td data-label="Perusahaan">${escapeHtml(l.company || '—')}</td>
+      <td data-label="Nama">${escapeHtml(l.name || '—')}</td>
+      <td class="mono" data-label="Email">${escapeHtml(l.email)}</td>
+      <td data-label="Peran">${escapeHtml(l.role || '—')}</td>
+      <td data-label="Proyek">${escapeHtml(l.project_slug || '—')}</td>
+      <td data-label="Budget">${escapeHtml(l.budget_range || '—')}</td>
+      <td data-label="Urgensi">${escapeHtml(l.urgency || '—')}</td>
+      <td style="max-width:220px" data-label="Pesan">${escapeHtml((l.message || '').slice(0, 160))}</td>
     </tr>`).join('')
   }</tbody></table>`;
 }
@@ -948,13 +1047,13 @@ async function loadSla() {
       const r = s[k] ?? {};
       const labels = { day: '24 jam', week: '7 hari', month: '30 hari' };
       return `<tr>
-        <td>${labels[k]}</td>
-        <td>${(r.total_requests ?? 0).toLocaleString('id-ID')}</td>
-        <td>${r.uptime_percent ?? 100}%</td>
-        <td>${r.avg_latency_ms ?? 0} ms</td>
-        <td>${r.p95_latency_ms ?? 0} ms</td>
-        <td>${r.error_count ?? 0} (${r.error_rate_percent ?? 0}%)</td>
-        <td>${r.meets_sla ? '<span class="pill active">Terpenuhi</span>' : '<span class="pill revoked">Di bawah target</span>'}</td>
+        <td data-label="Periode">${labels[k]}</td>
+        <td data-label="Request">${(r.total_requests ?? 0).toLocaleString('id-ID')}</td>
+        <td data-label="Uptime">${r.uptime_percent ?? 100}%</td>
+        <td data-label="Latency rata²">${r.avg_latency_ms ?? 0} ms</td>
+        <td data-label="Latency p95">${r.p95_latency_ms ?? 0} ms</td>
+        <td data-label="Error">${r.error_count ?? 0} (${r.error_rate_percent ?? 0}%)</td>
+        <td data-label="Status">${r.meets_sla ? '<span class="pill active">Terpenuhi</span>' : '<span class="pill revoked">Di bawah target</span>'}</td>
       </tr>`;
     }).join('')
   }</tbody></table>`;
@@ -972,14 +1071,14 @@ async function loadAudit() {
     <th>Waktu</th><th>Token</th><th>Proyek</th><th>Aksi</th><th>Hasil</th><th>IP</th><th>Negara</th><th>Detail</th>
   </tr></thead><tbody>${
     rows.map((e) => `<tr>
-      <td class="mono">${fmtDate(e.at)}</td>
-      <td class="mono">${escapeHtml(e.token_id ?? '—')}</td>
-      <td>${escapeHtml(e.project_slug || '—')}</td>
-      <td>${escapeHtml(e.action)}</td>
-      <td>${e.outcome === 'ok' ? '<span class="pill active">ok</span>' : `<span class="pill suspended">${escapeHtml(e.outcome)}</span>`}</td>
-      <td class="mono">${escapeHtml(e.ip || '—')}</td>
-      <td>${escapeHtml(e.country || '—')}</td>
-      <td style="max-width:200px">${escapeHtml(e.detail || '—')}</td>
+      <td class="mono" data-label="Waktu">${fmtDate(e.at)}</td>
+      <td class="mono" data-label="Token">${escapeHtml(e.token_id ?? '—')}</td>
+      <td data-label="Proyek">${escapeHtml(e.project_slug || '—')}</td>
+      <td data-label="Aksi">${escapeHtml(e.action)}</td>
+      <td data-label="Hasil">${e.outcome === 'ok' ? '<span class="pill active">ok</span>' : `<span class="pill suspended">${escapeHtml(e.outcome)}</span>`}</td>
+      <td class="mono" data-label="IP">${escapeHtml(e.ip || '—')}</td>
+      <td data-label="Negara">${escapeHtml(e.country || '—')}</td>
+      <td style="max-width:200px" data-label="Detail">${escapeHtml(e.detail || '—')}</td>
     </tr>`).join('')
   }</tbody></table>`;
 }
@@ -1050,10 +1149,10 @@ async function loadCms() {
     host.innerHTML = `<table><thead><tr>
       <th>Slug</th><th>Judul</th><th>Field</th><th>Dibuat</th>
     </tr></thead><tbody>${cols.map(c => `<tr>
-      <td><code>${escapeHtml(c.slug)}</code></td>
-      <td>${escapeHtml(c.title || '—')}</td>
-      <td>${(c.fields || []).length} field</td>
-      <td>${fmtDate(c.created_at)}</td>
+      <td data-label="Slug"><code>${escapeHtml(c.slug)}</code></td>
+      <td data-label="Judul">${escapeHtml(c.title || '—')}</td>
+      <td data-label="Field">${(c.fields || []).length} field</td>
+      <td data-label="Dibuat">${fmtDate(c.created_at)}</td>
     </tr>`).join('')}</tbody></table>`;
 
     const prev = sel.value;
@@ -1081,11 +1180,11 @@ async function loadCmsItems() {
     host.innerHTML = `<table><thead><tr>
       <th>Slug</th><th>Status</th><th>Versi</th><th>Diperbarui</th><th>Terbit</th>
     </tr></thead><tbody>${items.map(i => `<tr>
-      <td><code>${escapeHtml(i.item_slug)}</code></td>
-      <td><span class="badge ${i.status === 'published' ? 'ok' : 'warn'}">${escapeHtml(i.status)}</span></td>
-      <td>v${i.version}</td>
-      <td>${fmtDate(i.updated_at)}</td>
-      <td>${fmtDate(i.published_at)}</td>
+      <td data-label="Slug"><code>${escapeHtml(i.item_slug)}</code></td>
+      <td data-label="Status"><span class="badge ${i.status === 'published' ? 'ok' : 'warn'}">${escapeHtml(i.status)}</span></td>
+      <td data-label="Versi">v${i.version}</td>
+      <td data-label="Diperbarui">${fmtDate(i.updated_at)}</td>
+      <td data-label="Terbit">${fmtDate(i.published_at)}</td>
     </tr>`).join('')}</tbody></table>`;
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
@@ -1188,11 +1287,11 @@ async function loadGrow() {
     host.innerHTML = `<table><thead><tr>
       <th>Slug</th><th>Nama</th><th>Status</th><th>Varian</th><th>Diperbarui</th>
     </tr></thead><tbody>${exps.map(e => `<tr>
-      <td><code>${escapeHtml(e.slug)}</code></td>
-      <td>${escapeHtml(e.name || '—')}</td>
-      <td><span class="badge ${e.status === 'running' ? 'ok' : 'warn'}">${escapeHtml(e.status)}</span></td>
-      <td>${(e.variants || []).map(v => `<code>${escapeHtml(v)}</code>`).join(' ')}</td>
-      <td>${fmtDate(e.updated_at)}</td>
+      <td data-label="Slug"><code>${escapeHtml(e.slug)}</code></td>
+      <td data-label="Nama">${escapeHtml(e.name || '—')}</td>
+      <td data-label="Status"><span class="badge ${e.status === 'running' ? 'ok' : 'warn'}">${escapeHtml(e.status)}</span></td>
+      <td data-label="Varian">${(e.variants || []).map(v => `<code>${escapeHtml(v)}</code>`).join(' ')}</td>
+      <td data-label="Diperbarui">${fmtDate(e.updated_at)}</td>
     </tr>`).join('')}</tbody></table>`;
 
     // Hasil eksperimen pertama (biasanya cukup satu).
@@ -1208,9 +1307,9 @@ async function loadGrow() {
       <p style="color:var(--muted);font-size:.85rem;padding:0 1rem 1rem">${escapeHtml(verdict.message || '')}</p>
       <table><thead><tr><th>Varian</th><th>Terpapar</th><th>Konversi</th><th>Rate</th></tr></thead>
       <tbody>${(res.variants || []).map(v => `<tr>
-        <td><code>${escapeHtml(v.variant)}</code>${v.variant === res.control ? ' <span class="badge">kontrol</span>' : ''}</td>
-        <td>${v.exposed}</td><td>${v.converted}</td>
-        <td>${(v.rate * 100).toFixed(2)}%</td>
+        <td data-label="Varian"><code>${escapeHtml(v.variant)}</code>${v.variant === res.control ? ' <span class="badge">kontrol</span>' : ''}</td>
+        <td data-label="Terpapar">${v.exposed}</td><td data-label="Konversi">${v.converted}</td>
+        <td data-label="Rate">${(v.rate * 100).toFixed(2)}%</td>
       </tr>`).join('')}</tbody></table>`;
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
@@ -1238,11 +1337,11 @@ async function loadBranches() {
       host.innerHTML = `<table><thead><tr>
         <th>Branch</th><th>Status</th><th>Perubahan</th><th>Pembuat</th><th>Diperbarui</th>
       </tr></thead><tbody>${branches.map(b => `<tr>
-        <td><code>${escapeHtml(b.name)}</code></td>
-        <td><span class="badge ${b.status === 'open' ? 'ok' : ''}">${escapeHtml(b.status)}</span></td>
-        <td>${b.change_count}</td>
-        <td>${escapeHtml(b.author || '—')}</td>
-        <td>${fmtDate(b.updated_at)}</td>
+        <td data-label="Branch"><code>${escapeHtml(b.name)}</code></td>
+        <td data-label="Status"><span class="badge ${b.status === 'open' ? 'ok' : ''}">${escapeHtml(b.status)}</span></td>
+        <td data-label="Perubahan">${b.change_count}</td>
+        <td data-label="Pembuat">${escapeHtml(b.author || '—')}</td>
+        <td data-label="Diperbarui">${fmtDate(b.updated_at)}</td>
       </tr>`).join('')}</tbody></table>`;
     }
 
@@ -1253,11 +1352,11 @@ async function loadBranches() {
       cHost.innerHTML = `<table><thead><tr>
         <th>Target</th><th>Anchor</th><th>Komentar</th><th>Dari</th><th>Waktu</th>
       </tr></thead><tbody>${comments.map(c => `<tr>
-        <td><code>${escapeHtml(c.target)}</code></td>
-        <td><code>${escapeHtml(c.anchor || '—')}</code></td>
-        <td>${escapeHtml(c.body).slice(0, 120)}</td>
-        <td>${escapeHtml(c.author || '—')}</td>
-        <td>${fmtDate(c.created_at)}</td>
+        <td data-label="Target"><code>${escapeHtml(c.target)}</code></td>
+        <td data-label="Anchor"><code>${escapeHtml(c.anchor || '—')}</code></td>
+        <td data-label="Komentar">${escapeHtml(c.body).slice(0, 120)}</td>
+        <td data-label="Dari">${escapeHtml(c.author || '—')}</td>
+        <td data-label="Waktu">${fmtDate(c.created_at)}</td>
       </tr>`).join('')}</tbody></table>`;
     }
   } catch (err) {
@@ -1281,11 +1380,11 @@ async function loadReleases() {
     host.innerHTML = `<table><thead><tr>
       <th>Versi</th><th>Commit</th><th>Status</th><th>Oleh</th><th>Waktu</th>
     </tr></thead><tbody>${rel.map(r => `<tr>
-      <td><code>${escapeHtml(r.version || '—')}</code></td>
-      <td><code>${escapeHtml((r.commit_hash || '—').slice(0, 8))}</code></td>
-      <td><span class="badge ${r.ok ? 'ok' : 'err'}">${r.ok ? 'berhasil' : 'gagal'}</span></td>
-      <td>${escapeHtml(r.deployed_by || '—')}</td>
-      <td>${fmtDate(r.created_at)}</td>
+      <td data-label="Versi"><code>${escapeHtml(r.version || '—')}</code></td>
+      <td data-label="Commit"><code>${escapeHtml((r.commit_hash || '—').slice(0, 8))}</code></td>
+      <td data-label="Status"><span class="badge ${r.ok ? 'ok' : 'err'}">${r.ok ? 'berhasil' : 'gagal'}</span></td>
+      <td data-label="Oleh">${escapeHtml(r.deployed_by || '—')}</td>
+      <td data-label="Waktu">${fmtDate(r.created_at)}</td>
     </tr>`).join('')}</tbody></table>`;
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
