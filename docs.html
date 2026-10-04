@@ -40,13 +40,20 @@
 </head>
 <body>
 
+<!-- Latar animasi — sama dengan halaman utama supaya konsisten.
+     Video di-scrub saat scroll (desktop) atau autoplay loop (mobile). -->
+<div class="hero-backdrop" aria-hidden="true">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg"></video>
+  <div class="hero-fallback"></div>
+</div>
+
 <header class="site-header">
   <div class="site-header-inner">
     <a class="brand" href="/home">
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">Victer</span>
     </a>
-    <nav class="site-nav" aria-label="Navigasi utama">
+    <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
       <a href="/home#s6ahns">Tentang</a>
       <a href="/home#cckxsk">Layanan</a>
       <a href="/home#utqvwf">Proyek</a>
@@ -55,8 +62,15 @@
       <a href="/home#89fk39">Kontak</a>
     </nav>
     <a class="nav-cta" href="/home#89fk39">Hubungi</a>
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="siteNav">
+      <span data-icon="menu" data-icon-size="20"></span>
+    </button>
   </div>
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
 </header>
+
+<!-- Tirai gelap saat menu mobile terbuka — memisahkan panel dari konten. -->
+<div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
 
 <main class="docs-page">
 
@@ -419,6 +433,7 @@ GitHub:         https://github.com/VicterHong</code>
 <script>
   document.getElementById('year').textContent = String(new Date().getFullYear());
 </script>
+<script type="module" src="assets/js/docs-page.js"></script>
 <script type="module" src="assets/js/docs.js"></script>
 </body>
 </html>

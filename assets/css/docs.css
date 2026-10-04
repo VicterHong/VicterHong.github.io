@@ -17,6 +17,23 @@
   max-width: 1180px;
   margin: 0 auto;
   padding: 7rem 1.5rem 5rem;
+  /* Latar semi-transparan di atas video — teks tetap terbaca tanpa
+     menyembunyikan latar sepenuhnya. Lapisan ini yang membuat halaman
+     tetap nyaman dibaca meski video bergerak di belakangnya. */
+  position: relative;
+}
+.docs-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg,
+      rgba(10, 10, 11, 0.72) 0%,
+      rgba(10, 10, 11, 0.86) 22%,
+      rgba(10, 10, 11, 0.94) 45%,
+      rgba(10, 10, 11, 0.97) 100%);
+  pointer-events: none;
 }
 
 /* ── Kepala halaman ───────────────────────────────────────────────────────── */
@@ -548,4 +565,92 @@
   .doc-content { max-width: none; }
   .doc-section { page-break-inside: avoid; }
   body { background: #fff; color: #000; }
+}
+
+/* ── Header di layar kecil ────────────────────────────────────────────────────
+   6 tautan navigasi + tombol CTA tidak muat di bawah ~900px — kalau dibiarkan
+   akan membungkus dan terpotong. Solusi: sembunyikan nav, tampilkan tombol
+   menu yang membuka panel. Tombol CTA tetap terlihat (aksi utama). */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+  line-height: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-toggle:hover { color: var(--text); border-color: var(--text-faint); }
+.nav-toggle .icon { display: block; }
+
+@media (max-width: 900px) {
+  /* Header: logo kiri, lalu CTA + tombol menu DI KANAN (satu grup).
+     Sebelumnya CTA mengambang di tengah karena `spacer` tidak ada. */
+  .site-header-inner {
+    gap: 0.6rem;
+  }
+  .site-header-inner .brand { margin-right: auto; }
+
+  /* Nav jadi panel dropdown — tersembunyi sampai tombol menu ditekan */
+  .site-nav {
+    position: absolute;
+    top: calc(100% + 1px);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--line);
+    padding: 0.5rem 0;
+    display: none;
+    z-index: 40;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  }
+  .site-nav.is-open { display: flex; }
+
+  .site-nav a {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.92rem;
+    border-bottom: 1px solid var(--line-soft);
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+  }
+  .site-nav a:last-child { border-bottom: none; }
+  .site-nav a[aria-current="page"] {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .nav-toggle { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .nav-cta { font-size: 0.82rem; padding: 0.5rem 0.9rem; flex-shrink: 0; }
+
+  /* Tirai gelap di belakang panel — memisahkan menu dari konten halaman
+     supaya mata tidak terbagi antara keduanya. */
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 35;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .nav-scrim.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Tirai hanya dipakai di layar kecil. */
+.nav-scrim { display: none; }
+
+@media (max-width: 480px) {
+  /* Layar sangat kecil: CTA jadi ikon-saja? Tidak — teksnya pendek,
+     tetap tampil. Kecilkan saja paddingnya. */
+  .nav-cta { padding: 0.45rem 0.75rem; font-size: 0.78rem; }
+  .brand-text { font-size: 0.95rem; }
 }
