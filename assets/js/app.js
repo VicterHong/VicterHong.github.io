@@ -14,6 +14,9 @@ import { profile, about, services, projects, sideProjects, principles, stats } f
 import { initAstra } from './astra.js';
 import { initDepth } from './depth.js';
 import { initEditorial } from './editorial.js';
+import { initGrain } from './grain.js';
+import { initWaveReveal } from './wave-reveal.js';
+import { initMagneticCards } from './magnetic.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -102,7 +105,7 @@ function renderProjects() {
   const host = $('#featuredProjects');
 
   for (const p of projects) {
-    const card = el('article', { class: `project${p.featured ? ' is-featured' : ''}` });
+    const card = el('article', { class: `project${p.featured ? ' is-featured' : ''}`, 'data-magnetic': '' });
     // Pembungkus dalam: efek scroll-stand menulis transform pada `.project`,
     // sedangkan tilt menulis transform pada `.project-card-inner`. Dua efek
     // 3D pada elemen yang sama akan saling menimpa transform — pemisahan ini
@@ -169,7 +172,7 @@ function renderSideProjects() {
   const host = $('#sideProjects');
   for (const p of sideProjects) {
     const card = el('a', {
-      class: 'side-project', href: p.repo, target: '_blank', rel: 'noopener',
+      class: 'side-project', href: p.repo, target: '_blank', rel: 'noopener', 'data-magnetic': '',
     });
     card.append(el('h3', { text: p.name }));
     card.append(el('p', { text: p.description }));
@@ -337,6 +340,18 @@ initDepth();
 // Sentuhan editorial: nomor section, rail navigasi, marquee. Dipanggil
 // setelah semua section ter-render supaya nomor & rail menangkap semuanya.
 initEditorial();
+
+// Film grain overlay — tactile texture (2026 trend). Dipanggil awal supaya
+// canvas dibuat sebelum interaksi lain.
+initGrain();
+
+// Wave text reveal — premium animation untuk section titles. Dipanggil
+// setelah DOM terisi supaya [data-wave-reveal] sudah ada.
+initWaveReveal();
+
+// Magnetic cards — physics-based hover untuk project cards. Dipanggil
+// setelah render supaya [data-magnetic] sudah terpasang.
+initMagneticCards();
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();

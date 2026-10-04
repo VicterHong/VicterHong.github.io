@@ -1,0 +1,60 @@
+/**
+ * Wave Text Reveal Styles
+ * Premium staggered animation for section titles
+ */
+
+[data-wave-reveal] {
+  display: inline-block;
+}
+
+.wave-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(24px) rotateX(-90deg);
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+}
+
+/* Revealed state — wave animation */
+[data-wave-reveal].revealed .wave-char {
+  animation: waveIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--char-index) * 0.03s);
+}
+
+@keyframes waveIn {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) rotateX(-90deg);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateX(0deg);
+  }
+}
+
+/* Reduced motion: instant reveal */
+@media (prefers-reduced-motion: reduce) {
+  .wave-char {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  
+  [data-wave-reveal].revealed .wave-char {
+    animation: none;
+  }
+}
+
+/* Performance: disable on low-end mobile */
+@media (max-width: 480px) {
+  .wave-char {
+    animation-duration: 0.4s;
+  }
+  
+  [data-wave-reveal].revealed .wave-char {
+    animation-delay: calc(var(--char-index) * 0.02s);
+  }
+}
