@@ -372,30 +372,88 @@ td, th { word-break: break-word; }
   margin-top: 0.3rem;
   line-height: 1.4;
 }
+
+/* Kelompok field — memberi hirarki visual tanpa menambah noise */
+.field-group {
+  border-top: 1px solid var(--border);
+  padding-top: 0.875rem;
+  margin-top: 0.875rem;
+}
+.field-group:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+.field-group-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+  display: block;
+}
+
 .proj-checks {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
   margin-top: 0.35rem;
 }
-.proj-check {
+/* PENTING: selector harus `.field .proj-check` (spesifisitas 0,2,0) supaya
+   menang atas `.field label { display: block }` (0,1,1). Tanpa ini, label
+   jadi block dan checkbox melayang di atas teksnya. */
+.field .proj-check {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.5rem 0.7rem;
+  padding: 0.45rem 0.65rem;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 7px;
   cursor: pointer;
   font-size: 0.8rem;
-  /* Target sentuh nyaman di HP */
-  min-height: 42px;
+  min-height: 40px;
+  margin-bottom: 0;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
 }
-.proj-check:hover { border-color: var(--accent); }
-.proj-check input { accent-color: var(--accent); width: 16px; height: 16px; }
-.proj-check input:disabled { opacity: 0.35; }
-.proj-check:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
-.proj-check:has(input:checked) { border-color: var(--accent); background: rgba(124, 156, 255, 0.08); }
+.field .proj-check:hover { border-color: var(--accent); }
+.field .proj-check input {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 0;
+  display: block;
+}
+.field .proj-check span {
+  flex: 1;
+  line-height: 1.3;
+  font-size: 0.8rem;
+}
+.field .proj-check:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(124, 156, 255, 0.08);
+}
+/* Proyek yang sama dengan "Proyek utama" disembunyikan total —
+   menampilkannya (walau abu-abu) hanya membingungkan. */
+.field .proj-check.is-hidden { display: none; }
+
+/* Detail opsional dilipat — mengurangi beban visual saat membuka modal */
+.adv-toggle {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.4rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: inherit;
+}
+.adv-toggle:hover { color: var(--text); }
+.adv-toggle .chev { transition: transform 0.2s; display: inline-block; }
+.adv-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
+.adv-body { display: none; }
+.adv-body.is-open { display: block; }
 .btn-primary {
   background: var(--accent);
   border: none;
@@ -443,10 +501,31 @@ td, th { word-break: break-word; }
   max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
+  /* Ruang aman di HP (notch / gesture bar) */
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+}
+/* Di HP: modal menempel bawah, sudut atas membulat — pola bottom-sheet
+   yang lebih nyaman dijangkau ibu jari daripada modal tengah. */
+@media (max-width: 640px) {
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 14px 14px 0 0;
+    border-bottom: none;
+  }
 }
 .modal h2 { font-size: 1.0625rem; margin-bottom: 1.25rem; }
 .field { margin-bottom: 0.875rem; }
-.field label { display: block; color: var(--muted); font-size: 0.75rem; margin-bottom: 0.3rem; }
+/* Label field — JANGAN pakai `display:block` global yang menimpa flex pada
+   .proj-check. Label di dalam .proj-check sudah punya gaya sendiri. */
+.field > label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.3rem;
+}
 .field input, .field select, .field textarea {
   width: 100%;
   background: var(--bg);
@@ -459,8 +538,23 @@ td, th { word-break: break-word; }
 }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-.modal-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
-.modal-actions button { flex: 1; padding: 0.65rem; border-radius: 8px; font-size: 0.875rem; cursor: pointer; }
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  /* Tombol selalu terlihat — tidak ikut ter-scroll keluar layar.
+     Ini penting di HP: pengguna harus bisa menekan Terbitkan/Batal
+     tanpa menggulir ke bawah dulu. */
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  padding-top: 0.875rem;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  margin-bottom: -0.25rem;
+  border-top: 1px solid var(--border);
+  z-index: 2;
+}
+.modal-actions button { flex: 1; padding: 0.7rem; border-radius: 8px; font-size: 0.875rem; cursor: pointer; }
 .modal-actions .cancel { background: none; border: 1px solid var(--border); color: var(--muted); }
 .modal-actions .confirm { background: var(--accent); border: none; color: #0d0d0f; font-weight: 600; }
 
@@ -933,49 +1027,74 @@ $('#issueBtn').addEventListener('click', async () => {
   backdrop.innerHTML = `
     <div class="modal">
       <h2>Terbitkan token baru</h2>
-      <div class="field">
-        <label>Proyek utama *</label>
-        <select id="mProject">${projectOptions}</select>
-        <p class="field-hint">Token ini membuka halaman proyek utama.</p>
-      </div>
-      ${extraOptions ? `
-      <div class="field">
-        <label>Akses tambahan (opsional)</label>
-        <div class="proj-checks" id="mExtraWrap">${extraOptions}</div>
-        <p class="field-hint">Centang proyek lain yang juga boleh dibuka dengan token ini.</p>
-      </div>` : ''}
-      <div class="field-row">
+
+      <!-- Kelompok 1: proyek — inti dari token -->
+      <div class="field-group">
+        <span class="field-group-label">Akses</span>
         <div class="field">
-          <label>Tier</label>
-          <select id="mTier"><option value="standard">Standard</option><option value="enterprise">Enterprise</option></select>
+          <label>Proyek utama *</label>
+          <select id="mProject">${projectOptions}</select>
         </div>
+        ${extraOptions ? `
         <div class="field">
-          <label>Masa berlaku (hari)</label>
-          <input type="number" id="mDays" value="30" min="1">
-        </div>
+          <label>Proyek tambahan</label>
+          <div class="proj-checks" id="mExtraWrap">${extraOptions}</div>
+          <p class="field-hint">Token yang sama juga membuka proyek yang dicentang.</p>
+        </div>` : ''}
       </div>
-      <div class="field">
-        <label>Untuk (nama)</label>
-        <input type="text" id="mIssuedTo" placeholder="Nama penerima">
-      </div>
-      <div class="field">
-        <label>Perusahaan</label>
-        <input type="text" id="mCompany" placeholder="Nama perusahaan (untuk watermark)">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Maks IP</label>
-          <input type="number" id="mMaxIps" value="3" min="1">
-        </div>
-        <div class="field">
-          <label>Maks device</label>
-          <input type="number" id="mMaxDevices" value="3" min="1">
+
+      <!-- Kelompok 2: masa berlaku -->
+      <div class="field-group">
+        <span class="field-group-label">Masa berlaku</span>
+        <div class="field-row">
+          <div class="field">
+            <label>Tier</label>
+            <select id="mTier"><option value="standard">Standard</option><option value="enterprise">Enterprise</option></select>
+          </div>
+          <div class="field">
+            <label>Berlaku (hari)</label>
+            <input type="number" id="mDays" value="30" min="1">
+          </div>
         </div>
       </div>
-      <div class="field">
-        <label>Catatan</label>
-        <textarea id="mNotes" rows="2" placeholder="Catatan internal (opsional)"></textarea>
+
+      <!-- Kelompok 3: penerima -->
+      <div class="field-group">
+        <span class="field-group-label">Penerima</span>
+        <div class="field">
+          <label>Nama</label>
+          <input type="text" id="mIssuedTo" placeholder="Contoh: Budi Santoso">
+        </div>
+        <div class="field">
+          <label>Perusahaan</label>
+          <input type="text" id="mCompany" placeholder="Contoh: PT Contoh Jaya">
+          <p class="field-hint">Tampil sebagai watermark di halaman proyek.</p>
+        </div>
       </div>
+
+      <!-- Kelompok 4: pengaturan lanjutan — dilipat, default tertutup -->
+      <div class="field-group">
+        <button class="adv-toggle" id="mAdvToggle" aria-expanded="false" type="button">
+          <span class="chev">›</span> Pengaturan lanjutan
+        </button>
+        <div class="adv-body" id="mAdvBody">
+          <div class="field-row">
+            <div class="field">
+              <label>Maks IP</label>
+              <input type="number" id="mMaxIps" value="3" min="1">
+            </div>
+            <div class="field">
+              <label>Maks device</label>
+              <input type="number" id="mMaxDevices" value="3" min="1">
+            </div>
+          </div>
+          <div class="field">
+            <label>Catatan internal</label>
+            <textarea id="mNotes" rows="2" placeholder="Opsional"></textarea>
+          </div>
+        </div>
+      </div>
+
       <div class="modal-actions">
         <button class="cancel" id="mCancel">Batal</button>
         <button class="confirm" id="mSubmit">Terbitkan</button>
@@ -984,7 +1103,17 @@ $('#issueBtn').addEventListener('click', async () => {
     </div>`;
   document.body.append(backdrop);
 
-  // Proyek utama tidak boleh dicentang ganda di "akses tambahan".
+  // Pengaturan lanjutan: buka/tutup.
+  const advToggle = $('#mAdvToggle');
+  const advBody = $('#mAdvBody');
+  advToggle?.addEventListener('click', () => {
+    const open = advToggle.getAttribute('aria-expanded') === 'true';
+    advToggle.setAttribute('aria-expanded', String(!open));
+    advBody.classList.toggle('is-open', !open);
+  });
+
+  // Proyek utama disembunyikan TOTAL dari daftar akses tambahan —
+  // menampilkannya (walau abu-abu) hanya membingungkan.
   const primarySel = $('#mProject');
   const extraWrap = $('#mExtraWrap');
   function syncExtras() {
@@ -994,6 +1123,7 @@ $('#issueBtn').addEventListener('click', async () => {
       const isPrimary = cb.value === primary;
       cb.disabled = isPrimary;
       if (isPrimary) cb.checked = false;
+      cb.closest('.proj-check')?.classList.toggle('is-hidden', isPrimary);
     });
   }
   primarySel.addEventListener('change', syncExtras);
