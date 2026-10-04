@@ -1,0 +1,62 @@
+/**
+ * Horizontal Scroll Pinned Section Styles
+ * Cards scroll sideways while section stays pinned
+ */
+
+[data-hscroll] {
+  position: relative;
+  min-height: 200vh; /* Artificial height for scroll distance */
+  overflow: hidden;
+}
+
+[data-hscroll].is-pinned {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+[data-hscroll-track] {
+  display: flex;
+  gap: 2rem;
+  will-change: transform;
+  transition: transform 0.05s linear; /* Smooth but responsive */
+}
+
+[data-hscroll-track] > * {
+  flex-shrink: 0;
+  width: 320px; /* Card width */
+}
+
+/* Mobile: regular vertical scroll */
+@media (max-width: 768px) {
+  [data-hscroll] {
+    min-height: auto;
+    overflow: visible;
+  }
+
+  [data-hscroll].is-pinned {
+    position: relative;
+    height: auto;
+  }
+
+  [data-hscroll-track] {
+    flex-direction: column;
+    transform: none !important;
+  }
+
+  [data-hscroll-track] > * {
+    width: 100%;
+  }
+}
+
+/* Reduced motion: disable horizontal scroll */
+@media (prefers-reduced-motion: reduce) {
+  [data-hscroll] {
+    min-height: auto;
+  }
+
+  [data-hscroll-track] {
+    flex-wrap: wrap;
+    transform: none !important;
+  }
+}

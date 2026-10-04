@@ -1,0 +1,28 @@
+/**
+ * Variable Font Weight Styles
+ * Dynamic typography — weight changes on scroll
+ */
+
+[data-variable-weight] {
+  font-weight: 400; /* Base weight */
+  font-variation-settings: 'wght' 400; /* Variable font support */
+  transition: font-weight 0.1s linear;
+  will-change: font-weight;
+}
+
+/* Ensure Inter supports variable weight */
+@supports (font-variation-settings: normal) {
+  [data-variable-weight] {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-optical-sizing: auto;
+  }
+}
+
+/* Reduced motion: disable weight animation */
+@media (prefers-reduced-motion: reduce) {
+  [data-variable-weight] {
+    font-weight: 600 !important;
+    transition: none;
+    will-change: auto;
+  }
+}

@@ -17,6 +17,9 @@ import { initEditorial } from './editorial.js';
 import { initGrain } from './grain.js';
 import { initWaveReveal } from './wave-reveal.js';
 import { initMagneticCards } from './magnetic.js';
+import { initHorizontalScroll } from './hscroll.js';
+import { initOrbMenu } from './orb-menu.js';
+import { initVariableWeight } from './variable-weight.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -352,6 +355,18 @@ initWaveReveal();
 // Magnetic cards — physics-based hover untuk project cards. Dipanggil
 // setelah render supaya [data-magnetic] sudah terpasang.
 initMagneticCards();
+
+// Horizontal scroll pinned section — premium showcase (FASE 2). Dipanggil
+// setelah DOM siap supaya [data-hscroll] sudah ada.
+initHorizontalScroll();
+
+// Floating orb menu — replaces rail navigation (FASE 2). Dipanggil
+// setelah sections ter-render supaya observer bisa track.
+initOrbMenu();
+
+// Variable font weight on scroll — dynamic typography (FASE 2). Dipanggil
+// setelah [data-variable-weight] titles sudah ada.
+initVariableWeight();
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();
