@@ -24,22 +24,21 @@
    CATATAN PENTING — elemen yang DIKECUALIKAN dari overflow: hidden:
      - .orb-item : punya tooltip ::after di luar batas elemen. overflow
                    hidden akan memotong tooltip itu dan menghilangkannya.
-     - .nav-toggle : tombolnya kecil dan gelombang tidak akan terlihat;
-                   menambah overflow tidak sepadan risikonya.
-   Keduanya tetap mendapat efek tekan (scale), hanya tanpa gelombang. */
+   Elemen itu tetap mendapat efek tekan (scale), hanya tanpa gelombang. */
 .btn,
 .cookie-btn,
 .copy-btn,
 .link-btn,
 .chip,
-.tab {
+.tab,
+.nav-toggle,
+.site-nav a {
   position: relative;
   overflow: hidden;
   isolation: isolate;
 }
 
-.orb-item,
-.nav-toggle {
+.orb-item {
   isolation: isolate;
 }
 
@@ -49,8 +48,9 @@
 .link-btn,
 .chip,
 .tab,
-.orb-item,
-.nav-toggle {
+.nav-toggle,
+.site-nav a,
+.orb-item {
   /* Ditekan = sedikit mengecil. Umpan balik taktil visual — jari tahu
      tombolnya benar-benar menerima tekanan. */
   transition:
@@ -66,34 +66,59 @@
 .link-btn:active,
 .chip:active,
 .tab:active,
-.orb-item:active,
-.nav-toggle:active {
+.nav-toggle:active,
+.site-nav a:active,
+.orb-item:active {
   transform: scale(0.975);
 }
 
 /* Elemen gelombang — dibuat oleh ripple.js.
-   Warna memakai currentColor dengan opacity rendah: otomatis kontras
-   di tombol terang maupun gelap, tanpa perlu dua set warna. */
+   Warna memakai currentColor: otomatis kontras di tombol terang maupun
+   gelap, tanpa perlu dua set warna.
+
+   Animasi dipisah dua supaya gelombang benar-benar TERLIHAT:
+     - Skala: tumbuh cepat (expo-out) — terasa responsif
+     - Opacity: tetap terang selama 45% durasi, baru memudar
+
+   Sebelumnya keduanya dalam satu keyframe dengan kurva yang sama.
+   Akibatnya opacity ikut jatuh secepat skala. Diukur lewat screenshot:
+   gelombang hanya menambah +10 luminansi di atas latar — ter-render,
+   tapi terlalu tipis untuk dilihat mata di layar HP. */
 .ripple {
   position: absolute;
   border-radius: 50%;
   background: currentColor;
-  opacity: 0.22;
+  opacity: 0.42;
   transform: scale(0);
   pointer-events: none;
-  animation: ripple-out 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation:
+    ripple-scale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    ripple-fade 0.6s linear forwards;
   z-index: 0;
 }
-@keyframes ripple-out {
-  to { transform: scale(1); opacity: 0; }
+@keyframes ripple-scale {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+@keyframes ripple-fade {
+  0%   { opacity: 0.42; }
+  45%  { opacity: 0.36; }
+  100% { opacity: 0; }
 }
 
-/* Tombol gelap (teks terang) perlu gelombang lebih terang; tombol terang
-   (teks gelap) perlu gelombang lebih gelap. currentColor menangani ini
-   otomatis — cukup sesuaikan opacity untuk tombol dengan latar pekat. */
+/* Tombol dengan latar pekat perlu gelombang lebih kuat — kontras antara
+   gelombang dan latar tombol lebih kecil di sana. */
 .btn-primary .ripple,
 .cookie-btn--decision .ripple {
-  opacity: 0.28;
+  opacity: 0.5;
+  animation:
+    ripple-scale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    ripple-fade-strong 0.6s linear forwards;
+}
+@keyframes ripple-fade-strong {
+  0%   { opacity: 0.5; }
+  45%  { opacity: 0.42; }
+  100% { opacity: 0; }
 }
 
 /* ── Kaca (glass) ───────────────────────────────────────────────────────────
@@ -172,7 +197,8 @@
   .chip,
   .tab,
   .orb-item,
-  .nav-toggle {
+  .nav-toggle,
+  .site-nav a {
     transition: none;
   }
   .btn:active,
@@ -182,7 +208,8 @@
   .chip:active,
   .tab:active,
   .orb-item:active,
-  .nav-toggle:active {
+  .nav-toggle:active,
+  .site-nav a:active {
     transform: none;
   }
   .ripple { display: none; }

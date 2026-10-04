@@ -36,6 +36,9 @@ const SELECTOR = [
   '.orb-item',
   '.cookie-fab',
   '.nav-toggle',
+  // Tautan di menu navigasi (panel dropdown mobile) — ini yang paling
+  // sering disentuh di HP, jadi wajib punya umpan balik.
+  '.site-nav a',
 ].join(', ');
 
 /** Buat satu gelombang di dalam tombol. */
@@ -55,12 +58,12 @@ function spawnRipple(host, clientX, clientY) {
   ripple.style.top = `${clientY - rect.top - radius}px`;
 
   host.appendChild(ripple);
-  // Dilepas setelah animasi selesai — kalau tidak, elemen menumpuk
-  // setiap kali tombol ditekan.
+  // Dilepas setelah animasi selesai (0.6s) — kalau tidak, elemen
+  // menumpuk setiap kali tombol ditekan.
   ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
   // Jaring pengaman: kalau animationend tidak pernah datang (tab
   // di-latent), elemen tetap dibersihkan.
-  setTimeout(() => ripple.remove(), 900);
+  setTimeout(() => ripple.remove(), 1000);
 }
 
 /** Pasang efek gelombang ke seluruh tombol di halaman. */
