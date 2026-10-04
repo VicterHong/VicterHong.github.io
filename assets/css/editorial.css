@@ -1,0 +1,182 @@
+/* ── EDITORIAL — sentuhan exclusive portfolio, gaya khas sendiri ─────────────
+   Referensi: Awwwards SOTD / Codrops 2025 (Swiss print, editorial minimalism,
+   current-section highlighter, brutalist typography) — diterapkan dengan
+   modifikasi supaya tidak meniru persis.
+
+   Tiga elemen:
+     1. Eyebrow section bernomor (01 — garis aksen)
+     2. Rail navigasi kiri dengan label (bukan titik)
+     3. Marquee dua arah sebagai pemisah
+
+   Semua hormati prefers-reduced-motion.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* ── 1. EYEBROW SECTION BERNOMOR ─────────────────────────────────────────────
+   Nomor + garis aksen di atas judul section. Memberi jangkar visual dan
+   membuat struktur halaman terasa direncanakan (pola editorial Swiss). */
+.section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 0.9rem;
+}
+
+.section-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.section-rule {
+  display: block;
+  width: 2.2rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+/* Judul section gaya editorial: lebih rapat, sedikit lebih besar. */
+.section-title-editorial {
+  letter-spacing: -0.025em;
+}
+
+/* ── 2. RAIL NAVIGASI SECTION ────────────────────────────────────────────────
+   Rail vertikal di kiri layar. Label muncul saat aktif — memberi tahu "di
+   mana saya" tanpa mengganggu. Disembunyikan di layar < 1100px (tidak ada
+   ruang; navigasi header sudah cukup). */
+.section-rail {
+  position: fixed;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.section-rail-link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  transition: color 0.25s var(--ease);
+}
+
+.section-rail-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+  transition: opacity 0.25s var(--ease), color 0.25s var(--ease);
+}
+
+/* Label tersembunyi secara default; muncul saat link aktif. */
+.section-rail-label {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 0.35s var(--ease), opacity 0.25s var(--ease);
+}
+
+.section-rail-link:hover,
+.section-rail-link.is-active {
+  color: var(--text);
+}
+
+.section-rail-link.is-active .section-rail-num {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.section-rail-link:hover .section-rail-label,
+.section-rail-link.is-active .section-rail-label {
+  max-width: 12rem;
+  opacity: 1;
+}
+
+@media (max-width: 1100px) {
+  .section-rail { display: none; }
+}
+
+/* ── 3. MARQUEE DUA ARAH ─────────────────────────────────────────────────────
+   Pemisah antar blok besar. Dua baris dengan arah berlawanan — ritme yang
+   jarang dipakai. Tipografi tipis + warna redup supaya tetap tenang. */
+.marquee-band {
+  position: relative;
+  margin: 3.5rem 0;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  overflow: hidden;
+  /* Gradien tepi: teks menghilang di pinggir, bukan terpotong kasar. */
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+.marquee-row {
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.marquee-row + .marquee-row { margin-top: 0.6rem; }
+
+.marquee-track {
+  display: flex;
+  gap: 2.5rem;
+  padding-right: 2.5rem;
+  will-change: transform;
+}
+
+.marquee-left .marquee-track {
+  animation: marquee-left 42s linear infinite;
+}
+
+.marquee-right .marquee-track {
+  animation: marquee-right 48s linear infinite;
+}
+
+.marquee-item {
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* Pemisah antar item: titik aksen kecil. */
+.marquee-item::after {
+  content: '·';
+  margin-left: 2.5rem;
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+@keyframes marquee-left {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-25%, 0, 0); }
+}
+
+@keyframes marquee-right {
+  from { transform: translate3d(-25%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+
+/* ── AKSESIBILITAS ───────────────────────────────────────────────────────────
+   Semua gerakan mati saat pengguna meminta gerakan minimal. Marquee tetap
+   terlihat (statis) supaya tidak ada ruang kosong. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-left .marquee-track,
+  .marquee-right .marquee-track {
+    animation: none;
+  }
+  .section-rail-label {
+    max-width: 12rem;
+    opacity: 1;
+  }
+}

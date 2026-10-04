@@ -13,6 +13,7 @@
 import { profile, about, services, projects, sideProjects, principles, stats } from './data/projects.js';
 import { initAstra } from './astra.js';
 import { initDepth } from './depth.js';
+import { initEditorial } from './editorial.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -332,6 +333,10 @@ initAstra();
 // Efek 3D tingkat Framer/Awwwards — scroll-stand, tilt berlapis, glare,
 // spotlight. Dipanggil setelah render supaya kartu proyek sudah ada.
 initDepth();
+
+// Sentuhan editorial: nomor section, rail navigasi, marquee. Dipanggil
+// setelah semua section ter-render supaya nomor & rail menangkap semuanya.
+initEditorial();
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();
