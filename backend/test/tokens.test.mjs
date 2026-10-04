@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { openDb, closeDb } from '../src/db.mjs';
+import { openDb, closeDb, getDb } from '../src/db.mjs';
 import { hashToken, hashesEqual, issueToken, findTokenByPlaintext, revokeToken, tokenProblem, listTokens, suspendToken, resumeToken } from '../src/tokens.mjs';
 import { createSession, validateSession, destroySession, countSessions } from '../src/sessions.mjs';
 import { recordEvent, distinctIpsForToken, requestsInWindow, consecutiveFailures, recordLead, listLeads, recentEvents } from '../src/audit.mjs';
@@ -254,18 +254,23 @@ test('distinctIpsForToken hanya menghitung IP dalam jendela waktu', () => {
     // Jendela lebar: semua tiga IP terhitung.
     assert.equal(distinctIpsForToken(issued.id, 3_600_000).length, 3);
 
-    // Jendela sangat pendek: harus kosong.
-    //
-    // CATATAN: jendela 1 ms TIDAK bisa dipakai — di mesin lambat (CI runner),
-    // tiga recordEvent() bisa memakan >1 ms sehingga sebagian masih masuk
-    // jendela dan test jadi flaky. Yang diuji adalah PERILAKU jendela waktu,
-    // bukan ketepatan milidetik — jadi pakai jendela 0 ms (batas bawah pasti:
-    // `since = now() - 0 = now`, dan event tercatat SEBELUM now() dipanggil).
-    assert.equal(distinctIpsForToken(issued.id, 0).length, 0,
-      'jendela 0 ms harus mengembalikan kosong');
+    // Jendela negatif: `since` ada di MASA DEPAN → tidak ada event yang
+    // memenuhi `at >= since`, apa pun resolusi jamnya. Ini deterministik
+    // di mesin apa pun (jendela 0/1 ms tidak: event bisa tercatat pada
+    // milidetik yang sama dengan now(), sehingga `at >= since` tetap benar).
+    assert.equal(distinctIpsForToken(issued.id, -60_000).length, 0,
+      'jendela negatif (since di masa depan) harus kosong');
 
-    // Jendela negatif juga harus kosong (tidak ada yang "di masa depan").
-    assert.equal(distinctIpsForToken(issued.id, -1000).length, 0);
+    // Batas atas jendela tetap bekerja: IP yang lebih lama dari jendela
+    // tidak terhitung. Disimulasikan dengan memundurkan timestamp event.
+    const db = getDb();
+    db.prepare('UPDATE access_events SET at = ? WHERE token_id = ?')
+      .run(Date.now() - 7_200_000, issued.id);  // 2 jam lalu
+
+    assert.equal(distinctIpsForToken(issued.id, 3_600_000).length, 0,
+      'event 2 jam lalu di luar jendela 1 jam');
+    assert.equal(distinctIpsForToken(issued.id, 10_800_000).length, 3,
+      'event 2 jam lalu di dalam jendela 3 jam');
   });
 });
 
@@ -485,11 +490,16 @@ test('rate limit: key berbeda punya hitungan terpisah', async () => {
 test('rate limit: jendela waktu memungkinkan permintaan baru setelah lewat', async () => {
   const { checkRateLimit, resetRateLimit } = await import('../src/rate-limit.mjs');
   resetRateLimit();
-  const rule = { limit: 1, windowMs: 1 }; // jendela 1ms
+  // Jendela 50 ms dengan tunggu 120 ms — margin >2x lipat, jadi tidak
+  // bergantung pada ketepatan timer di mesin lambat (CI runner sering
+  // menunda setTimeout). Yang diuji adalah PERILAKU jendela, bukan presisi.
+  const rule = { limit: 1, windowMs: 50 };
 
-  assert.equal(checkRateLimit('key-jendela', rule).allowed, true);
-  await new Promise((r) => setTimeout(r, 10));
-  assert.equal(checkRateLimit('key-jendela', rule).allowed, true, 'jendela sudah lewat');
+  assert.equal(checkRateLimit('key-jendela', rule).allowed, true, 'permintaan pertama lolos');
+  assert.equal(checkRateLimit('key-jendela', rule).allowed, false, 'permintaan kedua ditolak (dalam jendela)');
+
+  await new Promise((r) => setTimeout(r, 120));
+  assert.equal(checkRateLimit('key-jendela', rule).allowed, true, 'jendela sudah lewat — boleh lagi');
   resetRateLimit();
 });
 
