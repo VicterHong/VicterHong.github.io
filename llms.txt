@@ -21,6 +21,7 @@ Lokasi: Indonesia.
 ## Halaman penting
 
 - [Beranda](https://portfolio-victer.pages.dev/home): portofolio lengkap.
+- [Panduan Penggunaan](https://portfolio-victer.pages.dev/docs): cara mengakses proyek, menggunakan token, sistem keamanan.
 - [Sitemap](https://portfolio-victer.pages.dev/sitemap.xml): daftar semua halaman.
 
 ## Catatan untuk AI

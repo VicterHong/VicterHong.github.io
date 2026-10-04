@@ -23,7 +23,9 @@ export const BUDGETS = {
   maxRequests: 40,               // jumlah berkas kritis
   maxJsBytes: 250 * 1024,        // JS adalah yang paling mahal
   maxCssBytes: 120 * 1024,
-  maxHtmlBytes: 60 * 1024,
+  // HTML: 90 KB — halaman panduan (/docs) berisi banyak teks, itu tujuannya.
+  // Yang dijaga ketat adalah total & JS (dokumentasi tidak menambah JS).
+  maxHtmlBytes: 90 * 1024,
   // Target Core Web Vitals (persentil 75, "Good" menurut Google)
   lcpMs: 2500,
   inpMs: 200,

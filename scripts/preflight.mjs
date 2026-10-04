@@ -19,7 +19,11 @@ const BUDGETS = {
   totalBytes: 900 * 1024,
   maxJsBytes: 250 * 1024,
   maxCssBytes: 120 * 1024,
-  maxHtmlBytes: 60 * 1024,
+  // HTML: naik dari 60 → 90 KB saat halaman panduan (/docs) ditambahkan.
+  // Halaman dokumentasi memang berisi banyak teks — itu tujuannya.
+  // Anggaran lama terlalu ketat untuk situs yang punya dokumentasi lengkap;
+  // yang penting total & JS tetap terkendali (dokumentasi tidak menambah JS).
+  maxHtmlBytes: 90 * 1024,
 };
 
 const EXCLUDE_EXT = new Set(['.mp4', '.webm', '.jpg', '.jpeg', '.png', '.gif', '.avif', '.webp', '.woff', '.woff2']);
@@ -34,7 +38,7 @@ function check(name, ok, detail) {
 
 // ── 1. Berkas wajib ──────────────────────────────────────────────────────────
 console.log('\n── Berkas wajib ──');
-for (const f of ['home.html', 'index.html', '404.html', 'robots.txt', 'sitemap.xml', 'llms.txt']) {
+for (const f of ['home.html', 'index.html', '404.html', 'docs.html', 'robots.txt', 'sitemap.xml', 'llms.txt']) {
   const exists = existsSync(resolve(ROOT, f));
   check(`file:${f}`, exists, exists ? 'ada' : 'HILANG');
 }

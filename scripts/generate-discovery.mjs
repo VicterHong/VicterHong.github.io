@@ -41,6 +41,7 @@ function buildSitemap() {
   const urls = [
     { loc: `${ORIGIN}/`, lastmod: today, changefreq: 'weekly', priority: '1.0' },
     { loc: `${ORIGIN}/home`, lastmod: today, changefreq: 'weekly', priority: '0.9' },
+    { loc: `${ORIGIN}/docs`, lastmod: today, changefreq: 'monthly', priority: '0.7' },
   ];
 
   const xml = [
@@ -124,6 +125,7 @@ function buildLlmsTxt({ profile, projects }) {
   lines.push('## Halaman penting');
   lines.push('');
   lines.push(`- [Beranda](${ORIGIN}/home): portofolio lengkap.`);
+  lines.push(`- [Panduan Penggunaan](${ORIGIN}/docs): cara mengakses proyek, menggunakan token, sistem keamanan.`);
   lines.push(`- [Sitemap](${ORIGIN}/sitemap.xml): daftar semua halaman.`);
   lines.push('');
 

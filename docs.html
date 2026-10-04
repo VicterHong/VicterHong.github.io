@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan Penggunaan — Victer</title>
+<meta name="description" content="Panduan lengkap penggunaan layanan: cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.">
+<meta name="author" content="Victer">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://portfolio-victer.pages.dev/docs">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<link rel="manifest" href="/manifest.json">
+
+<meta property="og:title" content="Panduan Penggunaan — Victer">
+<meta property="og:description" content="Cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://portfolio-victer.pages.dev/docs">
+<meta property="og:locale" content="id_ID">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Panduan Penggunaan Layanan Token Portofolio",
+  "description": "Panduan lengkap: cara mengakses proyek terkunci, menggunakan token akses, dan memahami sistem keamanan.",
+  "inLanguage": "id-ID",
+  "author": { "@type": "Person", "name": "Victer" },
+  "publisher": { "@type": "Person", "name": "Victer" }
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/docs.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="/home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">Victer</span>
+    </a>
+    <nav class="site-nav" aria-label="Navigasi utama">
+      <a href="/home#s6ahns">Tentang</a>
+      <a href="/home#utqvwf">Proyek</a>
+      <a href="/docs" aria-current="page">Panduan</a>
+      <a href="/home#89fk39">Kontak</a>
+    </nav>
+    <a class="nav-cta" href="/home#89fk39">Hubungi</a>
+  </div>
+</header>
+
+<main class="docs-page">
+
+  <div class="docs-head">
+    <p class="docs-eyebrow">Dokumentasi</p>
+    <h1>Panduan Penggunaan</h1>
+    <p>
+      Cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.
+      Ditulis untuk pengguna dan tim teknis — bukan pemasaran.
+    </p>
+    <div class="docs-search-wrap">
+      <svg class="docs-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="m20 20-3.5-3.5"></path>
+      </svg>
+      <input
+        type="search"
+        class="docs-search"
+        id="docSearch"
+        placeholder="Cari topik — mis. token, keamanan, akses…"
+        aria-label="Cari dalam panduan"
+        autocomplete="off">
+      <span class="docs-search-hint">Esc</span>
+    </div>
+  </div>
+
+  <div class="docs-layout">
+
+    <nav class="toc" id="toc" aria-label="Daftar isi"></nav>
+
+    <div class="doc-content" id="docContent">
+
+      <!-- ── 1. MULAI ─────────────────────────────────────────────────────── -->
+      <section class="doc-section" id="mulai">
+        <h2 id="mulai"><span class="sec-num">01</span> Memulai</h2>
+
+        <p>
+          Beberapa proyek di portofolio ini punya bagian yang <strong>terkunci</strong> —
+          berisi arsitektur, keputusan desain, dan metrik internal yang tidak
+          dipublikasikan. Untuk membukanya, Anda butuh <strong>token akses</strong>.
+        </p>
+
+        <h3 id="apa-itu-token">Apa itu token akses?</h3>
+        <p>
+          Token adalah kode unik berformat <code>VP-XXXX-XXXX-XXXX-XXXX</code> yang
+          berfungsi seperti kunci. Setiap token terikat pada proyek tertentu,
+          punya masa berlaku, dan bisa dicabut kapan saja.
+        </p>
+
+        <div class="note">
+          <strong>Token bersifat pribadi.</strong> Jangan bagikan ke pihak lain —
+          sistem mendeteksi penggunaan dari banyak perangkat/IP dan akan mencabut
+          token secara otomatis.
+        </div>
+
+        <h3 id="cara-dapat">Cara mendapatkan token</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-body">
+              <strong>Ajukan permintaan akses</strong>
+              <p>Buka halaman proyek yang Anda minati, lalu isi form permintaan akses.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Tunggu peninjauan</strong>
+              <p>Saya meninjau setiap permintaan secara manual — biasanya dalam 1–2 hari kerja.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Terima token</strong>
+              <p>Token dikirim lewat email dengan instruksi penggunaan dan masa berlaku.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── 2. MENGGUNAKAN TOKEN ─────────────────────────────────────────── -->
+      <section class="doc-section" id="menggunakan-token">
+        <h2 id="menggunakan-token"><span class="sec-num">02</span> Menggunakan Token</h2>
+
+        <h3 id="langkah-akses">Langkah mengakses proyek</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-body">
+              <strong>Buka halaman proyek</strong>
+              <p>Klik tautan proyek dari halaman utama. Bagian publik langsung terlihat.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Lakukan verifikasi keamanan</strong>
+              <p>
+                Halaman akan menampilkan "Melakukan verifikasi keamanan…" selama
+                beberapa detik. Ini memastikan Anda bukan bot — tidak perlu tindakan apa pun.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Masukkan token</strong>
+              <p>Tempelkan token yang Anda terima, lalu tekan <strong>Buka</strong>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Akses terbuka</strong>
+              <p>
+                Konten terkunci terbuka. Sesi berlaku 24 jam — Anda tidak perlu
+                memasukkan token lagi selama sesi aktif.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <h3 id="sesi">Berapa lama akses berlaku?</h3>
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr><th>Aspek</th><th>Keterangan</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Durasi sesi</td><td>24 jam sejak token dimasukkan</td></tr>
+              <tr><td>Masa berlaku token</td><td>Sesuai kesepakatan (biasanya 30–90 hari)</td></tr>
+              <tr><td>Jumlah perangkat</td><td>Maksimal 3 perangkat bersamaan</td></tr>
+              <tr><td>Jumlah IP</td><td>Maksimal 3 alamat IP per 24 jam</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note warn">
+          <strong>Kalau token berhenti bekerja</strong>, kemungkinan: (a) masa
+          berlaku habis, (b) token dipakai dari terlalu banyak perangkat,
+          (c) token dicabut. Hubungi saya untuk token baru.
+        </div>
+      </section>
+
+      <!-- ── 3. KEAMANAN ──────────────────────────────────────────────────── -->
+      <section class="doc-section" id="keamanan">
+        <h2 id="keamanan"><span class="sec-num">03</span> Sistem Keamanan</h2>
+
+        <p>
+          Konten terkunci tidak pernah ada di berkas statis. Ia hanya dikirim
+          setelah token diverifikasi di server — jadi tidak bisa ditemukan lewat
+          "view source" atau pencarian Google.
+        </p>
+
+        <h3 id="lapisan">Lapisan perlindungan</h3>
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr><th>Lapisan</th><th>Fungsi</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Verifikasi manusia</td>
+                <td>Cloudflare Turnstile menyaring bot sebelum token diperiksa</td>
+              </tr>
+              <tr>
+                <td>Token ter-hash</td>
+                <td>Nilai token disimpan sebagai hash — bocornya database tidak membocorkan token</td>
+              </tr>
+              <tr>
+                <td>Batas perangkat</td>
+                <td>Maksimal 3 perangkat; lebih dari itu token dicabut otomatis</td>
+              </tr>
+              <tr>
+                <td>Deteksi sharing</td>
+                <td>Pemakaian dari banyak IP dalam waktu singkat memicu pencabutan</td>
+              </tr>
+              <tr>
+                <td>Watermark dinamis</td>
+                <td>Konten menampilkan nama penerima & tier — jejak bila disebarkan</td>
+              </tr>
+              <tr>
+                <td>Jejak audit</td>
+                <td>Setiap akses dicatat: waktu, IP, perangkat</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="auto-revoke">Kapan token dicabut otomatis?</h3>
+        <p>Sistem mencabut token tanpa campur tangan manual kalau terdeteksi:</p>
+        <ul>
+          <li>Dipakai dari <strong>lebih dari 3 alamat IP</strong> dalam 24 jam</li>
+          <li><strong>Lebih dari 30 permintaan per menit</strong> (indikasi scraping)</li>
+          <li><strong>12 percobaan gagal beruntun</strong> (indikasi brute force)</li>
+        </ul>
+
+        <div class="note">
+          <strong>Ini melindungi Anda juga.</strong> Kalau token bocor tanpa
+          sepengetahuan Anda, pencabutan otomatis membatasi kerugian — dan Anda
+          akan diberi tahu.
+        </div>
+      </section>
+
+      <!-- ── 4. MASALAH UMUM ──────────────────────────────────────────────── -->
+      <section class="doc-section" id="masalah">
+        <h2 id="masalah"><span class="sec-num">04</span> Masalah Umum</h2>
+
+        <h3 id="verifikasi-lama">Verifikasi keamanan lama / tidak selesai</h3>
+        <p>
+          Biasanya jaringan. Coba: (1) muat ulang halaman, (2) matikan VPN/proxy,
+          (3) coba jaringan lain, (4) nonaktifkan pemblokir iklan untuk halaman ini.
+        </p>
+
+        <h3 id="token-ditolak">Token ditolak padahal baru diterima</h3>
+        <p>Kemungkinan penyebab, dari yang paling sering:</p>
+        <ul>
+          <li>Ada spasi di awal/akhir saat menempel — coba tempel ulang dengan hati-hati</li>
+          <li>Token sudah dicabut (cek email notifikasi dari saya)</li>
+          <li>Sudah dipakai di 3 perangkat lain</li>
+          <li>Masa berlaku habis</li>
+        </ul>
+
+        <h3 id="konten-tidak-lengkap">Konten tidak tampil lengkap</h3>
+        <p>
+          Muat ulang halaman (Ctrl+Shift+R atau Cmd+Shift+R untuk refresh penuh).
+          Kalau masih bermasalah, sebutkan proyek mana dan apa yang tidak muncul.
+        </p>
+
+        <h3 id="ganti-perangkat">Ingin pindah perangkat</h3>
+        <p>
+          Keluar dulu dari perangkat lama (tombol "Keluar" di halaman proyek),
+          baru masuk dari perangkat baru. Ini menjaga jumlah perangkat tetap
+          dalam batas.
+        </p>
+      </section>
+
+      <!-- ── 5. UNTUK TIM TEKNIS ──────────────────────────────────────────── -->
+      <section class="doc-section" id="tim-teknis">
+        <h2 id="tim-teknis"><span class="sec-num">05</span> Untuk Tim Teknis</h2>
+
+        <p>
+          Kalau Anda mengintegrasikan layanan ini ke sistem lain, ada API
+          tersedia. Semua endpoint memerlukan HTTPS.
+        </p>
+
+        <h3 id="validasi-token">Validasi token lewat API</h3>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Salin</button>
+<code>curl -X POST https://&lt;alamat-backend&gt;/api/token/validate \
+  -H "Content-Type: application/json" \
+  -d '{"project": "mina", "token": "VP-XXXX-XXXX-XXXX-XXXX"}'</code>
+        </div>
+
+        <p>Respons sukses:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Salin</button>
+<code>{
+  "ok": true,
+  "project": "mina",
+  "tier": "standard",
+  "expires_at": 1790000000000
+}</code>
+        </div>
+
+        <h3 id="cek-kesehatan">Cek kesehatan layanan</h3>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Salin</button>
+<code># Liveness — proses hidup?
+curl https://&lt;alamat-backend&gt;/api/health
+
+# Readiness — siap melayani? (memeriksa database & disk)
+curl https://&lt;alamat-backend&gt;/api/ready</code>
+        </div>
+
+        <div class="note">
+          <strong>Pakai <code>/api/ready</code> untuk monitoring.</strong>
+          Proses bisa "hidup" tapi tidak bisa melayani (mis. database terkunci) —
+          readiness menangkap itu, liveness tidak.
+        </div>
+
+        <h3 id="batas-laju">Batas laju</h3>
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr><th>Endpoint</th><th>Batas</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>/api/token/validate</code></td><td>20 / menit per IP</td></tr>
+              <tr><td><code>/api/token/session</code></td><td>10 / menit per IP</td></tr>
+              <tr><td><code>/api/contact/sales</code></td><td>5 / menit per IP</td></tr>
+              <tr><td><code>/api/verify-turnstile</code></td><td>30 / menit per IP</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Melebihi batas menghasilkan <code>429</code> dengan
+          <code>{"ok": false, "error": "batas_laju"}</code>.
+        </p>
+
+        <h3 id="dokumentasi-lengkap">Dokumentasi API lengkap</h3>
+        <p>
+          Referensi lengkap semua endpoint tersedia di repositori:
+          <a href="https://github.com/VicterHong/VicterHong.github.io/blob/main/docs/API-REFERENCE.md" target="_blank" rel="noopener">docs/API-REFERENCE.md</a>
+        </p>
+      </section>
+
+      <!-- ── 6. KONTAK ────────────────────────────────────────────────────── -->
+      <section class="doc-section" id="kontak">
+        <h2 id="kontak"><span class="sec-num">06</span> Butuh Bantuan?</h2>
+
+        <p>
+          Kalau panduan ini tidak menjawab pertanyaan Anda, hubungi saya langsung.
+          Sertakan: proyek mana, apa yang Anda coba lakukan, dan pesan error kalau ada.
+        </p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-body">
+              <strong>Masalah teknis atau akses</strong>
+              <p>Gunakan form permintaan akses di halaman utama, atau email langsung.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Kerja sama proyek</strong>
+              <p>Sertakan konteks: kebutuhan, skala, dan tenggat waktu.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <button class="copy-btn" type="button">Salin</button>
+<code>Halaman kontak: https://portfolio-victer.pages.dev/home#89fk39
+GitHub:         https://github.com/VicterHong</code>
+        </div>
+      </section>
+
+      <div class="doc-empty hidden" id="docEmpty">
+        Tidak ada bagian yang cocok dengan pencarian Anda.
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>
+    © <span id="year">2026</span> Victer — Automation &amp; self-hosted tools.
+    <a href="/home" style="color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line);">Beranda</a> ·
+    <a href="/docs" style="color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line);">Panduan</a> ·
+    <a href="https://github.com/VicterHong" target="_blank" rel="noopener" style="color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line);">GitHub</a>
+  </p>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = String(new Date().getFullYear());
+</script>
+<script src="assets/js/docs.js" defer></script>
+</body>
+</html>

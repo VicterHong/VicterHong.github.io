@@ -68,7 +68,7 @@ jobs:
 
       - name: Periksa halaman wajib ada
         run: |
-          for f in home.html index.html 404.html; do
+          for f in home.html index.html 404.html docs.html; do
             if [ ! -f "$f" ]; then
               echo "::error::$f tidak ditemukan"
               exit 1
