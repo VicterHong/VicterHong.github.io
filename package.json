@@ -1,10 +1,16 @@
 {
   "name": "portfolio-victer",
-  "version": "2.5.0",
+  "version": "3.0.0",
   "description": "Victer Portfolio — Token-gated B2B project showcase on Cloudflare Edge",
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "bash deploy-cloudflare.sh",
+    "deploy": "node scripts/generate-discovery.mjs && wrangler pages deploy . --project-name=portfolio-victer",
+    "discovery": "node scripts/generate-discovery.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "debug": "node scripts/debug-production.mjs",
+    "debug:network": "node scripts/debug-network.mjs",
+    "shot": "node scripts/shot.mjs",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:production": "wrangler deploy --env production",
     "cf:dev": "cf dev",
@@ -22,7 +28,7 @@
     "wrangler": "^4.147.0",
     "typescript": "^5.6.0"
   },
-  "keywords": ["portfolio", "cloudflare", "workers", "b2b", "token-gated"],
+  "keywords": ["portfolio", "cloudflare", "workers", "b2b", "token-gated", "cms", "seo", "aeo"],
   "author": "Victer",
   "license": "MIT"
 }

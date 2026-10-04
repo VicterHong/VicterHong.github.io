@@ -22,6 +22,8 @@ import { initOrbMenu } from './orb-menu.js';
 import { initVariableWeight } from './variable-weight.js';
 import { initAllVideoPlayers } from './video-player.js';
 import { initMasonry } from './masonry.js';
+import { initVitals } from './vitals.js';
+import { initExperiments } from './experiment.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -377,6 +379,14 @@ initAllVideoPlayers();
 // Masonry portfolio layout — staggered grid (FASE 3). Dipanggil
 // setelah content rendered supaya items sudah ada.
 initMasonry();
+
+// Core Web Vitals — ukur performa nyata dari pengunjung (Framer Performance).
+// Ringan: hanya 5 metrik, dikirim sekali per halaman via sendBeacon.
+initVitals();
+
+// Eksperimen A/B — varian dari server (Framer Grow/Convert). Gagal-diam
+// kalau tidak ada eksperimen aktif, jadi tidak pernah mengganggu halaman.
+initExperiments();
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();

@@ -1,17 +1,23 @@
-# robots.txt — panduan untuk mesin pencari
-# Situs produksi: https://portfolio-victer.pages.dev
-# Cermin: https://victerhong.github.io (cadangan)
+# robots.txt — dihasilkan otomatis oleh scripts/generate-discovery.mjs
+# Jangan edit manual: perubahan akan hilang saat build berikutnya.
 
 User-agent: *
 Allow: /
-
-# Halaman proyek memakai URL berkode acak dan bersifat privat.
-# Jangan diindeks: pemilik tautan saja yang boleh tahu alamatnya.
 Disallow: /s/
+Disallow: /api/
 
-# Berkas internal
-Disallow: /backend-url.json
-Disallow: /backend/
-Disallow: /docs/
+# AI answer engines — diizinkan (AEO)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
 
 Sitemap: https://portfolio-victer.pages.dev/sitemap.xml
+# llms.txt: https://portfolio-victer.pages.dev/llms.txt

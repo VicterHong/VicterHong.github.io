@@ -156,6 +156,135 @@ CREATE TABLE IF NOT EXISTS sla_heartbeats (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sla_checked ON sla_heartbeats(checked_at);
+
+-- ── CMS (Framer-grade): koleksi, item, versi ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS cms_collections (
+  slug        TEXT PRIMARY KEY,
+  title       TEXT NOT NULL DEFAULT '',
+  fields      TEXT NOT NULL DEFAULT '[]',
+  created_by  TEXT NOT NULL DEFAULT 'admin',
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cms_items (
+  id           TEXT PRIMARY KEY,
+  collection   TEXT NOT NULL,
+  item_slug    TEXT NOT NULL,
+  data         TEXT NOT NULL DEFAULT '{}',
+  status       TEXT NOT NULL DEFAULT 'draft',
+  version      INTEGER NOT NULL DEFAULT 1,
+  created_at   INTEGER NOT NULL,
+  updated_at   INTEGER NOT NULL,
+  published_at INTEGER,
+  UNIQUE(collection, item_slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_items_collection ON cms_items(collection, status);
+CREATE INDEX IF NOT EXISTS idx_cms_items_updated ON cms_items(updated_at);
+
+CREATE TABLE IF NOT EXISTS cms_item_versions (
+  id         TEXT PRIMARY KEY,
+  item_id    TEXT NOT NULL,
+  version    INTEGER NOT NULL,
+  data       TEXT NOT NULL DEFAULT '{}',
+  status     TEXT NOT NULL DEFAULT 'draft',
+  author     TEXT NOT NULL DEFAULT 'admin',
+  message    TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_versions_item ON cms_item_versions(item_id, version);
+
+-- ── PERFORMANCE: Core Web Vitals dari pengunjung nyata ──────────────────────
+CREATE TABLE IF NOT EXISTS web_vitals (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  value       REAL NOT NULL,
+  rating      TEXT NOT NULL DEFAULT '',
+  path        TEXT NOT NULL DEFAULT '/',
+  country     TEXT NOT NULL DEFAULT '',
+  user_agent  TEXT NOT NULL DEFAULT '',
+  connection  TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_vitals_name ON web_vitals(name, created_at);
+CREATE INDEX IF NOT EXISTS idx_vitals_path ON web_vitals(path, created_at);
+
+-- ── COLLABORATE: cabang (branch) & riwayat perubahan ────────────────────────
+CREATE TABLE IF NOT EXISTS cms_branches (
+  name        TEXT PRIMARY KEY,
+  base        TEXT NOT NULL DEFAULT 'main',
+  author      TEXT NOT NULL DEFAULT 'admin',
+  message     TEXT NOT NULL DEFAULT '',
+  status      TEXT NOT NULL DEFAULT 'open',
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cms_branch_changes (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  branch      TEXT NOT NULL,
+  collection  TEXT NOT NULL DEFAULT '',
+  item_slug   TEXT NOT NULL DEFAULT '',
+  action      TEXT NOT NULL DEFAULT 'update',
+  payload     TEXT NOT NULL DEFAULT '{}',
+  author      TEXT NOT NULL DEFAULT 'admin',
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_branch_changes ON cms_branch_changes(branch, created_at);
+
+-- ── COLLABORATE: komentar (review di kanvas konten) ─────────────────────────
+CREATE TABLE IF NOT EXISTS cms_comments (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  target      TEXT NOT NULL,
+  anchor      TEXT NOT NULL DEFAULT '',
+  body        TEXT NOT NULL,
+  author      TEXT NOT NULL DEFAULT 'guest',
+  resolved    INTEGER NOT NULL DEFAULT 0,
+  parent_id   INTEGER,
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_target ON cms_comments(target, created_at);
+
+-- ── GROW: eksperimen A/B & konversi ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS experiments (
+  slug        TEXT PRIMARY KEY,
+  name        TEXT NOT NULL DEFAULT '',
+  status      TEXT NOT NULL DEFAULT 'draft',
+  variants    TEXT NOT NULL DEFAULT '[]',
+  goal        TEXT NOT NULL DEFAULT 'signup',
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS experiment_events (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug        TEXT NOT NULL,
+  variant     TEXT NOT NULL,
+  event       TEXT NOT NULL,
+  visitor     TEXT NOT NULL DEFAULT '',
+  country     TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_exp_events ON experiment_events(slug, variant, event, created_at);
+
+-- ── PUBLISH: catatan rilis ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS releases (
+  id           TEXT PRIMARY KEY,
+  version      TEXT NOT NULL DEFAULT '',
+  commit_hash  TEXT NOT NULL DEFAULT '',
+  deployed_by  TEXT NOT NULL DEFAULT 'admin',
+  ok           INTEGER NOT NULL DEFAULT 0,
+  checks       TEXT NOT NULL DEFAULT '[]',
+  created_at   INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_releases_created ON releases(created_at);
 `;
 
 /** Buka (atau buat) database. Aman dipanggil berkali-kali. */

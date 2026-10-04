@@ -38,6 +38,22 @@ import { verifyTurnstile, turnstileMessage } from './turnstile.mjs';
 import { slaSummary, slaReport } from './sla.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import {
+  createCollection, getCollection, listCollections,
+  saveItem, getItem, listItems, setItemStatus, deleteItem,
+  listVersions, rollback,
+} from './cms.mjs';
+import { buildSitemap, buildRobots, buildLlmsTxt, buildJsonLd } from './seo.mjs';
+import { auditAssets, recordVital, vitalsSummary } from './performance.mjs';
+import {
+  createBranch, getBranch, listBranches, recordChange, discardBranch, mergeBranch,
+  addComment, listComments, resolveComment,
+} from './collaborate.mjs';
+import {
+  createExperiment, getExperiment, listExperiments, setStatus as setExpStatus,
+  pickVariant, recordEvent as recordExpEvent, results as expResults,
+} from './grow.mjs';
+import { preflight, verify as verifyDeploy, recordRelease, listReleases } from './publish.mjs';
+import {
   applyCors, clientCountry, clientIp, extractToken, handlePreflight,
   readJson, sendJson, parseCookies, setCookie, clearCookie,
 } from './http-util.mjs';
@@ -58,6 +74,8 @@ const PUBLIC_LIMITS = {
   '/api/token/session': { limit: 10, windowMs: 60_000 },
   '/api/contact/sales': { limit: 5, windowMs: 60_000 },
   '/api/analytics/track': { limit: 60, windowMs: 60_000 },
+  '/api/vitals': { limit: 60, windowMs: 60_000 },
+  '/api/comments': { limit: 10, windowMs: 60_000 },
   // Gate verifikasi: cukup longgar untuk pengunjung sah (retry token
   // kedaluwarsa), cukup ketat untuk menahan pemboman token.
   '/api/verify-turnstile': { limit: 30, windowMs: 60_000 },
@@ -947,6 +965,500 @@ export const routes = [
         count: events.length,
         events,
       });
+    }),
+  },
+
+  // ══ CMS ══════════════════════════════════════════════════════════════════════
+  // Publik: hanya konten PUBLISHED. Admin: semua + manajemen.
+
+  {
+    method: 'GET',
+    pattern: '/api/cms/:collection/items',
+    handler: safe(async (req, res, params, url) => {
+      const collection = params.collection;
+      const isAdminReq = isAdmin(req);
+      const includeDraft = isAdminReq && url?.searchParams.get('draft') === '1';
+      const limit = Number(url?.searchParams.get('limit') ?? 100);
+      sendJson(res, 200, {
+        ok: true,
+        collection,
+        items: listItems(collection, { includeDraft, limit }),
+      });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/cms/:collection/items/:slug',
+    handler: safe(async (req, res, params, url) => {
+      const includeDraft = isAdmin(req) && url?.searchParams.get('draft') === '1';
+      const item = getItem(params.collection, params.slug, { includeDraft });
+      if (!item) return sendJson(res, 404, { ok: false, error: 'item_tidak_ada' });
+      sendJson(res, 200, { ok: true, item });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/cms/collections',
+    handler: safe(async (req, res) => {
+      sendJson(res, 200, { ok: true, collections: listCollections() });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/cms/collection',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      try {
+        const col = createCollection({
+          slug: String(body.slug ?? ''),
+          title: body.title,
+          fields: body.fields,
+        });
+        sendJson(res, 200, { ok: true, collection: col });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/cms/item',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      try {
+        const item = saveItem({
+          collection: String(body.collection ?? ''),
+          itemSlug: String(body.slug ?? ''),
+          data: body.data,
+          status: String(body.status ?? 'draft'),
+          author: 'admin',
+          message: String(body.message ?? ''),
+        });
+        sendJson(res, 200, { ok: true, item });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/cms/status',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      const item = setItemStatus(
+        String(body.collection ?? ''), String(body.slug ?? ''), String(body.status ?? '')
+      );
+      if (!item) return sendJson(res, 404, { ok: false, error: 'item_tidak_ada' });
+      sendJson(res, 200, { ok: true, item });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/cms/delete',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      const ok = deleteItem(String(body.collection ?? ''), String(body.slug ?? ''));
+      sendJson(res, 200, { ok: true, deleted: ok });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/cms/versions/:collection/:slug',
+    handler: safe(async (req, res, params) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      sendJson(res, 200, {
+        ok: true,
+        versions: listVersions(params.collection, params.slug),
+      });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/cms/rollback',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      const item = rollback(
+        String(body.collection ?? ''), String(body.slug ?? ''), Number(body.version ?? 0)
+      );
+      if (!item) return sendJson(res, 404, { ok: false, error: 'versi_tidak_ada' });
+      sendJson(res, 200, { ok: true, item });
+    }),
+  },
+
+  // ══ SEO / AEO ════════════════════════════════════════════════════════════════
+
+  {
+    method: 'GET',
+    pattern: '/api/seo/sitemap',
+    handler: safe(async (req, res) => {
+      const { xml, count } = buildSitemap();
+      res.writeHead(200, {
+        'content-type': 'application/xml; charset=utf-8',
+        'content-length': Buffer.byteLength(xml),
+        'cache-control': 'public, max-age=3600',
+      });
+      res.end(xml);
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/seo/robots',
+    handler: safe(async (req, res) => {
+      const body = buildRobots();
+      res.writeHead(200, {
+        'content-type': 'text/plain; charset=utf-8',
+        'content-length': Buffer.byteLength(body),
+        'cache-control': 'public, max-age=3600',
+      });
+      res.end(body);
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/seo/llms',
+    handler: safe(async (req, res) => {
+      // Data proyek dibaca dari berkas data frontend supaya satu sumber.
+      const { loadPortfolioData } = await import('./portfolio-data.mjs');
+      const data = await loadPortfolioData();
+      const body = buildLlmsTxt(data);
+      res.writeHead(200, {
+        'content-type': 'text/plain; charset=utf-8',
+        'content-length': Buffer.byteLength(body),
+        'cache-control': 'public, max-age=3600',
+      });
+      res.end(body);
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/seo/jsonld',
+    handler: safe(async (req, res) => {
+      const { loadPortfolioData } = await import('./portfolio-data.mjs');
+      sendJson(res, 200, { ok: true, data: buildJsonLd(await loadPortfolioData()) });
+    }),
+  },
+
+  // ══ PERFORMANCE ══════════════════════════════════════════════════════════════
+
+  {
+    method: 'POST',
+    pattern: '/api/vitals',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const ok = recordVital({
+        name: body.name,
+        value: body.value,
+        rating: body.rating,
+        path: body.path,
+        country: clientCountry(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        connection: body.connection,
+      });
+      sendJson(res, ok ? 200 : 400, { ok });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/performance',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const days = Number(url?.searchParams.get('days') ?? 7);
+      sendJson(res, 200, { ok: true, vitals: vitalsSummary({ days }) });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/performance/assets',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const root = url?.searchParams.get('root') ?? process.cwd();
+      try {
+        sendJson(res, 200, { ok: true, audit: auditAssets(root) });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+    }),
+  },
+
+  // ══ COLLABORATE ══════════════════════════════════════════════════════════════
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/branches',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      sendJson(res, 200, { ok: true, branches: listBranches() });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/branch/:name',
+    handler: safe(async (req, res, params) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const branch = getBranch(params.name);
+      if (!branch) return sendJson(res, 404, { ok: false, error: 'branch_tidak_ada' });
+      sendJson(res, 200, { ok: true, branch });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/branch/create',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      try {
+        const branch = createBranch({
+          name: String(body.name ?? ''),
+          base: String(body.base ?? 'main'),
+          message: String(body.message ?? ''),
+        });
+        sendJson(res, 200, { ok: true, branch });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/branch/change',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      try {
+        recordChange({
+          branch: String(body.branch ?? ''),
+          collection: String(body.collection ?? ''),
+          itemSlug: String(body.slug ?? ''),
+          action: String(body.action ?? 'update'),
+          payload: body.payload ?? {},
+        });
+        sendJson(res, 200, { ok: true });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/branch/merge',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      const name = String(body.branch ?? '');
+      // Terapkan tiap perubahan ke CMS produksi.
+      const result = mergeBranch(name, (change) => {
+        if (!change.collection || !change.item_slug) return false;
+        saveItem({
+          collection: change.collection,
+          itemSlug: change.item_slug,
+          data: change.payload?.data ?? {},
+          status: change.payload?.status ?? 'draft',
+          author: 'merge',
+          message: `merge dari branch ${name}`,
+        });
+        return true;
+      });
+      sendJson(res, result.ok ? 200 : 400, result);
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/branch/discard',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      discardBranch(String(body.branch ?? ''));
+      sendJson(res, 200, { ok: true });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/comments',
+    handler: safe(async (req, res, params, url) => {
+      const target = url?.searchParams.get('target');
+      const resolvedParam = url?.searchParams.get('resolved');
+      const resolved = resolvedParam === null ? null : resolvedParam === '1';
+      sendJson(res, 200, { ok: true, comments: listComments({ target, resolved }) });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/comments',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      try {
+        const result = addComment({
+          target: String(body.target ?? ''),
+          anchor: String(body.anchor ?? ''),
+          body: String(body.body ?? ''),
+          author: String(body.author ?? 'guest').slice(0, 80),
+          parentId: body.parent_id ? Number(body.parent_id) : null,
+        });
+        sendJson(res, 200, { ok: true, ...result });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/comment/resolve',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      resolveComment(Number(body.id ?? 0), body.resolved !== false);
+      sendJson(res, 200, { ok: true });
+    }),
+  },
+
+  // ══ GROW (eksperimen A/B) ════════════════════════════════════════════════════
+
+  {
+    method: 'GET',
+    pattern: '/api/experiment/:slug',
+    handler: safe(async (req, res, params, url) => {
+      // Publik: hanya memberi varian untuk pengunjung — bukan data hasil.
+      const visitor = url?.searchParams.get('v') ?? clientIp(req);
+      const variant = pickVariant(params.slug, visitor);
+      if (!variant) return sendJson(res, 404, { ok: false, error: 'eksperimen_tidak_aktif' });
+      recordExpEvent({
+        slug: params.slug, variant, event: 'exposure',
+        visitor, country: clientCountry(req),
+      });
+      sendJson(res, 200, { ok: true, variant });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/experiment/convert',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      recordExpEvent({
+        slug: String(body.slug ?? ''),
+        variant: String(body.variant ?? ''),
+        event: String(body.event ?? 'conversion'),
+        visitor: String(body.visitor ?? clientIp(req)),
+        country: clientCountry(req),
+      });
+      sendJson(res, 200, { ok: true });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/experiments',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      sendJson(res, 200, { ok: true, experiments: listExperiments() });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/experiment/:slug/results',
+    handler: safe(async (req, res, params) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const r = expResults(params.slug);
+      if (!r) return sendJson(res, 404, { ok: false, error: 'eksperimen_tidak_ada' });
+      sendJson(res, 200, { ok: true, results: r });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/experiment',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      try {
+        const exp = createExperiment({
+          slug: String(body.slug ?? ''),
+          name: body.name,
+          variants: body.variants,
+          goal: body.goal,
+        });
+        if (body.status) setExpStatus(String(body.slug), String(body.status));
+        sendJson(res, 200, { ok: true, experiment: getExperiment(String(body.slug)) });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    }),
+  },
+
+  // ══ PUBLISH ══════════════════════════════════════════════════════════════════
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/preflight',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const root = url?.searchParams.get('root') ?? process.cwd();
+      sendJson(res, 200, { ok: true, preflight: preflight(root) });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/releases',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      sendJson(res, 200, { ok: true, releases: listReleases(Number(url?.searchParams.get('limit') ?? 50)) });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/publish/verify',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      const url = String(body.url ?? '');
+      if (!/^https?:\/\//.test(url)) return sendJson(res, 400, { ok: false, error: 'url_tidak_valid' });
+      const result = await verifyDeploy(url, { expectMarker: body.marker ?? null });
+      sendJson(res, 200, { ok: true, verify: result });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/release',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      const id = recordRelease({
+        version: String(body.version ?? ''),
+        commit: String(body.commit ?? ''),
+        checks: body.checks ?? [],
+        ok: Boolean(body.ok),
+      });
+      sendJson(res, 200, { ok: true, id });
     }),
   },
 ];

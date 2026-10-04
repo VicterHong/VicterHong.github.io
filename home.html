@@ -31,6 +31,44 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- JSON-LD: structured data untuk search engine & AI (AEO).
+     Data di sini sinkron dengan llms.txt — satu sumber kebenaran. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Person",
+      "@id": "https://portfolio-victer.pages.dev/#person",
+      "name": "Victer",
+      "url": "https://portfolio-victer.pages.dev",
+      "jobTitle": "Automation & self-hosted tools developer",
+      "address": { "@type": "PostalAddress", "addressCountry": "ID" },
+      "sameAs": ["https://github.com/VicterHong"]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://portfolio-victer.pages.dev/#website",
+      "url": "https://portfolio-victer.pages.dev",
+      "name": "Victer — Automation & Self-hosted Tools",
+      "description": "Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.",
+      "publisher": { "@id": "https://portfolio-victer.pages.dev/#person" },
+      "inLanguage": "id-ID"
+    },
+    {
+      "@type": "ItemList",
+      "name": "Proyek",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "MINA Remote Control", "url": "https://github.com/VicterHong/mina-remote-control" },
+        { "@type": "ListItem", "position": 2, "name": "Spareparts Inventory System", "url": "https://github.com/VicterHong/spareparts-inventory-system" },
+        { "@type": "ListItem", "position": 3, "name": "WhatsApp Family Assistant", "url": "https://github.com/VicterHong/whatsapp-family-bot" }
+      ]
+    }
+  ]
+}
+</script>
+
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/astra.css">
 <link rel="stylesheet" href="assets/css/cinematic.css">
