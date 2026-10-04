@@ -201,6 +201,11 @@ loadHeroVideo();
 initScrollChrome();
 initNavToggle();
 
+// Banner persetujuan cookie — sama seperti halaman utama.
+import('./cookies.js').then(({ initCookieConsent }) => {
+  initCookieConsent();
+}).catch(() => { /* halaman tetap berjalan tanpa banner */ });
+
 // Logo interaktif — sama seperti halaman utama supaya kedua halaman konsisten.
 import('./logo.js').then(({ mountInteractiveLogo }) => {
   mountInteractiveLogo();

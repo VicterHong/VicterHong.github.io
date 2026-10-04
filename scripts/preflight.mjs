@@ -10,21 +10,14 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { auditAssets, BUDGETS } from '../backend/src/performance.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
-// ── Anggaran performa (selaras dengan backend/src/performance.mjs) ───────────
-const BUDGETS = {
-  totalBytes: 900 * 1024,
-  maxJsBytes: 250 * 1024,
-  maxCssBytes: 120 * 1024,
-  // HTML: naik dari 60 → 90 KB saat halaman panduan (/docs) ditambahkan.
-  // Halaman dokumentasi memang berisi banyak teks — itu tujuannya.
-  // Anggaran lama terlalu ketat untuk situs yang punya dokumentasi lengkap;
-  // yang penting total & JS tetap terkendali (dokumentasi tidak menambah JS).
-  maxHtmlBytes: 90 * 1024,
-};
+// Anggaran performa diimpor dari backend/src/performance.mjs — SATU sumber.
+// Sebelumnya didefinisikan ulang di sini, dan dua daftar anggaran yang
+// berbeda pasti akan menyimpang seiring waktu.
 
 const EXCLUDE_EXT = new Set(['.mp4', '.webm', '.jpg', '.jpeg', '.png', '.gif', '.avif', '.webp', '.woff', '.woff2']);
 const SKIP_DIRS = new Set(['node_modules', '.git', '.wrangler', 'backend', 'scripts', 'docs', 'design']);
@@ -68,12 +61,20 @@ function walk(dir, depth = 0) {
 walk(ROOT);
 
 const kb = (n) => `${Math.round(n / 1024)} KB`;
+
+// Anggaran diukur per HALAMAN, bukan total repo.
+// Yang membebani pengunjung adalah berkas yang benar-benar dimuat satu
+// halaman. Menjumlahkan seluruh repo membuat laporan menyesatkan —
+// repo punya 22 berkas CSS, tapi tidak ada halaman yang memuat semuanya.
+const { perPage, heaviestPage } = auditAssets(ROOT);
+const heaviest = heaviestPage ?? { page: '—', css: 0, js: 0, html: 0 };
+
 check('total-bytes', bytes.total <= BUDGETS.totalBytes,
   `${kb(bytes.total)} (anggaran ${kb(BUDGETS.totalBytes)})`);
-check('js-bytes', bytes.js <= BUDGETS.maxJsBytes,
-  `${kb(bytes.js)} (anggaran ${kb(BUDGETS.maxJsBytes)})`);
-check('css-bytes', bytes.css <= BUDGETS.maxCssBytes,
-  `${kb(bytes.css)} (anggaran ${kb(BUDGETS.maxCssBytes)})`);
+check('js-bytes', heaviest.js <= BUDGETS.maxJsBytes,
+  `${kb(heaviest.js)} di ${heaviest.page} (anggaran ${kb(BUDGETS.maxJsBytes)})`);
+check('css-bytes', heaviest.css <= BUDGETS.maxCssBytes,
+  `${kb(heaviest.css)} di ${heaviest.page} (anggaran ${kb(BUDGETS.maxCssBytes)})`);
 check('html-bytes', bytes.html <= BUDGETS.maxHtmlBytes,
   `${kb(bytes.html)} (anggaran ${kb(BUDGETS.maxHtmlBytes)})`);
 

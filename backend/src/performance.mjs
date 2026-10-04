@@ -10,7 +10,7 @@
  *   2. Field metrics  — Core Web Vitals dari pengunjung nyata (via /api/vitals).
  */
 
-import { statSync, readdirSync } from 'node:fs';
+import { statSync, readdirSync, readFileSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { getDb } from './db.mjs';
 
@@ -48,6 +48,17 @@ const EXCLUDE_DIRS = new Set([
 /**
  * Audit ukuran aset statis terhadap anggaran.
  * Video/gambar dikecualikan — mereka di-lazy-load dan tidak memblokir render.
+ *
+ * PENTING — apa yang diukur:
+ *   Anggaran per-halaman, bukan jumlah seluruh repo. Yang membebani
+ *   pengunjung adalah berkas yang BENAR-BENAR dimuat satu halaman, bukan
+ *   total semua berkas yang ada di repo. Menjumlahkan semuanya membuat
+ *   laporan menyesatkan: repo punya 22 berkas CSS, tapi tidak ada satu
+ *   halaman pun yang memuat lebih dari 20 di antaranya.
+ *
+ *   Karena itu CSS/JS dihitung per halaman HTML: untuk setiap halaman,
+ *   jumlahkan hanya berkas yang dirujuknya. Anggaran dibandingkan
+ *   terhadap halaman TERBERAT — itu yang menentukan pengalaman terburuk.
  */
 export function auditAssets(rootDir) {
   const files = [];
@@ -77,15 +88,70 @@ export function auditAssets(rootDir) {
 
   walk(rootDir);
 
+  // ── Ukuran nyata per halaman ────────────────────────────────────────────────
+  // Halaman yang diaudit: yang benar-benar dikunjungi orang.
+  const PAGES = ['home.html', 'docs.html', 'index.html', '404.html'];
+  const sizeByPath = new Map(files.map((f) => [f.path, f.bytes]));
+  const perPage = [];
+
+  for (const page of PAGES) {
+    let html = '';
+    try { html = readFileSync(join(rootDir, page), 'utf8'); } catch { continue; }
+
+    // Kumpulkan rujukan berkas lokal: <link href> dan <script src>.
+    // Yang absolut (CDN) dilewati — tidak dihitung sebagai aset situs.
+    const refs = new Set();
+    for (const m of html.matchAll(/(?:href|src)="([^"]+\.(?:css|js|mjs))"/g)) {
+      const url = m[1];
+      if (/^https?:/.test(url)) continue;
+      // Normalisasi: buang awalan "/" dan "./" supaya cocok dengan path repo.
+      refs.add(url.replace(/^\.?\//, ''));
+    }
+
+    let pageCss = 0, pageJs = 0, pageHtml = sizeByPath.get(page) ?? 0;
+    for (const ref of refs) {
+      const size = sizeByPath.get(ref) ?? 0;
+      if (ref.endsWith('.css')) pageCss += size;
+      else pageJs += size;
+    }
+
+    perPage.push({
+      page,
+      html: pageHtml,
+      css: pageCss,
+      js: pageJs,
+      total: pageHtml + pageCss + pageJs,
+      refs: refs.size,
+    });
+  }
+
+  // Halaman terberat menentukan — itu pengalaman terburuk pengunjung.
+  const heaviestPage = perPage.reduce(
+    (max, p) => (p.total > (max?.total ?? 0) ? p : max),
+    null,
+  );
+
   const violations = [];
   if (totalBytes > BUDGETS.totalBytes) {
     violations.push({ rule: 'totalBytes', actual: totalBytes, budget: BUDGETS.totalBytes });
   }
-  if (jsBytes > BUDGETS.maxJsBytes) {
-    violations.push({ rule: 'maxJsBytes', actual: jsBytes, budget: BUDGETS.maxJsBytes });
-  }
-  if (cssBytes > BUDGETS.maxCssBytes) {
-    violations.push({ rule: 'maxCssBytes', actual: cssBytes, budget: BUDGETS.maxCssBytes });
+  if (heaviestPage) {
+    if (heaviestPage.css > BUDGETS.maxCssBytes) {
+      violations.push({
+        rule: 'maxCssBytes',
+        actual: heaviestPage.css,
+        budget: BUDGETS.maxCssBytes,
+        page: heaviestPage.page,
+      });
+    }
+    if (heaviestPage.js > BUDGETS.maxJsBytes) {
+      violations.push({
+        rule: 'maxJsBytes',
+        actual: heaviestPage.js,
+        budget: BUDGETS.maxJsBytes,
+        page: heaviestPage.page,
+      });
+    }
   }
   if (htmlBytes > BUDGETS.maxHtmlBytes) {
     violations.push({ rule: 'maxHtmlBytes', actual: htmlBytes, budget: BUDGETS.maxHtmlBytes });
@@ -97,7 +163,11 @@ export function auditAssets(rootDir) {
   return {
     ok: violations.length === 0,
     counts: { files: files.length },
+    // bytes.* = total repo (berguna untuk memantau pertumbuhan repo),
+    // perPage.* = yang benar-benar dimuat pengunjung (dipakai anggaran).
     bytes: { total: totalBytes, js: jsBytes, css: cssBytes, html: htmlBytes },
+    perPage,
+    heaviestPage,
     budgets: BUDGETS,
     violations,
     heaviest,

@@ -1,0 +1,415 @@
+/* ── PERSETUJUAN COOKIE ────────────────────────────────────────────────────────
+   Banner persetujuan cookie untuk halaman yang memakai penyimpanan browser.
+
+   Pola yang diadopsi (dengan penyesuaian, bukan tiruan):
+     - Stripe   : nada tenang dan profesional, pilihan tersimpan lama,
+                  halaman preferensi bisa dibuka kapan saja.
+     - ChatGPT  : dua lapis — banner ringkas dulu, panel rinci saat diminta.
+     - Netflix  : banner tidak memblokir konten, warna mengikuti tema situs.
+     - Steam    : panel rinci dengan penjelasan bahasa awam per kategori.
+
+   Penyesuaian agar tidak meniru salah satunya:
+     - Warna memakai aksen situs (#ff7a45), bukan biru/merah/hijau mereka.
+     - Posisi: kartu di pojok kanan bawah (desktop), lembar penuh (mobile).
+     - Kategori disesuaikan dengan yang BENAR-BENAR dipakai situs ini:
+       esensial + analitik. Tidak ada kategori pemasaran — karena situs
+       ini memang tidak memasang cookie iklan. Banner yang mencantumkan
+       kategori yang tidak ada adalah banner yang tidak jujur.
+
+   Prinsip yang dipegang (kepatuhan, bukan sekadar tampilan):
+     - Tombol "Terima semua" dan "Tolak semua" sama besar, sama kontras.
+       Membuat "Tolak" lebih kecil atau lebih pudar adalah pola gelap
+       yang dilarang regulator (CNIL menindak Google karena ini).
+     - Kategori non-esensial MATI secara bawaan. Consent harus aktif.
+     - Tidak ada tombol tutup yang ambigu — kalau ditutup tanpa memilih,
+       artinya menolak (dinyatakan jelas di teks).
+     - Bisa diubah kapan saja lewat tombol mengambang di pojok.
+     - Tidak ada timer, tidak ada "yakin mau kehilangan pengalaman?".
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Tombol mengambang — cara membuka ulang preferensi kapan saja.
+   Regulasi mewajibkan penarikan persetujuan semudah memberikannya. */
+.cookie-fab {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: var(--z-float);
+  width: 40px;
+  height: 40px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.cookie-fab:hover {
+  color: var(--text);
+  border-color: var(--text-faint);
+  transform: translateY(-1px);
+}
+.cookie-fab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cookie-fab.is-visible { display: inline-flex; }
+.cookie-fab .icon { width: 18px; height: 18px; }
+
+/* ── Lapis 1: banner ringkas ──────────────────────────────────────────────── */
+
+.cookie-banner {
+  position: fixed;
+  z-index: var(--z-float);
+  right: 1rem;
+  bottom: 1rem;
+  width: min(400px, calc(100vw - 2rem));
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+  /* Banner masuk dari bawah dengan tenang — tidak mengejutkan. */
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+}
+.cookie-banner.is-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.cookie-banner h2 {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.cookie-banner p {
+  margin: 0 0 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.cookie-banner a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Baris tombol. Kedua tombol aksi sama besar — tidak ada yang
+   dibesarkan atau dibuat lebih menyala dari yang lain. */
+.cookie-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cookie-btn {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cookie-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Tombol keputusan: Terima / Tolak — GAYA IDENTIK ──────────────────────
+   Regulator (CNIL, EDPB) menindak tombol "Terima" yang lebih menyala
+   daripada "Tolak": itu pola gelap yang mengarahkan pilihan pengguna.
+   Google didenda EUR 150 juta sebagian karena ini.
+
+   Karena itu kedua tombol memakai gaya yang SAMA PERSIS — ukuran,
+   kontras, bentuk. Yang membedakan hanya labelnya. Tidak ada isyarat
+   visual yang menuntun ke salah satu pilihan. */
+.cookie-btn--decision {
+  background: var(--text);
+  color: var(--bg);
+  border: 1px solid var(--text);
+}
+.cookie-btn--decision:hover { background: #fff; border-color: #fff; }
+
+/* Tombol netral — untuk aksi yang bukan keputusan (mis. tutup). */
+.cookie-btn--outline {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.cookie-btn--outline:hover { border-color: var(--text-faint); }
+
+/* Tautan "Atur" — sekunder, tapi tetap jelas bisa diklik. */
+.cookie-btn--link {
+  flex: 1 1 100%;
+  min-height: 34px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0.25rem;
+  font-size: 0.8rem;
+}
+.cookie-btn--link:hover { color: var(--text); }
+
+/* ── Lapis 2: panel rinci ─────────────────────────────────────────────────── */
+
+.cookie-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-float);
+  background: rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.cookie-scrim.is-visible { opacity: 1; pointer-events: auto; }
+
+.cookie-panel {
+  position: fixed;
+  z-index: calc(var(--z-float) + 1);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -46%);
+  width: min(560px, calc(100vw - 2rem));
+  max-height: min(85vh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.75);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.cookie-panel.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+
+/* Kepala panel tetap menempel — tombol simpan selalu terjangkau,
+   tidak perlu menggulir sampai bawah untuk menyimpan. */
+.cookie-panel-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+.cookie-panel-head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.cookie-panel-head p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.cookie-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.cookie-close:hover { color: var(--text); border-color: var(--text-faint); }
+.cookie-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Tombol tutup: dibuat lebih jelas — ikon 17px (bukan 15px), warna teks
+   penuh, dan ada label teks untuk pembaca layar. */
+.cookie-close .icon { width: 17px; height: 17px; }
+.cookie-close:hover { color: var(--text); border-color: var(--text); background: var(--bg-soft); }
+
+.cookie-panel-body {
+  overflow-y: auto;
+  padding: 0.35rem 1.35rem 1.1rem;
+}
+
+/* Satu kategori: nama, penjelasan bahasa awam, dan sakelar. */
+.cookie-cat {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.cookie-cat:last-child { border-bottom: none; }
+
+.cookie-cat-text { flex: 1; }
+.cookie-cat-text h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.cookie-cat-text h3 .icon {
+  width: 15px;
+  height: 15px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.cookie-cat-text p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+/* Label kecil untuk kategori yang tidak bisa dimatikan. */
+.cookie-tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* ── Sakelar ───────────────────────────────────────────────────────────────
+   Keadaan hidup/mati dibedakan lewat TIGA hal: warna, posisi kenop, dan
+   ikon di dalam kenop. Mengandalkan warna saja akan gagal bagi pengguna
+   yang tidak bisa membedakan warna. */
+.cookie-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  margin-top: 0.1rem;
+}
+.cookie-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.cookie-switch-track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--line);
+  border-radius: 999px;
+  transition: background 0.2s var(--ease);
+  pointer-events: none;
+}
+.cookie-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--text-faint);
+  border-radius: 50%;
+  transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+  pointer-events: none;
+}
+.cookie-switch-knob .icon { width: 11px; height: 11px; color: var(--bg); }
+
+.cookie-switch input:checked ~ .cookie-switch-track { background: var(--accent); }
+.cookie-switch input:checked ~ .cookie-switch-knob {
+  transform: translateX(18px);
+  background: #fff;
+}
+.cookie-switch input:focus-visible ~ .cookie-switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Kategori terkunci: sakelar tampak mati tapi tetap terlihat "hidup",
+   supaya jelas bahwa ini memang tidak bisa diubah, bukan rusak. */
+.cookie-switch input:disabled { cursor: not-allowed; }
+.cookie-switch input:disabled ~ .cookie-switch-track { opacity: 0.5; }
+.cookie-switch input:disabled ~ .cookie-switch-knob { opacity: 0.5; }
+
+/* Kaki panel: tombol simpan + tolak semua, keduanya selalu terlihat. */
+.cookie-panel-foot {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.35rem 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.cookie-panel-foot .cookie-btn { flex: 1; }
+
+/* ── Layar kecil ──────────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  /* Banner jadi lembar penuh di bawah. Tombol ditumpuk supaya keduanya
+     muat penuh dan tetap sama besar — bukan berdempetan sampai salah
+     satu terpotong. */
+  .cookie-banner {
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+    padding: 1.1rem 1.1rem 1rem;
+  }
+  .cookie-actions { flex-direction: column; }
+  .cookie-btn--link { flex: 1 1 auto; }
+
+  .cookie-panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    transform: translateY(14px);
+    width: 100%;
+    max-height: 88vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom: none;
+  }
+  .cookie-panel.is-visible { transform: none; }
+
+  .cookie-panel-foot { flex-direction: column; }
+
+  .cookie-fab { left: 0.75rem; bottom: 0.75rem; }
+}
+
+/* Gerak diminimalkan bila pengguna memintanya. */
+@media (prefers-reduced-motion: reduce) {
+  .cookie-banner,
+  .cookie-panel,
+  .cookie-scrim,
+  .cookie-fab,
+  .cookie-switch-track,
+  .cookie-switch-knob {
+    transition: none;
+  }
+}
+
+/* Saat panel rinci terbuka, konten di belakang tidak boleh ikut
+   menggulir — mencegah kebingungan posisi. */
+body.cookie-panel-open { overflow: hidden; }

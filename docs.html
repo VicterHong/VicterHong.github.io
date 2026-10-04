@@ -37,6 +37,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/docs.css">
+<link rel="stylesheet" href="assets/css/cookies.css">
 </head>
 <body>
 
@@ -276,6 +277,50 @@
           <strong>Ini melindungi Anda juga.</strong> Kalau token bocor tanpa
           sepengetahuan Anda, pencabutan otomatis membatasi kerugian — dan Anda
           akan diberi tahu.
+          </div>
+        </div>
+
+        <h3 id="privasi">Penyimpanan di browser Anda</h3>
+        <p>
+          Situs ini menyimpan dua hal di browser Anda, dan keduanya bisa Anda
+          atur sendiri lewat tombol <strong>Preferensi cookie</strong> di pojok
+          kiri bawah halaman.
+        </p>
+
+        <div class="doc-table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr><th>Nama</th><th>Jenis</th><th>Fungsi</th><th>Bisa dimatikan?</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>portfolio.token</code></td>
+                <td>Esensial</td>
+                <td>Menyimpan token akses selama sesi agar Anda tidak perlu memasukkannya berulang kali</td>
+                <td>Tidak — situs tidak berfungsi tanpanya</td>
+              </tr>
+              <tr>
+                <td><code>ab_visitor</code></td>
+                <td>Analitik</td>
+                <td>ID acak anonim untuk menjaga konsistensi varian uji A/B</td>
+                <td>Ya</td>
+              </tr>
+              <tr>
+                <td>Metrik performa</td>
+                <td>Analitik</td>
+                <td>Lima angka kecepatan halaman (LCP, INP, CLS, TTFB, FCP) — tanpa identitas</td>
+                <td>Ya</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <span data-icon="shield" data-icon-size="17"></span>
+          <div class="note-body">
+          <strong>Tidak ada cookie iklan, tidak ada pelacakan lintas situs.</strong>
+          Karena itu kategori pemasaran memang tidak ada di panel preferensi —
+          mencantumkan kategori yang tidak dipakai hanya akan menyesatkan.
           </div>
         </div>
       </section>

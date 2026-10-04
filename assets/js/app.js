@@ -24,6 +24,7 @@ import { initAllVideoPlayers } from './video-player.js';
 import { initMasonry } from './masonry.js';
 import { initVitals } from './vitals.js';
 import { initExperiments } from './experiment.js';
+import { initCookieConsent, consentGiven } from './cookies.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -383,11 +384,27 @@ initMasonry();
 
 // Core Web Vitals — ukur performa nyata dari pengunjung (Framer Performance).
 // Ringan: hanya 5 metrik, dikirim sekali per halaman via sendBeacon.
-initVitals();
-
+// Hanya berjalan setelah pengunjung memberi izin kategori analitik —
+// mengukur tanpa izin bukan pilihan yang dihormati.
 // Eksperimen A/B — varian dari server (Framer Grow/Convert). Gagal-diam
 // kalau tidak ada eksperimen aktif, jadi tidak pernah mengganggu halaman.
-initExperiments();
+// Ikut menunggu izin analitik karena mengirim ID pengunjung anonim.
+function startAnalytics() {
+  initVitals();
+  initExperiments();
+}
+
+if (consentGiven('analytics')) {
+  startAnalytics();
+} else {
+  // Kalau pengunjung memberi izin nanti (dari banner), baru jalankan.
+  window.addEventListener('consent:change', (e) => {
+    if (e.detail?.analytics) startAnalytics();
+  }, { once: true });
+}
+
+// Banner persetujuan cookie — dua lapis, sama di semua halaman.
+initCookieConsent();
 
 // Ganti penanda [data-icon] dengan SVG dari katalog icons.js.
 // Dipakai agar tidak ada emoji di markup — ikon SVG konsisten di semua
