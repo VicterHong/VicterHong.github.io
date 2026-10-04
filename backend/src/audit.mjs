@@ -27,9 +27,14 @@ export function recentEvents({ limit = 100, tokenId = null, projectSlug = null }
   if (projectSlug) { where.push('project_slug = ?'); params.push(projectSlug); }
   const clause = where.length ? 'WHERE ' + where.join(' AND ') : '';
   params.push(limit);
+  // ORDER BY at DESC, id DESC — urutan sekunder WAJIB.
+  // Tanpa itu, dua event dengan timestamp sama (tercatat dalam milidetik
+  // yang sama) bisa kembali dalam urutan acak, tergantung bagaimana SQLite
+  // memilih baris. Di mesin cepat ini bikin urutan "terbaru dulu" tidak
+  // deterministik — dan itu pernah menggagalkan test di CI.
   return getDb().prepare(`
     SELECT id, token_id, project_slug, action, outcome, ip, country, detail, at
-    FROM access_events ${clause} ORDER BY at DESC LIMIT ?
+    FROM access_events ${clause} ORDER BY at DESC, id DESC LIMIT ?
   `).all(...params);
 }
 
@@ -56,12 +61,15 @@ export function requestsInWindow(tokenId, windowMs) {
   return Number(row?.n ?? 0);
 }
 
-/** Percobaan gagal beruntun sejak keberhasilan terakhir. */
+/** Percobaan gagal beruntun sejak keberhasilan terakhir.
+ *  ORDER BY at DESC, id DESC — urutan sekunder supaya deterministik saat
+ *  beberapa event punya timestamp sama. Ini memengaruhi keputusan
+ *  auto-revoke, jadi urutannya TIDAK BOLEH acak. */
 export function consecutiveFailures(tokenId) {
   const rows = getDb().prepare(`
     SELECT outcome FROM access_events
     WHERE token_id = ? AND action IN ('validate', 'session_create')
-    ORDER BY at DESC LIMIT 40
+    ORDER BY at DESC, id DESC LIMIT 40
   `).all(tokenId);
   let n = 0;
   for (const r of rows) {

@@ -145,7 +145,7 @@ export function listTokens({ projectSlug = null, status = null, tier = null, lim
            issued_by, issued_at, expires_at, revoked_at, revoked_reason,
            max_ips, max_devices, status, notes
     FROM tokens ${clause}
-    ORDER BY issued_at DESC LIMIT ?
+    ORDER BY issued_at DESC, id DESC LIMIT ?
   `).all(...params);
   // Parse scopes JSON
   for (const row of rows) {
