@@ -216,6 +216,94 @@ tbody tr:hover { background: var(--surface-2); }
 .mono { font-family: var(--mono); font-size: 0.75rem; }
 .empty { padding: 2rem; text-align: center; color: var(--muted); font-size: 0.875rem; }
 
+/* ── Skeleton (penahan tata letak saat memuat) ────────────────────
+   Placeholder yang muncul SEGERA saat data diminta, meniru bentuk
+   konten akhir (grid / tabel / funnel). Tujuannya menahan tinggi dan
+   posisi supaya halaman tidak kosong lalu "melompat" saat data tiba —
+   makin besar volume data, makin terasa manfaatnya.
+
+   Tidak berkedip saat muat ulang: kalau panel sudah punya data,
+   skeleton tidak dipasang lagi (data lama tetap tampil sampai data
+   baru siap).
+
+   Animasi shimmer dimatikan saat pengguna minta gerak minimal. */
+.sk {
+  background: linear-gradient(
+    90deg,
+    #26262f 25%,
+    #32323d 50%,
+    #26262f 75%
+  );
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+  border-radius: 5px;
+}
+@keyframes sk-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk { animation: none; }
+}
+
+/* Baris teks: tinggi 10px, lebar diatur inline per kolom. */
+.sk-line { height: 10px; }
+/* Blok nilai besar (angka stat). */
+.sk-value { height: 22px; width: 60%; margin-top: 0.45rem; }
+
+/* Header tabel: label kolom tetap tampil, isinya skeleton — supaya
+   mata langsung tahu kolom apa saja yang akan muncul. */
+.sk-table th .sk { height: 8px; }
+.sk-table td .sk { height: 10px; }
+
+/* Skeleton funnel: label + bar + angka, meniru .funnel-row. */
+.sk-funnel .funnel-bar-wrap .sk { height: 100%; border-radius: 4px; }
+
+/* ── Skeleton di MODE KARTU (mobile) ─────────────────────────────
+   Di bawah 640px tabel berubah jadi kartu dengan label kolom (::before
+   dari data-label). Skeleton harus mengikuti bentuk itu — kalau tidak,
+   ia tampil sebagai balok besar tanpa struktur, dan mata tidak bisa
+   menebak konten apa yang akan muncul. */
+@media (max-width: 640px) {
+  /* Baris skeleton jadi kartu, sama seperti baris data asli. */
+  .sk-table tbody tr {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0;
+  }
+  /* Tiap sel: label di kiri (abu-abu), nilai skeleton di kanan. */
+  .sk-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3rem 0.75rem;
+    border-bottom: none;
+  }
+  /* Label kolom asli diambil dari data-label — sama seperti mode kartu
+     untuk data sungguhan, supaya bentuknya identik. */
+  .sk-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  /* Nilai skeleton di kanan. max-width (bukan width) supaya variasi
+     lebar dari skRow tetap terpakai — bar seragam terbaca mekanis,
+     sedangkan lebar bervariasi terbaca seperti data sungguhan. */
+  .sk-table td .sk-line { max-width: 55%; margin-left: auto; }
+}
+
+/* Saat skeleton tampil, container diberi tinggi minimum supaya
+   peralihan ke data asli tidak menggeser apa pun di bawahnya. */
+.sk-hold { min-height: 180px; }
+.sk-hold-tall { min-height: 320px; }
+
 .pill {
   display: inline-block;
   padding: 0.15rem 0.5rem;
@@ -976,6 +1064,85 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 let adminKey = sessionStorage.getItem(KEY_STORAGE) ?? '';
 
+// ── Skeleton (penahan tata letak) ────────────────────────────────
+// Placeholder yang dipasang SEGERA saat data diminta, meniru bentuk
+// konten akhir. Tujuannya: halaman tidak kosong lalu "melompat" saat
+// data tiba — makin banyak token/lead, makin lama muatnya, dan tanpa
+// penahan itu panel terasa rusak.
+//
+// Prinsip penting: skeleton HANYA dipasang kalau panel belum punya
+// data. Saat muat ulang (data lama masih tampil), tidak ada skeleton —
+// jadi tidak ada kedipan. Data lama tetap terlihat sampai data baru
+// siap menggantikannya.
+
+/** Baris teks skeleton dengan lebar tertentu (mis. '70%'). */
+const skLine = (w = '70%') => `<span class="sk sk-line" style="display:block;width:${w}"></span>`;
+
+/** Satu baris tabel skeleton dengan jumlah kolom tertentu.
+ *  Lebar tiap kolom dibuat bervariasi supaya terlihat seperti data
+ *  sungguhan, bukan balok seragam.
+ *  `headers` dipakai untuk data-label — di mode kartu (mobile) CSS
+ *  menampilkan label kolom dari atribut itu, sama seperti data asli. */
+function skRow(cols, headers = []) {
+  const widths = ['60%', '80%', '45%', '70%', '55%', '65%', '50%', '75%'];
+  return `<tr>${Array.from({ length: cols }, (_, i) =>
+    `<td data-label="${headers[i] ?? ''}">${skLine(widths[i % widths.length])}</td>`).join('')}</tr>`;
+}
+
+/** Tabel skeleton lengkap: header dengan label kolom ASLI (supaya mata
+ *  tahu kolom apa yang akan muncul), isi skeleton beberapa baris. */
+function skTable(headers, rowCount = 5) {
+  return `<table class="sk-table"><thead><tr>${
+    headers.map((h) => `<th>${h}</th>`).join('')
+  }</tr></thead><tbody>${
+    Array.from({ length: rowCount }, () => skRow(headers.length, headers)).join('')
+  }</tbody></table>`;
+}
+
+/** Kartu stat skeleton — HANYA kartu .stat, tanpa pembungkus .stat-grid.
+ *  Container #overviewStats / #slaStats sudah punya class stat-grid di
+ *  markup, jadi menambah pembungkus lagi akan menghasilkan grid bersarang. */
+function skStats(count = 6) {
+  return Array.from({ length: count }, () =>
+    `<div class="stat"><div class="label"><span class="sk sk-line" style="display:block;width:55%"></span></div><div class="sk sk-value"></div></div>`
+  ).join('');
+}
+
+/** Baris funnel skeleton — label + bar + angka. */
+function skFunnel(rows = 8) {
+  const widths = ['45%', '60%', '35%', '70%', '50%', '65%', '40%', '55%', '75%', '30%'];
+  return Array.from({ length: rows }, (_, i) =>
+    `<div class="funnel-row sk-funnel">
+      <div class="funnel-label">${skLine('80%')}</div>
+      <div class="funnel-bar-wrap"><span class="sk" style="display:block;width:${widths[i % widths.length]}"></span></div>
+      <div class="funnel-count">${skLine('50%')}</div>
+    </div>`).join('');
+}
+
+/** Pasang skeleton ke sebuah container.
+ *  @param host   elemen container
+ *  @param markup HTML skeleton
+ *  @param hold   kelas penahan tinggi ('sk-hold' | 'sk-hold-tall') */
+function showSkeleton(host, markup, hold = 'sk-hold') {
+  if (!host) return;
+  host.innerHTML = markup;
+  host.classList.add(hold);
+  host.setAttribute('aria-busy', 'true');
+}
+
+/** Lepas penanda skeleton setelah data asli terpasang. */
+function clearSkeleton(host) {
+  if (!host) return;
+  host.classList.remove('sk-hold', 'sk-hold-tall');
+  host.removeAttribute('aria-busy');
+}
+
+/** Pasang skeleton HANYA kalau container masih kosong.
+ *  Saat muat ulang, data lama tetap tampil (tanpa kedipan). */
+function skeletonIfEmpty(host, markup, hold) {
+  if (host && host.children.length === 0) showSkeleton(host, markup, hold);
+}
+
 // ── API helper ───────────────────────────────────────────────────
 async function api(path) {
   const res = await fetch(path, {
@@ -1086,6 +1253,11 @@ const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
 
 // ── Overview ─────────────────────────────────────────────────────
 async function loadOverview() {
+  // Skeleton dipasang sebelum menunggu — hanya kalau belum ada data,
+  // jadi muat ulang tidak berkedip.
+  skeletonIfEmpty($('#overviewStats'), skStats(6), 'sk-hold');
+  skeletonIfEmpty($('#recentLeads'), skTable(['Tanggal', 'Perusahaan', 'Email', 'Proyek', 'Urgensi'], 3), 'sk-hold');
+
   const [tokens, leads, sla] = await Promise.all([
     api('/api/admin/tokens?limit=500'),
     api('/api/admin/leads?limit=10'),
@@ -1119,6 +1291,10 @@ async function loadOverview() {
           <td data-label="Urgensi">${escapeHtml(l.urgency || '—')}</td>
         </tr>`).join('')
       }</tbody></table>`;
+
+  // Data asli sudah terpasang — lepas penahan tinggi.
+  clearSkeleton($('#overviewStats'));
+  clearSkeleton($('#recentLeads'));
 }
 
 // ── Tokens ───────────────────────────────────────────────────────
@@ -1130,6 +1306,11 @@ async function loadTokens() {
   if (status) qs.set('status', status);
   if (tier) qs.set('tier', tier);
   if (project) qs.set('project', project);
+
+  // Skeleton tabel token — header kolom asli supaya bentuknya terbaca.
+  skeletonIfEmpty($('#tokensTable'),
+    skTable(['ID', 'Proyek', 'Tier', 'Untuk', 'Status', 'Terbit', 'Kedaluwarsa', ''], 6),
+    'sk-hold-tall');
 
   const data = await api(`/api/admin/tokens?${qs}`);
   const rows = data.tokens ?? [];
@@ -1145,6 +1326,7 @@ async function loadTokens() {
     $('#tokensTable').innerHTML = `<div class="empty">
       Tidak ada token yang cocok${active.length ? ` (${active.join(', ')})` : ''}.
     </div>`;
+    clearSkeleton($('#tokensTable'));
     return;
   }
 
@@ -1163,6 +1345,8 @@ async function loadTokens() {
       <td data-label="">${t.status === 'active' ? `<button class="btn-sm" data-revoke="${escapeHtml(t.id)}">Cabut</button>` : ''}</td>
     </tr>`).join('')
   }</tbody></table>`;
+
+  clearSkeleton($('#tokensTable'));
 
   $$('[data-revoke]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1498,10 +1682,15 @@ $('#issueBtn').addEventListener('click', async () => {
 
 // ── Leads ────────────────────────────────────────────────────────
 async function loadLeads() {
+  skeletonIfEmpty($('#leadsTable'),
+    skTable(['Tanggal', 'Perusahaan', 'Nama', 'Email', 'Peran', 'Proyek', 'Budget', 'Urgensi', 'Pesan'], 5),
+    'sk-hold-tall');
+
   const data = await api('/api/admin/leads?limit=200');
   const rows = data.leads ?? [];
   if (rows.length === 0) {
     $('#leadsTable').innerHTML = '<div class="empty">Belum ada permintaan akses.</div>';
+    clearSkeleton($('#leadsTable'));
     return;
   }
   $('#leadsTable').innerHTML = `<table><thead><tr>
@@ -1520,6 +1709,8 @@ async function loadLeads() {
       <td style="max-width:220px" data-label="Pesan">${escapeHtml((l.message || '').slice(0, 160))}</td>
     </tr>`).join('')
   }</tbody></table>`;
+
+  clearSkeleton($('#leadsTable'));
 }
 
 // ── Funnel ───────────────────────────────────────────────────────
@@ -1527,6 +1718,8 @@ async function loadFunnel() {
   const qs = new URLSearchParams({ days: $('#funnelDays').value });
   const project = $('#funnelProject').value;
   if (project) qs.set('project', project);
+
+  skeletonIfEmpty($('#funnelContent'), skFunnel(8), 'sk-hold-tall');
 
   const data = await api(`/api/admin/analytics/funnel?${qs}`);
   const f = data.funnel ?? {};
@@ -1556,6 +1749,8 @@ async function loadFunnel() {
         <div class="funnel-count">${v}%</div>
       </div>`).join('')}
     </div>`;
+
+  clearSkeleton($('#funnelContent'));
 }
 
 $('#funnelProject').addEventListener('change', loadFunnel);
@@ -1563,6 +1758,11 @@ $('#funnelDays').addEventListener('change', loadFunnel);
 
 // ── SLA ──────────────────────────────────────────────────────────
 async function loadSla() {
+  skeletonIfEmpty($('#slaStats'), skStats(5), 'sk-hold');
+  skeletonIfEmpty($('#slaTable'),
+    skTable(['Periode', 'Request', 'Uptime', 'Latency rata²', 'Latency p95', 'Error', 'Status'], 3),
+    'sk-hold');
+
   const data = await api('/api/admin/sla');
   const s = data.sla ?? {};
   const day = s.day ?? {};
@@ -1592,14 +1792,22 @@ async function loadSla() {
       </tr>`;
     }).join('')
   }</tbody></table>`;
+
+  clearSkeleton($('#slaStats'));
+  clearSkeleton($('#slaTable'));
 }
 
 // ── Audit ────────────────────────────────────────────────────────
 async function loadAudit() {
+  skeletonIfEmpty($('#auditTable'),
+    skTable(['Waktu', 'Token', 'Proyek', 'Aksi', 'Hasil', 'IP', 'Negara', 'Detail'], 6),
+    'sk-hold-tall');
+
   const data = await api(`/api/admin/audit?limit=${$('#auditLimit').value}`);
   const rows = data.events ?? [];
   if (rows.length === 0) {
     $('#auditTable').innerHTML = '<div class="empty">Belum ada aktivitas.</div>';
+    clearSkeleton($('#auditTable'));
     return;
   }
   $('#auditTable').innerHTML = `<table><thead><tr>
@@ -1616,6 +1824,8 @@ async function loadAudit() {
       <td style="max-width:200px" data-label="Detail">${escapeHtml(e.detail || '—')}</td>
     </tr>`).join('')
   }</tbody></table>`;
+
+  clearSkeleton($('#auditTable'));
 }
 
 $('#auditLimit').addEventListener('change', loadAudit);
@@ -1688,6 +1898,7 @@ async function loadAll() {
 async function loadCms() {
   const host = $('#cmsCollections');
   const sel = $('#cmsCollectionSelect');
+  skeletonIfEmpty(host, skTable(['Slug', 'Judul', 'Field', 'Dibuat'], 4), 'sk-hold');
   try {
     const data = await api('/api/cms/collections');
     const cols = data.collections || [];
@@ -1695,6 +1906,7 @@ async function loadCms() {
     if (!cols.length) {
       host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada koleksi. Buat lewat API: POST /api/admin/cms/collection</p>';
       sel.innerHTML = '<option value="">— belum ada koleksi —</option>';
+      clearSkeleton(host);
       return;
     }
 
@@ -1707,12 +1919,15 @@ async function loadCms() {
       <td data-label="Dibuat">${fmtDate(c.created_at)}</td>
     </tr>`).join('')}</tbody></table>`;
 
+    clearSkeleton(host);
+
     const prev = sel.value;
     sel.innerHTML = '<option value="">— pilih koleksi —</option>' +
       cols.map(c => `<option value="${escapeHtml(c.slug)}">${escapeHtml(c.title || c.slug)}</option>`).join('');
     if (prev) { sel.value = prev; await loadCmsItems(); }
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+    clearSkeleton(host);
   }
 }
 
@@ -1721,12 +1936,14 @@ async function loadCmsItems() {
   const col = $('#cmsCollectionSelect').value;
   if (!col) { host.innerHTML = ''; return; }
 
+  skeletonIfEmpty(host, skTable(['Slug', 'Status', 'Versi', 'Diperbarui', 'Terbit'], 4), 'sk-hold');
   const draft = $('#cmsShowDraft').checked ? '?draft=1' : '';
   try {
     const data = await api(`/api/cms/${encodeURIComponent(col)}/items${draft}`);
     const items = data.items || [];
     if (!items.length) {
       host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada item di koleksi ini.</p>';
+      clearSkeleton(host);
       return;
     }
     host.innerHTML = `<table><thead><tr>
@@ -1738,8 +1955,10 @@ async function loadCmsItems() {
       <td data-label="Diperbarui">${fmtDate(i.updated_at)}</td>
       <td data-label="Terbit">${fmtDate(i.published_at)}</td>
     </tr>`).join('')}</tbody></table>`;
+    clearSkeleton(host);
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+    clearSkeleton(host);
   }
 }
 
@@ -1756,6 +1975,9 @@ async function loadPerf() {
 async function loadVitals() {
   const host = $('#perfVitals');
   const days = $('#perfDays').value;
+  skeletonIfEmpty(host,
+    skTable(['Metrik', 'Sampel', 'p50', 'p75', 'p95', 'Anggaran', 'Status'], 5),
+    'sk-hold-tall');
   try {
     const data = await api(`/api/admin/performance?days=${days}`);
     const m = data.vitals?.metrics || {};
@@ -1781,13 +2003,16 @@ async function loadVitals() {
       <th>Metrik</th><th>Sampel</th><th>p50</th><th>p75</th><th>p95</th><th>Anggaran</th><th>Status</th>
     </tr></thead><tbody>${rows}</tbody></table>
     <p style="color:var(--muted);font-size:.75rem;padding:.75rem">p75 = persentil yang dipakai Google untuk menilai Core Web Vitals.</p>`;
+    clearSkeleton(host);
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+    clearSkeleton(host);
   }
 }
 
 async function loadAssetBudget() {
   const host = $('#perfAssets');
+  skeletonIfEmpty(host, skTable(['Jenis', 'Aktual', 'Anggaran', 'Status'], 4), 'sk-hold');
   try {
     const data = await api('/api/admin/performance/assets');
     const a = data.audit || {};
@@ -1813,8 +2038,10 @@ async function loadAssetBudget() {
     host.innerHTML = `<table><thead><tr>
       <th>Jenis</th><th>Aktual</th><th>Anggaran</th><th>Status</th>
     </tr></thead><tbody>${rows}</tbody></table>`;
+    clearSkeleton(host);
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+    clearSkeleton(host);
   }
 }
 
@@ -1826,6 +2053,7 @@ $('#perfDays').addEventListener('change', loadVitals);
 async function loadGrow() {
   const host = $('#growList');
   const rHost = $('#growResults');
+  skeletonIfEmpty(host, skTable(['Slug', 'Nama', 'Status', 'Varian', 'Diperbarui'], 3), 'sk-hold');
   try {
     const data = await api('/api/admin/experiments');
     const exps = data.experiments || [];
@@ -1833,6 +2061,7 @@ async function loadGrow() {
     if (!exps.length) {
       host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada eksperimen. Buat lewat API: POST /api/admin/experiment</p>';
       rHost.innerHTML = '';
+      clearSkeleton(host);
       return;
     }
 
@@ -1863,9 +2092,11 @@ async function loadGrow() {
         <td data-label="Terpapar">${v.exposed}</td><td data-label="Konversi">${v.converted}</td>
         <td data-label="Rate">${(v.rate * 100).toFixed(2)}%</td>
       </tr>`).join('')}</tbody></table>`;
+    clearSkeleton(host);
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
     rHost.innerHTML = '';
+    clearSkeleton(host);
   }
 }
 
@@ -1876,6 +2107,8 @@ $('#growRefreshBtn').addEventListener('click', loadGrow);
 async function loadBranches() {
   const host = $('#branchList');
   const cHost = $('#commentList');
+  skeletonIfEmpty(host, skTable(['Branch', 'Status', 'Perubahan', 'Pembuat', 'Diperbarui'], 3), 'sk-hold');
+  skeletonIfEmpty(cHost, skTable(['Target', 'Anchor', 'Komentar', 'Dari', 'Waktu'], 3), 'sk-hold');
   try {
     const [bData, cData] = await Promise.all([
       api('/api/admin/branches'),
@@ -1885,6 +2118,7 @@ async function loadBranches() {
     const branches = bData.branches || [];
     if (!branches.length) {
       host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada branch. Buat lewat API: POST /api/admin/branch/create</p>';
+      clearSkeleton(host);
     } else {
       host.innerHTML = `<table><thead><tr>
         <th>Branch</th><th>Status</th><th>Perubahan</th><th>Pembuat</th><th>Diperbarui</th>
@@ -1900,6 +2134,7 @@ async function loadBranches() {
     const comments = cData.comments || [];
     if (!comments.length) {
       cHost.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Tidak ada komentar terbuka.</p>';
+      clearSkeleton(cHost);
     } else {
       cHost.innerHTML = `<table><thead><tr>
         <th>Target</th><th>Anchor</th><th>Komentar</th><th>Dari</th><th>Waktu</th>
@@ -1910,9 +2145,12 @@ async function loadBranches() {
         <td data-label="Dari">${escapeHtml(c.author || '—')}</td>
         <td data-label="Waktu">${fmtDate(c.created_at)}</td>
       </tr>`).join('')}</tbody></table>`;
+      clearSkeleton(cHost);
     }
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+    clearSkeleton(host);
+    clearSkeleton(cHost);
   }
 }
 
@@ -1922,11 +2160,13 @@ $('#branchRefreshBtn').addEventListener('click', loadBranches);
 
 async function loadReleases() {
   const host = $('#releasesList');
+  skeletonIfEmpty(host, skTable(['Versi', 'Commit', 'Status', 'Oleh', 'Waktu'], 4), 'sk-hold');
   try {
     const data = await api('/api/admin/releases?limit=20');
     const rel = data.releases || [];
     if (!rel.length) {
       host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada rilis tercatat.</p>';
+      clearSkeleton(host);
       return;
     }
     host.innerHTML = `<table><thead><tr>
@@ -1938,8 +2178,10 @@ async function loadReleases() {
       <td data-label="Oleh">${escapeHtml(r.deployed_by || '—')}</td>
       <td data-label="Waktu">${fmtDate(r.created_at)}</td>
     </tr>`).join('')}</tbody></table>`;
+    clearSkeleton(host);
   } catch (err) {
     host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+    clearSkeleton(host);
   }
 }
 
