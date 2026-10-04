@@ -48,15 +48,11 @@ if (problems.length) {
 
 initRoutes();
 
-// Cleanup sesi expired setiap 1 jam
-setInterval(() => {
-  const removed = cleanupExpiredSessions();
-  if (removed > 0) console.log(`[cleanup] ${removed} sesi expired dihapus`);
-  // Heartbeat disimpan 90 hari (cukup untuk laporan SLA bulanan + margin).
-  cleanupHeartbeats(90 * 24 * 3_600_000);
-}, 3_600_000);
-
-const server = createServer(async (req, res) => {
+/**
+ * Penangan permintaan — dipakai oleh SEMUA listener (IPv4 + IPv6).
+ * Dipisah jadi fungsi supaya logikanya tidak terduplikasi.
+ */
+async function requestHandler(req, res) {
   const startedAt = Date.now();
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   const pathname = url.pathname;
@@ -120,21 +116,59 @@ const server = createServer(async (req, res) => {
     console.error('[server] handler error:', err);
     if (!res.headersSent) sendJson(res, 500, { ok: false, error: 'kesalahan_internal' });
   }
-});
+}
 
-server.listen(config.port, config.host, () => {
-  console.log(`[startup] layanan token berjalan di http://${config.host}:${config.port}`);
-  console.log(`[startup] database: ${config.dbPath}`);
-  console.log(`[startup] origin diizinkan: ${config.allowedOrigins.join(', ') || '(tidak ada)'}`);
-});
+// Cleanup sesi expired setiap 1 jam
+setInterval(() => {
+  const removed = cleanupExpiredSessions();
+  if (removed > 0) console.log(`[cleanup] ${removed} sesi expired dihapus`);
+  // Heartbeat disimpan 90 hari (cukup untuk laporan SLA bulanan + margin).
+  cleanupHeartbeats(90 * 24 * 3_600_000);
+}, 3_600_000);
+
+/**
+ * Bind ke KEDUA alamat loopback (IPv4 + IPv6).
+ *
+ * Kenapa: di banyak sistem `localhost` di-resolve ke `::1` (IPv6) lebih dulu.
+ * Kalau layanan hanya listen di IPv4, SSH tunnel dengan target `localhost`
+ * (mis. `ssh -L 8789:localhost:8788`) akan gagal — browser menggantung.
+ * Dengan listen di dua-duanya, cara apa pun menulis `localhost` tetap bekerja.
+ *
+ * Tetap aman: hanya alamat loopback, tidak ada antarmuka publik.
+ */
+const servers = [];
+
+function startListener(host, label) {
+  const s = createServer(requestHandler);
+  s.on('error', (err) => {
+    // Satu keluarga alamat tidak tersedia (mis. IPv6 dimatikan) bukan masalah:
+    // listener lain tetap melayani.
+    console.error(`[startup] listener ${label} (${host}) gagal: ${err.message}`);
+  });
+  s.listen(config.port, host, () => {
+    console.log(`[startup] ${label} → http://${host}:${config.port}`);
+  });
+  servers.push(s);
+  return s;
+}
+
+startListener('127.0.0.1', 'IPv4');
+startListener('::1', 'IPv6');
+
+console.log(`[startup] database: ${config.dbPath}`);
+console.log(`[startup] origin diizinkan: ${config.allowedOrigins.join(', ') || '(tidak ada)'}`);
 
 /** Matikan dengan bersih supaya WAL SQLite tersimpan. */
 function shutdown(signal) {
   console.log(`[shutdown] menerima ${signal}, menutup...`);
-  server.close(() => {
-    closeDb();
-    process.exit(0);
-  });
+  let pending = servers.length;
+  const done = () => {
+    if (--pending <= 0) {
+      closeDb();
+      process.exit(0);
+    }
+  };
+  for (const s of servers) s.close(done);
   // Jaring pengaman: paksa keluar kalau koneksi menggantung.
   setTimeout(() => { closeDb(); process.exit(0); }, 3000).unref();
 }
