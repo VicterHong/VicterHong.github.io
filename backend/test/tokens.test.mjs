@@ -250,9 +250,22 @@ test('distinctIpsForToken hanya menghitung IP dalam jendela waktu', () => {
     recordEvent({ tokenId: issued.id, action: 'validate', outcome: 'ok', ip: '1.1.1.1' });
     recordEvent({ tokenId: issued.id, action: 'validate', outcome: 'ok', ip: '2.2.2.2' });
     recordEvent({ tokenId: issued.id, action: 'validate', outcome: 'ok', ip: '3.3.3.3' });
+
+    // Jendela lebar: semua tiga IP terhitung.
     assert.equal(distinctIpsForToken(issued.id, 3_600_000).length, 3);
-    // Jendela sangat pendek: tidak ada yang tercatat.
-    assert.equal(distinctIpsForToken(issued.id, 1).length, 0);
+
+    // Jendela sangat pendek: harus kosong.
+    //
+    // CATATAN: jendela 1 ms TIDAK bisa dipakai — di mesin lambat (CI runner),
+    // tiga recordEvent() bisa memakan >1 ms sehingga sebagian masih masuk
+    // jendela dan test jadi flaky. Yang diuji adalah PERILAKU jendela waktu,
+    // bukan ketepatan milidetik — jadi pakai jendela 0 ms (batas bawah pasti:
+    // `since = now() - 0 = now`, dan event tercatat SEBELUM now() dipanggil).
+    assert.equal(distinctIpsForToken(issued.id, 0).length, 0,
+      'jendela 0 ms harus mengembalikan kosong');
+
+    // Jendela negatif juga harus kosong (tidak ada yang "di masa depan").
+    assert.equal(distinctIpsForToken(issued.id, -1000).length, 0);
   });
 });
 
