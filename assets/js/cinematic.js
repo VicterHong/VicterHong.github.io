@@ -85,27 +85,18 @@ export function initScrollScrubVideo(selector = '#heroVideo') {
   // dengan jari dan tidak melihat hubungan sebab-akibat antara gulir dan video.
   // Lebih baik video berjalan sendiri (autoplay loop) — itulah yang membuat
   // halaman terasa hidup di HP.
+  //
+  // Loop MULUS tidak lagi diakali dari JS: berkas videonya sendiri sudah
+  // seamless (dibuat oleh scripts/make-seamless-loop.sh — crossfade tail→head
+  // sehingga frame awal == frame akhir). Atribut `loop` bawaan browser sudah
+  // cukup, dan justru paling mulus karena tidak ada seek saat pergantian.
   const isTouch = window.matchMedia('(hover: none)').matches || 'ontouchstart' in window;
   if (isTouch) {
     video.loop = true;
     video.autoplay = true;
     video.muted = true;
     video.playsInline = true; // iOS requirement
-
-    // Seamless loop optimization: restart sebelum video benar-benar habis
-    // untuk menghilangkan gap/jeda hitam antara loop
-    let loopRestartTimeout;
-    
-    video.addEventListener('timeupdate', () => {
-      // Restart 100ms sebelum video habis (menghilangkan gap)
-      if (video.duration - video.currentTime < 0.1) {
-        clearTimeout(loopRestartTimeout);
-        loopRestartTimeout = setTimeout(() => {
-          video.currentTime = 0;
-          if (video.paused) video.play().catch(() => {});
-        }, 50); // 50ms sebelum end untuk smooth transition
-      }
-    });
+    video.setAttribute('playsinline', '');
 
     const tryPlay = () => {
       const p = video.play();
@@ -128,9 +119,7 @@ export function initScrollScrubVideo(selector = '#heroVideo') {
     // Percobaan terakhir setelah beberapa detik (kadang metadata baru siap).
     setTimeout(retry, 2500);
 
-    return () => {
-      clearTimeout(loopRestartTimeout);
-    };
+    return;
   }
 
   let duration = 0;
