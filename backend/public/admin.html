@@ -753,6 +753,10 @@ td, th { word-break: break-word; }
             <option value="standard">Standard</option>
             <option value="enterprise">Enterprise</option>
           </select>
+          <select id="tokenProjectFilter">
+            <option value="">Semua proyek</option>
+            <!-- Opsi diisi otomatis dari /api/config -->
+          </select>
           <button class="btn-primary" id="issueBtn">+ Terbitkan token</button>
         </div>
         <div id="tokensTable"></div>
@@ -952,7 +956,10 @@ $('#loginBtn').addEventListener('click', async () => {
     sessionStorage.setItem(KEY_STORAGE, adminKey);
     $('#loginError').classList.add('hidden');
     showApp();
-    loadAll();
+    // Isi dropdown proyek dulu — kalau tidak, filter proyek kosong
+    // setelah login manual (jalur boot otomatis sudah melakukannya).
+    await loadProjectOptions();
+    await loadAll();
   } catch {
     $('#loginError').textContent = 'Kunci admin salah atau backend tidak berjalan.';
     $('#loginError').classList.remove('hidden');
@@ -1066,15 +1073,26 @@ async function loadOverview() {
 async function loadTokens() {
   const status = $('#tokenStatusFilter').value;
   const tier = $('#tokenTierFilter').value;
+  const project = $('#tokenProjectFilter')?.value ?? '';
   const qs = new URLSearchParams({ limit: '500' });
   if (status) qs.set('status', status);
   if (tier) qs.set('tier', tier);
+  if (project) qs.set('project', project);
 
   const data = await api(`/api/admin/tokens?${qs}`);
   const rows = data.tokens ?? [];
 
+  // Ringkasan filter aktif — supaya jelas apa yang sedang disaring.
+  const active = [
+    status && `status: ${status}`,
+    tier && `tier: ${tier}`,
+    project && `proyek: ${project}`,
+  ].filter(Boolean);
+
   if (rows.length === 0) {
-    $('#tokensTable').innerHTML = '<div class="empty">Tidak ada token yang cocok.</div>';
+    $('#tokensTable').innerHTML = `<div class="empty">
+      Tidak ada token yang cocok${active.length ? ` (${active.join(', ')})` : ''}.
+    </div>`;
     return;
   }
 
@@ -1239,6 +1257,7 @@ function openRevokeModal(info) {
 
 $('#tokenStatusFilter').addEventListener('change', loadTokens);
 $('#tokenTierFilter').addEventListener('change', loadTokens);
+$('#tokenProjectFilter').addEventListener('change', loadTokens);
 
 // ── Issue token modal ────────────────────────────────────────────
 $('#issueBtn').addEventListener('click', async () => {
@@ -1910,20 +1929,41 @@ async function loadProjectOptions() {
   try {
     const cfg = await fetch('/api/config', { cache: 'no-store' }).then(r => r.json());
     const projects = cfg.projects ?? [];
-    const sel = $('#funnelProject');
-    if (!sel || !projects.length) return;
+    if (!projects.length) return;
 
-    // Pertahankan pilihan "Semua proyek" + pilihan aktif saat ini.
-    const current = sel.value;
-    sel.innerHTML = '<option value="">Semua proyek</option>' +
-      projects.map(p => `<option value="${escapeHtml(p.slug)}">${escapeHtml(p.name)}</option>`).join('');
-    if (current) sel.value = current;
+    const optionsHtml = projects.map(p =>
+      `<option value="${escapeHtml(p.slug)}">${escapeHtml(p.name)}</option>`
+    ).join('');
+
+    // Dropdown funnel — pertahankan pilihan aktif.
+    const funnelSel = $('#funnelProject');
+    if (funnelSel) {
+      const current = funnelSel.value;
+      funnelSel.innerHTML = '<option value="">Semua proyek</option>' + optionsHtml;
+      if (current) funnelSel.value = current;
+    }
+
+    // Dropdown filter proyek di tab Token — pertahankan pilihan aktif.
+    const tokenSel = $('#tokenProjectFilter');
+    if (tokenSel) {
+      const current = tokenSel.value;
+      tokenSel.innerHTML = '<option value="">Semua proyek</option>' + optionsHtml;
+      if (current) tokenSel.value = current;
+    }
   } catch { /* gagal: dropdown tetap berisi "Semua proyek" */ }
 }
 
 if (adminKey) {
   api('/api/admin/tokens?limit=1')
-    .then(() => { showApp(); loadProjectOptions(); loadAll(); })
+    .then(async () => {
+      showApp();
+      // Isi dropdown proyek DULU, baru muat data — supaya filter proyek
+      // sudah punya opsi saat tabel pertama kali dirender. Sebelumnya
+      // keduanya jalan bersamaan tanpa await, sehingga dropdown masih
+      // kosong ketika pengguna membuka tab Token.
+      await loadProjectOptions();
+      await loadAll();
+    })
     .catch(() => showLogin());
 } else {
   showLogin();

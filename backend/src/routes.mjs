@@ -129,11 +129,17 @@ function isAdmin(req) {
   return timingSafeEqual(Buffer.from(key, 'utf8'), Buffer.from(expected, 'utf8'));
 }
 
-/** Bungkus handler: tangkap error supaya satu permintaan buruk tidak menjatuhkan layanan. */
+/** Bungkus handler: tangkap error supaya satu permintaan buruk tidak menjatuhkan layanan.
+ *
+ *  PENTING: `url` (argumen ke-4) HARUS diteruskan. Sebelumnya wrapper ini
+ *  hanya memanggil handler(req, res, params) — akibatnya SEMUA handler yang
+ *  membaca `url.searchParams` (filter, limit, pagination, query param)
+ *  menerima undefined dan diam-diam mengabaikan filternya. 29 handler
+ *  terpengaruh; filter di panel admin jadi tidak berfungsi. */
 function safe(handler) {
-  return async (req, res, params) => {
+  return async (req, res, params, url) => {
     try {
-      await handler(req, res, params);
+      await handler(req, res, params, url);
     } catch (err) {
       const code = err?.statusCode ?? 500;
       if (code >= 500) console.error('[routes] error:', err);
