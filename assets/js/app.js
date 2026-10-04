@@ -397,6 +397,47 @@ document.querySelectorAll('[data-icon]').forEach((el) => {
   if (svg) el.replaceWith(svg);
 });
 
+// Menu navigasi di layar kecil — panel dropdown + tirai gelap.
+// 6 tautan tidak muat di bawah ~900px; tanpa ini nav membungkus & terpotong.
+(function initNavToggle() {
+  const toggle = $('#navToggle');
+  const nav = $('#siteNav');
+  const scrim = $('#navScrim');
+  if (!toggle || !nav) return;
+
+  const setOpen = (open) => {
+    nav.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Tutup menu' : 'Buka menu');
+    if (scrim) scrim.classList.toggle('is-visible', open);
+  };
+
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(!nav.classList.contains('is-open'));
+  });
+
+  if (scrim) scrim.addEventListener('click', () => setOpen(false));
+  nav.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
+
+  document.addEventListener('click', (e) => {
+    if (!nav.classList.contains('is-open')) return;
+    if (nav.contains(e.target) || toggle.contains(e.target)) return;
+    setOpen(false);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && nav.classList.contains('is-open')) {
+      setOpen(false);
+      toggle.focus();
+    }
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 900) setOpen(false);
+  }, { passive: true });
+})();
+
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();
 

@@ -122,7 +122,7 @@
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text">Victer</span>
     </a>
-    <nav class="site-nav" aria-label="Navigasi utama">
+    <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
       <a href="#s6ahns">Tentang</a>
       <a href="#cckxsk">Layanan</a>
       <a href="#utqvwf">Proyek</a>
@@ -130,10 +130,15 @@
       <a href="/docs">Panduan</a>
       <a href="#89fk39">Kontak</a>
     </nav>
-    <a class="nav-cta" href="#89fk39">Hubungi</a>
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="siteNav">
+      <span data-icon="menu" data-icon-size="20"></span>
+    </button>
   </div>
   <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
 </header>
+
+<!-- Tirai gelap saat menu mobile terbuka — memisahkan panel dari konten. -->
+<div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
 
 <main id="zs6xae">
 

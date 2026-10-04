@@ -200,3 +200,8 @@ function initNavToggle() {
 loadHeroVideo();
 initScrollChrome();
 initNavToggle();
+
+// Logo interaktif — sama seperti halaman utama supaya kedua halaman konsisten.
+import('./logo.js').then(({ mountInteractiveLogo }) => {
+  mountInteractiveLogo();
+}).catch(() => { /* logo statis tetap tampil kalau modul gagal dimuat */ });

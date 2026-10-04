@@ -170,32 +170,99 @@ a { color: inherit; text-decoration: none; }
 .site-nav a { transition: color 0.2s var(--ease); }
 .site-nav a:hover { color: var(--text); }
 
-/* CTA di navigasi — standar portofolio premium: selalu ada satu aksi jelas
-   di kanan atas, bukan hanya daftar anchor. */
-.nav-cta {
-  padding: 0.45rem 1rem;
-  font-size: 0.86rem;
-  font-weight: 500;
-  color: #1a0d06;
-  background: var(--accent);
-  border-radius: 999px;
-  transition: background 0.2s var(--ease), transform 0.2s var(--ease);
-  white-space: nowrap;
-}
-.nav-cta:hover { background: #ff8b5c; transform: translateY(-1px); }
+/* Catatan: tombol CTA "Hubungi" di header DIHAPUS — "Kontak" sudah ada di
+   navigasi, jadi CTA hanya mengulang tujuan yang sama dan menambah noise.
+   Aksi kontak tetap tersedia lewat tautan navigasi dan form di halaman. */
 
-@media (max-width: 720px) {
-  /* Lima menu + logo tidak muat di layar sempit. "Cara kerja" disembunyikan
-     (masih bisa diakses lewat scroll halaman) supaya sisanya tidak berdesakan. */
-  .site-nav { gap: 1rem; font-size: 0.82rem; }
-  .site-nav a[href="#5nfyzw"] { display: none; }
-  .brand-text { display: none; }
+/* ── Navigasi layar kecil ─────────────────────────────────────────────────────
+   6 tautan + logo tidak muat di bawah ~900px. Solusi: nav jadi panel dropdown
+   yang dibuka tombol menu, dengan tirai gelap di belakangnya. Berlaku untuk
+   SEMUA halaman (home + panduan) — satu perilaku, tidak ada pengecualian.
+
+   Pendekatan lama (menyembunyikan tautan satu per satu lewat media query)
+   dihapus: menyembunyikan tautan berarti sebagian navigasi tidak bisa diakses. */
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+  line-height: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-toggle:hover { color: var(--text); border-color: var(--text-faint); }
+.nav-toggle .icon { display: block; }
+
+.nav-scrim { display: none; }
+
+@media (max-width: 900px) {
+  /* Logo kiri, tombol menu kanan — jarak otomatis lewat margin-right. */
+  .site-header-inner { gap: 0.75rem; }
+  .site-header-inner .brand { margin-right: auto; }
+
+  /* Nav jadi panel dropdown — OPAQUE, bukan transparan.
+     Panel semi-transparan membuat konten halaman tembus dan terlihat
+     berantakan; panel solid memisahkan menu dengan tegas. */
+  .site-nav {
+    position: absolute;
+    top: calc(100% + 1px);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0;
+    background: #0f0f12;
+    border-bottom: 1px solid var(--line);
+    padding: 0.4rem 0;
+    display: none;
+    z-index: 40;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+  }
+  .site-nav.is-open { display: flex; }
+
+  .site-nav a {
+    padding: 0.9rem 1.25rem;
+    font-size: 0.95rem;
+    /* Kontras dinaikkan (--text-dim → --text) supaya tautan jelas terbaca
+       di atas panel gelap — standar aksesibilitas WCAG AA. */
+    color: var(--text);
+    border-bottom: 1px solid var(--line-soft);
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+  .site-nav a:last-child { border-bottom: none; }
+  .site-nav a:hover { color: var(--accent); }
+  .site-nav a[aria-current="page"] {
+    color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 600;
+  }
+
+  .nav-toggle { display: inline-flex; align-items: center; flex-shrink: 0; }
+
+  /* Tirai gelap di belakang panel — memisahkan menu dari konten halaman
+     supaya mata tidak terbagi antara keduanya. */
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 35;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .nav-scrim.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
-@media (max-width: 420px) {
-  .site-nav { gap: 0.75rem; font-size: 0.78rem; }
-  .site-nav a[href="#cckxsk"] { display: none; }
-  .nav-cta { padding: 0.4rem 0.8rem; font-size: 0.78rem; }
+@media (max-width: 480px) {
+  .brand-text { font-size: 0.95rem; }
 }
 
 /* ── PEMBUKA ─────────────────────────────────────────────────────────────────── */
