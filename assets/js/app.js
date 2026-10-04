@@ -20,6 +20,9 @@ import { initMagneticCards } from './magnetic.js';
 import { initHorizontalScroll } from './hscroll.js';
 import { initOrbMenu } from './orb-menu.js';
 import { initVariableWeight } from './variable-weight.js';
+import { initParticles } from './particles.js';
+import { initAllVideoPlayers } from './video-player.js';
+import { initMasonry } from './masonry.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -367,6 +370,18 @@ initOrbMenu();
 // Variable font weight on scroll — dynamic typography (FASE 2). Dipanggil
 // setelah [data-variable-weight] titles sudah ada.
 initVariableWeight();
+
+// Three.js particle system — premium hero background (FASE 3). Dipanggil
+// awal untuk replace video/Astra background.
+initParticles();
+
+// Custom video player — ornamental controls (FASE 3). Dipanggil
+// setelah DOM ready untuk video [data-custom-player].
+initAllVideoPlayers();
+
+// Masonry portfolio layout — staggered grid (FASE 3). Dipanggil
+// setelah content rendered supaya items sudah ada.
+initMasonry();
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();

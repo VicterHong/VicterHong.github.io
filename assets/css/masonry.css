@@ -1,0 +1,60 @@
+/**
+ * Masonry Portfolio Layout Styles
+ * Dynamic grid with staggered heights
+ */
+
+[data-masonry] {
+  --masonry-columns: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--masonry-columns), 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Fallback positioning for JS masonry */
+[data-masonry].is-masonry-js {
+  display: block;
+}
+
+[data-masonry] > * {
+  break-inside: avoid; /* For CSS Grid Masonry future support */
+}
+
+/* Responsive columns */
+@media (max-width: 1200px) {
+  [data-masonry] {
+    --masonry-columns: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  [data-masonry] {
+    --masonry-columns: 1;
+  }
+}
+
+/* Masonry items fade in on load */
+[data-masonry] > * {
+  opacity: 0;
+  animation: masonryFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--item-index, 0) * 0.05s);
+}
+
+@keyframes masonryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  [data-masonry] > * {
+    animation: none;
+    opacity: 1;
+  }
+}
