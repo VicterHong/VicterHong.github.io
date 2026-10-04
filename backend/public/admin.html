@@ -454,6 +454,87 @@ td, th { word-break: break-word; }
 .adv-toggle[aria-expanded="true"] .chev { transform: rotate(90deg); }
 .adv-body { display: none; }
 .adv-body.is-open { display: block; }
+
+/* ── Modal pencabutan token ─────────────────────────────────────────────────── */
+.modal-sm { max-width: 440px; }
+
+/* Ringkasan token yang akan dicabut — supaya admin tahu pasti yang mana */
+.revoke-target {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 0.875rem;
+  margin-bottom: 1.125rem;
+}
+.revoke-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
+}
+.revoke-row + .revoke-row { border-top: 1px solid var(--surface-2); }
+.revoke-key {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.revoke-val {
+  text-align: right;
+  word-break: break-word;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+.revoke-val:not(code) { font-family: inherit; font-size: 0.8rem; }
+
+/* Chip alasan — satu ketuk, tidak perlu mengetik */
+.reason-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+.reason-chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 38px;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.reason-chip:hover { border-color: var(--accent); }
+.reason-chip.is-active {
+  border-color: var(--accent);
+  background: rgba(124, 156, 255, 0.14);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Peringatan tegas — tindakan tidak bisa dibatalkan */
+.revoke-warning {
+  margin-top: 1rem;
+  padding: 0.7rem 0.85rem;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  color: var(--err);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/* Tombol konfirmasi destruktif — merah, bukan biru aksi biasa */
+.modal-actions .confirm.danger { background: var(--err); color: #1a0d0d; }
+.modal-actions .confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .btn-primary {
   background: var(--accent);
   border: none;
@@ -980,18 +1061,145 @@ async function loadTokens() {
   }</tbody></table>`;
 
   $$('[data-revoke]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const id = btn.dataset.revoke;
-      const reason = prompt('Alasan pencabutan:', 'manual') ?? 'manual';
-      if (!reason) return;
-      await fetch('/api/admin/token/revoke', {
+      // Cari data token dari tabel yang sudah dirender — supaya modal bisa
+      // menampilkan konteks (siapa penerimanya, proyek apa) sebelum mencabut.
+      const row = btn.closest('tr');
+      const cell = (label) => row?.querySelector(`td[data-label="${label}"]`)?.textContent?.trim() ?? '';
+      const tokenInfo = {
+        id,
+        project: cell('Proyek'),
+        issuedTo: cell('Untuk'),
+        expires: cell('Kedaluwarsa'),
+      };
+      openRevokeModal(tokenInfo);
+    });
+  });
+}
+
+// ── Modal pencabutan token ────────────────────────────────────────
+// Menggantikan prompt() bawaan browser yang terlihat murahan dan tidak
+// memberi konteks. Modal ini menampilkan token mana yang dicabut, alasan
+// cepat (satu ketuk), dan peringatan tegas bahwa tindakan tidak bisa dibatalkan.
+const REVOKE_REASONS = [
+  { value: 'kontrak-selesai', label: 'Kontrak selesai' },
+  { value: 'penyalahgunaan', label: 'Penyalahgunaan / sharing' },
+  { value: 'permintaan-klien', label: 'Permintaan klien' },
+  { value: 'pengujian', label: 'Pengujian selesai' },
+  { value: 'lainnya', label: 'Lainnya' },
+];
+
+function openRevokeModal(info) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal modal-sm">
+      <h2>Cabut token</h2>
+
+      <div class="revoke-target">
+        <div class="revoke-row">
+          <span class="revoke-key">ID</span>
+          <code class="revoke-val">${escapeHtml(info.id)}</code>
+        </div>
+        ${info.project ? `<div class="revoke-row">
+          <span class="revoke-key">Proyek</span>
+          <span class="revoke-val">${escapeHtml(info.project)}</span>
+        </div>` : ''}
+        ${info.issuedTo && info.issuedTo !== '—' ? `<div class="revoke-row">
+          <span class="revoke-key">Penerima</span>
+          <span class="revoke-val">${escapeHtml(info.issuedTo)}</span>
+        </div>` : ''}
+        ${info.expires ? `<div class="revoke-row">
+          <span class="revoke-key">Kedaluwarsa</span>
+          <span class="revoke-val">${escapeHtml(info.expires)}</span>
+        </div>` : ''}
+      </div>
+
+      <div class="field-group">
+        <span class="field-group-label">Alasan</span>
+        <div class="reason-grid" id="revokeReasons">
+          ${REVOKE_REASONS.map(r => `
+            <button type="button" class="reason-chip" data-reason="${escapeHtml(r.value)}">
+              ${escapeHtml(r.label)}
+            </button>`).join('')}
+        </div>
+        <div class="field" id="revokeCustomWrap" style="display:none">
+          <input type="text" id="revokeCustom" placeholder="Tulis alasan…" maxlength="120">
+        </div>
+      </div>
+
+      <div class="revoke-warning">
+        Token langsung tidak berlaku. Tindakan ini tidak bisa dibatalkan.
+      </div>
+
+      <div class="modal-actions">
+        <button class="cancel" id="rvCancel">Batal</button>
+        <button class="confirm danger" id="rvConfirm" disabled>Cabut token</button>
+      </div>
+    </div>`;
+  document.body.append(backdrop);
+
+  const confirmBtn = $('#rvConfirm');
+  const customWrap = $('#revokeCustomWrap');
+  const customInput = $('#revokeCustom');
+  let selected = null;
+
+  // Pilih alasan — chip aktif, tombol konfirmasi menyala.
+  $('#revokeReasons').addEventListener('click', (e) => {
+    const chip = e.target.closest('.reason-chip');
+    if (!chip) return;
+    $$('.reason-chip').forEach(c => c.classList.remove('is-active'));
+    chip.classList.add('is-active');
+    selected = chip.dataset.reason;
+
+    if (selected === 'lainnya') {
+      customWrap.style.display = '';
+      customInput.focus();
+      confirmBtn.disabled = true; // tunggu alasan ditulis
+    } else {
+      customWrap.style.display = 'none';
+      confirmBtn.disabled = false;
+    }
+  });
+
+  customInput?.addEventListener('input', () => {
+    confirmBtn.disabled = customInput.value.trim().length < 3;
+  });
+
+  $('#rvCancel').addEventListener('click', () => backdrop.remove());
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
+
+  confirmBtn.addEventListener('click', async () => {
+    const reason = selected === 'lainnya'
+      ? customInput.value.trim()
+      : (REVOKE_REASONS.find(r => r.value === selected)?.label ?? selected);
+    if (!reason) return;
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Mencabut…';
+
+    try {
+      const res = await fetch('/api/admin/token/revoke', {
         method: 'POST',
         headers: { 'x-admin-key': adminKey, 'content-type': 'application/json' },
-        body: JSON.stringify({ id, reason }),
+        body: JSON.stringify({ id: info.id, reason }),
       });
+      const data = await res.json();
+      if (!data.ok) {
+        toast(`Gagal: ${data.error ?? 'tidak diketahui'}`, 'err');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Cabut token';
+        return;
+      }
+      backdrop.remove();
       toast('Token dicabut.');
       loadTokens();
-    });
+    } catch {
+      toast('Gagal menghubungi server.', 'err');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Cabut token';
+    }
   });
 }
 
