@@ -229,48 +229,44 @@ function loadHeroVideo() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   // Prefer WebM (lebih kecil), fallback MP4 (kompatibilitas luas).
-  // Cek HEAD dulu supaya tidak ada request besar kalau berkas belum ada.
+  // Browser memilih format pertama yang didukung lewat <source> — TIDAK perlu
+  // probe HEAD manual (dulu itu menambah 1 round-trip dan meninggalkan
+  // request yang di-abort di network log). Kalau semua gagal, event 'error'
+  // pada <video> yang menangani: gradien cadangan tetap tampil.
   const sources = [
     { src: 'assets/hero.webm', type: 'video/webm' },
     { src: 'assets/hero.mp4', type: 'video/mp4' },
   ];
 
-  function trySource(index) {
-    if (index >= sources.length) return;       // semua gagal: gradien cadangan yang tampil
-    const { src, type } = sources[index];
-    fetch(src, { method: 'HEAD' })
-      .then((res) => {
-        if (!res.ok) return trySource(index + 1);
-        const ct = res.headers.get('content-type') ?? '';
-        if (!ct.startsWith('video/')) return trySource(index + 1);
-
-        // Bersihkan source lama dan tambahkan <source> element agar browser memilih format terbaik.
-        video.innerHTML = '';
-        for (const s of sources) {
-          video.appendChild(el('source', { src: s.src, type: s.type }));
-        }
-        // Mode: desktop pakai scroll-scrub (video dikendalikan gulir);
-        // perangkat sentuh pakai autoplay loop (scrub tidak terasa di HP).
-        // cinematic.js yang menentukan perilaku akhirnya.
-        const isTouch = window.matchMedia('(hover: none)').matches || 'ontouchstart' in window;
-        if (isTouch) {
-          video.autoplay = true;
-          video.loop = true;
-          video.muted = true;
-        } else {
-          video.autoplay = false;
-          video.loop = false;
-          video.pause();
-        }
-        video.addEventListener('loadeddata', () => {
-          video.classList.add('is-ready', 'is-scrub');
-        }, { once: true });
-        video.load();
-      })
-      .catch(() => trySource(index + 1));
+  video.innerHTML = '';
+  for (const s of sources) {
+    video.appendChild(el('source', { src: s.src, type: s.type }));
   }
 
-  trySource(0);
+  // Mode: desktop pakai scroll-scrub (video dikendalikan gulir);
+  // perangkat sentuh pakai autoplay loop (scrub tidak terasa di HP).
+  // cinematic.js yang menentukan perilaku akhirnya.
+  const isTouch = window.matchMedia('(hover: none)').matches || 'ontouchstart' in window;
+  if (isTouch) {
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = true;
+  } else {
+    video.autoplay = false;
+    video.loop = false;
+    video.pause();
+  }
+
+  video.addEventListener('loadeddata', () => {
+    video.classList.add('is-ready', 'is-scrub');
+  }, { once: true });
+
+  // Semua sumber gagal (berkas belum ada): biarkan gradien cadangan tampil.
+  video.addEventListener('error', () => {
+    video.classList.remove('is-ready', 'is-scrub');
+  }, { once: true });
+
+  video.load();
 }
 
 // ── MUNCUL SAAT DIGULIR ────────────────────────────────────────────────────────
