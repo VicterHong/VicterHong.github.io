@@ -38,6 +38,7 @@ import { scoreLead } from './spam-guard.mjs';
 import { verifyTurnstile, turnstileMessage } from './turnstile.mjs';
 import { slaSummary, slaReport } from './sla.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
+import { listProjects, isKnownProject } from './projects.mjs';
 import {
   createCollection, getCollection, listCollections,
   saveItem, getItem, listItems, setItemStatus, deleteItem,
@@ -338,6 +339,9 @@ export const routes = [
           enabled: Boolean(config.turnstileSiteKey),
           site_key: config.turnstileSiteKey,
         },
+        // Daftar proyek — satu sumber kebenaran dari assets/js/data/projects.js.
+        // Dipakai panel admin & form agar tidak ada daftar hardcoded.
+        projects: listProjects(),
       });
     }),
   },
@@ -736,6 +740,19 @@ export const routes = [
       const slug = String(body.project ?? '').trim();
       if (!isValidSlug(slug)) return sendJson(res, 400, { ok: false, error: 'proyek_tidak_valid' });
 
+      // Tolak slug proyek yang tidak dikenal — mencegah token "yatim" karena
+      // salah ketik (mis. 'mina ' atau 'MINA'), yang tidak akan pernah bisa
+      // dibuka halamannya.
+      const known = listProjects();
+      if (known.length && !isKnownProject(slug)) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'proyek_tidak_dikenal',
+          message: `Proyek "${slug}" tidak ada dalam daftar. Pilihan: ${known.map(p => p.slug).join(', ')}`,
+          projects: known,
+        });
+      }
+
       // Parse scopes array
       let scopes = null;
       if (body.scopes && Array.isArray(body.scopes)) {
@@ -975,6 +992,15 @@ export const routes = [
         count: events.length,
         events,
       });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/projects',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      sendJson(res, 200, { ok: true, projects: listProjects() });
     }),
   },
 

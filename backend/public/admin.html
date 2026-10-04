@@ -364,6 +364,38 @@ td, th { word-break: break-word; }
   .table-wrap table td { font-size: 0.72rem; }
   .table-wrap table td::before { font-size: 0.65rem; }
 }
+
+/* ── Modal: pilihan proyek ──────────────────────────────────────────────────── */
+.field-hint {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+  line-height: 1.4;
+}
+.proj-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+.proj-check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  /* Target sentuh nyaman di HP */
+  min-height: 42px;
+}
+.proj-check:hover { border-color: var(--accent); }
+.proj-check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.proj-check input:disabled { opacity: 0.35; }
+.proj-check:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
+.proj-check:has(input:checked) { border-color: var(--accent); background: rgba(124, 156, 255, 0.08); }
 .btn-primary {
   background: var(--accent);
   border: none;
@@ -560,8 +592,7 @@ td, th { word-break: break-word; }
           <div class="spacer"></div>
           <select id="funnelProject">
             <option value="">Semua proyek</option>
-            <option value="mina">MINA</option>
-            <option value="spareparts">Spareparts</option>
+            <!-- Pilihan diisi otomatis oleh JS dari /api/config (tidak hardcoded) -->
           </select>
           <select id="funnelDays">
             <option value="7">7 hari</option>
@@ -874,16 +905,45 @@ $('#tokenStatusFilter').addEventListener('change', loadTokens);
 $('#tokenTierFilter').addEventListener('change', loadTokens);
 
 // ── Issue token modal ────────────────────────────────────────────
-$('#issueBtn').addEventListener('click', () => {
+$('#issueBtn').addEventListener('click', async () => {
+  // Ambil daftar proyek dari server — TIDAK hardcoded, jadi proyek baru
+  // otomatis muncul tanpa menyentuh HTML.
+  let projects = [];
+  try {
+    const cfg = await fetch('/api/config', { cache: 'no-store' }).then(r => r.json());
+    projects = cfg.projects ?? [];
+  } catch { /* gagal: dropdown kosong, tapi modal tetap terbuka */ }
+
+  const projectOptions = projects.length
+    ? projects.map(p => `<option value="${escapeHtml(p.slug)}">${escapeHtml(p.name)}</option>`).join('')
+    : '<option value="">(daftar proyek tidak tersedia)</option>';
+
+  // Checkbox "akses tambahan" — satu token bisa membuka beberapa proyek.
+  // Proyek pertama = proyek utama (untuk halaman token); sisanya jadi scopes.
+  const extraOptions = projects.length > 1
+    ? projects.map(p => `
+        <label class="proj-check">
+          <input type="checkbox" name="mExtra" value="${escapeHtml(p.slug)}">
+          <span>${escapeHtml(p.name)}</span>
+        </label>`).join('')
+    : '';
+
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `
     <div class="modal">
       <h2>Terbitkan token baru</h2>
       <div class="field">
-        <label>Proyek *</label>
-        <select id="mProject"><option value="mina">MINA</option><option value="spareparts">Spareparts</option></select>
+        <label>Proyek utama *</label>
+        <select id="mProject">${projectOptions}</select>
+        <p class="field-hint">Token ini membuka halaman proyek utama.</p>
       </div>
+      ${extraOptions ? `
+      <div class="field">
+        <label>Akses tambahan (opsional)</label>
+        <div class="proj-checks" id="mExtraWrap">${extraOptions}</div>
+        <p class="field-hint">Centang proyek lain yang juga boleh dibuka dengan token ini.</p>
+      </div>` : ''}
       <div class="field-row">
         <div class="field">
           <label>Tier</label>
@@ -924,12 +984,40 @@ $('#issueBtn').addEventListener('click', () => {
     </div>`;
   document.body.append(backdrop);
 
+  // Proyek utama tidak boleh dicentang ganda di "akses tambahan".
+  const primarySel = $('#mProject');
+  const extraWrap = $('#mExtraWrap');
+  function syncExtras() {
+    if (!extraWrap) return;
+    const primary = primarySel.value;
+    extraWrap.querySelectorAll('input[name="mExtra"]').forEach(cb => {
+      const isPrimary = cb.value === primary;
+      cb.disabled = isPrimary;
+      if (isPrimary) cb.checked = false;
+    });
+  }
+  primarySel.addEventListener('change', syncExtras);
+  syncExtras();
+
   $('#mCancel').addEventListener('click', () => backdrop.remove());
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
 
   $('#mSubmit').addEventListener('click', async () => {
+    const primary = $('#mProject').value;
+    if (!primary) {
+      $('#mResult').innerHTML = '<div class="login-error">Pilih proyek dulu.</div>';
+      return;
+    }
+
+    // Kumpulkan scopes: proyek utama + yang dicentang (unik).
+    const extras = extraWrap
+      ? [...extraWrap.querySelectorAll('input[name="mExtra"]:checked')].map(cb => cb.value)
+      : [];
+    const scopes = [...new Set([primary, ...extras])];
+
     const body = {
-      project: $('#mProject').value,
+      project: primary,
+      scopes,
       tier: $('#mTier').value,
       expires_in_days: Number($('#mDays').value) || null,
       issued_to: $('#mIssuedTo').value.trim(),
@@ -945,12 +1033,16 @@ $('#issueBtn').addEventListener('click', () => {
     });
     const data = await res.json();
     if (!data.ok) {
-      $('#mResult').innerHTML = `<div class="login-error">Gagal: ${escapeHtml(data.error)}</div>`;
+      $('#mResult').innerHTML = `<div class="login-error">Gagal: ${escapeHtml(data.message || data.error)}</div>`;
       return;
     }
+    const scopeNote = scopes.length > 1
+      ? `<div class="warn-text">Token ini membuka ${scopes.length} proyek: ${scopes.map(s => `<code>${escapeHtml(s)}</code>`).join(', ')}</div>`
+      : '';
     $('#mResult').innerHTML = `
       <div class="token-reveal">
         <div class="warn-text">⚠️ Salin sekarang — token ini tidak bisa ditampilkan lagi.</div>
+        ${scopeNote}
         <code id="revealedToken">${escapeHtml(data.token)}</code>
         <button class="btn-sm" id="copyTokenBtn">Salin ke clipboard</button>
       </div>`;
@@ -1419,9 +1511,30 @@ $('#preflightBtn').addEventListener('click', async () => {
 });
 
 // ── Boot ─────────────────────────────────────────────────────────
+
+/**
+ * Isi dropdown proyek dari server — satu sumber kebenaran.
+ * Proyek baru yang ditambahkan di assets/js/data/projects.js otomatis
+ * muncul di sini tanpa menyentuh HTML panel admin.
+ */
+async function loadProjectOptions() {
+  try {
+    const cfg = await fetch('/api/config', { cache: 'no-store' }).then(r => r.json());
+    const projects = cfg.projects ?? [];
+    const sel = $('#funnelProject');
+    if (!sel || !projects.length) return;
+
+    // Pertahankan pilihan "Semua proyek" + pilihan aktif saat ini.
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Semua proyek</option>' +
+      projects.map(p => `<option value="${escapeHtml(p.slug)}">${escapeHtml(p.name)}</option>`).join('');
+    if (current) sel.value = current;
+  } catch { /* gagal: dropdown tetap berisi "Semua proyek" */ }
+}
+
 if (adminKey) {
   api('/api/admin/tokens?limit=1')
-    .then(() => { showApp(); loadAll(); })
+    .then(() => { showApp(); loadProjectOptions(); loadAll(); })
     .catch(() => showLogin());
 } else {
   showLogin();
