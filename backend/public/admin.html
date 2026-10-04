@@ -384,17 +384,17 @@ td, th { word-break: break-word; }
 /* Kelompok field — memberi hirarki visual tanpa menambah noise */
 .field-group {
   border-top: 1px solid var(--border);
-  padding-top: 0.875rem;
-  margin-top: 0.875rem;
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
 }
 .field-group:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
 .field-group-label {
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   color: var(--muted);
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.75rem;
   display: block;
 }
 
@@ -466,55 +466,76 @@ td, th { word-break: break-word; }
 /* ── Modal pencabutan token ─────────────────────────────────────────────────── */
 .modal-sm { max-width: 440px; }
 
-/* Ringkasan token yang akan dicabut — supaya admin tahu pasti yang mana */
+/* Ringkasan token yang akan dicabut — supaya admin tahu pasti yang mana.
+   Padding lebih lega + baris lebih tinggi supaya tidak terasa sesak. */
 .revoke-target {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.75rem 0.875rem;
-  margin-bottom: 1.125rem;
+  border-radius: 10px;
+  padding: 1rem 1.125rem;
+  margin-bottom: 1.5rem;
 }
 .revoke-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 0.75rem;
-  padding: 0.3rem 0;
+  gap: 1rem;
+  padding: 0.6rem 0;
   font-size: 0.8rem;
 }
+.revoke-row:first-child { padding-top: 0; }
+.revoke-row:last-child { padding-bottom: 0; }
 .revoke-row + .revoke-row { border-top: 1px solid var(--surface-2); }
 .revoke-key {
   color: var(--muted);
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   flex-shrink: 0;
+  padding-top: 0.1rem;
 }
 .revoke-val {
   text-align: right;
-  word-break: break-word;
+  word-break: break-all;
   font-family: var(--mono);
   font-size: 0.75rem;
+  line-height: 1.45;
+  min-width: 0;
+  flex: 1;
 }
-.revoke-val:not(code) { font-family: inherit; font-size: 0.8rem; }
+.revoke-val:not(code) {
+  font-family: inherit;
+  font-size: 0.8rem;
+  word-break: break-word;
+}
 
-/* Chip alasan — satu ketuk, tidak perlu mengetik */
+/* Chip alasan — satu ketuk, tidak perlu mengetik.
+   Grid 2 kolom sama lebar supaya tidak terlihat miring, jarak baris
+   disamakan dengan jarak kolom supaya tidak terasa padat. */
 .reason-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.35rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.reason-grid > .reason-chip:last-child:nth-child(odd) {
+  /* Chip terakhir kalau jumlahnya ganjil: ambil lebar penuh supaya
+     tidak menyisakan lubang kosong di sebelah kanan. */
+  grid-column: 1 / -1;
 }
 .reason-chip {
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 999px;
-  padding: 0.45rem 0.85rem;
+  padding: 0.6rem 1rem;
   font-size: 0.78rem;
   font-family: inherit;
   cursor: pointer;
-  min-height: 38px;
+  min-height: 42px;
+  width: 100%;
+  text-align: center;
+  line-height: 1.3;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 .reason-chip:hover { border-color: var(--accent); }
@@ -525,16 +546,20 @@ td, th { word-break: break-word; }
   font-weight: 600;
 }
 
+/* Input alasan kustom — beri napas di atas & bawah */
+#revokeCustomWrap { margin-top: 0.75rem; }
+#revokeCustomWrap input { padding: 0.7rem 0.85rem; }
+
 /* Peringatan tegas — tindakan tidak bisa dibatalkan */
 .revoke-warning {
-  margin-top: 1rem;
-  padding: 0.7rem 0.85rem;
+  margin-top: 1.5rem;
+  padding: 0.875rem 1rem;
   background: rgba(248, 113, 113, 0.08);
   border: 1px solid rgba(248, 113, 113, 0.3);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--err);
   font-size: 0.78rem;
-  line-height: 1.45;
+  line-height: 1.55;
 }
 
 /* Tombol konfirmasi destruktif — merah, bukan biru aksi biasa */
@@ -595,18 +620,32 @@ td, th { word-break: break-word; }
   -webkit-overflow-scrolling: touch;
 }
 /* Di HP: modal menempel bawah, sudut atas membulat — pola bottom-sheet
-   yang lebih nyaman dijangkau ibu jari daripada modal tengah. */
+   yang lebih nyaman dijangkau ibu jari daripada modal tengah.
+   TETAP beri margin samping supaya tidak terasa penuh sesak di tepi layar. */
 @media (max-width: 640px) {
-  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal-backdrop {
+    padding: 0 0.75rem;
+    align-items: flex-end;
+  }
   .modal {
     max-width: 100%;
-    max-height: 92vh;
-    border-radius: 14px 14px 0 0;
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
     border-bottom: none;
+    /* Padding lebih lega dari desktop: layar kecil butuh napas lebih. */
+    padding: 1.5rem 1.25rem;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+    /* Bayangan halus supaya modal "mengambang" — bukan menempel datar. */
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
   }
 }
-.modal h2 { font-size: 1.0625rem; margin-bottom: 1.25rem; }
-.field { margin-bottom: 0.875rem; }
+.modal h2 {
+  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.01em;
+}
+.field { margin-bottom: 1.125rem; }
+.field:last-of-type { margin-bottom: 0; }
 /* Label field — JANGAN pakai `display:block` global yang menimpa flex pada
    .proj-check. Label di dalam .proj-check sudah punya gaya sendiri. */
 .field > label {
@@ -630,22 +669,35 @@ td, th { word-break: break-word; }
 .modal-actions {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1.25rem;
+  /* Jarak lega dari konten di atasnya — tombol destruktif tidak boleh
+     terasa "menempel" pada peringatan. */
+  margin-top: 1.5rem;
   /* Tombol selalu terlihat — tidak ikut ter-scroll keluar layar.
      Ini penting di HP: pengguna harus bisa menekan Terbitkan/Batal
      tanpa menggulir ke bawah dulu. */
   position: sticky;
   bottom: 0;
   background: var(--surface);
-  padding-top: 0.875rem;
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  padding-top: 1.25rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   margin-bottom: -0.25rem;
   border-top: 1px solid var(--border);
   z-index: 2;
 }
-.modal-actions button { flex: 1; padding: 0.7rem; border-radius: 8px; font-size: 0.875rem; cursor: pointer; }
+.modal-actions button {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border-radius: 9px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 46px;
+  transition: opacity 0.15s, border-color 0.15s;
+}
 .modal-actions .cancel { background: none; border: 1px solid var(--border); color: var(--muted); }
+.modal-actions .cancel:hover { border-color: var(--text); color: var(--text); }
 .modal-actions .confirm { background: var(--accent); border: none; color: #0d0d0f; font-weight: 600; }
+.modal-actions .confirm:hover { opacity: 0.9; }
 
 .token-reveal {
   background: var(--bg);
