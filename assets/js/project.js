@@ -18,6 +18,7 @@ import { initAstra } from './astra.js';
 import { createNarrativeVideo } from './narrative.js';
 import { mountInteractiveLogo } from './logo.js';
 import { projects } from './data/projects.js';
+import { icon } from './icons.js';
 
 /**
  * Petakan kode akses acak → slug internal.
@@ -109,11 +110,14 @@ function renderLocked(payload) {
   h2.textContent = content.title ?? 'Detail arsitektur';
   head.append(h2);
 
-  // Badge tier
+  // Badge tier — ikon SVG, bukan emoji (konsisten di semua OS,
+  // bisa diwarnai CSS, dan tidak dibaca sebagai nama emoji oleh screen reader).
   const tier = payload?.tier ?? 'standard';
   const badge = document.createElement('span');
   badge.className = `tier-badge tier-${tier}`;
-  badge.textContent = tier === 'enterprise' ? '🛡️ Enterprise' : '🔒 Gated';
+  const badgeIcon = icon(tier === 'enterprise' ? 'shield' : 'lock', { size: 13 });
+  if (badgeIcon) badge.append(badgeIcon);
+  badge.append(document.createTextNode(tier === 'enterprise' ? 'Enterprise' : 'Gated'));
   head.append(badge);
 
   if (payload.issued_to || payload.company) {

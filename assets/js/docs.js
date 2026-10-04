@@ -1,16 +1,33 @@
 /**
- * Panduan penggunaan — pencarian & navigasi.
- * Ringan: tanpa dependency, filter client-side sederhana.
+ * Panduan penggunaan — daftar isi, pencarian, salin.
+ *
+ * Semua ikon memakai SVG inline (bukan emoji) supaya:
+ *   - tampil konsisten di semua OS/browser
+ *   - warna mengikuti CSS (currentColor)
+ *   - screen reader membacakan teks, bukan nama emoji
+ *
+ * Ringan: tanpa dependency eksternal, semua logika client-side.
  */
+
+import { icon, iconHtml } from './icons.js';
 
 (function () {
   'use strict';
 
-  // ── Daftar isi otomatis dari heading ───────────────────────────────────────
   var toc = document.getElementById('toc');
   var content = document.getElementById('docContent');
   if (!toc || !content) return;
 
+  // ── 0. Ganti penanda ikon di HTML dengan SVG ───────────────────────────────
+  // Elemen ber-atribut data-icon="nama" diganti SVG dari katalog icons.js.
+  document.querySelectorAll('[data-icon]').forEach(function (el) {
+    var svg = icon(el.dataset.icon, {
+      size: Number(el.dataset.iconSize) || 16,
+    });
+    if (svg) el.replaceWith(svg);
+  });
+
+  // ── 1. Daftar isi otomatis dari heading ────────────────────────────────────
   var headings = content.querySelectorAll('h2[id], h3[id]');
   if (headings.length) {
     var frag = document.createDocumentFragment();
@@ -19,29 +36,44 @@
     headings.forEach(function (h) {
       var isH2 = h.tagName === 'H2';
 
-      // Judul kelompok sebelum setiap H2 (kecuali yang pertama) —
-      // memisahkan bagian utama supaya struktur dokumen terlihat.
+      // Judul kelompok sebelum H2 berikutnya (pola "section title" MDN).
       if (isH2 && lastWasH2) {
         var group = document.createElement('span');
         group.className = 'toc-group';
-        group.textContent = h.textContent.replace(/^#\s*/, '').replace(/^\d+\s*/, '');
+        group.textContent = h.textContent.replace(/^\s*\d+\s*/, '').trim();
         frag.appendChild(group);
       }
 
       var a = document.createElement('a');
       a.href = '#' + h.id;
       a.className = 'toc-link toc-' + h.tagName.toLowerCase();
-      // Nomor bagian (01, 02, …) dipertahankan di label H2.
-      a.textContent = h.textContent.replace(/^#\s*/, '').trim();
-      frag.appendChild(a);
 
+      if (isH2) {
+        // Nomor bagian dipisah jadi elemen sendiri supaya bisa digayai
+        // (monospace, redup) — bukan menempel di teks judul.
+        var num = h.querySelector('.sec-num');
+        var numText = num ? num.textContent.trim() : '';
+        var titleText = h.textContent.replace(/^\s*\d+\s*/, '').trim();
+
+        if (numText) {
+          var span = document.createElement('span');
+          span.className = 'toc-num';
+          span.textContent = numText;
+          a.appendChild(span);
+        }
+        a.appendChild(document.createTextNode(titleText));
+      } else {
+        a.textContent = h.textContent.trim();
+      }
+
+      frag.appendChild(a);
       lastWasH2 = isH2;
     });
 
     toc.appendChild(frag);
   }
 
-  // ── Sorot bagian yang sedang dibaca ────────────────────────────────────────
+  // ── 2. Sorot bagian yang sedang dibaca ────────────────────────────────────
   var links = toc.querySelectorAll('.toc-link');
   if (links.length && 'IntersectionObserver' in window) {
     var byId = {};
@@ -61,12 +93,18 @@
     headings.forEach(function (h) { observer.observe(h); });
   }
 
-  // ── Pencarian ──────────────────────────────────────────────────────────────
+  // ── 3. Pencarian ───────────────────────────────────────────────────────────
   var search = document.getElementById('docSearch');
   if (!search) return;
 
   var sections = Array.prototype.slice.call(content.querySelectorAll('section.doc-section'));
   var empty = document.getElementById('docEmpty');
+
+  // Isi ikon di keadaan kosong (sekali saja).
+  if (empty && !empty.querySelector('svg')) {
+    var emptyIcon = icon('search', { size: 28 });
+    if (emptyIcon) empty.insertBefore(emptyIcon, empty.firstChild);
+  }
 
   function normalize(s) {
     return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -97,7 +135,14 @@
     if (e.key === 'Escape') { search.value = ''; filter(); }
   });
 
-  // ── Salin contoh perintah ──────────────────────────────────────────────────
+  // ── 4. Salin contoh perintah (tombol ber-ikon) ─────────────────────────────
+  content.querySelectorAll('.copy-btn').forEach(function (btn) {
+    if (!btn.dataset.iconReady) {
+      btn.innerHTML = iconHtml('copy', { size: 13 }) + '<span>Salin</span>';
+      btn.dataset.iconReady = '1';
+    }
+  });
+
   content.addEventListener('click', function (e) {
     var btn = e.target.closest('.copy-btn');
     if (!btn) return;
@@ -106,13 +151,12 @@
 
     var text = code.textContent;
     var done = function () {
-      var old = btn.textContent;
-      btn.textContent = 'Tersalin';
+      btn.innerHTML = iconHtml('check', { size: 13 }) + '<span>Tersalin</span>';
       btn.classList.add('is-done');
       setTimeout(function () {
-        btn.textContent = old;
+        btn.innerHTML = iconHtml('copy', { size: 13 }) + '<span>Salin</span>';
         btn.classList.remove('is-done');
-      }, 1600);
+      }, 1800);
     };
 
     if (navigator.clipboard) {

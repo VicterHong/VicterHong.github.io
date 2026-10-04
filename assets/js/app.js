@@ -28,6 +28,7 @@ import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
 import { createTiltPanel } from './tilt-panel.js';
+import { icon } from './icons.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -387,6 +388,14 @@ initVitals();
 // Eksperimen A/B — varian dari server (Framer Grow/Convert). Gagal-diam
 // kalau tidak ada eksperimen aktif, jadi tidak pernah mengganggu halaman.
 initExperiments();
+
+// Ganti penanda [data-icon] dengan SVG dari katalog icons.js.
+// Dipakai agar tidak ada emoji di markup — ikon SVG konsisten di semua
+// OS, bisa diwarnai CSS, dan tidak dibaca screen reader sebagai emoji.
+document.querySelectorAll('[data-icon]').forEach((el) => {
+  const svg = icon(el.dataset.icon, { size: Number(el.dataset.iconSize) || 16 });
+  if (svg) el.replaceWith(svg);
+});
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();

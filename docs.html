@@ -48,7 +48,9 @@
     </a>
     <nav class="site-nav" aria-label="Navigasi utama">
       <a href="/home#s6ahns">Tentang</a>
+      <a href="/home#cckxsk">Layanan</a>
       <a href="/home#utqvwf">Proyek</a>
+      <a href="/home#5nfyzw">Cara kerja</a>
       <a href="/docs" aria-current="page">Panduan</a>
       <a href="/home#89fk39">Kontak</a>
     </nav>
@@ -59,16 +61,19 @@
 <main class="docs-page">
 
   <div class="docs-head">
-    <p class="docs-eyebrow">Dokumentasi</p>
+    <p class="docs-eyebrow">
+      <span data-icon="book" data-icon-size="14"></span>
+      Dokumentasi
+    </p>
     <h1>Panduan Penggunaan</h1>
     <p>
       Cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.
       Ditulis untuk pengguna dan tim teknis — bukan pemasaran.
     </p>
     <div class="docs-search-wrap">
-      <svg class="docs-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="m20 20-3.5-3.5"></path>
+      <svg class="docs-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="M21 21l-4.3-4.3"></path>
       </svg>
       <input
         type="search"
@@ -88,7 +93,7 @@
     <div class="doc-content" id="docContent">
 
       <!-- ── 1. MULAI ─────────────────────────────────────────────────────── -->
-      <section class="doc-section" id="mulai">
+      <section class="doc-section">
         <h2 id="mulai"><span class="sec-num">01</span> Memulai</h2>
 
         <p>
@@ -105,9 +110,12 @@
         </p>
 
         <div class="note">
+          <span data-icon="info" data-icon-size="17"></span>
+          <div class="note-body">
           <strong>Token bersifat pribadi.</strong> Jangan bagikan ke pihak lain —
           sistem mendeteksi penggunaan dari banyak perangkat/IP dan akan mencabut
           token secara otomatis.
+          </div>
         </div>
 
         <h3 id="cara-dapat">Cara mendapatkan token</h3>
@@ -134,7 +142,7 @@
       </section>
 
       <!-- ── 2. MENGGUNAKAN TOKEN ─────────────────────────────────────────── -->
-      <section class="doc-section" id="menggunakan-token">
+      <section class="doc-section">
         <h2 id="menggunakan-token"><span class="sec-num">02</span> Menggunakan Token</h2>
 
         <h3 id="langkah-akses">Langkah mengakses proyek</h3>
@@ -187,14 +195,17 @@
         </div>
 
         <div class="note warn">
+          <span data-icon="alert" data-icon-size="17"></span>
+          <div class="note-body">
           <strong>Kalau token berhenti bekerja</strong>, kemungkinan: (a) masa
           berlaku habis, (b) token dipakai dari terlalu banyak perangkat,
           (c) token dicabut. Hubungi saya untuk token baru.
+          </div>
         </div>
       </section>
 
       <!-- ── 3. KEAMANAN ──────────────────────────────────────────────────── -->
-      <section class="doc-section" id="keamanan">
+      <section class="doc-section">
         <h2 id="keamanan"><span class="sec-num">03</span> Sistem Keamanan</h2>
 
         <p>
@@ -247,14 +258,17 @@
         </ul>
 
         <div class="note">
+          <span data-icon="info" data-icon-size="17"></span>
+          <div class="note-body">
           <strong>Ini melindungi Anda juga.</strong> Kalau token bocor tanpa
           sepengetahuan Anda, pencabutan otomatis membatasi kerugian — dan Anda
           akan diberi tahu.
+          </div>
         </div>
       </section>
 
       <!-- ── 4. MASALAH UMUM ──────────────────────────────────────────────── -->
-      <section class="doc-section" id="masalah">
+      <section class="doc-section">
         <h2 id="masalah"><span class="sec-num">04</span> Masalah Umum</h2>
 
         <h3 id="verifikasi-lama">Verifikasi keamanan lama / tidak selesai</h3>
@@ -287,7 +301,7 @@
       </section>
 
       <!-- ── 5. UNTUK TIM TEKNIS ──────────────────────────────────────────── -->
-      <section class="doc-section" id="tim-teknis">
+      <section class="doc-section">
         <h2 id="tim-teknis"><span class="sec-num">05</span> Untuk Tim Teknis</h2>
 
         <p>
@@ -325,9 +339,12 @@ curl https://&lt;alamat-backend&gt;/api/ready</code>
         </div>
 
         <div class="note">
+          <span data-icon="info" data-icon-size="17"></span>
+          <div class="note-body">
           <strong>Pakai <code>/api/ready</code> untuk monitoring.</strong>
           Proses bisa "hidup" tapi tidak bisa melayani (mis. database terkunci) —
           readiness menangkap itu, liveness tidak.
+          </div>
         </div>
 
         <h3 id="batas-laju">Batas laju</h3>
@@ -357,7 +374,7 @@ curl https://&lt;alamat-backend&gt;/api/ready</code>
       </section>
 
       <!-- ── 6. KONTAK ────────────────────────────────────────────────────── -->
-      <section class="doc-section" id="kontak">
+      <section class="doc-section">
         <h2 id="kontak"><span class="sec-num">06</span> Butuh Bantuan?</h2>
 
         <p>
@@ -396,17 +413,12 @@ GitHub:         https://github.com/VicterHong</code>
 </main>
 
 <footer class="site-footer">
-  <p>
-    © <span id="year">2026</span> Victer — Automation &amp; self-hosted tools.
-    <a href="/home" style="color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line);">Beranda</a> ·
-    <a href="/docs" style="color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line);">Panduan</a> ·
-    <a href="https://github.com/VicterHong" target="_blank" rel="noopener" style="color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line);">GitHub</a>
-  </p>
+  <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
 </footer>
 
 <script>
   document.getElementById('year').textContent = String(new Date().getFullYear());
 </script>
-<script src="assets/js/docs.js" defer></script>
+<script type="module" src="assets/js/docs.js"></script>
 </body>
 </html>

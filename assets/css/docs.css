@@ -1,62 +1,76 @@
-/* ── Halaman panduan penggunaan ─────────────────────────────────────────────
-   Gaya konsisten dengan situs utama (variabel dari main.css).
-   Tata letak dua kolom: daftar isi (kiri, sticky) + konten (kanan).
-   Di HP jadi satu kolom dengan daftar isi di atas.
+/* ── Halaman panduan — tata letak dokumentasi korporat ───────────────────────
+   Referensi struktur (prinsip, bukan tiruan):
+     • MDN Web Docs     — sidebar hierarkis dengan section title
+     • Docker Docs      — batasi kedalaman TOC (toc_min/toc_max)
+     • docmd            — maksimal 2–3 level sidebar, hindari nesting dalam
+     • Stripe/Linear    — sidebar sticky, konten dengan lebar baca terbatas
+
+   Prinsip yang diterapkan:
+     1. Lebar baca dibatasi 72ch — baris >80 karakter melelahkan mata
+     2. Sidebar sticky, tidak ikut scroll
+     3. Hierarki jelas: H2 = bagian, H3 = sub-bagian (indentasi + penanda)
+     4. Warna dari variabel main.css — konsisten dengan halaman utama
+     5. Nol emoji — semua ikon SVG stroke (currentColor)
    ────────────────────────────────────────────────────────────────────────── */
 
 .docs-page {
-  max-width: 1200px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 7rem 1.5rem 5rem;
 }
 
+/* ── Kepala halaman ───────────────────────────────────────────────────────── */
 .docs-head {
-  margin-bottom: 2.5rem;
-  padding-bottom: 1.75rem;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
   border-bottom: 1px solid var(--line);
 }
 
 .docs-eyebrow {
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--accent);
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
 }
+.docs-eyebrow .icon { opacity: 0.9; }
 
 .docs-head h1 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  margin-bottom: 0.75rem;
+  font-size: clamp(1.9rem, 4.5vw, 2.75rem);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+  margin-bottom: 0.9rem;
+  font-weight: 600;
 }
 
-.docs-head p {
+.docs-head > p {
   color: var(--text-dim);
-  font-size: 1rem;
-  max-width: 62ch;
-  line-height: 1.6;
+  font-size: 1.05rem;
+  max-width: 68ch;
+  line-height: 1.65;
 }
 
 /* ── Pencarian ────────────────────────────────────────────────────────────── */
 .docs-search-wrap {
   position: relative;
-  margin-top: 1.5rem;
-  max-width: 480px;
+  margin-top: 1.75rem;
+  max-width: 520px;
 }
 
-/* Ikon kaca pembesar — petunjuk visual bahwa ini kolom pencarian,
-   bukan sekadar kotak teks. */
 .docs-search-icon {
   position: absolute;
-  left: 0.85rem;
+  left: 0.9rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   color: var(--text-faint);
   pointer-events: none;
+  transition: color 0.2s;
 }
 
 .docs-search {
@@ -65,59 +79,84 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--text);
-  padding: 0.75rem 3rem 0.75rem 2.5rem;
-  font-size: 0.9rem;
+  padding: 0.8rem 3.5rem 0.8rem 2.75rem;
+  font-size: 0.92rem;
   font-family: inherit;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
-.docs-search:focus { outline: none; border-color: var(--accent); }
+.docs-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-soft);
+}
 .docs-search:focus ~ .docs-search-icon { color: var(--accent); }
 .docs-search::placeholder { color: var(--text-faint); }
 
 .docs-search-hint {
   position: absolute;
-  right: 0.75rem;
+  right: 0.8rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   color: var(--text-faint);
   border: 1px solid var(--line);
   border-radius: 4px;
-  padding: 0.1rem 0.35rem;
+  padding: 0.15rem 0.4rem;
   pointer-events: none;
+  letter-spacing: 0.03em;
 }
 
-/* ── Tata letak dua kolom ─────────────────────────────────────────────────── */
+/* ── Tata letak dua kolom ─────────────────────────────────────────────────────
+   Sidebar 240px + konten. Gap lebar supaya keduanya terasa terpisah. */
 .docs-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 3rem;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 4rem;
   align-items: start;
 }
 
-/* ── Daftar isi (sticky) ──────────────────────────────────────────────────── */
+/* ── Sidebar daftar isi ───────────────────────────────────────────────────── */
 .toc {
   position: sticky;
-  top: 6rem;
+  top: 6.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  max-height: calc(100vh - 8rem);
+  max-height: calc(100vh - 9rem);
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
+.toc::-webkit-scrollbar { width: 4px; }
+.toc::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+.toc::-webkit-scrollbar-track { background: transparent; }
+
+/* Judul kelompok — memisahkan bagian utama (pola "section title" MDN) */
+.toc-group {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+  font-weight: 600;
+  margin: 1.1rem 0 0.4rem;
+  padding-left: 0.75rem;
+}
+.toc-group:first-child { margin-top: 0; }
 
 .toc-link {
-  /* Kontras dinaikkan (--text-faint → --text-dim) supaya daftar isi
-     terbaca tanpa harus hover. */
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
   color: var(--text-dim);
   text-decoration: none;
-  font-size: 0.82rem;
-  padding: 0.4rem 0.6rem;
+  font-size: 0.84rem;
+  padding: 0.45rem 0.75rem;
   border-left: 2px solid transparent;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 5px 5px 0;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 .toc-link:hover { color: var(--text); background: var(--bg-soft); }
 .toc-link.is-active {
@@ -126,76 +165,108 @@
   background: var(--accent-soft);
   font-weight: 500;
 }
-.toc-h3 { padding-left: 1.4rem; font-size: 0.78rem; }
 
-/* Judul kelompok di daftar isi — memisahkan bagian utama (H2) dari
-   sub-bagian (H3) supaya struktur dokumen terlihat jelas. */
-.toc-group {
-  font-size: 0.66rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+/* Nomor bagian (01, 02, …) — monospace, redup */
+.toc-link .toc-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
   color: var(--text-faint);
-  font-weight: 600;
-  margin: 0.75rem 0 0.25rem;
-  padding-left: 0.6rem;
+  flex-shrink: 0;
 }
-.toc-group:first-child { margin-top: 0; }
+.toc-link.is-active .toc-num { color: var(--accent); opacity: 0.8; }
+
+/* Sub-bagian (H3) — indentasi + penanda garis pendek */
+.toc-h3 { padding-left: 1.9rem; font-size: 0.8rem; }
+.toc-h3::before {
+  content: '';
+  width: 4px;
+  height: 1px;
+  background: var(--line);
+  flex-shrink: 0;
+  margin-top: 0.6em;
+}
 
 /* ── Konten ───────────────────────────────────────────────────────────────── */
-.doc-content { min-width: 0; }
+.doc-content {
+  min-width: 0;
+  /* Lebar baca dibatasi — standar tipografi 45–75 karakter per baris. */
+  max-width: 72ch;
+}
 
 .doc-section {
-  margin-bottom: 3rem;
-  scroll-margin-top: 6rem;
+  margin-bottom: 3.5rem;
+  scroll-margin-top: 6.5rem;
 }
 .doc-section.is-hidden { display: none; }
 
 .doc-section h2 {
-  font-size: 1.5rem;
-  letter-spacing: -0.015em;
-  margin-bottom: 1rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid var(--line);
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .doc-section h2 .sec-num {
-  font-size: 0.75rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
   color: var(--accent);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--accent-line);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  flex-shrink: 0;
+  font-weight: 500;
 }
 
 .doc-section h3 {
-  font-size: 1.05rem;
-  margin: 1.75rem 0 0.75rem;
+  font-size: 1.08rem;
+  font-weight: 600;
+  margin: 2rem 0 0.85rem;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .doc-section p {
   color: var(--text-dim);
-  line-height: 1.7;
-  margin-bottom: 0.9rem;
-  font-size: 0.92rem;
+  line-height: 1.75;
+  margin-bottom: 1rem;
+  font-size: 0.94rem;
 }
+.doc-section p:last-child { margin-bottom: 0; }
 
 .doc-section ul, .doc-section ol {
   color: var(--text-dim);
-  line-height: 1.7;
-  margin: 0 0 1rem 1.25rem;
-  font-size: 0.92rem;
+  line-height: 1.75;
+  margin: 0 0 1.15rem 1.35rem;
+  font-size: 0.94rem;
 }
-.doc-section li { margin-bottom: 0.35rem; }
-.doc-section li strong { color: var(--text); }
+.doc-section li { margin-bottom: 0.45rem; padding-left: 0.15rem; }
+.doc-section li::marker { color: var(--text-faint); }
+.doc-section li strong { color: var(--text); font-weight: 600; }
 
 .doc-section a {
   color: var(--accent);
   text-decoration: none;
   border-bottom: 1px solid var(--accent-line);
+  transition: border-color 0.15s;
 }
 .doc-section a:hover { border-bottom-color: var(--accent); }
+
+.doc-section code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.84em;
+  background: var(--bg-card);
+  border: 1px solid var(--line-soft);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  color: var(--text);
+}
 
 /* ── Blok kode ────────────────────────────────────────────────────────────── */
 .code-block {
@@ -203,98 +274,138 @@
   background: var(--bg-card);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  margin: 1rem 0;
+  margin: 1.15rem 0;
   overflow: hidden;
 }
 
 .code-block code {
   display: block;
-  padding: 1rem 1.15rem;
+  padding: 1.15rem 1.25rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.82rem;
-  line-height: 1.65;
+  font-size: 0.83rem;
+  line-height: 1.7;
   color: var(--text);
   overflow-x: auto;
   white-space: pre;
+  background: none;
+  border: none;
+  scrollbar-width: thin;
 }
+.code-block code::-webkit-scrollbar { height: 5px; }
+.code-block code::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
+/* Tombol salin — ikon SVG, bukan teks */
 .copy-btn {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   background: var(--bg-soft);
   border: 1px solid var(--line);
   color: var(--text-faint);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-family: inherit;
-  padding: 0.3rem 0.6rem;
-  border-radius: 5px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.copy-btn:hover { color: var(--accent); border-color: var(--accent); }
-.copy-btn.is-done { color: #4ade80; border-color: #4ade80; }
+.copy-btn:hover { color: var(--text); border-color: var(--text-faint); }
+.copy-btn.is-done {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+  background: rgba(74, 222, 128, 0.08);
+}
+.copy-btn .icon { width: 13px; height: 13px; }
 
 /* ── Tabel ────────────────────────────────────────────────────────────────── */
-.doc-table-wrap { overflow-x: auto; margin: 1rem 0; -webkit-overflow-scrolling: touch; }
+.doc-table-wrap {
+  overflow-x: auto;
+  margin: 1.15rem 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  -webkit-overflow-scrolling: touch;
+}
 .doc-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: 0.87rem;
+  min-width: 100%;
 }
 .doc-table th {
   text-align: left;
-  padding: 0.6rem 0.85rem;
+  padding: 0.7rem 0.95rem;
   color: var(--text-faint);
-  font-weight: 500;
-  font-size: 0.72rem;
+  font-weight: 600;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   border-bottom: 1px solid var(--line);
+  background: var(--bg-soft);
   white-space: nowrap;
 }
 .doc-table td {
-  padding: 0.65rem 0.85rem;
+  padding: 0.75rem 0.95rem;
   border-bottom: 1px solid var(--line-soft);
   color: var(--text-dim);
   vertical-align: top;
+  line-height: 1.6;
 }
+.doc-table tr:last-child td { border-bottom: none; }
 .doc-table td:first-child { color: var(--text); font-weight: 500; }
 .doc-table code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.78rem;
-  background: var(--bg-soft);
+  font-size: 0.8em;
+  background: var(--bg);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
   color: var(--accent);
+  border: none;
 }
 
 /* ── Kotak catatan ────────────────────────────────────────────────────────── */
 .note {
-  border-left: 3px solid var(--accent);
+  display: flex;
+  gap: 0.85rem;
+  border: 1px solid var(--accent-line);
   background: var(--accent-soft);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  padding: 0.9rem 1.1rem;
-  margin: 1.25rem 0;
-  font-size: 0.88rem;
-  line-height: 1.65;
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.15rem;
+  margin: 1.35rem 0;
+  font-size: 0.89rem;
+  line-height: 1.7;
   color: var(--text-dim);
 }
-.note strong { color: var(--text); }
-.note.warn { border-left-color: #fbbf24; background: rgba(251, 191, 36, 0.08); }
+.note .icon {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  color: var(--accent);
+  margin-top: 0.15rem;
+}
+.note-body { min-width: 0; flex: 1; }
+.note strong { color: var(--text); font-weight: 600; }
+
+.note.warn {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.07);
+}
+.note.warn .icon { color: #fbbf24; }
 .note.warn strong { color: #fbbf24; }
 
-/* ── Kartu langkah ────────────────────────────────────────────────────────── */
+/* ── Langkah bernomor ─────────────────────────────────────────────────────── */
 .steps {
   display: grid;
-  gap: 0.75rem;
-  margin: 1.25rem 0;
+  gap: 0.6rem;
+  margin: 1.35rem 0;
   counter-reset: step;
 }
 .step {
   display: flex;
-  gap: 1rem;
-  padding: 1rem 1.15rem;
+  gap: 1.1rem;
+  padding: 1.1rem 1.25rem;
   background: var(--bg-card);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -302,15 +413,15 @@
 }
 .step::before {
   counter-increment: step;
-  content: counter(step);
+  content: counter(step, decimal-leading-zero);
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   background: var(--accent-soft);
   border: 1px solid var(--accent-line);
   color: var(--accent);
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -318,67 +429,123 @@
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 .step-body { min-width: 0; flex: 1; }
-.step-body strong { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
-.step-body p { margin-bottom: 0.5rem; font-size: 0.86rem; }
-.step-body .code-block { margin: 0.5rem 0 0; }
+.step-body strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.step-body p { margin-bottom: 0.6rem; font-size: 0.89rem; }
+.step-body p:last-child { margin-bottom: 0; }
+.step-body .code-block { margin: 0.6rem 0 0; }
 
 /* ── Keadaan kosong (pencarian tidak ketemu) ──────────────────────────────── */
 .doc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 3.5rem 1.5rem;
   color: var(--text-faint);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
 }
+.doc-empty .icon { width: 28px; height: 28px; opacity: 0.5; }
 .doc-empty.hidden { display: none; }
 
 /* ── Responsif ────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .docs-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 2.5rem; }
+}
+
 @media (max-width: 900px) {
-  .docs-layout { grid-template-columns: 1fr; gap: 1.5rem; }
+  .docs-page { padding: 6rem 1.25rem 4rem; }
+  .docs-layout { grid-template-columns: 1fr; gap: 0; }
+
+  /* Sidebar jadi baris chip horizontal yang bisa di-scroll */
   .toc {
     position: static;
     max-height: none;
     flex-direction: row;
     flex-wrap: nowrap;
-    gap: 0.4rem;
-    padding: 0 0 1rem;
+    gap: 0.45rem;
+    padding: 0 0 1.25rem;
+    margin-bottom: 2rem;
     border-bottom: 1px solid var(--line);
-    /* Scroll horizontal untuk chip — tanpa ini chip terpotong
-       dan area terlihat kosong. */
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    /* Petunjuk visual ada konten di kanan */
-    scroll-snap-type: x proximity;
+    scrollbar-width: none;
   }
-  .toc::-webkit-scrollbar { height: 4px; }
-  .toc::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
-  .toc::-webkit-scrollbar-track { background: transparent; }
+  .toc::-webkit-scrollbar { display: none; }
+
+  .toc-group { display: none; }
 
   .toc-link {
-    border-left: none;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0.5rem 0.9rem;
-    white-space: nowrap;
-    font-size: 0.8rem;
-    /* Target sentuh nyaman (standar 44px) */
-    min-height: 40px;
     display: inline-flex;
     align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.55rem 0.95rem;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    min-height: 40px;
     flex-shrink: 0;
-    scroll-snap-align: start;
+    background: var(--bg-card);
   }
-  .toc-link.is-active { border-color: var(--accent); }
+  .toc-link.is-active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  /* Sub-bagian disembunyikan di HP — chip jadi terlalu banyak.
+     Sesuai anjuran docmd: batasi kedalaman navigasi di layar kecil. */
   .toc-h3 { display: none; }
+  .toc-link .toc-num { font-size: 0.7rem; }
+
+  .doc-content { max-width: none; }
 }
 
 @media (max-width: 640px) {
   .docs-page { padding: 5.5rem 1rem 3rem; }
-  .docs-head h1 { font-size: 1.6rem; }
-  .doc-section h2 { font-size: 1.25rem; flex-direction: column; gap: 0.25rem; }
-  .code-block code { font-size: 0.75rem; padding: 0.85rem; }
-  .doc-table { font-size: 0.8rem; }
-  .doc-table th, .doc-table td { padding: 0.5rem 0.6rem; }
-  .step { padding: 0.85rem; gap: 0.75rem; }
+  .docs-head { margin-bottom: 2rem; padding-bottom: 1.5rem; }
+  .docs-head h1 { font-size: 1.75rem; }
+  .docs-head > p { font-size: 0.95rem; }
+  .docs-search-wrap { max-width: none; }
+  .docs-search { padding: 0.75rem 3rem 0.75rem 2.6rem; font-size: 0.88rem; }
+
+  .doc-section { margin-bottom: 2.75rem; }
+  .doc-section h2 {
+    font-size: 1.3rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .doc-section h3 { font-size: 1rem; margin-top: 1.75rem; }
+  .doc-section p, .doc-section ul, .doc-section ol { font-size: 0.9rem; }
+
+  .code-block code { font-size: 0.76rem; padding: 1rem; }
+  .doc-table { font-size: 0.82rem; }
+  .doc-table th, .doc-table td { padding: 0.6rem 0.7rem; }
+
+  .step { padding: 0.95rem; gap: 0.85rem; }
+  .step::before { width: 26px; height: 26px; font-size: 0.65rem; }
+  .step-body strong { font-size: 0.9rem; }
+  .step-body p { font-size: 0.86rem; }
+
+  .note { padding: 0.9rem 1rem; font-size: 0.86rem; }
+}
+
+/* ── Cetak ────────────────────────────────────────────────────────────────── */
+@media print {
+  .site-header, .toc, .docs-search-wrap, .copy-btn, .site-footer { display: none; }
+  .docs-page { padding: 0; max-width: none; }
+  .docs-layout { display: block; }
+  .doc-content { max-width: none; }
+  .doc-section { page-break-inside: avoid; }
+  body { background: #fff; color: #000; }
 }

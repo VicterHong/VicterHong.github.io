@@ -317,6 +317,15 @@ a { color: inherit; text-decoration: none; }
 .tprompt { color: var(--accent); }
 .tcmd { color: #e8e8ea; }
 .tok { color: #4ade80; }
+/* Ikon SVG (dari assets/js/icons.js) — menggantikan emoji supaya tampilan
+   konsisten di semua OS, bisa diwarnai lewat CSS, dan tidak mengganggu
+   screen reader. Ukuran diatur lewat atribut width/height pada SVG. */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.tok .icon { color: inherit; }
 
 /* Kursor berkedip di baris terakhir — detail kecil yang membuat terminal
    terasa hidup (pola standar di portofolio engineering). */
