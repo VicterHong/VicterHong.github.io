@@ -4,6 +4,8 @@
  * Inspired by Polar26 + Immersive Garden (modified)
  */
 
+import { onScrollFrame } from './scroll-manager.js';
+
 export function initHorizontalScroll() {
   const section = document.querySelector('[data-hscroll]');
   if (!section) return;
@@ -16,7 +18,6 @@ export function initHorizontalScroll() {
   if (prefersReducedMotion) return;
 
   let pinned = false;
-  let scrollProgress = 0;
 
   // Calculate scroll distance
   function updateScroll() {
@@ -35,7 +36,7 @@ export function initHorizontalScroll() {
 
       // Calculate progress (0 to 1)
       const progress = (scrollY - pinStart) / (pinEnd - pinStart);
-      scrollProgress = Math.max(0, Math.min(1, progress));
+      const scrollProgress = Math.max(0, Math.min(1, progress));
 
       // Move track horizontally
       const trackWidth = track.scrollWidth;
@@ -52,26 +53,14 @@ export function initHorizontalScroll() {
     }
   }
 
-  // Throttled scroll handler (performance)
-  let rafId;
-  function handleScroll() {
-    if (rafId) return;
-    rafId = requestAnimationFrame(() => {
-      updateScroll();
-      rafId = null;
-    });
-  }
-
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  window.addEventListener('resize', updateScroll, { passive: true });
+  // Satu listener bersama (scroll-manager) — bukan listener sendiri.
+  const unsubscribe = onScrollFrame(updateScroll);
 
   // Initial calculation
   updateScroll();
 
   // Cleanup
   return () => {
-    window.removeEventListener('scroll', handleScroll);
-    window.removeEventListener('resize', updateScroll);
-    if (rafId) cancelAnimationFrame(rafId);
+    unsubscribe();
   };
 }

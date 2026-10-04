@@ -1,103 +1,98 @@
 /**
- * Magnetic Cards Effect
- * Premium hover interaction — cards follow cursor with smooth physics
- * Applied to project cards for exclusive feel
+ * Magnetic Buttons — physics-based hover untuk tombol & CTA.
+ *
+ * Kenapa hanya tombol (bukan kartu):
+ * Kartu proyek sudah punya transform dari depth.js (scroll-stand + tilt).
+ * Dua sumber transform di elemen yang sama = saling menimpa → kartu "lompat".
+ * Situs kelas korporasi (Linear, Stripe, Vercel) memakai magnetic HANYA di
+ * elemen aksi (tombol/CTA) — di situlah efek terasa premium, bukan di kartu.
+ *
+ * Implementasi: satu loop lerp bersama untuk semua tombol (hemat CPU),
+ * pointer events, hormati reduced-motion + perangkat sentuh.
  */
 
+const MAX_OFFSET = 6;   // px — halus, tidak "melompat" (korporat = restrained)
+const LERP = 0.18;      // kecepatan mengejar target
+
 export function initMagneticCards() {
-  const cards = document.querySelectorAll('[data-magnetic]');
-  if (!cards.length) return;
+  // Hormati preferensi pengguna & perangkat.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (window.matchMedia('(hover: none)').matches || 'ontouchstart' in window) return;
 
-  // Check reduced motion preference
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefersReducedMotion) return;
+  const targets = document.querySelectorAll(
+    '.btn, .nav-cta, .contact-link, .project-links a, .orb-item'
+  );
+  if (!targets.length) return;
 
-  cards.forEach(card => {
-    let animationFrameId = null;
-    let currentX = 0;
-    let currentY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    // Smooth lerp (linear interpolation)
-    const lerp = (start, end, factor) => start + (end - start) * factor;
-
-    // Mouse move handler
-    function handleMouseMove(e) {
-      const rect = card.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-
-      // Calculate distance from center
-      const deltaX = e.clientX - centerX;
-      const deltaY = e.clientY - centerY;
-
-      // Magnetic strength (pixels) — subtle, not aggressive
-      const strength = 0.3;
-      targetX = deltaX * strength;
-      targetY = deltaY * strength;
-    }
-
-    // Animation loop with smooth physics
-    function animate() {
-      // Smooth lerp towards target (spring-like easing)
-      currentX = lerp(currentX, targetX, 0.15);
-      currentY = lerp(currentY, targetY, 0.15);
-
-      // Apply transform
-      card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) scale(1.02)`;
-
-      // Continue animation if not settled
-      if (Math.abs(targetX - currentX) > 0.1 || Math.abs(targetY - currentY) > 0.1) {
-        animationFrameId = requestAnimationFrame(animate);
-      }
-    }
-
-    // Mouse enter — start tracking
-    card.addEventListener('mouseenter', () => {
-      card.classList.add('is-magnetic-active');
-      card.addEventListener('mousemove', handleMouseMove);
-    });
-
-    // Mouse move — update targets and animate
-    card.addEventListener('mousemove', () => {
-      if (!animationFrameId) {
-        animationFrameId = requestAnimationFrame(animate);
-      }
-    });
-
-    // Mouse leave — reset
-    card.addEventListener('mouseleave', () => {
-      card.classList.remove('is-magnetic-active');
-      card.removeEventListener('mousemove', handleMouseMove);
-      
-      // Animate back to rest position
-      targetX = 0;
-      targetY = 0;
-      
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      
-      // Spring back animation
-      function springBack() {
-        currentX = lerp(currentX, 0, 0.2);
-        currentY = lerp(currentY, 0, 0.2);
-        card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) scale(1)`;
-        
-        if (Math.abs(currentX) > 0.1 || Math.abs(currentY) > 0.1) {
-          requestAnimationFrame(springBack);
-        } else {
-          card.style.transform = '';
-        }
-      }
-      springBack();
-    });
-  });
-
-  // Touch device detection — disable magnetic on touch
-  if ('ontouchstart' in window) {
-    cards.forEach(card => card.removeAttribute('data-magnetic'));
+  // Satu state per tombol; satu rAF loop untuk semuanya.
+  const items = [];
+  for (const el of targets) {
+    if (el.dataset.magneticOn === 'on') continue;
+    el.dataset.magneticOn = 'on';
+    items.push({ el, x: 0, y: 0, tx: 0, ty: 0, active: false });
   }
+  if (!items.length) return;
+
+  let raf = null;
+  let running = false;
+
+  function tick() {
+    let needsMore = false;
+
+    for (const it of items) {
+      it.x += (it.tx - it.x) * LERP;
+      it.y += (it.ty - it.y) * LERP;
+
+      // Berhenti menulis kalau sudah cukup dekat (menghindari style churn).
+      if (Math.abs(it.tx - it.x) > 0.05 || Math.abs(it.ty - it.y) > 0.05) {
+        needsMore = true;
+      } else {
+        it.x = it.tx;
+        it.y = it.ty;
+      }
+
+      if (it.x === 0 && it.y === 0 && !it.active) {
+        // Kembali istirahat: lepas inline transform supaya CSS bisa mengatur.
+        if (it.el.style.transform) it.el.style.transform = '';
+        continue;
+      }
+      it.el.style.transform = `translate3d(${it.x.toFixed(2)}px, ${it.y.toFixed(2)}px, 0)`;
+    }
+
+    if (needsMore || items.some(i => i.active)) {
+      raf = requestAnimationFrame(tick);
+    } else {
+      running = false;
+    }
+  }
+
+  function start() {
+    if (running) return;
+    running = true;
+    raf = requestAnimationFrame(tick);
+  }
+
+  for (const it of items) {
+    it.el.addEventListener('pointermove', (e) => {
+      const rect = it.el.getBoundingClientRect();
+      const relX = e.clientX - (rect.left + rect.width / 2);
+      const relY = e.clientY - (rect.top + rect.height / 2);
+      it.tx = Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, relX * 0.22));
+      it.ty = Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, relY * 0.22));
+      it.active = true;
+      start();
+    });
+
+    it.el.addEventListener('pointerleave', () => {
+      it.tx = 0;
+      it.ty = 0;
+      it.active = false;
+      start();
+    });
+  }
+
+  // Cleanup (dipakai kalau modul di-unmount; di halaman statis tidak wajib).
+  return () => {
+    if (raf) cancelAnimationFrame(raf);
+  };
 }

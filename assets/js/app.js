@@ -20,7 +20,6 @@ import { initMagneticCards } from './magnetic.js';
 import { initHorizontalScroll } from './hscroll.js';
 import { initOrbMenu } from './orb-menu.js';
 import { initVariableWeight } from './variable-weight.js';
-import { initParticles } from './particles.js';
 import { initAllVideoPlayers } from './video-player.js';
 import { initMasonry } from './masonry.js';
 import { initCinematic } from './cinematic.js';
@@ -111,7 +110,7 @@ function renderProjects() {
   const host = $('#featuredProjects');
 
   for (const p of projects) {
-    const card = el('article', { class: `project${p.featured ? ' is-featured' : ''}`, 'data-magnetic': '' });
+    const card = el('article', { class: `project${p.featured ? ' is-featured' : ''}` });
     // Pembungkus dalam: efek scroll-stand menulis transform pada `.project`,
     // sedangkan tilt menulis transform pada `.project-card-inner`. Dua efek
     // 3D pada elemen yang sama akan saling menimpa transform — pemisahan ini
@@ -178,7 +177,7 @@ function renderSideProjects() {
   const host = $('#sideProjects');
   for (const p of sideProjects) {
     const card = el('a', {
-      class: 'side-project', href: p.repo, target: '_blank', rel: 'noopener', 'data-magnetic': '',
+      class: 'side-project', href: p.repo, target: '_blank', rel: 'noopener',
     });
     card.append(el('h3', { text: p.name }));
     card.append(el('p', { text: p.description }));

@@ -4,6 +4,8 @@
  * Premium typography effect from Obys reference (modified)
  */
 
+import { onScrollFrame } from './scroll-manager.js';
+
 export function initVariableWeight() {
   const titles = document.querySelectorAll('[data-variable-weight]');
   if (!titles.length) return;
@@ -33,26 +35,14 @@ export function initVariableWeight() {
     });
   }
 
-  // Throttled scroll handler
-  let rafId;
-  function handleScroll() {
-    if (rafId) return;
-    rafId = requestAnimationFrame(() => {
-      updateWeights();
-      rafId = null;
-    });
-  }
-
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  window.addEventListener('resize', updateWeights, { passive: true });
+  // Satu listener bersama (scroll-manager) — bukan listener sendiri.
+  const unsubscribe = onScrollFrame(updateWeights);
 
   // Initial calculation
   updateWeights();
 
   // Cleanup
   return () => {
-    window.removeEventListener('scroll', handleScroll);
-    window.removeEventListener('resize', updateWeights);
-    if (rafId) cancelAnimationFrame(rafId);
+    unsubscribe();
   };
 }

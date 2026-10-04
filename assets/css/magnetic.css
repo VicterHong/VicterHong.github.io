@@ -1,67 +1,44 @@
 /**
- * Magnetic Cards Styles
- * Premium hover effect — smooth physics-based movement
+ * Magnetic Buttons Styles
+ * Halus, restrained — untuk tombol & CTA (bukan kartu yang sudah punya tilt).
  */
 
-[data-magnetic] {
-  position: relative;
-  transition: transform 0.1s cubic-bezier(0.16, 1, 0.3, 1);
+/* Tombol yang mendapat efek magnetic — transisi transform dimiliki CSS,
+   JS hanya menulis translate3d. Saat istirahat, inline transform dilepas. */
+.btn,
+.nav-cta,
+.contact-link,
+.project-links a,
+.orb-item {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
-  cursor: pointer;
 }
 
-/* Active magnetic state */
-[data-magnetic].is-magnetic-active {
-  z-index: 10;
+/* Saat pointer aktif, transisi lebih cepat supaya terasa responsif */
+.btn:active,
+.nav-cta:active {
+  transition: transform 0.1s linear;
 }
 
-/* Subtle glow on hover (optional enhancement) */
-[data-magnetic]:hover::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(135deg, 
-    rgba(var(--accent-rgb), 0.1), 
-    rgba(var(--accent-rgb), 0.05));
-  border-radius: inherit;
-  opacity: 0;
-  animation: magneticGlow 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  pointer-events: none;
-  z-index: -1;
-}
-
-@keyframes magneticGlow {
-  to {
-    opacity: 1;
-  }
-}
-
-/* Disable on touch devices */
+/* Perangkat sentuh: tidak ada magnetic, hemat resource */
 @media (hover: none) {
-  [data-magnetic] {
+  .btn,
+  .nav-cta,
+  .contact-link,
+  .project-links a,
+  .orb-item {
     will-change: auto;
-  }
-  
-  [data-magnetic]:hover::before {
-    display: none;
   }
 }
 
-/* Reduced motion: disable magnetic */
+/* Reduced motion: matikan total */
 @media (prefers-reduced-motion: reduce) {
-  [data-magnetic] {
+  .btn,
+  .nav-cta,
+  .contact-link,
+  .project-links a,
+  .orb-item {
     transition: none;
-    will-change: auto;
-  }
-  
-  [data-magnetic]:hover::before {
-    animation: none;
-  }
-}
-
-/* Performance optimization for low-end devices */
-@media (max-width: 768px) {
-  [data-magnetic] {
     will-change: auto;
   }
 }
