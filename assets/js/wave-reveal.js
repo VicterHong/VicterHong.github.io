@@ -39,14 +39,21 @@ export function initWaveReveal() {
       }
     });
   }, {
-    threshold: 0.3,
-    rootMargin: '-50px'
+    threshold: 0.1, // More sensitive — trigger earlier (was 0.3)
+    rootMargin: '0px' // No offset (was -50px which delayed too much)
   });
 
   // Process each target
   targets.forEach(element => {
     splitText(element);
     observer.observe(element);
+    
+    // Fallback: force reveal after 3s if still not triggered (mobile viewport issues)
+    setTimeout(() => {
+      if (!element.classList.contains('revealed')) {
+        element.classList.add('revealed');
+      }
+    }, 3000);
   });
 
   // Cleanup
