@@ -223,6 +223,45 @@ tbody tr:hover { background: var(--surface-2); }
   font-size: 0.75rem;
 }
 .btn-sm:hover { border-color: var(--err); color: var(--err); }
+
+/* Badge status — dipakai di tab Konten/Performa/Eksperimen/Branch/Publish */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.badge.ok { background: rgba(74, 222, 128, 0.12); border-color: var(--ok); color: var(--ok); }
+.badge.warn { background: rgba(251, 191, 36, 0.12); border-color: var(--warn); color: var(--warn); }
+.badge.err { background: rgba(248, 113, 113, 0.12); border-color: var(--err); color: var(--err); }
+
+/* Tabel di dalam panel baru */
+.panel table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.panel table th {
+  text-align: left; padding: 0.5rem 0.75rem; color: var(--muted);
+  font-weight: 500; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.04em; border-bottom: 1px solid var(--border);
+}
+.panel table td {
+  padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--surface-2);
+  vertical-align: top;
+}
+.panel table tr:last-child td { border-bottom: none; }
+.panel table code {
+  font-family: var(--mono); font-size: 0.75rem;
+  background: var(--bg); padding: 0.1rem 0.35rem; border-radius: 3px;
+}
+.panel .table-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.panel .table-head .spacer { flex: 1; }
+.panel select {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 0.25rem 0.5rem; border-radius: 5px; font-size: 0.75rem;
+}
 .btn-primary {
   background: var(--accent);
   border: none;
@@ -366,6 +405,11 @@ tbody tr:hover { background: var(--surface-2); }
     <button class="tab" data-tab="funnel">Funnel</button>
     <button class="tab" data-tab="sla">SLA</button>
     <button class="tab" data-tab="audit">Audit</button>
+    <button class="tab" data-tab="content">Konten</button>
+    <button class="tab" data-tab="perf">Performa</button>
+    <button class="tab" data-tab="grow">Eksperimen</button>
+    <button class="tab" data-tab="branches">Branch</button>
+    <button class="tab" data-tab="publish">Publish</button>
   </div>
 
   <main>
@@ -453,6 +497,102 @@ tbody tr:hover { background: var(--surface-2); }
           <button class="btn-sm" id="exportCsvBtn">⬇ CSV</button>
         </div>
         <div id="auditTable"></div>
+      </div>
+    </div>
+
+    <!-- Konten (CMS) -->
+    <div class="panel" id="panel-content">
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Koleksi konten</h2>
+          <div class="spacer"></div>
+          <button class="btn-sm" id="cmsRefreshBtn">↻ Muat ulang</button>
+        </div>
+        <div id="cmsCollections"></div>
+      </div>
+      <div class="table-wrap" style="margin-top:1rem">
+        <div class="table-head">
+          <h2>Item dalam koleksi</h2>
+          <div class="spacer"></div>
+          <select id="cmsCollectionSelect"><option value="">— pilih koleksi —</option></select>
+          <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--muted)">
+            <input type="checkbox" id="cmsShowDraft"> tampilkan draft
+          </label>
+        </div>
+        <div id="cmsItems"></div>
+      </div>
+    </div>
+
+    <!-- Performa -->
+    <div class="panel" id="panel-perf">
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Core Web Vitals (pengunjung nyata)</h2>
+          <div class="spacer"></div>
+          <select id="perfDays">
+            <option value="1">24 jam</option>
+            <option value="7" selected>7 hari</option>
+            <option value="30">30 hari</option>
+          </select>
+          <button class="btn-sm" id="perfRefreshBtn">↻ Muat ulang</button>
+        </div>
+        <div id="perfVitals"></div>
+      </div>
+      <div class="table-wrap" style="margin-top:1rem">
+        <div class="table-head"><h2>Anggaran aset</h2></div>
+        <div id="perfAssets"></div>
+      </div>
+    </div>
+
+    <!-- Eksperimen (Grow) -->
+    <div class="panel" id="panel-grow">
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Eksperimen A/B</h2>
+          <div class="spacer"></div>
+          <button class="btn-sm" id="growRefreshBtn">↻ Muat ulang</button>
+        </div>
+        <div id="growList"></div>
+      </div>
+      <div class="table-wrap" style="margin-top:1rem">
+        <div class="table-head"><h2>Hasil eksperimen</h2></div>
+        <div id="growResults"></div>
+      </div>
+    </div>
+
+    <!-- Branch (Collaborate) -->
+    <div class="panel" id="panel-branches">
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Branch konten</h2>
+          <div class="spacer"></div>
+          <button class="btn-sm" id="branchRefreshBtn">↻ Muat ulang</button>
+        </div>
+        <div id="branchList"></div>
+      </div>
+      <div class="table-wrap" style="margin-top:1rem">
+        <div class="table-head"><h2>Komentar review</h2></div>
+        <div id="commentList"></div>
+      </div>
+    </div>
+
+    <!-- Publish -->
+    <div class="panel" id="panel-publish">
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Preflight (periksa sebelum deploy)</h2>
+          <div class="spacer"></div>
+          <button class="btn-sm" id="preflightBtn">▶ Jalankan</button>
+        </div>
+        <div id="preflightResult"><p style="color:var(--muted);font-size:.85rem">Klik "Jalankan" untuk memeriksa situs.</p></div>
+      </div>
+      <div class="table-wrap" style="margin-top:1rem">
+        <div class="table-head">
+          <h2>Riwayat rilis</h2>
+          <div class="spacer"></div>
+          <button class="btn-sm" id="releasesRefreshBtn">↻ Muat ulang</button>
+        </div>
+        <div id="releasesList"></div>
       </div>
     </div>
   </main>
@@ -883,9 +1023,301 @@ async function loadAll() {
     loadFunnel().catch(() => {}),
     loadSla().catch(() => {}),
     loadAudit().catch(() => {}),
+    loadCms().catch(() => {}),
+    loadPerf().catch(() => {}),
+    loadGrow().catch(() => {}),
+    loadBranches().catch(() => {}),
+    loadReleases().catch(() => {}),
   ];
   await Promise.all(tasks);
 }
+
+// ══ KONTEN (CMS) ═════════════════════════════════════════════════
+
+async function loadCms() {
+  const host = $('#cmsCollections');
+  const sel = $('#cmsCollectionSelect');
+  try {
+    const data = await api('/api/cms/collections');
+    const cols = data.collections || [];
+
+    if (!cols.length) {
+      host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada koleksi. Buat lewat API: POST /api/admin/cms/collection</p>';
+      sel.innerHTML = '<option value="">— belum ada koleksi —</option>';
+      return;
+    }
+
+    host.innerHTML = `<table><thead><tr>
+      <th>Slug</th><th>Judul</th><th>Field</th><th>Dibuat</th>
+    </tr></thead><tbody>${cols.map(c => `<tr>
+      <td><code>${escapeHtml(c.slug)}</code></td>
+      <td>${escapeHtml(c.title || '—')}</td>
+      <td>${(c.fields || []).length} field</td>
+      <td>${fmtDate(c.created_at)}</td>
+    </tr>`).join('')}</tbody></table>`;
+
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— pilih koleksi —</option>' +
+      cols.map(c => `<option value="${escapeHtml(c.slug)}">${escapeHtml(c.title || c.slug)}</option>`).join('');
+    if (prev) { sel.value = prev; await loadCmsItems(); }
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+async function loadCmsItems() {
+  const host = $('#cmsItems');
+  const col = $('#cmsCollectionSelect').value;
+  if (!col) { host.innerHTML = ''; return; }
+
+  const draft = $('#cmsShowDraft').checked ? '?draft=1' : '';
+  try {
+    const data = await api(`/api/cms/${encodeURIComponent(col)}/items${draft}`);
+    const items = data.items || [];
+    if (!items.length) {
+      host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada item di koleksi ini.</p>';
+      return;
+    }
+    host.innerHTML = `<table><thead><tr>
+      <th>Slug</th><th>Status</th><th>Versi</th><th>Diperbarui</th><th>Terbit</th>
+    </tr></thead><tbody>${items.map(i => `<tr>
+      <td><code>${escapeHtml(i.item_slug)}</code></td>
+      <td><span class="badge ${i.status === 'published' ? 'ok' : 'warn'}">${escapeHtml(i.status)}</span></td>
+      <td>v${i.version}</td>
+      <td>${fmtDate(i.updated_at)}</td>
+      <td>${fmtDate(i.published_at)}</td>
+    </tr>`).join('')}</tbody></table>`;
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+$('#cmsRefreshBtn').addEventListener('click', loadCms);
+$('#cmsCollectionSelect').addEventListener('change', loadCmsItems);
+$('#cmsShowDraft').addEventListener('change', loadCmsItems);
+
+// ══ PERFORMA ═════════════════════════════════════════════════════
+
+async function loadPerf() {
+  await Promise.all([loadVitals(), loadAssetBudget()]);
+}
+
+async function loadVitals() {
+  const host = $('#perfVitals');
+  const days = $('#perfDays').value;
+  try {
+    const data = await api(`/api/admin/performance?days=${days}`);
+    const m = data.vitals?.metrics || {};
+    const names = ['lcp', 'inp', 'cls', 'ttfb', 'fcp'];
+    const unit = { lcp: 'ms', inp: 'ms', cls: '', ttfb: 'ms', fcp: 'ms' };
+
+    const rows = names.map(n => {
+      const v = m[n] || {};
+      if (!v.samples) return `<tr><td><strong>${n.toUpperCase()}</strong></td><td colspan="6" style="color:var(--muted)">belum ada data</td></tr>`;
+      const pass = v.pass === null ? '—' : (v.pass ? '<span class="badge ok">lolos</span>' : '<span class="badge err">lewat batas</span>');
+      return `<tr>
+        <td><strong>${n.toUpperCase()}</strong></td>
+        <td>${v.samples}</td>
+        <td>${v.p50 ?? '—'}${unit[n]}</td>
+        <td><strong>${v.p75 ?? '—'}${unit[n]}</strong></td>
+        <td>${v.p95 ?? '—'}${unit[n]}</td>
+        <td>${v.budget != null ? v.budget + unit[n] : '—'}</td>
+        <td>${pass}</td>
+      </tr>`;
+    }).join('');
+
+    host.innerHTML = `<table><thead><tr>
+      <th>Metrik</th><th>Sampel</th><th>p50</th><th>p75</th><th>p95</th><th>Anggaran</th><th>Status</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <p style="color:var(--muted);font-size:.75rem;padding:.75rem">p75 = persentil yang dipakai Google untuk menilai Core Web Vitals.</p>`;
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+async function loadAssetBudget() {
+  const host = $('#perfAssets');
+  try {
+    const data = await api('/api/admin/performance/assets');
+    const a = data.audit || {};
+    const b = a.bytes || {};
+    const bud = a.budgets || {};
+    const kb = (n) => `${Math.round(Number(n) / 1024)} KB`;
+
+    const rows = [
+      ['Total', b.total, bud.totalBytes],
+      ['JavaScript', b.js, bud.maxJsBytes],
+      ['CSS', b.css, bud.maxCssBytes],
+      ['HTML', b.html, bud.maxHtmlBytes],
+    ].map(([label, actual, budget]) => {
+      const over = actual > budget;
+      return `<tr>
+        <td>${label}</td>
+        <td>${kb(actual)}</td>
+        <td>${kb(budget)}</td>
+        <td>${over ? '<span class="badge err">lewat</span>' : '<span class="badge ok">aman</span>'}</td>
+      </tr>`;
+    }).join('');
+
+    host.innerHTML = `<table><thead><tr>
+      <th>Jenis</th><th>Aktual</th><th>Anggaran</th><th>Status</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+$('#perfRefreshBtn').addEventListener('click', loadPerf);
+$('#perfDays').addEventListener('change', loadVitals);
+
+// ══ EKSPERIMEN (GROW) ════════════════════════════════════════════
+
+async function loadGrow() {
+  const host = $('#growList');
+  const rHost = $('#growResults');
+  try {
+    const data = await api('/api/admin/experiments');
+    const exps = data.experiments || [];
+
+    if (!exps.length) {
+      host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada eksperimen. Buat lewat API: POST /api/admin/experiment</p>';
+      rHost.innerHTML = '';
+      return;
+    }
+
+    host.innerHTML = `<table><thead><tr>
+      <th>Slug</th><th>Nama</th><th>Status</th><th>Varian</th><th>Diperbarui</th>
+    </tr></thead><tbody>${exps.map(e => `<tr>
+      <td><code>${escapeHtml(e.slug)}</code></td>
+      <td>${escapeHtml(e.name || '—')}</td>
+      <td><span class="badge ${e.status === 'running' ? 'ok' : 'warn'}">${escapeHtml(e.status)}</span></td>
+      <td>${(e.variants || []).map(v => `<code>${escapeHtml(v)}</code>`).join(' ')}</td>
+      <td>${fmtDate(e.updated_at)}</td>
+    </tr>`).join('')}</tbody></table>`;
+
+    // Hasil eksperimen pertama (biasanya cukup satu).
+    const first = exps[0];
+    const r = await api(`/api/admin/experiment/${encodeURIComponent(first.slug)}/results`);
+    const res = r.results || {};
+    const verdict = res.verdict || {};
+    const badge = { winner: 'ok', insufficient: 'warn', inconclusive: 'warn', no_data: 'warn' }[verdict.state] || 'warn';
+
+    rHost.innerHTML = `
+      <p style="padding:.75rem 1rem"><strong>${escapeHtml(res.name || first.slug)}</strong>
+        <span class="badge ${badge}">${escapeHtml(verdict.state || '—')}</span></p>
+      <p style="color:var(--muted);font-size:.85rem;padding:0 1rem 1rem">${escapeHtml(verdict.message || '')}</p>
+      <table><thead><tr><th>Varian</th><th>Terpapar</th><th>Konversi</th><th>Rate</th></tr></thead>
+      <tbody>${(res.variants || []).map(v => `<tr>
+        <td><code>${escapeHtml(v.variant)}</code>${v.variant === res.control ? ' <span class="badge">kontrol</span>' : ''}</td>
+        <td>${v.exposed}</td><td>${v.converted}</td>
+        <td>${(v.rate * 100).toFixed(2)}%</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+    rHost.innerHTML = '';
+  }
+}
+
+$('#growRefreshBtn').addEventListener('click', loadGrow);
+
+// ══ BRANCH (COLLABORATE) ═════════════════════════════════════════
+
+async function loadBranches() {
+  const host = $('#branchList');
+  const cHost = $('#commentList');
+  try {
+    const [bData, cData] = await Promise.all([
+      api('/api/admin/branches'),
+      api('/api/comments?resolved=0').catch(() => ({ comments: [] })),
+    ]);
+
+    const branches = bData.branches || [];
+    if (!branches.length) {
+      host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada branch. Buat lewat API: POST /api/admin/branch/create</p>';
+    } else {
+      host.innerHTML = `<table><thead><tr>
+        <th>Branch</th><th>Status</th><th>Perubahan</th><th>Pembuat</th><th>Diperbarui</th>
+      </tr></thead><tbody>${branches.map(b => `<tr>
+        <td><code>${escapeHtml(b.name)}</code></td>
+        <td><span class="badge ${b.status === 'open' ? 'ok' : ''}">${escapeHtml(b.status)}</span></td>
+        <td>${b.change_count}</td>
+        <td>${escapeHtml(b.author || '—')}</td>
+        <td>${fmtDate(b.updated_at)}</td>
+      </tr>`).join('')}</tbody></table>`;
+    }
+
+    const comments = cData.comments || [];
+    if (!comments.length) {
+      cHost.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Tidak ada komentar terbuka.</p>';
+    } else {
+      cHost.innerHTML = `<table><thead><tr>
+        <th>Target</th><th>Anchor</th><th>Komentar</th><th>Dari</th><th>Waktu</th>
+      </tr></thead><tbody>${comments.map(c => `<tr>
+        <td><code>${escapeHtml(c.target)}</code></td>
+        <td><code>${escapeHtml(c.anchor || '—')}</code></td>
+        <td>${escapeHtml(c.body).slice(0, 120)}</td>
+        <td>${escapeHtml(c.author || '—')}</td>
+        <td>${fmtDate(c.created_at)}</td>
+      </tr>`).join('')}</tbody></table>`;
+    }
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+$('#branchRefreshBtn').addEventListener('click', loadBranches);
+
+// ══ PUBLISH ══════════════════════════════════════════════════════
+
+async function loadReleases() {
+  const host = $('#releasesList');
+  try {
+    const data = await api('/api/admin/releases?limit=20');
+    const rel = data.releases || [];
+    if (!rel.length) {
+      host.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:1rem">Belum ada rilis tercatat.</p>';
+      return;
+    }
+    host.innerHTML = `<table><thead><tr>
+      <th>Versi</th><th>Commit</th><th>Status</th><th>Oleh</th><th>Waktu</th>
+    </tr></thead><tbody>${rel.map(r => `<tr>
+      <td><code>${escapeHtml(r.version || '—')}</code></td>
+      <td><code>${escapeHtml((r.commit_hash || '—').slice(0, 8))}</code></td>
+      <td><span class="badge ${r.ok ? 'ok' : 'err'}">${r.ok ? 'berhasil' : 'gagal'}</span></td>
+      <td>${escapeHtml(r.deployed_by || '—')}</td>
+      <td>${fmtDate(r.created_at)}</td>
+    </tr>`).join('')}</tbody></table>`;
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal memuat: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+$('#releasesRefreshBtn').addEventListener('click', loadReleases);
+
+$('#preflightBtn').addEventListener('click', async () => {
+  const host = $('#preflightResult');
+  host.innerHTML = '<p style="color:var(--muted);padding:1rem">Memeriksa…</p>';
+  try {
+    const data = await api('/api/admin/preflight');
+    const pf = data.preflight || {};
+    const rows = (pf.checks || []).map(c => `<tr>
+      <td>${c.ok ? '✓' : '✗'}</td>
+      <td><code>${escapeHtml(c.name)}</code></td>
+      <td style="color:${c.ok ? 'var(--ok)' : 'var(--err)'}">${escapeHtml(c.detail)}</td>
+    </tr>`).join('');
+
+    host.innerHTML = `
+      <p style="padding:.75rem 1rem">
+        ${pf.ok
+          ? '<span class="badge ok">LOLOS</span> Situs siap deploy.'
+          : '<span class="badge err">GAGAL</span> Perbaiki dulu sebelum deploy.'}
+      </p>
+      <table><thead><tr><th></th><th>Pemeriksaan</th><th>Detail</th></tr></thead>
+      <tbody>${rows}</tbody></table>`;
+  } catch (err) {
+    host.innerHTML = `<p style="color:var(--err);padding:1rem">Gagal: ${escapeHtml(err.message)}</p>`;
+  }
+});
 
 // ── Boot ─────────────────────────────────────────────────────────
 if (adminKey) {
