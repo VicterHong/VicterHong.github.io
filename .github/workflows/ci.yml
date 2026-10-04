@@ -1,0 +1,162 @@
+name: CI
+
+# Gerbang mutu otomatis untuk setiap push & pull request.
+# Tujuan: mencegah regresi masuk ke produksi — bug filter yang pernah
+# terjadi (argumen url tidak diteruskan) sekarang tertangkap di sini.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── 1. Test backend ────────────────────────────────────────────────────────
+  backend-tests:
+    name: Test backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cek sintaks semua modul
+        working-directory: backend
+        run: npm run check
+
+      - name: Jalankan test suite
+        working-directory: backend
+        run: npm test
+
+  # ── 2. Preflight situs ─────────────────────────────────────────────────────
+  preflight:
+    name: Preflight situs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Regenerasi berkas discovery
+        run: node scripts/generate-discovery.mjs
+
+      - name: Periksa situs (berkas wajib, anggaran, rahasia)
+        run: node scripts/preflight.mjs
+
+      - name: Pastikan berkas discovery tidak berubah (sudah di-commit)
+        run: |
+          if ! git diff --quiet sitemap.xml robots.txt llms.txt; then
+            echo "::error::sitemap.xml / robots.txt / llms.txt belum diperbarui."
+            echo "Jalankan: npm run discovery  lalu commit hasilnya."
+            git diff --stat sitemap.xml robots.txt llms.txt
+            exit 1
+          fi
+          echo "✓ berkas discovery sinkron"
+
+  # ── 3. Validasi HTML & tautan penting ──────────────────────────────────────
+  html-check:
+    name: Struktur HTML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Periksa halaman wajib ada
+        run: |
+          for f in home.html index.html 404.html; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f tidak ditemukan"
+              exit 1
+            fi
+          done
+          echo "✓ semua halaman wajib ada"
+
+      - name: Periksa meta SEO/AEO di halaman utama
+        run: |
+          missing=0
+          for marker in 'rel="canonical"' 'og:title' 'og:image' 'application/ld+json' 'data-wave-reveal'; do
+            if ! grep -q "$marker" home.html; then
+              echo "::error::home.html kehilangan penanda: $marker"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] && echo "✓ meta SEO/AEO lengkap"
+
+      - name: Periksa halaman token memakai gate
+        run: |
+          count=$(grep -rl "cf-gate" s/ 2>/dev/null | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "::error::halaman token tidak memuat gate verifikasi"
+            exit 1
+          fi
+          echo "✓ $count halaman token memakai gate"
+
+  # ── 4. Panel admin ─────────────────────────────────────────────────────────
+  admin-panel:
+    name: Panel admin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Ekstrak & cek sintaks JS panel admin
+        run: |
+          node -e "
+          const { readFileSync, writeFileSync } = require('node:fs');
+          const html = readFileSync('backend/public/admin.html', 'utf8');
+          const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+          if (!scripts.length) { console.error('tidak ada <script> di admin.html'); process.exit(1); }
+          writeFileSync('/tmp/admin.js', scripts[scripts.length - 1][1]);
+          console.log('✓ JS panel admin diekstrak (' + scripts[scripts.length-1][1].length + ' karakter)');
+          "
+          node --check /tmp/admin.js
+          echo "✓ sintaks JS panel admin valid"
+
+      - name: Periksa fitur wajib panel admin
+        run: |
+          missing=0
+          for marker in 'id="refreshBtn"' 'id="issueBtn"' 'data-tab="tokens"' \
+                        'data-tab="perf"' 'data-tab="publish"' 'tokenStatusFilter' \
+                        'openRevokeModal' 'data-label'; do
+            if ! grep -q "$marker" backend/public/admin.html; then
+              echo "::error::panel admin kehilangan: $marker"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] && echo "✓ fitur panel admin lengkap"
+
+  # ── 5. Konsistensi dokumentasi ─────────────────────────────────────────────
+  docs:
+    name: Dokumentasi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Periksa dokumen wajib ada
+        run: |
+          missing=0
+          for f in docs/PRD-v2-corporate.md docs/OPERASIONAL.md \
+                   docs/PRODUCTION.md docs/API-REFERENCE.md; do
+            if [ ! -f "$f" ]; then
+              echo "::error::dokumen hilang: $f"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] && echo "✓ dokumen lengkap"
+
+      - name: Pastikan tidak ada rahasia di dokumentasi
+        run: |
+          if grep -rEn 'sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|0x4AAAAAA[A-Za-z0-9_-]{20,}' docs/ README.md 2>/dev/null; then
+            echo "::error::pola rahasia ditemukan di dokumentasi"
+            exit 1
+          fi
+          echo "✓ dokumentasi bersih dari rahasia"

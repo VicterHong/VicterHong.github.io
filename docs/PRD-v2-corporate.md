@@ -290,6 +290,13 @@ Token akan dicabut otomatis jika sistem mendeteksi:
 | **v2.8** ✅ | Backup harian database token (PRD §8) | **Selesai** — cron 03:45, retensi 30 hari, terverifikasi |
 | **v2.9** ✅ | Desain standar Framer/Dribbble + efek 3D (depth) | **Selesai** — hero terminal, scroll-stand, tilt berlapis, glare |
 | **v3.0** ✅ | Production hardening: SEO produksi + uptime monitoring + runbook | **Selesai** — `docs/PRODUCTION.md` |
+| **v3.1** ✅ | Health check jujur (liveness + readiness) | **Selesai** — `/api/ready` memeriksa database, disk, konfigurasi |
+| **v3.2** ✅ | Rotasi log otomatis | **Selesai** — cron 04:15, putar >5MB, simpan 5 arsip, hapus >90 hari |
+| **v3.3** ✅ | Dokumentasi API lengkap | **Selesai** — `docs/API-REFERENCE.md` (17 kategori endpoint) |
+| **v3.4** ✅ | CI/CD GitHub Actions | **Selesai** — 5 job: test backend, preflight, HTML, panel admin, docs |
+| **v3.5** ✅ | 8 modul Framer-grade (CMS, Performance, Collaborate, Grow, SEO, AEO, Convert, Publish) | **Selesai** — panel admin 11 tab |
+| **v3.6** ✅ | Panel admin profesional (mobile-first, modal, filter) | **Selesai** — mode kartu, modal bottom-sheet, 7 filter bekerja |
+| **v3.7** 📋 | Custom domain aktif (`victer.is-a.dev`) | PR #54937 open, menunggu merge maintainer (volunteer, 2 jam–3 hari) |
 
 ### Catatan implementasi v2.3–v2.5
 

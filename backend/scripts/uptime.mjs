@@ -52,9 +52,24 @@ const TARGETS = [
     expect: (body) => { try { return JSON.parse(body).ok === true; } catch { return false; } },
   },
   {
+    // READINESS, bukan liveness: memeriksa database & disk, bukan hanya
+    // "proses hidup". Kalau database terkunci, pengunjung tidak bisa
+    // dilayani walau prosesnya hidup — itu yang ingin kita ketahui.
     name: 'backend',
-    url: `${backendBase}/api/health`,
-    expect: (body) => { try { return JSON.parse(body).ok === true; } catch { return false; } },
+    url: `${backendBase}/api/ready`,
+    expect: (body) => {
+      try {
+        const d = JSON.parse(body);
+        if (d.ok !== true) return false;
+        // Laporkan pemeriksaan yang gagal (kalau ada) supaya pesan
+        // peringatan menyebut penyebabnya, bukan sekadar "tidak sehat".
+        const failed = (d.checks ?? []).filter(c => !c.ok);
+        if (failed.length) {
+          console.error(`   [backend] pemeriksaan gagal: ${failed.map(c => c.name).join(', ')}`);
+        }
+        return true;
+      } catch { return false; }
+    },
   },
 ];
 

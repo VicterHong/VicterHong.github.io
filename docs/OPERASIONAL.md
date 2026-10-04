@@ -349,6 +349,118 @@ node src/admin-cli.mjs issue --project mina --to "PT Contoh" --days 30
 
 ---
 
+## Health check: liveness vs readiness
+
+Dua endpoint dengan tugas berbeda (standar Kubernetes):
+
+### `GET /api/health` — LIVENESS
+
+"Proses ini hidup?" Cepat, **tidak menyentuh database**. Dipakai untuk
+memutuskan apakah proses perlu di-restart. Selalu **200** selama proses
+bisa menjawab.
+
+```bash
+curl -s http://127.0.0.1:8788/api/health
+# {"ok":true,"service":"portfolio-token-service","uptime_seconds":3600,
+#  "pid":12345,"node":"v22.0.0","memory_mb":27,"time":"..."}
+```
+
+### `GET /api/ready` — READINESS
+
+"Siap menerima trafik?" Memeriksa **dependensi nyata**:
+
+| Pemeriksaan | Yang diuji | Gagal kalau |
+|-------------|-----------|-------------|
+| `database` | Query nyata ke tabel tokens | DB terkunci/rusak |
+| `disk_write` | Tulis + hapus file probe | Disk read-only |
+| `disk_space` | Sisa ruang | < 50 MB tersisa |
+| `content_dir` | Bisa dibaca | Izin salah |
+| `config` | Secret & admin key ada | Env hilang |
+
+```bash
+curl -s http://127.0.0.1:8788/api/ready
+# {"ok":true,"checks":[{"name":"database","ok":true,"detail":"12 token terbaca"},...]}
+```
+
+**200** = siap, **503** = ada yang gagal (dengan detail penyebabnya).
+
+**Kenapa dua endpoint?** Proses bisa "hidup" (liveness ok) tapi tidak bisa
+melayani (readiness gagal) — misalnya database terkunci. Uptime monitor
+memakai `/api/ready` supaya tidak melaporkan 100% saat layanan sebenarnya
+tidak bisa melayani.
+
+### Cek cepat kesehatan sistem
+
+```bash
+# Ringkas — satu perintah
+curl -s http://127.0.0.1:8788/api/ready | python3 -m json.tool
+
+# Lihat yang gagal saja
+curl -s http://127.0.0.1:8788/api/ready | python3 -c "
+import json,sys
+d = json.load(sys.stdin)
+for c in d['checks']:
+    if not c['ok']: print(f\"✗ {c['name']}: {c['detail']}\")
+print('SEMUA SEHAT' if d['ok'] else 'ADA MASALAH')
+"
+```
+
+---
+
+## Rotasi log (otomatis)
+
+Log yang tumbuh tanpa batas bisa memenuhi disk VPS kecil (yang juga dipakai
+database & backup). Rotasi berjalan lewat cron:
+
+```
+15 4 * * * node backend/scripts/rotate-logs.mjs
+```
+
+**Kebijakan:**
+- File > **5 MB** diputar (rename dengan cap waktu)
+- Simpan maksimal **5 arsip** per file
+- Arsip lebih tua dari **90 hari** dihapus
+
+**File yang dikelola:** `uptime.log`, `uptime-cron.log`, `backup.log`,
+`deploy.log` (eksplisit — tidak menyapu file lain).
+
+**Lokasi arsip:** `~/.portfolio-token/archive/`
+
+```bash
+# Jalankan manual
+node backend/scripts/rotate-logs.mjs
+# [rotate] uptime.log (6144 KB) → uptime.log.2026-10-04T16-12-04
+# [rotate] selesai — 1 diputar, 0 dihapus
+
+# Lihat arsip
+ls -lh ~/.portfolio-token/archive/
+```
+
+---
+
+## CI/CD (GitHub Actions)
+
+Setiap push & pull request menjalankan **5 job** (`.github/workflows/ci.yml`):
+
+| Job | Yang diperiksa |
+|-----|----------------|
+| **Test backend** | Sintaks semua modul + 153 test |
+| **Preflight situs** | Berkas wajib, anggaran performa, pemindaian rahasia, discovery sinkron |
+| **Struktur HTML** | Halaman wajib, meta SEO/AEO, gate di halaman token |
+| **Panel admin** | Sintaks JS, fitur wajib (filter, modal, tab) |
+| **Dokumentasi** | Dokumen wajib ada, tidak ada rahasia |
+
+**Kenapa penting:** bug filter (argumen `url` tidak diteruskan) yang pernah
+terjadi sekarang **tertangkap otomatis** sebelum sampai produksi.
+
+```bash
+# Jalankan semua pemeriksaan secara lokal sebelum push
+cd backend && npm test
+cd .. && node scripts/preflight.mjs
+```
+
+---
+
 ## Backup database (otomatis)
 
 PRD §8 mewajibkan backup harian. Sudah berjalan lewat cron:

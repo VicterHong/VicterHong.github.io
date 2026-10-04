@@ -37,6 +37,7 @@ import { checkRateLimit } from './rate-limit.mjs';
 import { scoreLead } from './spam-guard.mjs';
 import { verifyTurnstile, turnstileMessage } from './turnstile.mjs';
 import { slaSummary, slaReport } from './sla.mjs';
+import { liveness, readiness } from './health.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import { listProjects, isKnownProject } from './projects.mjs';
 import {
@@ -327,7 +328,21 @@ export const routes = [
     method: 'GET',
     pattern: '/api/health',
     handler: safe(async (req, res) => {
-      sendJson(res, 200, { ok: true, service: 'portfolio-token-service', time: new Date().toISOString() });
+      // LIVENESS — "proses ini hidup?". Cepat, tidak menyentuh database.
+      // Selalu 200 selama proses bisa menjawab (standar Kubernetes).
+      sendJson(res, 200, liveness());
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/ready',
+    handler: safe(async (req, res) => {
+      // READINESS — "siap menerima trafik?". Memeriksa dependensi nyata:
+      // database bisa dibaca, disk bisa ditulis, ruang cukup, konfigurasi ada.
+      // 503 kalau ada yang gagal — load balancer/monitor tahu harus mundur.
+      const result = readiness();
+      sendJson(res, result.ok ? 200 : 503, result);
     }),
   },
 
