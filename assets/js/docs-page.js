@@ -206,6 +206,11 @@ import('./cookies.js').then(({ initCookieConsent }) => {
   initCookieConsent();
 }).catch(() => { /* halaman tetap berjalan tanpa banner */ });
 
+// Efek tekan tombol — gelombang dari titik sentuh, sama seperti home.
+import('./ripple.js').then(({ initRipple }) => {
+  initRipple();
+}).catch(() => { /* tombol tetap berfungsi tanpa efek */ });
+
 // Logo interaktif — sama seperti halaman utama supaya kedua halaman konsisten.
 import('./logo.js').then(({ mountInteractiveLogo }) => {
   mountInteractiveLogo();

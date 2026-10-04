@@ -24,6 +24,7 @@
 <link rel="stylesheet" href="../../assets/css/logo.css">
 <link rel="stylesheet" href="../../assets/css/premium.css">
 <link rel="stylesheet" href="../../assets/css/cf-gate.css">
+<link rel="stylesheet" href="../../assets/css/interactions.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan.
   try {
@@ -267,5 +268,12 @@
      ke slot #turnstileSlot. Library sudah dimuat di <head>. -->
 
 <script type="module" src="../../assets/js/project.js?v=14"></script>
+<script type="module">
+  // Efek tekan tombol — gelombang dari titik sentuh, sama seperti halaman
+  // utama. Dimuat sebagai modul supaya impornya ikut ter-bundle.
+  import('../../assets/js/ripple.js')
+    .then(({ initRipple }) => initRipple())
+    .catch(() => { /* tombol tetap berfungsi tanpa efek */ });
+</script>
 </body>
 </html>

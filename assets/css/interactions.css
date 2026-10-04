@@ -1,0 +1,189 @@
+/* ── EFEK TEKAN TOMBOL ─────────────────────────────────────────────────────────
+   Dua bagian yang bekerja bersama:
+
+   1. GELOMBANG (ripple) — muncul dari titik sentuh saat tombol ditekan.
+      Pola Material Design 3. Radius dihitung di JS supaya selalu menutupi
+      seluruh tombol, bukan berhenti di tengah pada tombol lebar.
+
+   2. KACA (glass) — tombol memakai latar semi-transparan dengan blur.
+      Pola Framer/Dribbble: tombol terasa sebagai lapisan di atas halaman,
+      bukan bidang pekat yang menempel.
+
+   Keduanya dijalankan dengan prinsip yang sama:
+     - Cepat (≤0.5s). Pada produk yang sering dipakai, animasi panjang
+       terasa seperti hambatan, bukan kehalusan.
+     - Halus (kurva deselerasi), bukan linear — gerakan terasa mekanis
+       kalau kecepatannya rata.
+     - Mati total saat prefers-reduced-motion.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── Gelombang ──────────────────────────────────────────────────────────────
+   Tombol perlu position: relative + overflow: hidden supaya gelombang
+   terpotong rapi di tepinya.
+
+   CATATAN PENTING — elemen yang DIKECUALIKAN dari overflow: hidden:
+     - .orb-item : punya tooltip ::after di luar batas elemen. overflow
+                   hidden akan memotong tooltip itu dan menghilangkannya.
+     - .nav-toggle : tombolnya kecil dan gelombang tidak akan terlihat;
+                   menambah overflow tidak sepadan risikonya.
+   Keduanya tetap mendapat efek tekan (scale), hanya tanpa gelombang. */
+.btn,
+.cookie-btn,
+.copy-btn,
+.link-btn,
+.chip,
+.tab {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.orb-item,
+.nav-toggle {
+  isolation: isolate;
+}
+
+.btn,
+.cookie-btn,
+.copy-btn,
+.link-btn,
+.chip,
+.tab,
+.orb-item,
+.nav-toggle {
+  /* Ditekan = sedikit mengecil. Umpan balik taktil visual — jari tahu
+     tombolnya benar-benar menerima tekanan. */
+  transition:
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.25s ease;
+}
+.btn:active,
+.cookie-btn:active,
+.copy-btn:active,
+.link-btn:active,
+.chip:active,
+.tab:active,
+.orb-item:active,
+.nav-toggle:active {
+  transform: scale(0.975);
+}
+
+/* Elemen gelombang — dibuat oleh ripple.js.
+   Warna memakai currentColor dengan opacity rendah: otomatis kontras
+   di tombol terang maupun gelap, tanpa perlu dua set warna. */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.22;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple-out 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 0;
+}
+@keyframes ripple-out {
+  to { transform: scale(1); opacity: 0; }
+}
+
+/* Tombol gelap (teks terang) perlu gelombang lebih terang; tombol terang
+   (teks gelap) perlu gelombang lebih gelap. currentColor menangani ini
+   otomatis — cukup sesuaikan opacity untuk tombol dengan latar pekat. */
+.btn-primary .ripple,
+.cookie-btn--decision .ripple {
+  opacity: 0.28;
+}
+
+/* ── Kaca (glass) ───────────────────────────────────────────────────────────
+   Tombol semi-transparan dengan blur. Nilai opacity dipilih supaya teks
+   tetap lolos WCAG AA — kaca yang terlalu bening mengorbankan keterbacaan,
+   dan itu pertukaran yang buruk untuk tombol aksi utama. */
+
+/* Tombol hantu: sudah transparan, tinggal ditambah blur tipis supaya
+   terasa seperti lapisan kaca di atas konten yang bergerak di belakang. */
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+
+/* Tombol utama: aksen situs dengan sedikit tembus + kilau di tepi atas.
+   Kilau itu meniru pantulan cahaya pada permukaan kaca — memberi kesan
+   tombol punya ketebalan, bukan bidang datar. */
+.btn-primary {
+  background: linear-gradient(180deg, #ff8b5c, var(--accent));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 14px rgba(255, 122, 69, 0.22);
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #ff9d74, #ff8352);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 8px 22px rgba(255, 122, 69, 0.32);
+  transform: translateY(-2px);
+}
+.btn-primary:active {
+  transform: translateY(-1px) scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 3px 10px rgba(255, 122, 69, 0.24);
+}
+
+/* Tombol keputusan cookie: putih pekat, tapi dengan kilau tepi supaya
+   konsisten dengan tombol utama. TIDAK dibuat lebih transparan —
+   "Terima" dan "Tolak" harus tetap sama jelas (aturan kepatuhan). */
+.cookie-btn--decision {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.cookie-btn--decision:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    0 6px 18px rgba(255, 255, 255, 0.14);
+}
+
+/* Tombol salin di halaman panduan: kaca tipis. */
+.copy-btn {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Tab: kilau halus saat aktif — penanda bahwa ini tab yang sedang dipilih. */
+.tab {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ── Gerak diminimalkan ─────────────────────────────────────────────────────
+   Semua animasi mati. Gelombang tidak dibuat sama sekali oleh ripple.js,
+   dan transisi tekan dilepas — tapi tombol tetap berfungsi normal. */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .cookie-btn,
+  .copy-btn,
+  .link-btn,
+  .chip,
+  .tab,
+  .orb-item,
+  .nav-toggle {
+    transition: none;
+  }
+  .btn:active,
+  .cookie-btn:active,
+  .copy-btn:active,
+  .link-btn:active,
+  .chip:active,
+  .tab:active,
+  .orb-item:active,
+  .nav-toggle:active {
+    transform: none;
+  }
+  .ripple { display: none; }
+}

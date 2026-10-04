@@ -25,6 +25,7 @@ import { initMasonry } from './masonry.js';
 import { initVitals } from './vitals.js';
 import { initExperiments } from './experiment.js';
 import { initCookieConsent, consentGiven } from './cookies.js';
+import { initRipple } from './ripple.js';
 import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
@@ -457,6 +458,11 @@ document.querySelectorAll('[data-icon]').forEach((el) => {
 
 // Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
 mountInteractiveLogo();
+
+// Efek tekan tombol — gelombang dari titik sentuh (Material Design 3).
+// Satu listener terdelegasi, jadi tombol yang dibuat belakangan (banner
+// cookie, modal) otomatis ikut tanpa didaftarkan ulang.
+initRipple();
 
 // Efek sinematik (teknik PRIOR, vanilla) — clip reveal, parallax, text stagger,
 // scroll-scrub video, hero fade. Semua hormati prefers-reduced-motion.
