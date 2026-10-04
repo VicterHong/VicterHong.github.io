@@ -106,6 +106,14 @@ body {
   font-size: 0.8125rem;
 }
 .topbar button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+/* Tombol sedang memuat: redup + tidak bisa diklik (umpan balik jelas) */
+.topbar button.ghost:disabled,
+.topbar button.ghost.is-loading {
+  opacity: 0.55;
+  cursor: progress;
+  border-color: var(--border);
+  color: var(--muted);
+}
 
 .tabs {
   display: flex;
@@ -961,7 +969,33 @@ $('#logoutBtn').addEventListener('click', () => {
   showLogin();
 });
 
-$('#refreshBtn').addEventListener('click', loadAll);
+$('#refreshBtn').addEventListener('click', async () => {
+  const btn = $('#refreshBtn');
+  // Tombol sebelumnya tidak memberi tanda apa pun saat diklik — pengguna
+  // mengira tidak bekerja (padahal request terkirim). Sekarang: spinner,
+  // label berubah, dan tombol terkunci selama proses.
+  if (btn.disabled) return;
+
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '↻ Memuat…';
+  btn.classList.add('is-loading');
+
+  try {
+    const { failed } = await loadAll();
+    if (failed.length) {
+      toast(`Sebagian gagal: ${failed.join(', ')}`, 'err');
+    } else {
+      toast('Data diperbarui.');
+    }
+  } catch {
+    toast('Gagal memuat data.', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+    btn.classList.remove('is-loading');
+  }
+});
 
 // ── Tabs ─────────────────────────────────────────────────────────
 $$('.tab').forEach((tab) => {
@@ -1545,20 +1579,37 @@ async function checkHealth() {
 // ── Load all ─────────────────────────────────────────────────────
 async function loadAll() {
   checkHealth();
-  const tasks = [
-    loadOverview().catch(() => {}),
-    loadTokens().catch(() => {}),
-    loadLeads().catch(() => {}),
-    loadFunnel().catch(() => {}),
-    loadSla().catch(() => {}),
-    loadAudit().catch(() => {}),
-    loadCms().catch(() => {}),
-    loadPerf().catch(() => {}),
-    loadGrow().catch(() => {}),
-    loadBranches().catch(() => {}),
-    loadReleases().catch(() => {}),
+  // Setiap pemuat gagal-diam (satu panel rusak tidak mematikan yang lain),
+  // TAPI kegagalannya dicatat supaya bisa dilaporkan ke pengguna.
+  // Sebelumnya semua error ditelan tanpa jejak — admin tidak pernah tahu
+  // ada panel yang gagal memuat.
+  const loaders = [
+    ['ringkasan', loadOverview],
+    ['token', loadTokens],
+    ['leads', loadLeads],
+    ['funnel', loadFunnel],
+    ['SLA', loadSla],
+    ['audit', loadAudit],
+    ['konten', loadCms],
+    ['performa', loadPerf],
+    ['eksperimen', loadGrow],
+    ['branch', loadBranches],
+    ['rilis', loadReleases],
   ];
-  await Promise.all(tasks);
+
+  const failed = [];
+  await Promise.all(loaders.map(async ([name, fn]) => {
+    try {
+      await fn();
+    } catch (err) {
+      failed.push(name);
+    }
+  }));
+
+  if (failed.length) {
+    console.warn('[admin] panel gagal dimuat:', failed.join(', '));
+  }
+  return { failed };
 }
 
 // ══ KONTEN (CMS) ═════════════════════════════════════════════════
