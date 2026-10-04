@@ -1,30 +1,42 @@
 /* ── PERSETUJUAN COOKIE ────────────────────────────────────────────────────────
-   Banner persetujuan cookie untuk halaman yang memakai penyimpanan browser.
+   Bilah persetujuan cookie untuk halaman yang memakai penyimpanan browser.
 
    Pola yang diadopsi (dengan penyesuaian, bukan tiruan):
      - Stripe   : nada tenang dan profesional, pilihan tersimpan lama,
                   halaman preferensi bisa dibuka kapan saja.
-     - ChatGPT  : dua lapis — banner ringkas dulu, panel rinci saat diminta.
-     - Netflix  : banner tidak memblokir konten, warna mengikuti tema situs.
+     - ChatGPT  : dua lapis — bilah ringkas dulu, panel rinci saat diminta.
+     - Netflix  : bilah memanjang penuh di dasar layar, warna ikut tema.
      - Steam    : panel rinci dengan penjelasan bahasa awam per kategori.
+     - GOV.UK   : urutan keputusan — tolak dulu, baru terima (baca kiri
+                  ke kanan), dan tombol keputusan selalu berpasangan.
 
    Penyesuaian agar tidak meniru salah satunya:
      - Warna memakai aksen situs (#ff7a45), bukan biru/merah/hijau mereka.
-     - Posisi: kartu di pojok kanan bawah (desktop), lembar penuh (mobile).
+     - Isi bilah dibatasi selebar konten situs (--maxw) supaya sejajar
+       dengan header — memanjang penuh, tapi tidak melebar liar.
+     - Blur kaca (backdrop-filter) supaya bilah menyatu dengan halaman.
      - Kategori disesuaikan dengan yang BENAR-BENAR dipakai situs ini:
        esensial + analitik. Tidak ada kategori pemasaran — karena situs
-       ini memang tidak memasang cookie iklan. Banner yang mencantumkan
-       kategori yang tidak ada adalah banner yang tidak jujur.
+       ini memang tidak memasang cookie iklan. Bilah yang mencantumkan
+       kategori yang tidak ada adalah bilah yang tidak jujur.
 
    Prinsip yang dipegang (kepatuhan, bukan sekadar tampilan):
-     - Tombol "Terima semua" dan "Tolak semua" sama besar, sama kontras.
-       Membuat "Tolak" lebih kecil atau lebih pudar adalah pola gelap
-       yang dilarang regulator (CNIL menindak Google karena ini).
+     - Tombol "Terima semua" dan "Tolak semua" sama besar, sama kontras,
+       dan berdampingan. Membuat "Tolak" lebih kecil atau lebih pudar
+       adalah pola gelap yang dilarang regulator (CNIL menindak Google).
      - Kategori non-esensial MATI secara bawaan. Consent harus aktif.
      - Tidak ada tombol tutup yang ambigu — kalau ditutup tanpa memilih,
        artinya menolak (dinyatakan jelas di teks).
      - Bisa diubah kapan saja lewat tombol mengambang di pojok.
      - Tidak ada timer, tidak ada "yakin mau kehilangan pengalaman?".
+
+   Animasi (responsif, bukan sekadar bergerak):
+     - Bilah naik dari bawah 0.6s dengan kurva deselerasi — tenang.
+     - Isi muncul bertahap: teks 0.12s, tombol 0.2s.
+     - Tombol merespons dalam 0.18s saat disentuh — terasa seketika.
+     - Keluar lebih cepat dari masuk, tanpa tahapan — saat pengguna
+       sudah memutuskan, jangan tahan mereka menonton animasi.
+     - Semua animasi mati saat prefers-reduced-motion.
    ──────────────────────────────────────────────────────────────────────────── */
 
 /* Tombol mengambang — cara membuka ulang preferensi kapan saja.
@@ -44,86 +56,176 @@
   border-radius: 50%;
   color: var(--text-dim);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .cookie-fab:hover {
   color: var(--text);
   border-color: var(--text-faint);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
+.cookie-fab:active { transform: translateY(0) scale(0.96); }
 .cookie-fab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-.cookie-fab.is-visible { display: inline-flex; }
+/* Muncul dengan animasi pegas — display:none tidak bisa ditransisikan,
+   jadi pakai keyframes supaya kemunculannya tetap halus. */
+.cookie-fab.is-visible {
+  display: inline-flex;
+  animation: cookie-fab-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes cookie-fab-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.88); }
+  to   { opacity: 1; transform: none; }
+}
 .cookie-fab .icon { width: 18px; height: 18px; }
 
-/* ── Lapis 1: banner ringkas ──────────────────────────────────────────────── */
+/* ── Lapis 1: bilah persetujuan (MEMANJANG PENUH) ──────────────────────────
+   Bilah menempel di dasar layar dan membentang dari tepi ke tepi. Isinya
+   dibatasi selebar konten situs (--maxw) supaya sejajar dengan header dan
+   footer — memanjang, tapi tidak melebar liar di layar besar.
 
+   Kenapa bilah, bukan kartu pojok:
+     - Terbaca sebagai bagian dari halaman, bukan tempelan.
+     - Teks dan tombol bisa berdampingan — lebih cepat dipindai.
+     - Ruang tombol lebih lega, jadi "Terima" dan "Tolak" sama-sama
+       mendapat ukuran penuh tanpa berdesakan.
+
+   Animasi:
+     - Bilah naik dari bawah dengan kurva deselerasi (0.6s) — tenang,
+       tidak menyentak.
+     - Isi muncul bertahap: teks dulu, tombol menyusul (~80ms).
+     - Garis aksen di tepi atas menyala perlahan sebagai penanda halus. */
 .cookie-banner {
   position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: var(--z-float);
-  right: 1rem;
-  bottom: 1rem;
-  width: min(400px, calc(100vw - 2rem));
-  background: var(--bg-card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 1.15rem 1.25rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
-  /* Banner masuk dari bawah dengan tenang — tidak mengejutkan. */
-  opacity: 0;
-  transform: translateY(12px);
+  /* Latar lebih tembus (0.82) supaya efek kaca benar-benar terlihat —
+     pada 0.94 latar terlalu pekat dan blur tidak terbaca sama sekali.
+     Kontras teks tetap aman: teks terang di atas gelap 0.82 masih
+     jauh di atas ambang WCAG AA. */
+  background: rgba(14, 14, 17, 0.82);
+  /* Blur membuat konten di belakang tetap terlihat samar — bilah terasa
+     menyatu dengan halaman, bukan menutupinya. */
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -16px 44px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%);
   pointer-events: none;
-  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 .cookie-banner.is-visible {
-  opacity: 1;
-  transform: none;
+  transform: translateY(0);
   pointer-events: auto;
 }
 
-.cookie-banner h2 {
-  margin: 0 0 0.4rem;
-  font-size: 0.95rem;
+/* Garis aksen tipis di tepi atas — muncul terakhir, sebagai penutup
+   animasi. Bukan hiasan yang mencolok: hanya kilau samar. */
+.cookie-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.7s ease 0.35s;
+  pointer-events: none;
+}
+.cookie-banner.is-visible::before { opacity: 0.45; }
+
+.cookie-banner-inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 1.05rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.cookie-banner-text { flex: 1; min-width: 0; }
+
+.cookie-banner-text h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
 }
 
-.cookie-banner p {
-  margin: 0 0 0.9rem;
-  font-size: 0.82rem;
-  line-height: 1.55;
+.cookie-banner-text p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
   color: var(--text-dim);
 }
 
-.cookie-banner a {
+.cookie-banner-text a {
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-/* Baris tombol. Kedua tombol aksi sama besar — tidak ada yang
+/* Isi bilah muncul bertahap: teks dulu, tombol menyusul.
+   Saat bilah disembunyikan, delay tidak berlaku — jadi keluarnya cepat. */
+.cookie-banner-inner > * {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.45s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cookie-banner.is-visible .cookie-banner-inner > * {
+  opacity: 1;
+  transform: none;
+}
+.cookie-banner.is-visible .cookie-banner-inner > *:nth-child(1) { transition-delay: 0.12s; }
+.cookie-banner.is-visible .cookie-banner-inner > *:nth-child(2) { transition-delay: 0.2s; }
+
+/* Keadaan keluar: bilah turun lebih cepat (0.35s, bukan 0.6s) dan isi
+   langsung ikut turun tanpa tahapan. Saat pengguna sudah menekan
+   "Terima" atau "Tolak", respons harus terasa seketika. */
+.cookie-banner.is-hiding {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 1, 1);
+}
+.cookie-banner.is-hiding .cookie-banner-inner > * {
+  transition-delay: 0s;
+  transition-duration: 0.18s;
+}
+.cookie-banner.is-hiding::before { transition-delay: 0s; opacity: 0; }
+
+/* Baris tombol. Kedua tombol keputusan sama besar — tidak ada yang
    dibesarkan atau dibuat lebih menyala dari yang lain. */
 .cookie-actions {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .cookie-btn {
-  flex: 1 1 auto;
   min-height: 40px;
-  padding: 0.55rem 0.9rem;
+  padding: 0.55rem 1.1rem;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 500;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  /* Transisi dipercepat (0.18s) — tombol harus terasa merespons seketika
+     saat ditekan, bukan menunggu animasi selesai. */
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.18s ease;
   white-space: nowrap;
 }
+.cookie-btn:hover { transform: translateY(-1px); }
+.cookie-btn:active { transform: translateY(0) scale(0.98); }
 .cookie-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -142,7 +244,11 @@
   color: var(--bg);
   border: 1px solid var(--text);
 }
-.cookie-btn--decision:hover { background: #fff; border-color: #fff; }
+.cookie-btn--decision:hover {
+  background: #fff;
+  border-color: #fff;
+  box-shadow: 0 6px 18px rgba(255, 255, 255, 0.14);
+}
 
 /* Tombol netral — untuk aksi yang bukan keputusan (mis. tutup). */
 .cookie-btn--outline {
@@ -152,19 +258,23 @@
 }
 .cookie-btn--outline:hover { border-color: var(--text-faint); }
 
-/* Tautan "Atur" — sekunder, tapi tetap jelas bisa diklik. */
+/* Tautan "Atur" — sekunder, tapi tetap jelas bisa diklik.
+   Ditempatkan di antara dua tombol keputusan, jadi urutannya:
+   Tolak | Atur | Terima? Tidak — urutan dibaca kiri ke kanan, jadi
+   keputusan dulu (Tolak, Terima), baru tautan atur di ujung. */
 .cookie-btn--link {
-  flex: 1 1 100%;
   min-height: 34px;
   background: none;
   border: none;
   color: var(--text-dim);
   text-decoration: underline;
   text-underline-offset: 3px;
-  padding: 0.25rem;
+  padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
+  transition: color 0.18s ease;
 }
-.cookie-btn--link:hover { color: var(--text); }
+.cookie-btn--link:hover { color: var(--text); transform: none; }
+.cookie-btn--link:active { transform: none; }
 
 /* ── Lapis 2: panel rinci ─────────────────────────────────────────────────── */
 
@@ -173,9 +283,11 @@
   inset: 0;
   z-index: var(--z-float);
   background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s;
+  transition: opacity 0.35s ease;
 }
 .cookie-scrim.is-visible { opacity: 1; pointer-events: auto; }
 
@@ -184,7 +296,7 @@
   z-index: calc(var(--z-float) + 1);
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -46%);
+  transform: translate(-50%, -46%) scale(0.97);
   width: min(560px, calc(100vw - 2rem));
   max-height: min(85vh, 720px);
   display: flex;
@@ -195,12 +307,14 @@
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.75);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+  transition:
+    opacity 0.3s ease,
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .cookie-panel.is-visible {
   opacity: 1;
   pointer-events: auto;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* Kepala panel tetap menempel — tombol simpan selalu terjangkau,
@@ -322,7 +436,7 @@
   height: 100%;
   background: var(--line);
   border-radius: 999px;
-  transition: background 0.2s var(--ease);
+  transition: background 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 .cookie-switch-knob {
@@ -336,7 +450,11 @@
   justify-content: center;
   background: var(--text-faint);
   border-radius: 50%;
-  transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+  /* Kenop bergerak dengan sedikit pegas — memberi umpan balik bahwa
+     sakelar benar-benar berubah, bukan hanya warna yang berganti. */
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1),
+    background 0.25s ease;
   pointer-events: none;
 }
 .cookie-switch-knob .icon { width: 11px; height: 11px; color: var(--bg); }
@@ -366,26 +484,37 @@
 .cookie-panel-foot .cookie-btn { flex: 1; }
 
 /* ── Layar kecil ──────────────────────────────────────────────────────────── */
-@media (max-width: 560px) {
-  /* Banner jadi lembar penuh di bawah. Tombol ditumpuk supaya keduanya
-     muat penuh dan tetap sama besar — bukan berdempetan sampai salah
-     satu terpotong. */
-  .cookie-banner {
-    right: 0.75rem;
-    left: 0.75rem;
-    bottom: 0.75rem;
-    width: auto;
-    padding: 1.1rem 1.1rem 1rem;
+@media (max-width: 760px) {
+  /* Bilah tetap memanjang penuh, tapi isinya ditumpuk: teks di atas,
+     tombol di bawah. Di layar sempit, menaruh teks dan tombol
+     berdampingan membuat keduanya berdesakan sampai teks terpotong. */
+  .cookie-banner-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem 1.1rem;
   }
-  .cookie-actions { flex-direction: column; }
-  .cookie-btn--link { flex: 1 1 auto; }
+
+  /* Tombol memenuhi lebar — target sentuh besar, dan kedua tombol
+     keputusan tetap sama besar satu sama lain. */
+  .cookie-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .cookie-btn--decision { width: 100%; }
+  /* Tautan "Atur" membentang di baris kedua, di bawah dua tombol. */
+  .cookie-btn--link {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
 
   .cookie-panel {
     left: 0;
     right: 0;
     bottom: 0;
     top: auto;
-    transform: translateY(14px);
+    transform: translateY(14px) scale(1);
     width: 100%;
     max-height: 88vh;
     border-radius: var(--radius) var(--radius) 0 0;
@@ -398,16 +527,25 @@
   .cookie-fab { left: 0.75rem; bottom: 0.75rem; }
 }
 
-/* Gerak diminimalkan bila pengguna memintanya. */
+/* Gerak diminimalkan bila pengguna memintanya — termasuk animasi
+   kemunculan bilah, ikon mengambang, dan kilau garis aksen. */
 @media (prefers-reduced-motion: reduce) {
   .cookie-banner,
   .cookie-panel,
   .cookie-scrim,
   .cookie-fab,
   .cookie-switch-track,
-  .cookie-switch-knob {
+  .cookie-switch-knob,
+  .cookie-banner-inner > *,
+  .cookie-banner::before,
+  .cookie-btn {
     transition: none;
+    animation: none;
   }
+  /* Tanpa animasi pun, isi bilah harus tetap terlihat. */
+  .cookie-banner-inner > * { opacity: 1; transform: none; }
+  .cookie-banner::before { opacity: 0.45; }
+  .cookie-btn:hover, .cookie-btn:active { transform: none; }
 }
 
 /* Saat panel rinci terbuka, konten di belakang tidak boleh ikut

@@ -121,23 +121,27 @@ function build() {
   banner.setAttribute('role', 'region');
   banner.setAttribute('aria-label', 'Persetujuan cookie');
   banner.innerHTML = `
-    <h2>Cookie di situs ini</h2>
-    <p>
-      Situs memakai penyimpanan browser untuk dua hal: menjaga sesi token
-      Anda tetap aktif, dan mengukur performa halaman secara anonim.
-      Tidak ada iklan, tidak ada pelacakan lintas situs.
-      <a href="/docs#privasi">Selengkapnya</a>
-    </p>
-    <div class="cookie-actions">
-      <button type="button" class="cookie-btn cookie-btn--decision" data-consent="accept-all">
-        Terima semua
-      </button>
-      <button type="button" class="cookie-btn cookie-btn--decision" data-consent="reject-all">
-        Tolak semua
-      </button>
-      <button type="button" class="cookie-btn cookie-btn--link" data-consent="open-panel">
-        Atur pilihan
-      </button>
+    <div class="cookie-banner-inner">
+      <div class="cookie-banner-text">
+        <h2>Cookie di situs ini</h2>
+        <p>
+          Situs memakai penyimpanan browser untuk dua hal: menjaga sesi token
+          Anda tetap aktif, dan mengukur performa halaman secara anonim.
+          Tidak ada iklan, tidak ada pelacakan lintas situs.
+          <a href="/docs#privasi">Selengkapnya</a>
+        </p>
+      </div>
+      <div class="cookie-actions">
+        <button type="button" class="cookie-btn cookie-btn--decision" data-consent="reject-all">
+          Tolak semua
+        </button>
+        <button type="button" class="cookie-btn cookie-btn--decision" data-consent="accept-all">
+          Terima semua
+        </button>
+        <button type="button" class="cookie-btn cookie-btn--link" data-consent="open-panel">
+          Atur pilihan
+        </button>
+      </div>
     </div>
   `;
 
@@ -212,8 +216,17 @@ export function initCookieConsent() {
 
   const saved = loadConsent();
 
-  const showBanner = () => banner.classList.add('is-visible');
-  const hideBanner = () => banner.classList.remove('is-visible');
+  // Keluar lebih cepat dari masuk — saat pengguna sudah memutuskan,
+  // jangan tahan mereka menonton animasi. Kelas `is-hiding` mempercepat
+  // turunnya bilah dan melepas tahapan muncul bertahap.
+  const showBanner = () => {
+    banner.classList.remove('is-hiding');
+    banner.classList.add('is-visible');
+  };
+  const hideBanner = () => {
+    banner.classList.add('is-hiding');
+    banner.classList.remove('is-visible');
+  };
 
   const openPanel = () => {
     // Isi sakelar dari pilihan tersimpan (atau bawaan: mati).
