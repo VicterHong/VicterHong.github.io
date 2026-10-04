@@ -22,6 +22,7 @@
 import { config } from './config.mjs';
 import { openDb } from './db.mjs';
 import { timingSafeEqual } from 'node:crypto';
+import { resolve } from 'node:path';
 import {
   findTokenByPlaintext, getToken, issueToken, listTokens, revokeToken,
   resumeToken, suspendToken, tokenProblem,
@@ -138,6 +139,15 @@ function safe(handler) {
       if (!res.headersSent) sendJson(res, code, { ok: false, error: err?.message ?? 'kesalahan internal' });
     }
   };
+}
+
+/**
+ * Root situs = root repo. Berkas ini ada di `<repo>/backend/src/routes.mjs`,
+ * jadi naik dua tingkat. Penting karena service berjalan dengan cwd `backend/`,
+ * sehingga `process.cwd()` BUKAN root situs.
+ */
+function defaultRoot() {
+  return resolve(import.meta.dirname, '..', '..');
 }
 
 /**
@@ -1189,7 +1199,7 @@ export const routes = [
     pattern: '/api/admin/performance/assets',
     handler: safe(async (req, res, params, url) => {
       if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
-      const root = url?.searchParams.get('root') ?? process.cwd();
+      const root = url?.searchParams.get('root') || defaultRoot();
       try {
         sendJson(res, 200, { ok: true, audit: auditAssets(root) });
       } catch (err) {
@@ -1419,7 +1429,8 @@ export const routes = [
     pattern: '/api/admin/preflight',
     handler: safe(async (req, res, params, url) => {
       if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
-      const root = url?.searchParams.get('root') ?? process.cwd();
+      // Tanpa parameter root → preflight memakai root repo (default benar).
+      const root = url?.searchParams.get('root') || undefined;
       sendJson(res, 200, { ok: true, preflight: preflight(root) });
     }),
   },

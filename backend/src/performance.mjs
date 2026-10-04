@@ -34,6 +34,16 @@ export const BUDGETS = {
 const EXCLUDE = new Set(['.mp4', '.webm', '.jpg', '.jpeg', '.png', '.gif', '.avif', '.webp']);
 
 /**
+ * Direktori yang BUKAN bagian situs — kode server, tooling, dokumentasi.
+ * Tanpa pengecualian ini, audit menghitung `backend/src/routes.mjs` (54 KB)
+ * sebagai "aset situs" dan laporan jadi menyesatkan.
+ */
+const EXCLUDE_DIRS = new Set([
+  'node_modules', '.git', '.wrangler', 'backend', 'scripts', 'docs', 'design',
+  'assets-original', 'domains', 'workers',
+]);
+
+/**
  * Audit ukuran aset statis terhadap anggaran.
  * Video/gambar dikecualikan — mereka di-lazy-load dan tidak memblokir render.
  */
@@ -41,11 +51,12 @@ export function auditAssets(rootDir) {
   const files = [];
   let totalBytes = 0, jsBytes = 0, cssBytes = 0, htmlBytes = 0;
 
-  function walk(dir) {
+  function walk(dir, depth = 0) {
+    if (depth > 8) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      if (entry.name.startsWith('.') || EXCLUDE_DIRS.has(entry.name)) continue;
       const full = join(dir, entry.name);
-      if (entry.isDirectory()) { walk(full); continue; }
+      if (entry.isDirectory()) { walk(full, depth + 1); continue; }
 
       const ext = extname(entry.name).toLowerCase();
       if (EXCLUDE.has(ext)) continue;

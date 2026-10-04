@@ -11,7 +11,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { getDb } from './db.mjs';
 import { auditAssets } from './performance.mjs';
@@ -19,8 +19,12 @@ import { auditAssets } from './performance.mjs';
 /**
  * Preflight: semua pemeriksaan SEBELUM deploy.
  * Mengembalikan { ok, checks[] } — setiap check punya status dan detail.
+ *
+ * `rootDir` default = root REPO (dua tingkat di atas berkas ini), bukan
+ * cwd proses — karena service berjalan dengan cwd `backend/`, dan berkas
+ * yang diperiksa (home.html, robots.txt, ...) ada di root repo.
  */
-export function preflight(rootDir, { budgets = true } = {}) {
+export function preflight(rootDir = defaultSiteRoot(), { budgets = true } = {}) {
   const checks = [];
 
   // 1. Berkas wajib ada.
@@ -62,21 +66,40 @@ export function preflight(rootDir, { budgets = true } = {}) {
 }
 
 /**
- * Pindai berkas statis untuk pola rahasia yang tidak boleh ikut ter-deploy.
- * Sengaja konservatif: hanya pola yang pasti rahasia (bukan kata umum).
+ * Pindai berkas statis untuk RAHASIA yang tidak boleh ikut ter-deploy.
+ *
+ * Pendekatan dua lapis — supaya tidak ada false positive:
+ *   1. Nilai rahasia SEBENARNYA (dibaca dari env service) dicari persis.
+ *      Ini yang paling akurat: kalau secret key benar-benar bocor ke berkas
+ *      statis, kita tahu pasti (bukan cocok-cocokan pola).
+ *   2. Pola yang PASTI rahasia (private key, token GitHub, API key) —
+ *      tanpa pola Turnstile, karena site key memang publik dan wajib ada
+ *      di HTML (widget tidak bisa render tanpa itu).
  */
 function scanForSecrets(rootDir, limit = 40) {
+  // Lapis 1: nilai rahasia nyata dari environment.
+  const literalSecrets = [
+    process.env.TURNSTILE_SECRET,
+    process.env.ADMIN_KEY,
+    process.env.TOKEN_SECRET,
+    process.env.OPENAI_API_KEY,
+  ].filter(v => typeof v === 'string' && v.length >= 16);
+
+  // Lapis 2: pola yang tidak ambigu.
   const patterns = [
-    /sk-[A-Za-z0-9]{20,}/,          // OpenAI-style
-    /ghp_[A-Za-z0-9]{20,}/,          // GitHub PAT
-    /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-    /0x4AAAAAA[A-Za-z0-9_-]{10,}/,   // Turnstile secret (site key aman)
+    /sk-[A-Za-z0-9]{20,}/,                              // OpenAI-style
+    /ghp_[A-Za-z0-9]{20,}/,                              // GitHub PAT
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/,                // private key
   ];
+
   const hits = [];
-  const skip = new Set(['node_modules', '.git', '.wrangler', 'backend', 'scripts', 'docs']);
+  const skip = new Set([
+    'node_modules', '.git', '.wrangler', 'backend', 'scripts', 'docs',
+    'design', 'assets-original', 'domains', 'workers',
+  ]);
 
   function walk(dir, depth = 0) {
-    if (depth > 6 || hits.length >= limit) return;
+    if (depth > 8 || hits.length >= limit) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (hits.length >= limit) return;
       if (entry.name.startsWith('.') || skip.has(entry.name)) continue;
@@ -85,6 +108,19 @@ function scanForSecrets(rootDir, limit = 40) {
       if (!/\.(html|js|mjs|css|json|txt|xml)$/i.test(entry.name)) continue;
       let text = '';
       try { text = readFileSync(full, 'utf8'); } catch { continue; }
+
+      // Lapis 1: nilai rahasia nyata (exact match).
+      let found = false;
+      for (const secret of literalSecrets) {
+        if (text.includes(secret)) {
+          hits.push(`${full.slice(rootDir.length + 1)} (nilai rahasia nyata)`);
+          found = true;
+          break;
+        }
+      }
+      if (found) continue;
+
+      // Lapis 2: pola tidak ambigu.
       for (const p of patterns) {
         if (p.test(text)) { hits.push(full.slice(rootDir.length + 1)); break; }
       }
@@ -170,6 +206,15 @@ export function rollbackTarget(currentVersion) {
 
 function kb(n) {
   return `${Math.round(Number(n) / 1024)} KB`;
+}
+
+/**
+ * Root situs = root repo. Berkas ini ada di `<repo>/backend/src/publish.mjs`,
+ * jadi naik tiga tingkat. Dipakai sebagai default supaya pemanggil dari
+ * cwd mana pun (termasuk service yang berjalan di `backend/`) tetap benar.
+ */
+function defaultSiteRoot() {
+  return resolve(import.meta.dirname, '..', '..');
 }
 
 function safeParse(s, fallback) {

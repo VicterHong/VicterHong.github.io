@@ -74,19 +74,45 @@ check('html-bytes', bytes.html <= BUDGETS.maxHtmlBytes,
   `${kb(bytes.html)} (anggaran ${kb(BUDGETS.maxHtmlBytes)})`);
 
 // ── 3. Tidak ada rahasia di berkas statis ────────────────────────────────────
+// Dua lapis supaya tidak ada false positive:
+//   1. Nilai rahasia NYATA (dibaca dari env service) dicari persis.
+//   2. Pola yang pasti rahasia — TANPA pola Turnstile, karena site key
+//      memang publik dan wajib ada di HTML (widget tidak render tanpa itu).
 console.log('\n── Pemindaian rahasia ──');
+
+// Lapis 1: baca nilai rahasia dari berkas env service (kalau ada).
+const literalSecrets = [];
+try {
+  const envPath = process.env.TOKEN_SERVICE_ENV || `${process.env.HOME}/.portfolio-token/service.env`;
+  const envText = readFileSync(envPath, 'utf8');
+  for (const line of envText.split('\n')) {
+    const m = line.match(/^(TURNSTILE_SECRET|ADMIN_KEY|TOKEN_SECRET|OPENAI_API_KEY)=(.+)$/);
+    if (m && m[2].trim().length >= 16) literalSecrets.push(m[2].trim().replace(/^["']|["']$/g, ''));
+  }
+} catch { /* berkas env tidak ada — lapis 1 dilewati */ }
+
+// Lapis 2: pola tidak ambigu.
 const SECRET_PATTERNS = [
   { re: /sk-[A-Za-z0-9]{20,}/, name: 'OpenAI-style key' },
   { re: /ghp_[A-Za-z0-9]{20,}/, name: 'GitHub PAT' },
   { re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/, name: 'private key' },
-  { re: /TURNSTILE_SECRET\s*[:=]\s*['"][^'"]+['"]/, name: 'Turnstile secret literal' },
-  { re: /ADMIN_KEY\s*[:=]\s*['"][^'"]{16,}['"]/, name: 'admin key literal' },
 ];
 const leaks = [];
 for (const f of files) {
   if (!/\.(html|js|mjs|css|json|txt|xml)$/i.test(f.path)) continue;
   let text = '';
   try { text = readFileSync(resolve(ROOT, f.path), 'utf8'); } catch { continue; }
+
+  let found = false;
+  for (const secret of literalSecrets) {
+    if (text.includes(secret)) {
+      leaks.push(`${f.path} (nilai rahasia nyata bocor)`);
+      found = true;
+      break;
+    }
+  }
+  if (found) continue;
+
   for (const p of SECRET_PATTERNS) {
     if (p.re.test(text)) { leaks.push(`${f.path} (${p.name})`); break; }
   }
