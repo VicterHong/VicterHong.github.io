@@ -371,9 +371,9 @@ initOrbMenu();
 // setelah [data-variable-weight] titles sudah ada.
 initVariableWeight();
 
-// Three.js particle system — premium hero background (FASE 3). Dipanggil
-// awal untuk replace video/Astra background.
-initParticles();
+// Three.js particle system — DISABLED (user prefer video background).
+// Uncomment line below to enable particles instead of video.
+// initParticles();
 
 // Custom video player — ornamental controls (FASE 3). Dipanggil
 // setelah DOM ready untuk video [data-custom-player].
