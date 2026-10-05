@@ -102,26 +102,50 @@ export function mergeBranch(name, applyFn) {
 /**
  * Komentar review. `target` = halaman/konten, `anchor` = elemen spesifik
  * (mis. "hero-title" atau CSS selector) supaya feedback menempel di tempatnya.
+ *
+ * ── A8: MODERASI ────────────────────────────────────────────────────────────
+ *
+ * Komentar publik masuk dengan status 'pending' dan TIDAK ditampilkan sampai
+ * admin menyetujuinya. Sebelumnya komentar langsung tayang begitu dikirim —
+ * artinya siapa pun di internet bisa menulis apa pun (spam, tautan judi,
+ * ujaran kebencian) ke halaman publik Anda, dan itu langsung terlihat.
+ *
+ * `asAdmin: true` untuk komentar yang dibuat lewat panel admin — komentar
+ * Anda sendiri tidak perlu disetujui diri sendiri, jadi langsung 'approved'.
  */
-export function addComment({ target, anchor = '', body, author = 'guest', parentId = null }) {
+export function addComment({ target, anchor = '', body, author = 'guest', parentId = null, asAdmin = false }) {
   const text = String(body ?? '').trim();
   if (!text) throw new Error('komentar kosong');
   if (text.length > 4000) throw new Error('komentar terlalu panjang');
 
   const db = getDb();
+  const status = asAdmin ? 'approved' : 'pending';
   const info = db.prepare(
-    `INSERT INTO cms_comments (target, anchor, body, author, resolved, parent_id, created_at)
-     VALUES (?, ?, ?, ?, 0, ?, ?)`
-  ).run(String(target).slice(0, 300), String(anchor).slice(0, 200), text, String(author).slice(0, 80), parentId, Date.now());
-  return { id: Number(info.lastInsertRowid) };
+    `INSERT INTO cms_comments (target, anchor, body, author, resolved, parent_id, created_at, status)
+     VALUES (?, ?, ?, ?, 0, ?, ?, ?)`
+  ).run(String(target).slice(0, 300), String(anchor).slice(0, 200), text, String(author).slice(0, 80), parentId, Date.now(), status);
+  return { id: Number(info.lastInsertRowid), status };
 }
 
-export function listComments({ target = null, resolved = null, limit = 200 } = {}) {
+/**
+ * Daftar komentar.
+ *
+ * `status` menyaring berdasarkan moderasi. Bawaannya `'approved'` — supaya
+ * pemanggil yang tidak menyebut status (halaman publik) TIDAK PERNAH
+ * menampilkan komentar yang belum disetujui. Ini pilihan yang aman:
+ * lupa menyebut status berarti aman, bukan berarti bocor.
+ *
+ * Panel admin memanggil dengan status eksplisit (mis. 'pending' atau null
+ * untuk semua).
+ */
+export function listComments({ target = null, resolved = null, limit = 200, status = 'approved' } = {}) {
   const db = getDb();
   const where = [];
   const params = [];
   if (target) { where.push('target = ?'); params.push(target); }
   if (resolved !== null) { where.push('resolved = ?'); params.push(resolved ? 1 : 0); }
+  // status === null berarti "semua status" (dipakai panel admin).
+  if (status !== null) { where.push('status = ?'); params.push(String(status)); }
   const sql = `SELECT * FROM cms_comments ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
                ORDER BY created_at DESC LIMIT ?`;
   params.push(Math.min(Number(limit) || 200, 500));
@@ -132,6 +156,38 @@ export function resolveComment(id, resolved = true) {
   getDb().prepare('UPDATE cms_comments SET resolved = ? WHERE id = ?')
     .run(resolved ? 1 : 0, Number(id));
   return true;
+}
+
+/**
+ * Setujui atau tolak komentar.
+ *
+ * `status` hanya menerima tiga nilai yang dikenal. Daftar putih eksplisit
+ * (bukan sekadar "apa saja yang bukan approved") supaya nilai aneh dari
+ * pemanggil tidak diam-diam tersimpan dan membuat komentar menghilang
+ * dari semua tampilan tanpa penjelasan.
+ */
+export function moderateComment(id, status) {
+  const allowed = ['approved', 'pending', 'rejected'];
+  if (!allowed.includes(status)) {
+    throw new Error(`status tidak dikenal: ${status} (harus salah satu dari ${allowed.join(', ')})`);
+  }
+  const info = getDb().prepare('UPDATE cms_comments SET status = ? WHERE id = ?')
+    .run(status, Number(id));
+  return { changed: Number(info.changes ?? 0) };
+}
+
+/** Ringkasan moderasi untuk badge di panel admin. */
+export function commentStats() {
+  const rows = getDb().prepare(
+    'SELECT status, COUNT(*) AS n FROM cms_comments GROUP BY status'
+  ).all();
+  const out = { approved: 0, pending: 0, rejected: 0, total: 0 };
+  for (const r of rows) {
+    const k = String(r.status);
+    if (k in out) out[k] = Number(r.n);
+    out.total += Number(r.n);
+  }
+  return out;
 }
 
 // ── UTIL ─────────────────────────────────────────────────────────────────────

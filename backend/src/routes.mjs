@@ -49,7 +49,7 @@ import { buildSitemap, buildRobots, buildLlmsTxt, buildJsonLd } from './seo.mjs'
 import { auditAssets, recordVital, vitalsSummary } from './performance.mjs';
 import {
   createBranch, getBranch, listBranches, recordChange, discardBranch, mergeBranch,
-  addComment, listComments, resolveComment,
+  addComment, listComments, resolveComment, moderateComment, commentStats,
 } from './collaborate.mjs';
 import {
   createExperiment, getExperiment, listExperiments, setStatus as setExpStatus,
@@ -1638,6 +1638,48 @@ export const routes = [
       const body = await readJson(req);
       resolveComment(Number(body.id ?? 0), body.resolved !== false);
       sendJson(res, 200, { ok: true });
+    }),
+  },
+
+  // ── A8: moderasi komentar ─────────────────────────────────────────────────
+  // Komentar publik masuk sebagai 'pending' dan tidak tampil sampai disetujui.
+  // Endpoint ini yang menyetujui / menolak.
+  {
+    method: 'GET',
+    pattern: '/api/admin/comments',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const statusParam = url?.searchParams.get('status');
+      // Tanpa parameter status → tampilkan SEMUA (termasuk pending), karena
+      // itulah gunanya panel moderasi. Publik tidak pernah sampai ke sini
+      // (route /api/admin/* dibatasi loopback + butuh kunci admin).
+      const status = statusParam === null ? null : String(statusParam);
+      const target = url?.searchParams.get('target');
+      const limit = Number(url?.searchParams.get('limit') ?? 200);
+      sendJson(res, 200, {
+        ok: true,
+        stats: commentStats(),
+        comments: listComments({ target, status, limit }),
+      });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/comment/moderate',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const body = await readJson(req);
+      const id = Number(body.id ?? 0);
+      if (!id) return sendJson(res, 400, { ok: false, error: 'id_kosong' });
+      try {
+        const result = moderateComment(id, String(body.status ?? ''));
+        sendJson(res, 200, { ok: true, ...result, stats: commentStats() });
+      } catch (err) {
+        // Pesan dari moderateComment sudah menjelaskan nilai yang sah —
+        // aman ditampilkan karena tidak membocorkan detail sistem.
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
     }),
   },
 

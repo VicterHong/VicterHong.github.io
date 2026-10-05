@@ -288,10 +288,28 @@ CREATE TABLE IF NOT EXISTS cms_comments (
   author      TEXT NOT NULL DEFAULT 'guest',
   resolved    INTEGER NOT NULL DEFAULT 0,
   parent_id   INTEGER,
-  created_at  INTEGER NOT NULL
+  created_at  INTEGER NOT NULL,
+  -- A8: moderasi. Komentar publik masuk dengan status 'pending' dan TIDAK
+  -- ditampilkan sampai disetujui admin. Sebelumnya komentar langsung tampil
+  -- begitu dikirim — siapa pun bisa menulis apa pun ke halaman publik.
+  --
+  -- 'approved' = tampil · 'pending' = menunggu · 'rejected' = disembunyikan
+  --
+  -- DEFAULT 'pending' dipilih dengan sengaja: kolom baru pada tabel yang
+  -- sudah ada tidak bisa langsung NOT NULL tanpa default. 'pending' adalah
+  -- nilai yang AMAN — kalau ada baris lama yang belum diisi, ia tidak
+  -- langsung tampil.
+  status      TEXT NOT NULL DEFAULT 'pending'
 );
 
 CREATE INDEX IF NOT EXISTS idx_comments_target ON cms_comments(target, created_at);
+-- CATATAN A8: index untuk kolom status SENGAJA TIDAK ADA DI SINI.
+--
+-- Index yang menyebut kolom baru akan GAGAL di database lama — kolomnya
+-- belum ada saat SCHEMA dijalankan, dan db.exec(SCHEMA) akan melempar
+-- "no such column" sehingga server tidak bisa start sama sekali.
+--
+-- Index itu dibuat di migrate() SETELAH kolomnya ditambahkan.
 
 -- ── GROW: eksperimen A/B & konversi ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS experiments (
@@ -362,7 +380,71 @@ export function openDb(path) {
     // Tanpa PRAGMA ini layanan tetap benar, hanya kurang optimal.
   }
 
+  migrate(db);
+
   return db;
+}
+
+/**
+ * Migrasi kolom untuk database yang SUDAH ADA.
+ *
+ * ── KENAPA INI PERLU ────────────────────────────────────────────────────────
+ *
+ * `CREATE TABLE IF NOT EXISTS` hanya membuat tabel yang belum ada. Kalau
+ * tabelnya sudah ada, pernyataan itu TIDAK MELAKUKAN APA PUN — termasuk
+ * tidak menambahkan kolom baru ke tabel lama.
+ *
+ * Artinya: menambahkan kolom ke SCHEMA saja tidak cukup. Di database
+ * produksi yang sudah berisi data, kolom `status` untuk moderasi komentar
+ * TIDAK akan muncul, dan setiap query yang menyebutnya akan gagal dengan
+ * "no such column". Migrasi ini menutup celah itu.
+ *
+ * ── CARA KERJA ──────────────────────────────────────────────────────────────
+ *
+ * Untuk setiap kolom yang mungkin belum ada: cek PRAGMA table_info, dan
+ * hanya jalankan ALTER TABLE kalau memang belum ada. Sifatnya idempoten —
+ * aman dijalankan berkali-kali, aman di database baru (kolom sudah dibuat
+ * oleh SCHEMA, jadi migrasi ini tidak melakukan apa-apa).
+ *
+ * ALTER TABLE ADD COLUMN dengan DEFAULT bersifat instan di SQLite (tidak
+ * menulis ulang tabel), jadi tidak ada risiko pada database besar.
+ */
+function migrate(handle) {
+  const addColumn = (table, column, definition) => {
+    try {
+      const cols = handle.prepare(`PRAGMA table_info(${table})`).all();
+      if (cols.some((c) => c.name === column)) return false;
+      handle.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+      console.log(`[migrasi] ${table}.${column} ditambahkan`);
+      return true;
+    } catch (err) {
+      // Tabel belum ada (database baru sudah punya kolomnya dari SCHEMA).
+      if (/no such table/i.test(err?.message ?? '')) return false;
+      throw err;
+    }
+  };
+
+  // A8: status moderasi komentar.
+  // Baris LAMA diisi 'approved' — komentar yang sudah tayang sebelum
+  // moderasi ada tidak boleh tiba-tiba hilang dari halaman. Yang baru
+  // masuk akan memakai DEFAULT 'pending' dari SCHEMA.
+  const added = addColumn('cms_comments', 'status', "TEXT NOT NULL DEFAULT 'pending'");
+  if (added) {
+    // Hanya untuk baris yang sudah ada SEBELUM kolom ini ditambahkan.
+    const n = handle.prepare(
+      "UPDATE cms_comments SET status = 'approved' WHERE status = 'pending'"
+    ).run().changes ?? 0;
+    if (n > 0) console.log(`[migrasi] ${n} komentar lama ditandai 'approved'`);
+  }
+
+  // Index untuk moderasi dibuat SETELAH kolom ada. Kalau diletakkan di SCHEMA,
+  // database lama akan gagal start ("no such column") karena index menyebut
+  // kolom yang belum ada saat SCHEMA dijalankan.
+  try {
+    handle.exec('CREATE INDEX IF NOT EXISTS idx_comments_status ON cms_comments(status, created_at)');
+  } catch {
+    // Sangat lama / tabel belum ada — query tetap benar, hanya kurang cepat.
+  }
 }
 
 /** Database yang sedang terbuka, atau lempar kalau belum dibuka. */
