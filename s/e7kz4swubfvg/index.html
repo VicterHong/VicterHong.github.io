@@ -16,7 +16,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/main.css">
 <link rel="stylesheet" href="../../assets/css/project.css">
 <link rel="stylesheet" href="../../assets/css/astra.css">
@@ -106,6 +108,14 @@
         Padahal dengan desain yang hemat, ia masih bisa jadi server pribadi yang berguna.
       </p>
     </section>
+
+    <!-- ── VIDEO NARASI ──────────────────────────────────────────────────
+         Artefak produk yang bisa dilihat TANPA token. Sebelumnya video ini
+         hanya muncul setelah verifikasi token, sehingga pengunjung publik
+         tidak pernah melihat bukti bahwa sistemnya benar-benar berjalan.
+         Diisi oleh narrative.js; kalau JS mati atau pengguna minta gerakan
+         minimal, yang tampil poster statis — bukan kotak kosong. -->
+    <div id="narrativeHost" class="public-section"></div>
 
     <section class="public-section">
       <h2>Yang bisa diperiksa publik</h2>
@@ -276,6 +286,34 @@
 
 <script type="module" src="../../assets/js/project.js?v=14"></script>
 <script type="module">
+  // ── Video narasi di bagian PUBLIK ────────────────────────────────────────
+  // project.js sudah menaruh video di bagian terkunci (setelah token). Itu
+  // tidak cukup: pengunjung publik — calon klien yang menilai portofolio —
+  // tidak pernah melihat bukti produknya. Jadi video yang sama dipasang juga
+  // di sini, tanpa perlu token.
+  //
+  // narrative.js sudah menangani: lazy-load (IntersectionObserver), hormati
+  // prefers-reduced-motion (poster statis), dan WebM→MP4 fallback.
+  import { createNarrativeVideo } from '../../assets/js/narrative.js';
+  import { projects } from '../../assets/js/data/projects.js';
+
+  const host = document.getElementById('narrativeHost');
+  if (host) {
+    // Kode akses dari URL → proyek → slug. Slug di data proyek ('mina',
+    // 'spareparts') sudah sama dengan nama berkas video di narrative.js,
+    // jadi tidak perlu pemetaan tambahan.
+    const code = location.pathname.split('/').filter(Boolean).pop();
+    const project = projects.find((p) => (p.access_codes ?? []).includes(code));
+    const slug = project?.slug ?? 'mina';
+
+    host.append(createNarrativeVideo({
+      slug,
+      title: `${project?.name ?? 'Proyek'} — cara kerjanya`,
+      caption: 'Cuplikan sistem berjalan: alur perintah, respons, dan jejak auditnya.',
+      aspect: '16 / 9',
+    }));
+  }
+
   // Efek tekan tombol — gelombang dari titik sentuh, sama seperti halaman
   // utama. Dimuat sebagai modul supaya impornya ikut ter-bundle.
   import('../../assets/js/ripple.js')

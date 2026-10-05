@@ -16,7 +16,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../assets/css/main.css">
 <link rel="stylesheet" href="../../assets/css/project.css">
 <link rel="stylesheet" href="../../assets/css/astra.css">
@@ -103,6 +105,11 @@
         untuk mencari "apakah stoknya ada dan di mana" langsung menjadi biaya.
       </p>
     </section>
+
+    <!-- Video narasi di bagian publik — artefak produk yang bisa dilihat
+         tanpa token. Diisi narrative.js; kalau JS mati atau pengguna minta
+         gerakan minimal, poster statis yang tampil. -->
+    <div id="narrativeHost" class="public-section"></div>
 
     <section class="public-section">
       <h2>Yang bisa diperiksa publik</h2>
@@ -265,6 +272,23 @@
 
 <script type="module" src="../../assets/js/project.js?v=14"></script>
 <script type="module">
+  // Video narasi di bagian publik — pengunjung tanpa token tetap melihat
+  // bukti produknya. narrative.js menangani lazy-load + reduced-motion.
+  import { createNarrativeVideo } from '../../assets/js/narrative.js';
+  import { projects } from '../../assets/js/data/projects.js';
+
+  const host = document.getElementById('narrativeHost');
+  if (host) {
+    const code = location.pathname.split('/').filter(Boolean).pop();
+    const project = projects.find((p) => (p.access_codes ?? []).includes(code));
+    host.append(createNarrativeVideo({
+      slug: project?.slug ?? 'spareparts',
+      title: `${project?.name ?? 'Proyek'} — cara kerjanya`,
+      caption: 'Cuplikan sistem berjalan: pencatatan stok, pencarian, dan jejak perubahannya.',
+      aspect: '16 / 9',
+    }));
+  }
+
   // Efek tekan tombol — gelombang dari titik sentuh, sama seperti halaman
   // utama. Dimuat sebagai modul supaya impornya ikut ter-bundle.
   import('../../assets/js/ripple.js')

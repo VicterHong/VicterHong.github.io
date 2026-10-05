@@ -108,7 +108,7 @@ export function createNarrativeVideo({ slug, title, caption = '', aspect = '16 /
         <path d="M18 40 L38 34 L54 43 L72 36 L88 45"/>
         <path d="M35 25 L38 34 M50 19 L54 43 M68 28 L72 36"/>
       </g>
-      <g fill="#ffb088">
+      <g fill="#f7d77a">
         <circle cx="15" cy="16" r="0.7"/><circle cx="35" cy="25" r="0.8"/>
         <circle cx="50" cy="19" r="0.9"/><circle cx="68" cy="28" r="0.8"/>
         <circle cx="85" cy="17" r="0.7"/><circle cx="18" cy="40" r="0.7"/>
