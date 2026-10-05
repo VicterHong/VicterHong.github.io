@@ -50,15 +50,22 @@
 <body class="page-project">
 
 <header class="site-header">
-  <a class="brand" href="../../">
-    <span class="brand-mark" aria-hidden="true"></span>
-    <span class="brand-text">Victer</span>
-  </a>
-  <nav class="site-nav" aria-label="Navigasi utama">
-    <a href="../../#utqvwf">Proyek</a>
-    <a href="../../#5nfyzw">Cara kerja</a>
-    <a href="../../#89fk39">Kontak</a>
-  </nav>
+  <!-- Wrapper ini WAJIB ada: `display: flex` didefinisikan di
+       `.site-header-inner` (main.css), BUKAN di `.site-header`.
+       Tanpa wrapper ini, logo dan nav menumpuk vertikal — header rusak
+       dan berbeda dari halaman utama/dokumentasi.
+       Ditemukan lewat audit desain (docs/PRD-PERBAIKAN-DESAIN.md P1-1). -->
+  <div class="site-header-inner">
+    <a class="brand" href="../../">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">Victer</span>
+    </a>
+    <nav class="site-nav" aria-label="Navigasi utama">
+      <a href="../../#utqvwf">Proyek</a>
+      <a href="../../#5nfyzw">Cara kerja</a>
+      <a href="../../#89fk39">Kontak</a>
+    </nav>
+  </div>
 </header>
 
 <main>

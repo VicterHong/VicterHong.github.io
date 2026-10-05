@@ -492,7 +492,21 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0.9rem;
-    padding: 1rem 1.1rem 1.1rem;
+    /* padding-bottom menambahkan safe-area inset supaya tombol tidak
+       tertutup home indicator di iPhone. Tanpa ini, tombol keputusan
+       bisa berada di area yang tidak bisa disentuh. */
+    padding: 1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Batasi tinggi banner supaya tidak menutupi seluruh layar.
+     Diukur dari screenshot: banner setinggi 237px dari 844px = 28% layar,
+     menutupi statistik beranda dan konten dokumentasi. Dengan max-height
+     dan overflow-y, konten banner yang panjang bisa di-scroll alih-alih
+     mendorong kontrol keluar viewport. */
+  .cookie-banner {
+    max-height: 40svh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   /* Tombol memenuhi lebar — target sentuh besar, dan kedua tombol
@@ -503,6 +517,9 @@
     gap: 0.5rem;
   }
   .cookie-btn--decision { width: 100%; }
+  /* Target sentuh minimum 44px (panduan Apple & WCAG 2.5.5). Tombol yang
+     lebih pendek sulit ditekan dengan jempol dan sering salah tekan. */
+  .cookie-btn { min-height: 44px; }
   /* Tautan "Atur" membentang di baris kedua, di bawah dua tombol. */
   .cookie-btn--link {
     grid-column: 1 / -1;

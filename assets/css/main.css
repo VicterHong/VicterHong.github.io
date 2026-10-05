@@ -329,8 +329,38 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: -0.035em;
   font-weight: 700;
   margin: 0 0 1.5rem;
+  /* text-wrap: balance membuat baris terakhir tidak menggantung sendirian.
+     Ini yang benar-benar menyeimbangkan judul — BUKAN max-width. */
   text-wrap: balance;
+  /* max-width SENGAJA TIDAK DIPAKAI di sini. Lihat catatan di bawah. */
 }
+
+/* ── Kenapa TIDAK ada max-width (audit desain P1-3, diukur) ──────────────────
+ *
+ * Audit desain mengusulkan `max-width: 12–14ch` untuk memperbaiki judul
+ * yang pecah canggung. Usulan itu DIUKUR dan TERBUKTI TIDAK BEKERJA:
+ *
+ *   1440px, sebelum      : 5 baris, lebar [473, 94, 392, 403, 451] = 20%
+ *   1440px, max-width 12ch: 5 baris, lebar [128, 439, 392, 403, 451] = 28% (LEBIH BURUK)
+ *   1440px, max-width 15ch: 5 baris, lebar [473, 94, 392, 403, 451] = 20% (TIDAK BERUBAH)
+ *   1440px, max-width 18ch: 20% (tidak berubah)
+ *   1440px, max-width 24ch: 20% (tidak berubah)
+ *
+ * Penyebabnya: HTML memakai <br> eksplisit. <br> MEMAKSA pemecahan baris,
+ * dan max-width tidak bisa menimpanya — ia hanya mempersempit kolom,
+ * yang pada beberapa nilai justru menambah baris baru.
+ *
+ * Yang benar-benar memperbaiki: menghapus <br> dari HTML, sehingga
+ * `text-wrap: balance` bisa bekerja.
+ *
+ *   1440px, tanpa <br>: 4 baris, lebar [473, 498, 403, 451] = 81% ✅
+ *   1280px, tanpa <br>: 81% ✅
+ *   1024px, tanpa <br>: 3 baris = 86% ✅
+ *
+ * Pelajaran: saran desain yang terdengar masuk akal tetap harus DIUKUR.
+ * max-width adalah solusi yang benar untuk masalah teks yang meluber,
+ * tapi salah untuk masalah pemecahan baris yang dipaksa <br>.
+ * ────────────────────────────────────────────────────────────────────────── */
 
 .hero-title .accent {
   background: linear-gradient(100deg, var(--accent), #ffb08a);

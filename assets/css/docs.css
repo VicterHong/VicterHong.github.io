@@ -124,6 +124,16 @@
   letter-spacing: 0.03em;
 }
 
+/* Hint "Esc" hanya berguna kalau ada keyboard fisik. Di perangkat sentuh
+   ia memakan ruang di kolom pencarian tanpa manfaat.
+   DIPILIH berdasarkan KEMAMPUAN POINTER, bukan user-agent: mendeteksi
+   dari nama browser rapuh (berubah tiap versi) dan salah menebak
+   (tablet dengan keyboard eksternal, laptop dengan layar sentuh).
+   `hover: none` + `pointer: coarse` = perangkat sentuh tanpa hover. */
+@media (hover: none) and (pointer: coarse) {
+  .docs-search-hint { display: none; }
+}
+
 /* ── Tata letak dua kolom ─────────────────────────────────────────────────────
    Sidebar 240px + konten. Gap lebar supaya keduanya terasa terpisah. */
 .docs-layout {
@@ -479,7 +489,12 @@
 }
 
 @media (max-width: 900px) {
-  .docs-page { padding: 6rem 1.25rem 4rem; }
+  /* Padding atas dikurangi dari 6rem → 3rem.
+     Diukur dari screenshot: 6rem = 96px jarak kosong antara header dan
+     label "DOKUMENTASI" — memakan ruang viewport tanpa manfaat dan
+     mendorong konten ke bawah. 3rem (48px) memberi napas yang cukup
+     tanpa pemborosan. */
+  .docs-page { padding: 3rem 1.25rem 4rem; }
   .docs-layout { grid-template-columns: 1fr; gap: 0; }
 
   /* Sidebar jadi baris chip horizontal yang bisa di-scroll */
@@ -499,6 +514,24 @@
   }
   .toc::-webkit-scrollbar { display: none; }
 
+  /* Cue tepi: gradient tipis di kanan menandakan masih ada chip yang
+     bisa digeser. Diukur dari screenshot: chip ketiga terpotong di tepi
+     tanpa petunjuk apa pun — pengunjung bisa mengira daftar rusak.
+     Cue ini statis (bukan animasi) supaya tetap terlihat saat
+     prefers-reduced-motion aktif, dan tidak menambah kerja render.
+
+     PENTING: mask berlaku pada AREA YANG TERLIHAT (border box), bukan
+     pada konten yang di-scroll. Tanpa kompensasi, chip TERAKHIR juga
+     akan ter-mask saat pengunjung sudah scroll ke ujung — jadi chip
+     yang paling penting justru tidak bisa dibaca penuh.
+     `padding-right` sebesar area mask memberi ruang supaya chip terakhir
+     berhenti tepat SEBELUM area yang memudar. */
+  .toc {
+    padding-right: 28px;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+
   .toc-group { display: none; }
 
   .toc-link {
@@ -511,7 +544,9 @@
     padding: 0.55rem 0.95rem;
     white-space: nowrap;
     font-size: 0.82rem;
-    min-height: 40px;
+    /* 44px = target sentuh minimum (WCAG 2.5.5). Sebelumnya 40px —
+       cukup untuk mouse, kurang untuk jempol. */
+    min-height: 44px;
     flex-shrink: 0;
     background: var(--bg-card);
   }
