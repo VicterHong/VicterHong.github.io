@@ -170,6 +170,34 @@ CREATE TABLE IF NOT EXISTS sla_heartbeats (
 
 CREATE INDEX IF NOT EXISTS idx_sla_checked ON sla_heartbeats(checked_at);
 
+-- ── A1: agregat heartbeat per menit ─────────────────────────────────────────
+--
+-- MASALAH YANG DIPERBAIKI:
+-- Sebelumnya satu baris ditulis untuk SETIAP request. Dalam 5 hari itu
+-- menghasilkan 3.500 baris berbanding 303 event audit — rasio 11:1. Tabel
+-- ini jadi yang terbesar, dan laporan SLA (terutama p95) harus mengurutkan
+-- SELURUH baris dalam jendela waktu. Pada 800 ribu baris (skenario 1000x),
+-- satu laporan SLA memakan 1-3 detik — dan karena DatabaseSync sinkron,
+-- SELURUH pengunjung menunggu selama itu.
+--
+-- SOLUSI: agregasi di memori, tulis SATU baris per menit.
+--   30 hari = maksimum 43.200 baris, berapa pun trafiknya.
+--   p95 dihitung dari histogram (11 bucket) — O(baris × 11), tanpa sort.
+--
+-- BONUS KOREKSI: menit tanpa request TIDAK punya baris. Artinya kalau
+-- proses mati, menit itu hilang dari data — sehingga uptime jadi JUJUR.
+-- Sebelumnya, proses yang mati tidak menulis apa pun, jadi uptime selalu
+-- terlihat 100% (hanya menghitung request yang berhasil dilayani).
+CREATE TABLE IF NOT EXISTS sla_minutes (
+  minute       INTEGER PRIMARY KEY,   -- epoch menit (ms / 60000)
+  total        INTEGER NOT NULL,      -- jumlah request di menit itu
+  errors       INTEGER NOT NULL,      -- jumlah respons 5xx
+  latency_sum  INTEGER NOT NULL,      -- jumlah latency (ms) untuk rata-rata
+  hist         TEXT NOT NULL          -- JSON array 11 bucket histogram
+);
+
+CREATE INDEX IF NOT EXISTS idx_sla_minutes ON sla_minutes(minute);
+
 -- ── CMS (Framer-grade): koleksi, item, versi ─────────────────────────────────
 CREATE TABLE IF NOT EXISTS cms_collections (
   slug        TEXT PRIMARY KEY,

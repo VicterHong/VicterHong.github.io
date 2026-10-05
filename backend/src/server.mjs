@@ -11,7 +11,7 @@ import { initRoutes, resolveRoute, handlePreflight, rateLimited } from './routes
 import { applyCors, sendJson } from './http-util.mjs';
 import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
-import { recordHeartbeat, cleanupHeartbeats } from './sla.mjs';
+import { recordHeartbeat, cleanupHeartbeats, flushHeartbeats } from './sla.mjs';
 import { pruneAll } from './retention.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -194,6 +194,23 @@ setInterval(() => {
 }, 3_600_000);
 
 /**
+ * Flush agregat SLA berkala (A1).
+ *
+ * `recordHeartbeat` menulis saat MENIT BERGANTI, jadi pada trafik normal
+ * tidak perlu timer. Tapi pada trafik SEPI (mis. situs tidak dikunjungi
+ * semalaman), akumulator menit terakhir bisa tertahan sampai ada request
+ * berikutnya. Flush tiap menit memastikan data tidak tertahan lama.
+ *
+ * Biayanya nyaris nol: kalau tidak ada request, `flushHeartbeats()`
+ * langsung kembali tanpa menulis apa pun.
+ */
+setInterval(() => {
+  try { flushHeartbeats(); } catch (err) {
+    console.error('[sla] flush berkala gagal:', err?.message ?? err);
+  }
+}, 60_000).unref();
+
+/**
  * Retensi data (A3) — dijalankan SEKALI SEHARI, bukan tiap jam.
  *
  * Kenapa terpisah dari cleanup per jam: retensi menyentuh tabel besar
@@ -272,6 +289,17 @@ console.log(`[startup] origin diizinkan: ${config.allowedOrigins.join(', ') || '
 /** Matikan dengan bersih supaya WAL SQLite tersimpan. */
 function shutdown(signal) {
   console.log(`[shutdown] menerima ${signal}, menutup...`);
+
+  // A1: tulis akumulator SLA yang belum tersimpan SEBELUM menutup DB.
+  // Tanpa ini, sampai 60 detik terakhir data heartbeat hilang setiap kali
+  // service di-restart — dan restart terjadi setiap deploy.
+  try {
+    const flushed = flushHeartbeats();
+    if (flushed > 0) console.log(`[shutdown] ${flushed} heartbeat ditulis`);
+  } catch (err) {
+    console.error('[shutdown] flush SLA gagal:', err?.message ?? err);
+  }
+
   let pending = servers.length;
   const done = () => {
     if (--pending <= 0) {
