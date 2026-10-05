@@ -207,7 +207,11 @@
 }
 
 .cookie-btn {
-  min-height: 40px;
+  /* 44px = target sentuh minimum (WCAG 2.5.5). Berlaku SEMUA viewport,
+     bukan hanya mobile: pengguna desktop dengan layar sentuh, trackpad
+     presisi rendah, atau tremor juga butuh target yang cukup besar.
+     Diukur: sebelumnya 41px di desktop — di bawah ambang. */
+  min-height: 44px;
   padding: 0.55rem 1.1rem;
   font: inherit;
   font-size: 0.82rem;
@@ -263,7 +267,13 @@
    Tolak | Atur | Terima? Tidak — urutan dibaca kiri ke kanan, jadi
    keputusan dulu (Tolak, Terima), baru tautan atur di ujung. */
 .cookie-btn--link {
-  min-height: 34px;
+  /* Tautan "Atur pilihan" tetap lebih ringan dari tombol keputusan
+     (transparan, bergaris bawah) — tapi TARGET SENTUHNYA tetap 44px.
+     Sebelumnya 34px: secara visual benar, tapi sulit ditekan di layar
+     sentuh. Hierarki visual dan aksesibilitas bukan hal yang saling
+     bertentangan — tinggi target bisa besar tanpa membuatnya tampak
+     menonjol. */
+  min-height: 44px;
   background: none;
   border: none;
   color: var(--text-dim);
