@@ -407,7 +407,30 @@ node -e "import('./backend/src/turnstile.mjs').then(async m=>console.log(await m
 ### FIX-09: Pastikan IP di audit memang IP pengunjung (Skenario B)
 - **Temuan:** #1
 - **Berkas:** tidak ada perubahan kode, hanya pemeriksaan.
+
+**STATUS: SELESAI — tidak ada masalah ditemukan.**
+Lihat `docs/FIX-09-VERIFIKASI-IP.md` untuk laporan lengkap.
+
+Hasil: 15 IP berbeda tercatat di audit, termasuk IP pengunjung asli
+(103.179.248.71, 129.225.15.88, 2001:448a:80d2:...) pada aksi sensitif
+(session_create, session_turnstile). Rate limit terbukti bekerja per
+pengunjung — diuji dengan tiga IP terpisah, masing-masing punya bucket
+sendiri dan tidak saling memblokir.
+
+IP Cloudflare (2a06:98c0:3600::103) memang muncul, tapi hanya dari
+request lewat Worker (victer.workers.dev) — bukan jalur pengunjung normal.
+
 ```bash
-sqlite3 <dbPath> "SELECT ip, COUNT(*) FROM <tabel_event> WHERE created_at > datetime('now','-7 day') GROUP BY ip ORDER BY 2 DESC LIMIT 20;"
+node -e "
+const { DatabaseSync } = require('node:sqlite');
+const db = new DatabaseSync(process.env.HOME + '/.portfolio-token/tokens.db');
+const rows = db.prepare(\"SELECT ip, COUNT(*) as n FROM access_events WHERE ip != '' GROUP BY ip ORDER BY n DESC LIMIT 20\").all();
+rows.forEach(r => console.log(r.ip.padEnd(45), r.n));
+db.close();
+"
 ```
--
+
+**Catatan:** kalau arsitektur berubah dan SEMUA trafik pengunjung
+dialihkan lewat Worker, verifikasi ini perlu diulang.
+
+---
