@@ -91,19 +91,6 @@ export const projects = [
     gated: true,
     name: 'MINA',
     subtitle: 'Remote Control for Your Home Machine',
-    // ── SAMPUL PROYEK (PRD desain 3D) ─────────────────────────────────────────
-    // Screenshot UI ASLI dari produk, bukan ilustrasi dekoratif. Diambil dengan
-    // menjalankan web UI MINA di port acak (pola yang sama dengan test-nya),
-    // tanpa menyentuh instalasi produksi.
-    //
-    // Dioptimasi: PNG 97 KB → WebP 12 KB (8x lebih kecil) dengan sharp,
-    // quality 82. Jauh di bawah target 30-60 KB.
-    //
-    // `coverMobile` dipakai di layar sempit — screenshot desktop yang
-    // diperkecil jadi tidak terbaca.
-    cover: 'assets/projects/mina-setup.webp',
-    coverMobile: 'assets/projects/mina-setup-mobile.webp',
-    coverAlt: 'Halaman setup MINA: form membuat akun admin dengan token sekali pakai',
     summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun — shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
     problem: 'Perangkat lama sering dianggap sampah karena tidak sanggup menjalankan alat modern. Padahal dengan desain yang hemat, ia masih bisa jadi server pribadi yang berguna.',
     highlights: [
