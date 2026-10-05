@@ -302,10 +302,13 @@ export function initEntrance(selector = '.hero-kicker, .hero-title, .hero-lede, 
   if (!nodes.length) return;
 
   // Mulai dari keadaan tersembunyi, lalu muncul berurutan.
+  // Durasi & kurva disamakan dengan [data-reveal] di CSS: 720ms easeOutQuart.
+  // Sebelumnya 850ms cubic-bezier(0.2, 0.7, 0.3, 1) — kurva itu berhenti lebih
+  // mendadak, sehingga hero terasa "jepret" dibanding section di bawahnya.
   nodes.forEach((el, i) => {
     el.style.opacity = '0';
-    el.style.transform = 'translate3d(0, 22px, 0)';
-    el.style.transition = 'opacity 0.85s cubic-bezier(0.2, 0.7, 0.3, 1), transform 0.85s cubic-bezier(0.2, 0.7, 0.3, 1)';
+    el.style.transform = 'translate3d(0, 1.375rem, 0)';
+    el.style.transition = 'opacity 720ms cubic-bezier(0.165, 0.84, 0.44, 1), transform 720ms cubic-bezier(0.165, 0.84, 0.44, 1)';
     el.style.transitionDelay = `${i * 110}ms`;
   });
 
@@ -320,7 +323,7 @@ export function initEntrance(selector = '.hero-kicker, .hero-title, .hero-lede, 
   });
 
   // Bersihkan inline style setelah selesai supaya hero-fade bisa mengambil alih.
-  const totalMs = nodes.length * 110 + 900;
+  const totalMs = nodes.length * 110 + 720;
   setTimeout(() => {
     nodes.forEach((el) => {
       el.style.transition = '';

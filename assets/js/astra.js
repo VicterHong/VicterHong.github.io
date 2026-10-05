@@ -32,7 +32,9 @@ export function initStagger(root = document) {
       if (!entry.isIntersecting) continue;
       const children = [...entry.target.children];
       children.forEach((child, i) => {
-        child.style.transitionDelay = `${Math.min(i * 70, 420)}ms`;
+        // 90ms per anak (dari 70ms) — selaras dengan stagger judul di template.
+        // Batas 480ms (dari 420ms) supaya daftar panjang tidak terasa lambat.
+        child.style.transitionDelay = `${Math.min(i * 90, 480)}ms`;
         child.classList.add('astra-in');
       });
       observer.unobserve(entry.target);

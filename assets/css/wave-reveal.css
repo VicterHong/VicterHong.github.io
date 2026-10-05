@@ -15,10 +15,12 @@
   will-change: transform, opacity;
 }
 
-/* Revealed state — wave animation */
+/* Revealed state — wave animation.
+   Durasi 720ms easeOutExpo: perlambatan panjang di ujung, jadi huruf
+   "mendarat" lembut alih-alih berhenti mendadak seperti 600ms. */
 [data-wave-reveal].revealed .wave-char {
-  animation: waveIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  animation-delay: calc(var(--char-index) * 0.03s);
+  animation: waveIn 720ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--char-index) * 0.035s);
 }
 
 @keyframes waveIn {

@@ -6,14 +6,26 @@
 [data-variable-weight] {
   font-weight: 400; /* Base weight */
   font-variation-settings: 'wght' 400; /* Variable font support */
-  transition: font-weight 0.1s linear;
+  /* Transition LENGKAP, bukan hanya font-weight.
+     ── KENAPA (bug nyata saat uji) ─────────────────────────────────────────────
+     Aturan ini menimpa SELURUH properti `transition`. Judul section memakai
+     `data-reveal` + `data-variable-weight` sekaligus; karena berkas ini dimuat
+     SETELAH main.css dengan spesifisitas sama, `transition: font-weight` menang
+     — opacity & transform judul kehilangan transisinya, reveal-nya jadi kedipan
+     instan alih-alih animasi 720ms. Jadi ketiganya didaftarkan di sini. */
+  transition:
+    font-weight 0.1s linear,
+    opacity var(--dur-reveal) var(--ease-out-quart),
+    transform var(--dur-reveal) var(--ease-out-quart);
   will-change: font-weight;
 }
 
-/* Ensure Inter supports variable weight */
+/* Playfair Display dimuat sebagai variable font (wght 400..700),
+   jadi animasi berat huruf punya rentang penuh. Satoshi (Fontshare)
+   hanya menyediakan berat statis 400/500/700/900 — tidak bisa dianimasikan. */
 @supports (font-variation-settings: normal) {
   [data-variable-weight] {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Playfair Display', Georgia, serif;
     font-optical-sizing: auto;
   }
 }

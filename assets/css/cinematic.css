@@ -3,11 +3,13 @@
    tidak memicu layout ulang. Mati total saat prefers-reduced-motion.
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* 1. CLIP-PATH REVEAL — section membuka seperti lensa */
+/* 1. CLIP-PATH REVEAL — section membuka seperti lensa.
+   Durasi 1000ms (dari 1s) dan opacity 800ms — perlambatan panjang di ujung
+   membuat section terasa "mengendap", bukan berhenti mendadak. */
 [data-cine-clip] {
   position: relative;
   clip-path: inset(14% 10% 14% 10% round 24px);
-  transition: clip-path 1s var(--ease), opacity 0.8s var(--ease);
+  transition: clip-path 1000ms var(--ease-out-expo), opacity 800ms var(--ease-out-expo);
   opacity: 0.4;
   will-change: clip-path, opacity;
 }
@@ -31,7 +33,7 @@
 [data-cine-words].cine-words-in .cine-word {
   opacity: 1;
   transform: translate3d(0, 0, 0);
-  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+  transition: opacity 720ms var(--ease-out-quart), transform 720ms var(--ease-out-quart);
 }
 
 /* 3. PARALLAX — elemen bergerak lebih lambat dari scroll */

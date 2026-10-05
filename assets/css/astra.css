@@ -3,11 +3,14 @@
    dinonaktifkan otomatis saat pengguna memilih gerakan minimal.
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* 1. Stagger reveal — anak muncul berurutan */
+/* 1. Stagger reveal — anak muncul berurutan.
+   720ms easeOutQuart, jarak 0.875rem — selaras [data-reveal] supaya seluruh
+   halaman memakai satu sistem gerak, bukan campuran. */
 [data-stagger] > * {
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+  transform: translateY(0.875rem);
+  transition: opacity var(--dur-reveal) var(--ease-out-quart),
+              transform var(--dur-reveal) var(--ease-out-quart);
 }
 
 [data-stagger] > *.astra-in {
