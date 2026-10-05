@@ -732,7 +732,33 @@ a { color: inherit; text-decoration: none; }
 
 /* ── PRINSIP ─────────────────────────────────────────────────────────────────── */
 
-.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 1.3rem; }
+.principles {
+  display: grid;
+  /* ── 2x2, BUKAN auto-fit (diukur) ────────────────────────────────────────────
+     Sebelumnya `auto-fit minmax(268px, 1fr)` menghasilkan 3 kolom di desktop,
+     dan dengan 4 item hasilnya 3+1 — baris kedua hanya terisi 1 kartu,
+     2/3 ruangnya kosong menggantung.
+
+     Referensi Kombai (How it works/Fernwell) memakai `repeat(3, 1fr)` —
+     TAPI mereka punya 3 item, bukan 4. Jumlah item menentukan pilihan;
+     meniru angkanya tanpa meniru konteksnya justru menghasilkan grid rusak.
+
+     Diuji tiga opsi dan diukur (scripts/test-principles-grid.mjs):
+       A 2x2     : 2 baris penuh, grid 272px, kartu 506px, teks 3 baris
+       B 4 kolom : 1 baris penuh, grid 199px, kartu 242px, teks 6 baris
+       C 3+1     : baris tak penuh, grid 319px            ← status quo
+
+     Opsi B paling pendek (hemat 120px), TAPI teks jadi 6 baris di kolom
+     242px — terlalu sempit untuk dibaca nyaman. Opsi A dipilih: 3 baris di
+     kolom 506px jauh lebih mudah diikuti, dan 2x2 tetap menghemat 47px
+     dibanding status quo.
+
+     Dua kolom juga lebih tahan terhadap perubahan: kalau nanti ada 5-6
+     prinsip, 2 kolom tetap rapi — sementara 3 kolom akan kembali menghasilkan
+     baris tak penuh. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.3rem;
+}
 
 .principle {
   border-top: 1px solid var(--line-soft);

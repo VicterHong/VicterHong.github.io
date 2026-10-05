@@ -192,7 +192,7 @@ export const principles = [
   },
   {
     title: 'Bisa dibuktikan',
-    body: '231 tes, 1045 tes. Angka di portofolio ini bisa Anda periksa sendiri dengan membuka repositorinya.',
+    body: 'MINA punya 231 tes otomatis, keluarga bot 1045. Tidak ada klaim di portofolio ini yang tidak bisa Anda periksa sendiri dengan membuka repositorinya.',
   },
   {
     title: 'Tanpa ketergantungan berlebih',
