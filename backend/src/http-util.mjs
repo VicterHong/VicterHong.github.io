@@ -74,14 +74,74 @@ export function applyCors(req, res) {
 
 /**
  * Alamat IP klien.
- * Tunnel Cloudflare menambahkan CF-Connecting-IP; kalau tidak ada, pakai socket.
+ *
+ * Backend hanya listen di loopback, jadi satu-satunya perantara yang sah
+ * adalah cloudflared — dan edge Cloudflare MENIMPA `CF-Connecting-IP`
+ * dengan alamat pengunjung sungguhan. Nilai dari klien tidak bisa lolos
+ * ke header itu selama request melewati Cloudflare.
+ *
+ * `X-Forwarded-For` TIDAK dipercaya: header itu bisa dikirim siapa saja,
+ * dan memakainya berarti penyerang bisa memalsukan IP hanya dengan
+ * menambahkan satu header. Sebelumnya fallback ini ada — dihapus.
+ *
+ * Batas panjang 45 karakter = panjang maksimum alamat IPv6 dalam teks
+ * (termasuk '::ffff:' prefix). Nilai lebih panjang dari itu bukan alamat
+ * valid, dan kalau dibiarkan bisa dipakai untuk membengkakkan kunci
+ * rate limit di memori.
+ *
+ * Fungsi ini mengembalikan IP APA ADANYA (tidak dinormalisasi) karena
+ * dipakai juga untuk audit log dan Turnstile remoteip — keduanya butuh
+ * alamat asli. Untuk kunci rate limit, pakai `ipBucket()`.
  */
 export function clientIp(req) {
   const cf = req.headers['cf-connecting-ip'];
-  if (typeof cf === 'string' && cf.trim()) return cf.trim();
-  const fwd = req.headers['x-forwarded-for'];
-  if (typeof fwd === 'string' && fwd.trim()) return fwd.split(',')[0].trim();
+  if (typeof cf === 'string') {
+    const v = cf.trim();
+    if (v && v.length <= 45) return v;
+  }
   return req.socket?.remoteAddress ?? '';
+}
+
+/**
+ * Kunci rate limit dari sebuah IP.
+ *
+ * IPv6: satu pelanggan VPS biasanya memegang satu blok /64 penuh — itu
+ * 2^64 alamat. Kalau setiap alamat dihitung sebagai kunci sendiri,
+ * penyerang cukup berganti alamat di tiap request dan SEMUA batas per-IP
+ * hilang. Jadi IPv6 dipotong ke prefiks /64 sebelum dijadikan kunci.
+ *
+ * IPv4 dikembalikan apa adanya (tidak ada ruang untuk berpindah alamat
+ * dalam satu alokasi).
+ *
+ * Bentuk IPv4-mapped IPv6 (`::ffff:1.2.3.4`) dinormalkan ke IPv4 supaya
+ * satu pengunjung tidak terhitung sebagai dua kunci berbeda.
+ */
+export function ipBucket(ip) {
+  let a = String(ip ?? '').trim().toLowerCase();
+  if (!a) return 'unknown';
+
+  // Buang zona interface (mis. 'fe80::1%eth0') — bukan bagian alamat.
+  const pct = a.indexOf('%');
+  if (pct !== -1) a = a.slice(0, pct);
+
+  // IPv4-mapped: ambil bagian IPv4-nya saja.
+  if (a.startsWith('::ffff:') && a.includes('.')) return a.slice(7);
+
+  // IPv4 biasa.
+  if (!a.includes(':')) return a;
+
+  // IPv6: ambil 4 grup pertama (64 bit) sebagai prefiks.
+  // Perlu menangani bentuk '::' yang menyingkat grup nol.
+  const [headRaw, tailRaw] = a.split('::');
+  const head = headRaw ? headRaw.split(':').filter(Boolean) : [];
+  if (tailRaw !== undefined) {
+    const tail = tailRaw ? tailRaw.split(':').filter(Boolean) : [];
+    // Hitung berapa grup nol yang diwakili '::' supaya posisinya benar.
+    const missing = 8 - head.length - tail.length;
+    const full = [...head, ...Array(Math.max(0, missing)).fill('0'), ...tail];
+    return full.slice(0, 4).join(':') + '::/64';
+  }
+  return head.slice(0, 4).join(':') + '::/64';
 }
 
 /** Negara dari header Cloudflare (kalau ada). */

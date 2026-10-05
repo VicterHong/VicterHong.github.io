@@ -57,7 +57,7 @@ import {
 } from './grow.mjs';
 import { preflight, verify as verifyDeploy, recordRelease, listReleases } from './publish.mjs';
 import {
-  applyCors, clientCountry, clientIp, extractToken, handlePreflight,
+  applyCors, clientCountry, clientIp, ipBucket, extractToken, handlePreflight,
   readJson, sendJson, parseCookies, setCookie, clearCookie,
 } from './http-util.mjs';
 
@@ -88,7 +88,10 @@ const PUBLIC_LIMITS = {
 export function rateLimited(req, res, pathname) {
   const rule = PUBLIC_LIMITS[pathname];
   if (!rule) return false;
-  const key = `${pathname}:${clientIp(req) || 'unknown'}`;
+  // Kunci memakai ipBucket, bukan IP mentah: IPv6 dipotong ke /64 supaya
+  // penyerang tidak bisa melewati batas hanya dengan berganti alamat
+  // dalam blok yang sama (satu VPS biasanya pegang /64 penuh = 2^64 alamat).
+  const key = `${pathname}:${ipBucket(clientIp(req))}`;
   const verdict = checkRateLimit(key, rule);
   if (verdict.allowed) return false;
   res.setHeader('retry-after', String(verdict.retryAfterSeconds));
