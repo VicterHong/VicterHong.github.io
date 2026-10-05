@@ -66,9 +66,15 @@ export function readiness() {
     const probe = join(dir, `.health-${process.pid}`);
     writeFileSync(probe, 'ok', { flag: 'w' });
     unlinkSync(probe);
-    checks.push({ name: 'disk_write', ok: true, detail: dir });
+    // Detail TIDAK memuat path lengkap. Endpoint ini publik, dan
+    // '/home/<user>/.portfolio-token' membocorkan username VPS sekaligus
+    // struktur direktori — bahan berguna untuk serangan lanjutan.
+    // Statusnya sendiri yang penting, bukan lokasinya.
+    checks.push({ name: 'disk_write', ok: true, detail: 'bisa ditulis' });
   } catch (err) {
-    checks.push({ name: 'disk_write', ok: false, detail: err.message });
+    // Pesan sistem juga bisa memuat path ('ENOENT: ... open /home/...').
+    // Yang dilaporkan cukup kode errornya.
+    checks.push({ name: 'disk_write', ok: false, detail: err?.code ?? 'gagal menulis' });
   }
 
   // 3. RUANG DISK — sisa < 50 MB = peringatan (database bisa gagal tulis).
@@ -86,15 +92,17 @@ export function readiness() {
   }
 
   // 4. DIREKTORI KONTEN — ada dan bisa dibaca?
+  // Detail tidak memuat path (sama alasannya dengan disk_write di atas):
+  // endpoint ini publik dan path membocorkan struktur direktori VPS.
   try {
     accessSync(config.contentDir, constants.R_OK);
-    checks.push({ name: 'content_dir', ok: true, detail: config.contentDir });
-  } catch (err) {
+    checks.push({ name: 'content_dir', ok: true, detail: 'bisa dibaca' });
+  } catch {
     // Direktori belum dibuat bukan kegagalan fatal — konten contoh yang dipakai.
     checks.push({
       name: 'content_dir',
       ok: true,
-      detail: `${config.contentDir} (belum ada — konten contoh dipakai)`,
+      detail: 'belum ada — konten contoh dipakai',
     });
   }
 

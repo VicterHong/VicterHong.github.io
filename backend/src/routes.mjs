@@ -71,22 +71,86 @@ const ALLOWED_EVENTS = new Set([
  * Batas laju endpoint publik per alamat IP.
  * Token tak dikenal tidak punya token_id, jadi guard berbasis token tidak
  * menjangkaunya — batas per-IP ini yang menutup celah brute force.
+ *
+ * Batas laju per-IP untuk endpoint publik.
+ *
+ * DUA LAPIS:
+ *
+ * 1. DEFAULT — berlaku untuk SEMUA path di bawah /api/ yang tidak punya
+ *    aturan khusus. Sebelumnya endpoint tanpa aturan tidak dibatasi sama
+ *    sekali: /api/experiment/convert bisa dibanjiri konversi palsu
+ *    (merusak hasil A/B dan membengkakkan SQLite), /api/ready bisa
+ *    dibanjiri untuk membebani I/O disk, dan /api/project/:slug/locked
+ *    bisa dibanjiri untuk brute force token.
+ *
+ *    Pendekatan default-allow (hanya path terdaftar yang dibatasi) salah:
+ *    setiap endpoint baru otomatis tidak terlindungi sampai ada yang ingat
+ *    menambahkannya. Default-deny membalik logika itu — endpoint baru
+ *    terlindungi sejak awal.
+ *
+ * 2. KHUSUS — batas lebih ketat/ketat-longgar untuk endpoint tertentu,
+ *    dipilih berdasarkan biaya operasinya dan risiko penyalahgunaannya.
  */
+const DEFAULT_LIMIT = { limit: 120, windowMs: 60_000 };
+
 const PUBLIC_LIMITS = {
+  // ── Endpoint mahal: batas ketat ──────────────────────────────────────────
+  // Verifikasi token: mencegah brute force token tak dikenal.
   '/api/token/validate': { limit: 20, windowMs: 60_000 },
+  // Sesi: lebih ketat — tiap panggilan memeriksa DB + cookie.
   '/api/token/session': { limit: 10, windowMs: 60_000 },
+  // Form sales: paling ketat — mencegah spam lead.
   '/api/contact/sales': { limit: 5, windowMs: 60_000 },
-  '/api/analytics/track': { limit: 60, windowMs: 60_000 },
-  '/api/vitals': { limit: 60, windowMs: 60_000 },
+  // Komentar publik: bisa ditulis siapa saja, rawan spam.
   '/api/comments': { limit: 10, windowMs: 60_000 },
   // Gate verifikasi: cukup longgar untuk pengunjung sah (retry token
   // kedaluwarsa), cukup ketat untuk menahan pemboman token.
   '/api/verify-turnstile': { limit: 30, windowMs: 60_000 },
+
+  // ── Endpoint telemetri: longgar tapi terbatas ────────────────────────────
+  // Dikirim otomatis oleh halaman; satu pengunjung wajar mengirim beberapa.
+  '/api/analytics/track': { limit: 60, windowMs: 60_000 },
+  '/api/vitals': { limit: 60, windowMs: 60_000 },
+
+  // ── Endpoint tulis ringan ────────────────────────────────────────────────
+  // Konversi eksperimen: sebelumnya TIDAK dibatasi. Konversi palsu merusak
+  // hasil A/B dan setiap baris masuk ke SQLite.
+  '/api/experiment/convert': { limit: 30, windowMs: 60_000 },
+
+  // ── Endpoint baca yang di-cache (batas bisa longgar) ─────────────────────
+  // /api/ready melakukan query DB + tulis disk + statfs tiap panggilan.
+  // Hasilnya kini di-cache 10 detik, jadi batas 30/menit tetap aman
+  // untuk monitor yang mengecek tiap menit, tanpa membebani disk.
+  '/api/ready': { limit: 30, windowMs: 60_000 },
+  '/api/health': { limit: 120, windowMs: 60_000 },
 };
+
+/** Ambil aturan untuk sebuah path: khusus kalau ada, default kalau tidak. */
+function ruleFor(pathname) {
+  if (PUBLIC_LIMITS[pathname]) return PUBLIC_LIMITS[pathname];
+  // Semua /api/* mendapat batas default — tidak ada yang lolos tanpa batas.
+  if (pathname.startsWith('/api/')) return DEFAULT_LIMIT;
+  return null;
+}
+
+/**
+ * Cache hasil readiness.
+ *
+ * readiness() menulis berkas probe ke disk setiap panggilan. Tanpa cache,
+ * endpoint yang dipanggil monitor tiap menit (atau dibanjiri penyerang)
+ * berarti penulisan disk berulang — dan disk adalah sumber daya paling
+ * mudah dihabiskan.
+ *
+ * 10 detik dipilih karena: monitor mengecek tiap 60 detik, jadi selalu
+ * mendapat data segar; dan banjir request dalam 10 detik hanya menghasilkan
+ * SATU penulisan, bukan ribuan.
+ */
+const READY_CACHE_MS = 10_000;
+let readyCache = null;
 
 /** Terapkan batas laju. Mengembalikan true kalau permintaan ditolak. */
 export function rateLimited(req, res, pathname) {
-  const rule = PUBLIC_LIMITS[pathname];
+  const rule = ruleFor(pathname);
   if (!rule) return false;
   // Kunci memakai ipBucket, bukan IP mentah: IPv6 dipotong ke /64 supaya
   // penyerang tidak bisa melewati batas hanya dengan berganti alamat
@@ -431,7 +495,21 @@ export const routes = [
       // READINESS — "siap menerima trafik?". Memeriksa dependensi nyata:
       // database bisa dibaca, disk bisa ditulis, ruang cukup, konfigurasi ada.
       // 503 kalau ada yang gagal — load balancer/monitor tahu harus mundur.
-      const result = readiness();
+      //
+      // DI-CACHE 10 detik. readiness() melakukan tiga operasi berat setiap
+      // panggilan: query database, TULIS + hapus berkas probe, dan statfs.
+      // Monitor mengecek tiap menit, jadi cache 10 detik tidak mengurangi
+      // kegunaannya sama sekali — tapi membanjiri endpoint ini 30x/menit
+      // tidak lagi berarti 30 penulisan disk.
+      //
+      // Saat cache masih segar, hasil lama dikembalikan. Itu benar untuk
+      // readiness: status disk tidak berubah dalam 10 detik, dan kalau
+      // berubah, pemeriksaan berikutnya akan menangkapnya.
+      const now = Date.now();
+      if (!readyCache || now - readyCache.at > READY_CACHE_MS) {
+        readyCache = { at: now, result: readiness() };
+      }
+      const result = readyCache.result;
       sendJson(res, result.ok ? 200 : 503, result);
     }),
   },
