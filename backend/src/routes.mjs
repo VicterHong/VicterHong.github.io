@@ -106,15 +106,64 @@ export function initRoutes() {
   openDb(config.dbPath);
 }
 
-/** Cocokkan path dengan pola sederhana seperti '/api/project/:slug/locked'. */
-function matchPath(pattern, pathname) {
+/**
+ * Cocokkan path dengan pola sederhana seperti '/api/project/:slug/locked'.
+ *
+ * KEAMANAN — dua hal yang ditangani di sini:
+ *
+ * 1. decodeURIComponent bisa MELEMPAR (URIError) untuk input seperti
+ *    '%E0%A4%A'. Fungsi ini dipanggil dispatcher SEBELUM handler dibungkus
+ *    try/catch, jadi lemparan di sini dulu bisa mematikan proses. Sekarang
+ *    ditangkap dan dianggap "tidak cocok" — request seperti itu memang
+ *    tidak menunjuk ke apa pun.
+ *
+ * 2. decodeURIComponent juga bisa MENGUBAH struktur path: '%2F' menjadi
+ *    '/', sehingga '/api/project/..%2F..%2Fetc%2Fpasswd/locked' lolos dari
+ *    split('/') dan menghasilkan slug berisi '..'. Setelah didekode, nilai
+ *    WAJIB cocok dengan pola per tipe parameter — menolak '/', '..', NUL,
+ *    dan karakter apa pun di luar whitelist.
+ *
+ * Pola per tipe diambil dari kode yang sudah ada supaya tidak ada aturan
+ * baru yang tidak konsisten:
+ *   slug / collection / name → sama dengan SLUG_RE dan BRANCH_RE
+ *   id                       → format tokenId(): 'tok_' + 16 hex
+ */
+
+/** Parameter yang nilainya harus slug (huruf kecil, angka, tanda hubung). */
+const SLUG_PARAMS = new Set(['slug', 'collection', 'name']);
+/** Parameter ID token — formatnya sudah pasti dari tokenId(). */
+const ID_PARAMS = new Set(['id']);
+
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
+const TOKEN_ID_RE = /^tok_[a-f0-9]{16}$/;
+
+/** Validasi nilai parameter sesuai tipenya. */
+function validParam(name, value) {
+  if (SLUG_PARAMS.has(name)) return SLUG_RE.test(value);
+  if (ID_PARAMS.has(name)) return TOKEN_ID_RE.test(value);
+  // Parameter yang belum dikenal: tolak demi keamanan (default-deny).
+  // Kalau nanti ada parameter baru, tambahkan ke salah satu himpunan di atas
+  // — jangan diloloskan tanpa pola.
+  return false;
+}
+
+export function matchPath(pattern, pathname) {
   const p = pattern.split('/');
   const u = pathname.split('/');
   if (p.length !== u.length) return null;
   const params = {};
   for (let i = 0; i < p.length; i += 1) {
-    if (p[i].startsWith(':')) params[p[i].slice(1)] = decodeURIComponent(u[i]);
-    else if (p[i] !== u[i]) return null;
+    if (p[i].startsWith(':')) {
+      const name = p[i].slice(1);
+      let value;
+      try {
+        value = decodeURIComponent(u[i]);
+      } catch {
+        return null; // URI tidak valid — bukan rute yang kita layani
+      }
+      if (!validParam(name, value)) return null;
+      params[name] = value;
+    } else if (p[i] !== u[i]) return null;
   }
   return params;
 }
