@@ -51,18 +51,25 @@ export const services = [
   {
     title: 'Otomasi alur kerja',
     body: 'Mengubah proses manual yang berulang menjadi alur otomatis yang bisa diaudit — dari pencatatan stok sampai laporan terjadwal.',
+    // Ikon dipakai untuk mengisi ruang kartu yang tadinya 65% kosong
+    // (diukur: kartu 506x138px, isi teks hanya 48px = densitas 35%).
+    // Nama ikon dari assets/js/icons.js — 30 ikon SVG stroke 1.5px.
+    icon: 'activity',
   },
   {
     title: 'Bot & integrasi',
     body: 'Bot Telegram, Discord, atau WhatsApp yang terhubung ke sistem Anda. Reaktif, tidak berisik, dengan kontrol anti-ban berlapis.',
+    icon: 'terminal',
   },
   {
     title: 'Sistem self-hosted',
     body: 'Aplikasi yang berjalan di server atau perangkat Anda sendiri — tanpa langganan, tanpa ketergantungan cloud yang wajib.',
+    icon: 'server',
   },
   {
     title: 'Audit & perbaikan',
     body: 'Meninjau sistem yang sudah berjalan: menemukan titik lemah keamanan, pemborosan sumber daya, dan bagian yang rapuh.',
+    icon: 'shield',
   },
 ];
 

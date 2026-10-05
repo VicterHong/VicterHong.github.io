@@ -100,14 +100,42 @@ function initTechPulse(root) {
 }
 
 // ── LAYANAN ────────────────────────────────────────────────────────────────────
+/**
+ * Kartu layanan dengan ikon.
+ *
+ * ── KENAPA IKON DITAMBAHKAN (audit desain + referensi Kombai) ───────────────
+ *
+ * Diukur: kartu 506x138px tapi isi teks hanya 48px — densitas 35%, artinya
+ * 65% ruang kosong. Section terasa sparse dan kartu terlihat seperti pita tipis.
+ *
+ * Referensi dari Kombai Gallery (Features/Axiom) mengisi ruang kartu dengan
+ * elemen visual 220-300px. Kita tidak perlu sebesar itu — cukup ikon yang
+ * memberi jangkar visual dan membuat mata tahu di mana mulai membaca.
+ *
+ * Ikon diambil dari sistem yang SUDAH ADA (30 ikon SVG stroke 1.5px di
+ * icons.js) — tidak menambah dependency, tidak menambah berat halaman.
+ */
 function renderServices() {
   const host = $('#servicesGrid');
   if (!host) return;
   for (const s of services) {
-    host.append(el('article', { class: 'service-card' },
+    const card = el('article', { class: 'service-card' });
+
+    // Ikon: aria-hidden karena murni dekoratif — judul sudah menjelaskan
+    // maksud kartu. Membacakannya akan mengulang informasi.
+    const ic = s.icon ? icon(s.icon, { size: 22, strokeWidth: 1.5 }) : null;
+    if (ic) {
+      const wrap = el('span', { class: 'service-icon' });
+      wrap.setAttribute('aria-hidden', 'true');
+      wrap.append(ic);
+      card.append(wrap);
+    }
+
+    card.append(
       el('h3', { text: s.title }),
       el('p', { text: s.body }),
-    ));
+    );
+    host.append(card);
   }
 }
 
