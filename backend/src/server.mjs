@@ -112,6 +112,24 @@ async function handleRequest(req, res) {
 
   if (req.method === 'OPTIONS') return handlePreflight(req, res);
 
+  // ── API admin: HANYA dari loopback ─────────────────────────────────────────
+  //
+  // Sebelum ini, /api/admin/* terjangkau dari internet lewat tunnel Cloudflare
+  // dan hanya dijaga oleh kunci statis. Satu kebocoran kunci = kendali penuh
+  // atas ±30 endpoint (terbitkan/cabut token, ekspor lead, publish).
+  //
+  // Panel admin memang selalu dibuka lewat SSH tunnel ke localhost, jadi
+  // menutup jalur publik tidak mengurangi fungsionalitas sama sekali.
+  //
+  // Dijawab 404 (bukan 403) dengan sengaja: 403 mengonfirmasi bahwa endpoint
+  // itu ADA, sehingga penyerang tahu harus mencoba kunci. 404 tidak memberi
+  // petunjuk apa pun — dari luar, seolah endpoint itu memang tidak ada.
+  if (pathname.startsWith('/api/admin/') || pathname === '/api/admin') {
+    if (!isLoopback(req)) {
+      return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan' });
+    }
+  }
+
   // Admin panel: HANYA dari loopback. Akses lewat SSH tunnel:
   //   ssh -L 8789:127.0.0.1:8788 user@vps
   //   lalu buka http://localhost:8789/admin
