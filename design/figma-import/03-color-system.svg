@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="620" viewBox="0 0 1440 620" font-family="Inter, -apple-system, sans-serif">
   <rect width="1440" height="620" fill="#0a0a0b"/>
 
-  <text x="80" y="70" fill="#ff7a45" font-size="13" font-weight="600" letter-spacing="2">03 · SISTEM WARNA</text>
+  <text x="80" y="70" fill="#f5c542" font-size="13" font-weight="600" letter-spacing="2">03 · SISTEM WARNA</text>
   <text x="80" y="106" fill="#e8e8ed" font-size="26" font-weight="700">Palet &amp; Tipografi</text>
 
   <!-- Color swatches -->
@@ -33,13 +33,13 @@
     </g>
     <!-- Accent -->
     <g transform="translate(896, 0)">
-      <rect x="0" y="0" width="200" height="120" rx="10" fill="#ff7a45"/>
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#f5c542"/>
       <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Accent</text>
-      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#FF7A45</text>
+      <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#F5C542</text>
     </g>
     <!-- Accent light -->
     <g transform="translate(1120, 0)">
-      <rect x="0" y="0" width="200" height="120" rx="10" fill="#ff9d6b"/>
+      <rect x="0" y="0" width="200" height="120" rx="10" fill="#f7d77a"/>
       <text x="16" y="146" fill="#e8e8ed" font-size="15" font-weight="600">Accent Light</text>
       <text x="16" y="170" fill="#8a8a96" font-size="13" font-family="monospace">#FF9D6B</text>
     </g>
@@ -47,7 +47,7 @@
 
   <!-- Text colors -->
   <g transform="translate(80, 380)">
-    <text x="0" y="0" fill="#ff7a45" font-size="12" font-weight="600" letter-spacing="1.5">WARNA TEKS</text>
+    <text x="0" y="0" fill="#f5c542" font-size="12" font-weight="600" letter-spacing="1.5">WARNA TEKS</text>
     <g transform="translate(0, 24)">
       <rect x="0" y="0" width="120" height="80" rx="8" fill="#e8e8ed"/>
       <text x="16" y="110" fill="#e8e8ed" font-size="14" font-weight="600">Text</text>
@@ -62,7 +62,7 @@
 
   <!-- Typography -->
   <g transform="translate(500, 380)">
-    <text x="0" y="0" fill="#ff7a45" font-size="12" font-weight="600" letter-spacing="1.5">TIPOGRAFI</text>
+    <text x="0" y="0" fill="#f5c542" font-size="12" font-weight="600" letter-spacing="1.5">TIPOGRAFI</text>
     <g transform="translate(0, 30)">
       <text x="0" y="0" fill="#e8e8ed" font-size="32" font-weight="700">Inter Bold 32</text>
       <text x="0" y="22" fill="#8a8a96" font-size="12">Judul hero, nama proyek</text>
@@ -76,14 +76,14 @@
       <text x="0" y="20" fill="#8a8a96" font-size="12">Deskripsi, paragraf</text>
     </g>
     <g transform="translate(0, 200)">
-      <text x="0" y="0" fill="#ff9d6b" font-size="13" font-family="monospace">JetBrains Mono 13 — label teknis</text>
+      <text x="0" y="0" fill="#f7d77a" font-size="13" font-family="monospace">JetBrains Mono 13 — label teknis</text>
       <text x="0" y="20" fill="#8a8a96" font-size="12">Durasi, kode, metadata</text>
     </g>
   </g>
 
   <!-- Spacing scale -->
   <g transform="translate(1000, 380)">
-    <text x="0" y="0" fill="#ff7a45" font-size="12" font-weight="600" letter-spacing="1.5">SKALA JARAK</text>
+    <text x="0" y="0" fill="#f5c542" font-size="12" font-weight="600" letter-spacing="1.5">SKALA JARAK</text>
     <g transform="translate(0, 30)" fill="#e8e8ed" font-size="13" font-family="monospace">
       <text x="0" y="0">4px   · ikon kecil</text>
       <text x="0" y="26">8px   · gap dalam komponen</text>

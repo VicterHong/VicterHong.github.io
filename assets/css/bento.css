@@ -94,14 +94,14 @@
 /* Kartu unggulan: aksen lebih tegas + glow ambient di sudut */
 .project.is-featured {
   background:
-    radial-gradient(ellipse 70% 100% at 100% 0%, rgba(255, 122, 69, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 100% at 100% 0%, rgba(245, 197, 66, 0.06) 0%, transparent 60%),
     var(--surface-1);
   border-color: var(--hairline-strong);
 }
 
 .project.is-featured:hover {
   background:
-    radial-gradient(ellipse 70% 100% at 100% 0%, rgba(255, 122, 69, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 100% at 100% 0%, rgba(245, 197, 66, 0.10) 0%, transparent 60%),
     var(--surface-2);
 }
 

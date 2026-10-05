@@ -273,6 +273,9 @@
   };
 </script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<!-- Kamus bahasa gate. Dimuat SEBELUM cf-gate.js karena berkas itu membaca
+     window.CF_GATE_I18N saat dijalankan. -->
+<script src="assets/js/cf-gate-i18n.js"></script>
 <script src="assets/js/cf-gate.js"></script>
 </body>
 </html>

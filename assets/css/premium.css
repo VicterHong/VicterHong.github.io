@@ -47,8 +47,8 @@
   /* ── Focus ring berlapis (Linear) ────────────────────────────────────────────
      Dua cincin dengan opasitas berbeda. Satu cincin terlalu tipis di gelap. */
   --focus-ring:
-    0 0 0 2px rgba(255, 122, 69, 0.45),
-    0 0 0 4px rgba(255, 122, 69, 0.18);
+    0 0 0 2px rgba(245, 197, 66, 0.45),
+    0 0 0 4px rgba(245, 197, 66, 0.18);
 }
 
 /* ── FOKUS KEYBOARD YANG DIRANCANG ──────────────────────────────────────────────
@@ -138,8 +138,8 @@
   pointer-events: none;
   background: radial-gradient(
     ellipse 60% 100% at 50% 0%,
-    rgba(255, 122, 69, 0.10) 0%,
-    rgba(255, 122, 69, 0.04) 35%,
+    rgba(245, 197, 66, 0.10) 0%,
+    rgba(245, 197, 66, 0.04) 35%,
     transparent 70%
   );
   z-index: -1;
@@ -148,7 +148,7 @@
 /* ── SELEKSI TEKS BERWARNA AKSEN ───────────────────────────────────────────────
    Detail kecil yang membuat situs terasa diperhatikan sampai level teks. */
 ::selection {
-  background: rgba(255, 122, 69, 0.28);
+  background: rgba(245, 197, 66, 0.28);
   color: var(--text);
 }
 

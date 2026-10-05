@@ -21,9 +21,7 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: "Satoshi", system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.15;
   text-align: start;
@@ -37,8 +35,11 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 #cf-gate h2,
 #cf-gate p { margin: 0; padding: 0; color: #f2f2f2; }
 
-#cf-gate h1 { line-height: 125%; font-size: 2.5rem; font-weight: 600; }
-#cf-gate h2 { line-height: 125%; font-size: 1.5rem; font-weight: 600; }
+/* Judul: Playfair, serif yang sama dengan judul situs. */
+#cf-gate h1,
+#cf-gate h2 { line-height: 125%; font-weight: 500; font-family: "Playfair Display", Georgia, serif; letter-spacing: -0.01em; }
+#cf-gate h1 { font-size: 2.5rem; }
+#cf-gate h2 { font-size: 1.5rem; }
 
 #cf-gate a { color: #f2f2f2; text-decoration: underline; }
 #cf-gate a:hover { color: #b9d6ff; }
@@ -119,7 +120,7 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 #cf-gate .footer-divider { border: 1px solid #f2f2f2; height: 12px; }
 #cf-gate .footer-text { color: #f2f2f2; font-size: .75rem; }
 #cf-gate .ray-id { margin-bottom: 4px; }
-#cf-gate code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; }
+#cf-gate code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; }
 
 #cf-gate .cf-hidden { display: none !important; }
 

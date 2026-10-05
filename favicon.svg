@@ -2,9 +2,9 @@
   <!-- Favicon: simbol coding { • } — konsisten dengan logo di navbar.
        Tile gelap dengan kurung aksen, terbaca jelas bahkan di 16×16. -->
   <rect width="32" height="32" rx="7" fill="#0a0a0b"/>
-  <g fill="none" stroke="#ff7a45" stroke-width="2.6" stroke-linecap="round">
+  <g fill="none" stroke="#f5c542" stroke-width="2.6" stroke-linecap="round">
     <path d="M11.5 7.5c-2.2 0-2.8 1.2-2.8 3v3.2c0 1.4-.7 2.3-2.2 2.3 1.5 0 2.2.9 2.2 2.3v3.2c0 1.8.6 3 2.8 3"/>
     <path d="M20.5 7.5c2.2 0 2.8 1.2 2.8 3v3.2c0 1.4.7 2.3 2.2 2.3-1.5 0-2.2.9-2.2 2.3v3.2c0 1.8-.6 3-2.8 3"/>
   </g>
-  <circle cx="16" cy="16" r="1.9" fill="#ff7a45"/>
+  <circle cx="16" cy="16" r="1.9" fill="#f5c542"/>
 </svg>

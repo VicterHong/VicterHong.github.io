@@ -95,7 +95,7 @@
   border-radius: inherit;
   background: radial-gradient(
     520px circle at var(--sx, 50%) var(--sy, 50%),
-    rgba(255, 122, 69, 0.09),
+    rgba(245, 197, 66, 0.09),
     transparent 45%
   );
   transition: opacity 0.4s ease;

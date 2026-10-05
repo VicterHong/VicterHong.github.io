@@ -12,9 +12,10 @@
   --text: #f4f4f6;
   --text-dim: #a1a1aa;
   --text-faint: #6b6b75;
-  --accent: #ff7a45;
-  --accent-soft: rgba(255, 122, 69, 0.12);
-  --accent-line: rgba(255, 122, 69, 0.35);
+  --accent: #f5c542;
+  --accent-soft: rgba(245, 197, 66, 0.12);
+  --accent-line: rgba(245, 197, 66, 0.35);
+  --accent-light: #f7d77a;
   --radius: 14px;
   --radius-sm: 9px;
   --maxw: 1080px;
@@ -131,9 +132,9 @@ a { color: inherit; text-decoration: none; }
   position: absolute;
   inset: -20%;
   background:
-    radial-gradient(ellipse 60% 50% at 22% 18%, rgba(255, 122, 69, 0.16), transparent 62%),
+    radial-gradient(ellipse 60% 50% at 22% 18%, rgba(245, 197, 66, 0.16), transparent 62%),
     radial-gradient(ellipse 50% 45% at 78% 72%, rgba(88, 120, 255, 0.12), transparent 60%),
-    radial-gradient(ellipse 70% 60% at 50% 100%, rgba(255, 122, 69, 0.07), transparent 70%);
+    radial-gradient(ellipse 70% 60% at 50% 100%, rgba(245, 197, 66, 0.07), transparent 70%);
   animation: drift 26s ease-in-out infinite alternate;
 }
 
@@ -209,7 +210,7 @@ a { color: inherit; text-decoration: none; }
   display: block;
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--accent), #ffb08a);
+  background: linear-gradient(90deg, var(--accent), #f7d77a);
   transition: width 0.1s linear;
 }
 
@@ -407,7 +408,7 @@ a { color: inherit; text-decoration: none; }
    Detail: docs/PRD-PERBAIKAN-DESAIN.md P1-3 */
 
 .hero-title .accent {
-  background: linear-gradient(100deg, var(--accent), #ffb08a);
+  background: linear-gradient(100deg, var(--accent), #f7d77a);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -419,7 +420,7 @@ a { color: inherit; text-decoration: none; }
    lagi ke glyph anak, dan teks jadi transparan tanpa gradient (tak terlihat).
    Memberi gradient langsung ke tiap kata memperbaiki ini. */
 .hero-title .accent .cine-word {
-  background: linear-gradient(100deg, var(--accent), #ffb08a);
+  background: linear-gradient(100deg, var(--accent), #f7d77a);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -615,7 +616,7 @@ a { color: inherit; text-decoration: none; }
 .project:hover .project-art__detail,
 .project:focus-within .project-art__detail {
   color: #fff;
-  border-color: rgba(255, 122, 69, .42);
+  border-color: rgba(245, 197, 66, .42);
 }
 /* Aksen naik 4px — gerak kecil yang berhenti halus. Elemen ini tidak
    dikendalikan depth.js/tilt-panel.js, jadi aman dari konflik transform. */
@@ -802,7 +803,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .project-link-detail::after { content: none; }
-.project-link-detail:hover { background: #ff8b5c; transform: translateY(-1px); }
+.project-link-detail:hover { background: #f7d77a; transform: translateY(-1px); }
 
 /* ── PROYEK PENDUKUNG ────────────────────────────────────────────────────────── */
 

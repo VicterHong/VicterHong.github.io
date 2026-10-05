@@ -117,7 +117,7 @@ Kirim berkas video ke saya, dan saya akan:
 | Durasi | 5–10 detik per klip |
 | Format | MP4 (H.264) atau WebM |
 | Ukuran target | < 2 MB per format setelah optimasi |
-| Warna aksen | #FF7A45 (oranye portofolio) |
+| Warna aksen | #F5C542 (oranye portofolio) |
 | Background | #0A0A0B (hitam pekat) |
 
 ---

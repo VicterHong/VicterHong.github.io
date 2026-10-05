@@ -6,6 +6,17 @@
 <title>Just a moment...</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- Font situs: gate memakai tipografi yang SAMA dengan halaman setelah
+     verifikasi, supaya tidak terasa seperti halaman pihak ketiga yang
+     menyisip. Satoshi (badan) + Playfair Display (judul) + JetBrains Mono
+     (Ray ID) — CDN yang sama dengan home.html.
+     font-display: swap sudah ada di CSS Fontshare/Google, jadi teks langsung
+     tampil dengan font cadangan lalu bertukar — gate tidak pernah kosong. -->
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/cf-gate.css">
 </head>
 <body>
@@ -29,21 +40,21 @@
         <img src="/favicon.svg" alt="" onerror="this.style.display='none'">
         <h1 data-cf-host>portfolio-victer.pages.dev</h1>
       </div>
-      <h2 class="cf-sub">Melakukan verifikasi keamanan</h2>
-      <p class="cf-lead">Situs web menggunakan layanan keamanan untuk melindungi dari bot jahat. Halaman ini ditunjukkan semasa kami memverifikasi bahwa Anda bukan bot.</p>
+      <h2 class="cf-sub" data-cf-t="title">Verifying you are human</h2>
+      <p class="cf-lead" data-cf-t="lead">This website uses a security service to protect against malicious bots. This page is displayed while we verify that you are not a bot.</p>
 
-      <div class="cf-status" id="cf-checking">
+      <div class="cf-status" id="cf-checking" role="status" aria-live="polite">
         <div class="cf-ring" aria-hidden="true"><div></div><div></div><div></div><div></div></div>
       </div>
 
       <div class="cf-status cf-hidden" id="cf-success">
-        <h2 class="cf-status-title">Verifikasi berhasil. Menunggu response dari <span data-cf-host>portfolio-victer.pages.dev</span><span class="cf-dots"></span></h2>
+        <h2 class="cf-status-title"><span data-cf-t="success">Verification successful. Waiting for response from</span> <span data-cf-host>portfolio-victer.pages.dev</span><span class="cf-dots"></span></h2>
       </div>
 
       <div id="cf-widget"></div>
 
       <noscript>
-        <p class="cf-noscript">Aktifkan JavaScript dan cookie untuk melanjutkan</p>
+        <p class="cf-noscript" data-cf-t="noscript">Enable JavaScript and cookies to continue</p>
       </noscript>
     </div>
   </div>
@@ -51,11 +62,11 @@
   <div class="footer" role="contentinfo">
     <div class="footer-inner">
       <div class="footer-wrapper">
-        <div class="ray-id">Ray ID: <code data-cf-ray>0000000000000000</code></div>
+        <div class="ray-id"><span data-cf-t="rayId">Ray ID</span>: <code data-cf-ray>0000000000000000</code></div>
         <div class="footer-link-wrapper">
-          <span class="footer-text">Performa dan Keamanan dari <a rel="noopener noreferrer" href="https://www.cloudflare.com" target="_blank">Cloudflare</a></span>
+          <span class="footer-text"><span data-cf-t="footer">Performance and Security by</span> <a rel="noopener noreferrer" href="https://www.cloudflare.com" target="_blank">Cloudflare</a></span>
           <span class="footer-divider"></span>
-          <a target="_blank" rel="noopener noreferrer" href="https://www.cloudflare.com/privacypolicy/" class="footer-text">Privasi</a>
+          <a target="_blank" rel="noopener noreferrer" href="https://www.cloudflare.com/privacypolicy/" class="footer-text" data-cf-t="privacy">Privacy</a>
         </div>
       </div>
     </div>
@@ -72,6 +83,9 @@
   };
 </script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<!-- Kamus bahasa gate. Dimuat SEBELUM cf-gate.js karena berkas itu membaca
+     window.CF_GATE_I18N saat dijalankan (bukan saat DOMContentLoaded). -->
+<script src="assets/js/cf-gate-i18n.js"></script>
 <script src="assets/js/cf-gate.js"></script>
 </body>
 </html>

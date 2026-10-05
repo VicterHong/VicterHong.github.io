@@ -30,6 +30,67 @@
   var SESSION_KEY = 'cf_clearance_' + HOST;
   var SESSION_MS = 30 * 60 * 1000; // 30 menit, seperti clearance Cloudflare
 
+  /* ── Bahasa ─────────────────────────────────────────────────────────────
+     Teks gate mengikuti bahasa perangkat pengunjung, sama seperti Cloudflare.
+     Sumbernya cf-gate-i18n.js (dimuat sebelum berkas ini). Kalau berkas itu
+     gagal dimuat, dipakai objek kosong — semua teks jatuh ke Inggris lewat
+     cadangan per-kunci, jadi gate tidak pernah menampilkan `undefined`. */
+  var I18N = window.CF_GATE_I18N || null;
+  var LANG = I18N ? I18N.detect() : 'en';
+  var T = I18N ? I18N.for(LANG) : {
+    title: 'Verifying you are human',
+    lead: 'This website uses a security service to protect against malicious bots.',
+    success: 'Verification successful. Waiting for response from',
+    noscript: 'Enable JavaScript and cookies to continue',
+    retry: 'Verification could not load.',
+    retryLink: 'Reload page',
+    rayId: 'Ray ID',
+    footer: 'Performance and Security by',
+    privacy: 'Privacy',
+    ariaBusy: 'Verification in progress'
+  };
+
+  /**
+   * Isi teks berbahasa ke elemen dalam gate.
+   *
+   * @param {Element|Document} root Wadah pencarian.
+   * @param {boolean} isGatePage true kalau halaman INI gate-nya sendiri
+   *        (index.html). Hanya di situ atribut `lang` dokumen boleh diubah.
+   *
+   * ── KENAPA `isGatePage` PERLU ─────────────────────────────────────────────
+   *
+   * Di index.html, seluruh halaman adalah gate — jadi `<html lang>` harus
+   * mengikuti bahasa pengunjung; itu bahasa dokumen yang sebenarnya.
+   *
+   * Di home.html, gate hanyalah lapisan sementara di atas konten yang
+   * BERBAHASA INDONESIA. Mengubah `<html lang="en">` di sana akan berbohong
+   * ke mesin baca layar dan mesin pencari: mereka akan melafalkan teks
+   * Indonesia dengan aturan Inggris. Jadi di halaman konten, hanya elemen
+   * gate-nya yang diberi `lang` — dokumennya tetap `id`.
+   */
+  function applyLanguage(root, isGatePage) {
+    var map = [
+      ['[data-cf-t="title"]', T.title],
+      ['[data-cf-t="lead"]', T.lead],
+      ['[data-cf-t="success"]', T.success],
+      ['[data-cf-t="noscript"]', T.noscript],
+      ['[data-cf-t="rayId"]', T.rayId],
+      ['[data-cf-t="privacy"]', T.privacy],
+      ['[data-cf-t="footer"]', T.footer]
+    ];
+    for (var i = 0; i < map.length; i++) {
+      var nodes = root.querySelectorAll(map[i][0]);
+      for (var j = 0; j < nodes.length; j++) nodes[j].textContent = map[i][1];
+    }
+
+    // Elemen gate itu sendiri: root bisa berupa dokumen ATAU elemen #cf-gate
+    // (mode statis di index.html). Dua-duanya harus ditangani.
+    var gate = (root.id === 'cf-gate') ? root : root.querySelector('#cf-gate');
+    if (gate) gate.setAttribute('lang', LANG);
+
+    if (isGatePage) document.documentElement.setAttribute('lang', LANG);
+  }
+
   function cfg() { return window.CF_GATE_CONFIG || {}; }
 
   function rayId() {
@@ -118,15 +179,21 @@
   /**
    * Widget tersembunyi selama verifikasi (interaction-only), persis
    * Cloudflare. Baru muncul kalau Cloudflare meminta interaksi.
-   * language 'id' + size 'flexible' = tampilan yang sama dengan interstitial
-   * Cloudflare berbahasa Indonesia (widget melebar penuh, teks Indonesia).
+   *
+   * language: 'auto' — dokumentasi Turnstile: "auto (default): Uses the
+   * visitor's browser language preference." Sebelumnya dipaksa 'id', sehingga
+   * pengunjung Jepang melihat widget berbahasa Indonesia meski halaman mereka
+   * sudah berbahasa Jepang. 'auto' membuat widget dan halaman gate selalu
+   * sejalan, dan Cloudflare yang menerjemahkan (bukan kita).
+   * Kalau bahasa tidak didukung, Turnstile jatuh ke Inggris — sama seperti
+   * cadangan kita sendiri di cf-gate-i18n.js.
    */
   function widgetOptions(onToken, onRetry) {
     return {
       sitekey: cfg().siteKey,
       theme: 'dark',
       appearance: 'interaction-only',
-      language: 'id',
+      language: 'auto',
       size: 'flexible',
       callback: onToken,
       'error-callback': onRetry,
@@ -141,6 +208,9 @@
     var checking = root.querySelector('#cf-checking');
     var success = root.querySelector('#cf-success');
     var slot = root.querySelector('#cf-widget');
+
+    // index.html ADALAH halaman gate — jadi `lang` dokumen boleh diubah.
+    applyLanguage(root, true);
 
     function showSuccess() {
       if (checking) checking.classList.add('cf-hidden');
@@ -184,25 +254,26 @@
       '      <img src="/favicon.svg" alt="" onerror="this.style.display=\'none\'">',
       '      <h1 data-cf-host></h1>',
       '    </div>',
-      '    <h2 class="cf-sub">Melakukan verifikasi keamanan</h2>',
-      '    <p class="cf-lead">Situs web menggunakan layanan keamanan untuk melindungi dari bot jahat. Halaman ini ditunjukkan semasa kami memverifikasi bahwa Anda bukan bot.</p>',
-      '    <div class="cf-status" id="cf-checking">',
+      '    <h2 class="cf-sub" data-cf-t="title"></h2>',
+      '    <p class="cf-lead" data-cf-t="lead"></p>',
+      '    <div class="cf-status" id="cf-checking" role="status" aria-live="polite">',
       '      <div class="cf-ring" aria-hidden="true"><div></div><div></div><div></div><div></div></div>',
       '    </div>',
       '    <div class="cf-status cf-hidden" id="cf-success">',
-      '      <h2 class="cf-status-title">Verifikasi berhasil. Menunggu response dari <span data-cf-host></span><span class="cf-dots"></span></h2>',
+      '      <h2 class="cf-status-title"><span data-cf-t="success"></span> <span data-cf-host></span><span class="cf-dots"></span></h2>',
       '    </div>',
       '    <div id="cf-widget"></div>',
+      '    <noscript><p class="cf-noscript" data-cf-t="noscript"></p></noscript>',
       '  </div>',
       '</div>',
       '<div class="footer" role="contentinfo">',
       '  <div class="footer-inner">',
       '    <div class="footer-wrapper">',
-      '      <div class="ray-id">Ray ID: <code data-cf-ray></code></div>',
+      '      <div class="ray-id"><span data-cf-t="rayId"></span>: <code data-cf-ray></code></div>',
       '      <div class="footer-link-wrapper">',
-      '        <span class="footer-text">Performa dan Keamanan dari <a rel="noopener noreferrer" href="https://www.cloudflare.com" target="_blank">Cloudflare</a></span>',
+      '        <span class="footer-text"><span data-cf-t="footer"></span> <a rel="noopener noreferrer" href="https://www.cloudflare.com" target="_blank">Cloudflare</a></span>',
       '        <span class="footer-divider"></span>',
-      '        <a target="_blank" rel="noopener noreferrer" href="https://www.cloudflare.com/privacypolicy/" class="footer-text">Privasi</a>',
+      '        <a target="_blank" rel="noopener noreferrer" href="https://www.cloudflare.com/privacypolicy/" class="footer-text" data-cf-t="privacy"></a>',
       '      </div>',
       '    </div>',
       '  </div>',
@@ -211,6 +282,8 @@
 
     document.body.appendChild(root);
     fillStatics(root);
+    // Halaman konten: gate hanya lapisan sementara, `lang` dokumen tetap `id`.
+    applyLanguage(root, false);
 
     var checking = root.querySelector('#cf-checking');
     var success = root.querySelector('#cf-success');
@@ -252,7 +325,13 @@
     var p = document.createElement('p');
     p.className = 'cf-load-hint';
     p.style.marginTop = '1rem';
-    p.innerHTML = 'Verifikasi tidak dapat dimuat. <a href="">Muat ulang halaman</a>.';
+    // Teks dari kamus bahasa — bukan hardcode Indonesia.
+    p.textContent = T.retry + ' ';
+    var a = document.createElement('a');
+    a.href = '';
+    a.textContent = T.retryLink;
+    p.appendChild(a);
+    p.appendChild(document.createTextNode('.'));
     box.appendChild(p);
   }
 

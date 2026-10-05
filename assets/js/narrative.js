@@ -103,7 +103,7 @@ export function createNarrativeVideo({ slug, title, caption = '', aspect = '16 /
     poster.className = 'narrative-poster';
     poster.innerHTML = `<svg viewBox="0 0 100 56" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <rect width="100" height="56" fill="#131316"/>
-      <g stroke="#ff7a45" stroke-width="0.2" opacity="0.4" fill="none">
+      <g stroke="#f5c542" stroke-width="0.2" opacity="0.4" fill="none">
         <path d="M15 16 L35 25 L50 19 L68 28 L85 17"/>
         <path d="M18 40 L38 34 L54 43 L72 36 L88 45"/>
         <path d="M35 25 L38 34 M50 19 L54 43 M68 28 L72 36"/>

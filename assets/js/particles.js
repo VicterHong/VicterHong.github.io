@@ -63,7 +63,7 @@ export function initParticles() {
   // Material with accent color
   const material = new THREE.PointsMaterial({
     size: 0.8,
-    color: 0xff7a45, // Accent color
+    color: 0xf5c542, // Aksen kuning premium — selaras dengan --accent di main.css
     transparent: true,
     opacity: 0.6,
     blending: THREE.AdditiveBlending
