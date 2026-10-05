@@ -97,7 +97,7 @@ export function initScrollSpy(doc = document) {
   };
 
   // Simpan section yang sedang terlihat; kalau lebih dari satu,
-  // pilih yang paling atas (paling dekat dengan garis aktif).
+  // pilih yang mengandung GARIS AKTIF (30% dari atas viewport).
   const visible = new Set();
 
   const observer = new IntersectionObserver((entries) => {
@@ -108,13 +108,58 @@ export function initScrollSpy(doc = document) {
 
     if (visible.size === 0) return; // pertahankan penanda terakhir
 
-    // Pilih yang paling atas di viewport.
-    let best = null;
-    let bestTop = Infinity;
-    for (const el of visible) {
-      const top = el.getBoundingClientRect().top;
-      if (top < bestTop) { bestTop = top; best = el; }
+    // ── KASUS KHUSUS: HALAMAN MENTOK DI BAWAH ───────────────────────────────
+    //
+    // Section terakhir sering lebih pendek dari viewport. Saat pengunjung
+    // menggulir sampai dasar, section itu tidak akan pernah mencapai garis
+    // aktif — tidak ada ruang scroll lagi. Akibatnya section terakhir
+    // TIDAK PERNAH ditandai, padahal pengunjung jelas sedang melihatnya.
+    //
+    // Terbukti saat uji: "Kontak" gagal ditandai karena top-nya 254px
+    // sementara garis aktif di 227px.
+    //
+    // Solusi: kalau sudah mentok di bawah, tandai section terakhir yang
+    // terlihat. Itu yang secara UX benar — pengunjung ada di dasar halaman.
+    const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4;
+    if (atBottom) {
+      let last = null;
+      let lastTop = -Infinity;
+      for (const el of visible) {
+        const t = el.getBoundingClientRect().top;
+        if (t > lastTop) { lastTop = t; last = el; }
+      }
+      if (last?.id) setActive(last.id);
+      return;
     }
+
+    // ── KENAPA "MENGANDUNG GARIS AKTIF", BUKAN "PALING ATAS" ────────────────
+    //
+    // Versi pertama memilih section dengan `top` terkecil (paling atas).
+    // Itu SALAH dan ketahuan saat uji: ketika menggulir ke section terakhir,
+    // section SEBELUMNYA masih terlihat sebagian di atas layar (bottom-nya
+    // masih melewati zona aktif), jadi ia ikut "terlihat" — dan karena
+    // top-nya lebih kecil, ia yang dipilih. Section yang benar-benar sedang
+    // dilihat tidak pernah ditandai.
+    //
+    // Yang benar: section yang MENGANDUNG garis aktif. Garis itu ada di 30%
+    // dari atas viewport (sesuai rootMargin). Section yang memuat garis itu
+    // adalah yang sedang dibaca.
+    const line = window.innerHeight * 0.30;
+    let best = null;
+    let bestDistance = Infinity;
+
+    for (const el of visible) {
+      const r = el.getBoundingClientRect();
+      // Section ini mengandung garis aktif?
+      if (r.top <= line && r.bottom > line) {
+        best = el;
+        break;
+      }
+      // Kalau tidak ada yang mengandung, pilih yang paling dekat.
+      const d = Math.min(Math.abs(r.top - line), Math.abs(r.bottom - line));
+      if (d < bestDistance) { bestDistance = d; best = el; }
+    }
+
     if (best?.id) setActive(best.id);
   }, {
     rootMargin: '-30% 0px -55% 0px',

@@ -96,8 +96,15 @@ for (const s of list) {
       const y = el.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.2;
       html.scrollTop = Math.max(0, y);
 
-      // Tunggu observer sempat jalan (IO async)
+      // Tunggu observer sempat jalan (IO async).
+      //
+      // Kalau halaman sudah MENTOK di bawah (section terakhir lebih pendek
+      // dari viewport), scroll tidak mengubah posisi — dan IntersectionObserver
+      // baru melaporkan setelah layout stabil. Beri waktu lebih, lalu picu
+      // sekali lagi supaya IO pasti mengevaluasi ulang.
       await new Promise(r => setTimeout(r, 700));
+      html.scrollTop = html.scrollTop; // paksa reflow
+      await new Promise(r => setTimeout(r, 500));
       html.style.scrollBehavior = asli;
 
       const nav = document.querySelector('.site-nav');
