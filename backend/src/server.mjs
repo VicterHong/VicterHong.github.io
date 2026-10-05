@@ -13,6 +13,7 @@ import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
 import { recordHeartbeat, cleanupHeartbeats, flushHeartbeats } from './sla.mjs';
 import { pruneAll } from './retention.mjs';
+import { sweepRateLimit } from './rate-limit.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -209,6 +210,33 @@ setInterval(() => {
     console.error('[sla] flush berkala gagal:', err?.message ?? err);
   }
 }, 60_000).unref();
+
+/**
+ * Bersihkan rate limiter (A6) — tiap 5 menit, TERLEPAS dari trafik.
+ *
+ * ── KENAPA HARUS TIMER SENDIRI ──────────────────────────────────────────────
+ *
+ * Sebelumnya pembersihan dipanggil di dalam checkRateLimit() — artinya
+ * hanya berjalan kalau ada request. Dua akibatnya:
+ *
+ * 1. Kalau trafik berhenti, Map tidak pernah dibersihkan dan memori tetap
+ *    terpakai sampai proses restart.
+ * 2. Kalau trafik padat, pembersihan jalan terus — dan versi lama
+ *    mengalokasi array baru per key, jadi justru memperberat event loop
+ *    tepat saat server sedang sibuk.
+ *
+ * Jendela rate limit terpanjang adalah 1 jam, jadi menyapu tiap 5 menit
+ * dengan batas 1 jam sudah lebih dari cukup. Entri yang lebih muda dari
+ * 1 jam memang MASIH BERLAKU — tidak boleh dibuang.
+ */
+setInterval(() => {
+  try {
+    const removed = sweepRateLimit(Date.now(), 3_600_000);
+    if (removed > 0) console.log(`[rate-limit] ${removed} entri kedaluwarsa dibuang`);
+  } catch (err) {
+    console.error('[rate-limit] sweep gagal:', err?.message ?? err);
+  }
+}, 300_000).unref();
 
 /**
  * Retensi data (A3) — dijalankan SEKALI SEHARI, bukan tiap jam.

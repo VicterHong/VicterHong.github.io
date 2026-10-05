@@ -77,6 +77,18 @@ CREATE TABLE IF NOT EXISTS access_events (
 
 CREATE INDEX IF NOT EXISTS idx_events_token ON access_events(token_id, at);
 CREATE INDEX IF NOT EXISTS idx_events_ip    ON access_events(ip, at);
+-- A4: index untuk filter project_slug di /api/admin/audit.
+--
+-- Tanpa ini, filter per-proyek menyusuri SELURUH index idx_events_at dan
+-- membuang yang tidak cocok. Diukur pada 303 baris: 0,352 ms vs 0,006 ms
+-- dengan index yang cocok — 59x lebih lambat. Pada 1 juta baris, selisihnya
+-- menjadi ribuan kali, dan karena DatabaseSync sinkron, seluruh pengunjung
+-- ikut menunggu.
+--
+-- Kolom: (project_slug, at) — project dulu (untuk pencarian), lalu at
+-- (untuk ORDER BY). Urutan ini penting: kalau dibalik, SQLite tidak bisa
+-- memakai index untuk menyaring project.
+CREATE INDEX IF NOT EXISTS idx_events_project ON access_events(project_slug, at);
 -- A3: index untuk retensi. Tanpa ini, DELETE ... WHERE at < ? melakukan
 -- full scan, dan itu memblokir seluruh server (DatabaseSync sinkron).
 -- Index (token_id, at) di atas TIDAK bisa dipakai karena kolom pertamanya
