@@ -77,8 +77,20 @@ export function validateSession(sessionId, secret) {
   const session = getDb().prepare('SELECT * FROM sessions WHERE id = ? AND expires_at > ?').get(hash, at) ?? null;
   if (!session) return null;
 
-  // Update last_seen
-  getDb().prepare('UPDATE sessions SET last_seen = ? WHERE id = ?').run(at, hash);
+  // Update last_seen — TAPI hanya kalau sudah lebih dari 60 detik.
+  //
+  // A5: sebelumnya baris ini menulis pada SETIAP request terautentikasi.
+  // Setiap tulis = satu commit = satu fsync (dengan synchronous=FULL).
+  // Di disk VPS, fsync memakan 1-10 ms dan selama itu event loop BLOKIR.
+  // Pada 8 req/detik itu berarti lantai latensi yang tidak perlu.
+  //
+  // 60 detik dipilih karena: last_seen dipakai untuk menampilkan "terakhir
+  // aktif" dan membersihkan sesi kedaluwarsa — resolusi 1 menit sudah lebih
+  // dari cukup untuk keduanya. Presisi detik tidak memberi manfaat apa pun
+  // yang sebanding dengan biaya fsync per request.
+  if (at - Number(session.last_seen ?? 0) > 60_000) {
+    getDb().prepare('UPDATE sessions SET last_seen = ? WHERE id = ?').run(at, hash);
+  }
 
   // Ambil token terkait
   const token = getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(session.token_id) ?? null;

@@ -12,6 +12,7 @@ import { applyCors, sendJson } from './http-util.mjs';
 import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
 import { recordHeartbeat, cleanupHeartbeats } from './sla.mjs';
+import { pruneAll } from './retention.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -191,6 +192,50 @@ setInterval(() => {
     console.error('[cleanup] gagal:', err?.message ?? err);
   }
 }, 3_600_000);
+
+/**
+ * Retensi data (A3) — dijalankan SEKALI SEHARI, bukan tiap jam.
+ *
+ * Kenapa terpisah dari cleanup per jam: retensi menyentuh tabel besar
+ * (access_events, analytics_events) dan menghapus bertahap per batch.
+ * Menjalankannya tiap jam hanya menambah beban tanpa manfaat — umur simpan
+ * dihitung dalam HARI, jadi sekali sehari sudah tepat.
+ *
+ * Jam 04:30 dipilih karena: backup jalan 03:45 (selesai jauh sebelum ini),
+ * dan log rotation 04:15. Ketiganya berurutan, tidak bertabrakan — penting
+ * karena DatabaseSync sinkron: dua tugas berat bersamaan akan saling
+ * memblokir di satu CPU.
+ *
+ * maxBatches dibatasi 50 per tabel per hari (≈100 ribu baris/hari pada
+ * batch 2000). Kalau ada tumpukan besar, habis dalam beberapa hari tanpa
+ * pernah mengganggu layanan.
+ */
+function msUntilNext(hour, minute) {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(hour, minute, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  return next - now;
+}
+
+function scheduleRetention() {
+  const delay = msUntilNext(4, 30);
+  setTimeout(async () => {
+    try {
+      const results = await pruneAll({ batch: 2000, maxBatches: 50 });
+      for (const r of results) {
+        if (r.error) console.error(`[retensi] ${r.table}: gagal — ${r.error}`);
+        else if (r.deleted > 0) {
+          console.log(`[retensi] ${r.table}: ${r.deleted} baris dihapus${r.done ? '' : ' (masih ada sisa)'}`);
+        }
+      }
+    } catch (err) {
+      console.error('[retensi] gagal:', err?.message ?? err);
+    }
+    scheduleRetention(); // jadwalkan hari berikutnya
+  }, delay).unref();
+}
+scheduleRetention();
 
 /**
  * Bind ke KEDUA alamat loopback (IPv4 + IPv6).

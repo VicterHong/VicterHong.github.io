@@ -19,14 +19,51 @@
 
 import { statfsSync, accessSync, constants, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { getDb } from './db.mjs';
 import { config } from './config.mjs';
 
 const startedAt = Date.now();
 
-/** Ringkasan proses — dipakai /api/health. */
+/**
+ * Monitor event loop delay.
+ *
+ * KENAPA INI PENTING (temuan E dari audit enterprise):
+ *
+ * Di sistem ini, DatabaseSync melakukan kerja di call stack JavaScript.
+ * Setiap operasi sinkron yang lambat membekukan SELURUH server — bukan
+ * hanya request yang memicunya. CPU% TIDAK menunjukkan ini: bisa 15%
+ * sementara p99 event loop delay sudah 500 ms.
+ *
+ * Contoh nyata: satu query admin 500 ms menahan 4 request pada 8 req/detik,
+ * latensi mereka naik dari 5 ms menjadi 250-500 ms (50-100×).
+ *
+ * ATURAN PRAKTIS: p99 harus < 50 ms. Kalau lebih, ada operasi sinkron
+ * yang perlu dipecah per batch atau dipindah ke worker.
+ *
+ * Histogram ini bawaan Node (perf_hooks) — tidak menambah dependency dan
+ * biayanya nyaris nol (diperbarui oleh timer internal, bukan per request).
+ */
+
+const loopDelay = monitorEventLoopDelay({ resolution: 20 });
+loopDelay.enable();
+
+/** Ringkasan event loop delay dalam milidetik. */
+export function eventLoopStats() {
+  // Nilai bawaan adalah nanodetik.
+  const toMs = (ns) => Math.round((Number.isFinite(ns) ? ns : 0) / 1e6 * 10) / 10;
+  return {
+    p50_ms: toMs(loopDelay.percentile(50)),
+    p95_ms: toMs(loopDelay.percentile(95)),
+    p99_ms: toMs(loopDelay.percentile(99)),
+    max_ms: toMs(loopDelay.max),
+  };
+}
+
+/** Kembalikan { ok: true } kalau p99 masih di bawah ambang. */
 export function liveness() {
   const mem = process.memoryUsage();
+  const loop = eventLoopStats();
   return {
     ok: true,
     service: 'portfolio-token-service',
@@ -35,6 +72,12 @@ export function liveness() {
     pid: process.pid,
     node: process.version,
     memory_mb: Math.round(mem.rss / 1024 / 1024),
+    // Metrik event loop (E). Dikirim di liveness supaya monitor bisa
+    // memantau tanpa menambah endpoint. Tidak rahasia — hanya angka.
+    event_loop_ms: loop,
+    // Peringatan kalau p99 melewati ambang. Bukan kegagalan (liveness tetap
+    // ok:true — proses memang hidup), tapi sinyal untuk diperiksa.
+    event_loop_warn: loop.p99_ms > 50,
     time: new Date().toISOString(),
   };
 }

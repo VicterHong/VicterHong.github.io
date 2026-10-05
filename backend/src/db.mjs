@@ -77,6 +77,11 @@ CREATE TABLE IF NOT EXISTS access_events (
 
 CREATE INDEX IF NOT EXISTS idx_events_token ON access_events(token_id, at);
 CREATE INDEX IF NOT EXISTS idx_events_ip    ON access_events(ip, at);
+-- A3: index untuk retensi. Tanpa ini, DELETE ... WHERE at < ? melakukan
+-- full scan, dan itu memblokir seluruh server (DatabaseSync sinkron).
+-- Index (token_id, at) di atas TIDAK bisa dipakai karena kolom pertamanya
+-- token_id — query retensi tidak memfilter token.
+CREATE INDEX IF NOT EXISTS idx_events_at    ON access_events(at);
 
 CREATE TABLE IF NOT EXISTS revocations (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,6 +122,9 @@ CREATE TABLE IF NOT EXISTS device_fingerprints (
 
 CREATE INDEX IF NOT EXISTS idx_fp_token ON device_fingerprints(token_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_fp_session ON device_fingerprints(session_id);
+-- A3: index untuk retensi. idx_fp_token tidak bisa dipakai karena kolom
+-- pertamanya token_id — query retensi tidak memfilter token.
+CREATE INDEX IF NOT EXISTS idx_fp_created ON device_fingerprints(created_at);
 
 CREATE TABLE IF NOT EXISTS analytics_events (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,6 +143,11 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 CREATE INDEX IF NOT EXISTS idx_analytics_type ON analytics_events(event_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_project ON analytics_events(project_slug, created_at);
 CREATE INDEX IF NOT EXISTS idx_analytics_token ON analytics_events(token_id, created_at);
+-- A3: index untuk retensi + uniqueVisitors(). Kolom pertama created_at
+-- supaya DELETE WHERE created_at < ? tidak full scan. Sekaligus covering
+-- untuk COUNT(DISTINCT ip) WHERE created_at >= ? — ip ikut di index,
+-- jadi tidak perlu lookup ke tabel.
+CREATE INDEX IF NOT EXISTS idx_analytics_created_ip ON analytics_events(created_at, ip);
 
 CREATE TABLE IF NOT EXISTS consents (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -211,6 +224,8 @@ CREATE TABLE IF NOT EXISTS web_vitals (
 
 CREATE INDEX IF NOT EXISTS idx_vitals_name ON web_vitals(name, created_at);
 CREATE INDEX IF NOT EXISTS idx_vitals_path ON web_vitals(path, created_at);
+-- A3: index untuk retensi.
+CREATE INDEX IF NOT EXISTS idx_vitals_created ON web_vitals(created_at);
 
 -- ── COLLABORATE: cabang (branch) & riwayat perubahan ────────────────────────
 CREATE TABLE IF NOT EXISTS cms_branches (
@@ -293,6 +308,32 @@ export function openDb(path) {
   mkdirSync(dirname(path), { recursive: true });
   db = new DatabaseSync(path);
   db.exec(SCHEMA);
+
+  // ── A5: PRAGMA untuk produksi ─────────────────────────────────────────────
+  //
+  // busy_timeout = 2000 ms
+  //   Tanpa ini, kalau ada proses lain menulis ke DB yang sama (skrip CLI,
+  //   backup, migrasi), server LANGSUNG menerima SQLITE_BUSY dan request
+  //   publik gagal 500. Dengan timeout, server menunggu sebentar.
+  //   Catatan: pada API sinkron, menunggu berarti event loop ikut menunggu
+  //   sampai 2 detik — tapi itu tetap jauh lebih baik daripada error 500.
+  //
+  // synchronous = NORMAL
+  //   Bawaan SQLite adalah FULL, yang memicu fsync pada SETIAP commit.
+  //   Di WAL mode, NORMAL sudah cukup aman (hanya commit terakhir yang bisa
+  //   hilang kalau listrik mati — database tetap konsisten, tidak korup).
+  //   Ini menghapus fsync dari jalur request, yang di disk VPS memakan
+  //   1-10 ms dan bisa 50+ ms saat disk sibuk.
+  //
+  // Keduanya dijalankan SETELAH SCHEMA supaya tidak memperlambat migrasi.
+  try {
+    db.exec('PRAGMA busy_timeout = 2000;');
+    db.exec('PRAGMA synchronous = NORMAL;');
+  } catch {
+    // Versi SQLite lama atau build khusus — bukan alasan menggagalkan start.
+    // Tanpa PRAGMA ini layanan tetap benar, hanya kurang optimal.
+  }
+
   return db;
 }
 
