@@ -84,6 +84,23 @@ export const config = {
   turnstileSiteKey: pick('TURNSTILE_SITE_KEY', ''),
   turnstileSecretKey: pick('TURNSTILE_SECRET_KEY', ''),
 
+  /**
+   * Hostname yang boleh menyelesaikan Turnstile.
+   *
+   * Cloudflare mengembalikan hostname tempat token diselesaikan. Tanpa
+   * daftar ini, token dari preview deployment atau domain lain tetap
+   * diterima — jadi penyerang bisa mendaftarkan widget Turnstile di
+   * domainnya sendiri dan memakai token yang dihasilkan untuk situs ini.
+   *
+   * Format: dipisah koma. Kosong = pemeriksaan dilewati (untuk pengembangan),
+   * dan server menolak start di produksi kalau kosong (lihat validateConfig).
+   *
+   * JANGAN masukkan domain preview (mis. *.pages.dev dengan hash acak) —
+   * itu berubah tiap deploy dan akan membuat pengunjung ditolak.
+   */
+  turnstileHostnames: pick('TURNSTILE_HOSTNAMES', '')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+
   /** Origin yang boleh mengakses API (CORS). */
   allowedOrigins: pick('ALLOWED_ORIGINS', 'https://victerhong.github.io')
     .split(',').map((s) => s.trim()).filter(Boolean),
@@ -125,6 +142,33 @@ export function validateConfig() {
   if (!config.adminKey || config.adminKey.length < 24) {
     problems.push('ADMIN_KEY wajib diisi (minimal 24 karakter) di ' + ENV_FILE);
   }
+
+  // Turnstile — konsistensi konfigurasi.
+  //
+  // Kenapa TIDAK memakai NODE_ENV: service produksi ini ternyata tidak
+  // menyetel NODE_ENV (diperiksa langsung di /proc/<pid>/environ). Validasi
+  // yang bergantung padanya tidak akan pernah jalan — perlindungan yang
+  // terlihat ada tapi diam-diam tidak aktif.
+  //
+  // Gantinya: SITE_KEY dipakai sebagai penanda. Kalau site key diisi, artinya
+  // situs memang menampilkan widget Turnstile ke pengunjung — dan kalau
+  // widget ditampilkan, secret HARUS ada. Kalau tidak, pengunjung melihat
+  // widget yang tidak bisa diverifikasi, dan (dengan fail-closed) semua
+  // orang ditolak.
+  //
+  // Ini logika yang tidak bisa "lupa diset": site key dan secret key selalu
+  // dibuat bersamaan di dashboard Cloudflare.
+  if (config.turnstileSiteKey) {
+    if (!config.turnstileSecretKey) {
+      problems.push('TURNSTILE_SITE_KEY diisi tapi TURNSTILE_SECRET_KEY kosong — '
+        + 'widget ditampilkan tapi tidak bisa diverifikasi. Isi keduanya di ' + ENV_FILE);
+    }
+    if (config.turnstileHostnames.length === 0) {
+      problems.push('TURNSTILE_HOSTNAMES wajib diisi kalau Turnstile aktif — '
+        + 'daftar hostname yang boleh menyelesaikan widget (dipisah koma) di ' + ENV_FILE);
+    }
+  }
+
   return problems;
 }
 

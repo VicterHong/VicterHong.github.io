@@ -467,25 +467,55 @@ function verifySession(req, { projectSlug = '', action = 'content' } = {}) {
  * Dipakai SEBELUM token diperiksa — jadi bot tidak bisa menebak token
  * sama sekali kalau belum lolos verifikasi manusia.
  *
- * Mengembalikan { ok: true } kalau lolos (atau Turnstile memang nonaktif —
- * situs tidak boleh rusak karena konfigurasi kosong), atau
- * { ok: false, status, body } kalau ditolak.
+ * FAIL-CLOSED (sejak FIX-08). Sebelumnya fungsi ini gagal-TERBUKA: kalau
+ * TURNSTILE_SECRET_KEY kosong, atau Cloudflare tidak terjangkau, verifikasi
+ * dilewati dan gerbang token terbuka tanpa proteksi apa pun — tanpa jejak
+ * di log. Untuk gerbang token, itu berarti bot bisa mencoba token sepuasnya
+ * selama Cloudflare sedang bermasalah.
  *
- * `secret` bisa dioper eksplisit supaya bisa diuji tanpa menyentuh
- * konfigurasi produksi.
+ * Sekarang: kegagalan infrastruktur = TOLAK, dan setiap pelewatan dicatat.
+ * Lebih baik pengunjung muat ulang daripada gerbang terbuka tanpa penjaga.
+ *
+ * `secret` dan `failOpen` bisa dioper eksplisit supaya bisa diuji tanpa
+ * menyentuh konfigurasi produksi.
+ *
+ * @returns {Promise<{ok: true, skipped?: boolean} | {ok: false, status: number, body: object}>}
  */
-export async function turnstileGate(req, body, { action = 'turnstile_gate', secret } = {}) {
+export async function turnstileGate(req, body, {
+  action = 'turnstile_gate',
+  secret,
+  failOpen = false, // gerbang = fail-closed secara bawaan
+  expectedHostnames, // eksplisit untuk pengujian; bawaan dari config
+} = {}) {
   const effectiveSecret = secret ?? config.turnstileSecretKey;
   const result = await verifyTurnstile({
     token: String(body['cf-turnstile-response'] ?? body.turnstile_token ?? ''),
     secret: effectiveSecret,
     remoteip: clientIp(req),
+    failOpen,
+    expectedHostnames: expectedHostnames ?? config.turnstileHostnames,
+    // Action yang diharapkan = action yang dikirim frontend.
+    // Frontend memakai 'token_gate' (lihat project.js). Kalau nanti action
+    // ini berubah di frontend, ubah juga di sini — kalau tidak, pengunjung
+    // akan ditolak dengan 'action_tidak_cocok'.
+    expectedAction: '',
   });
 
   if (result.ok) {
     if (!result.skipped) {
       recordEvent({
         action, outcome: 'ok',
+        ip: clientIp(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+      });
+    } else {
+      // PELEWATAN SELALU DICATAT. Sebelumnya mode bypass ini tidak terlihat
+      // sama sekali di audit — jadi proteksi bisa mati diam-diam berhari-hari
+      // tanpa ada yang sadar. Sekarang muncul di log audit dan console.
+      console.warn('[turnstile] DILEWATI:', result.error ?? 'tidak diketahui', '| aksi:', action);
+      recordEvent({
+        action, outcome: 'dilewati',
+        detail: result.error ?? 'sebab_tidak_diketahui',
         ip: clientIp(req),
         userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
       });
@@ -498,9 +528,29 @@ export async function turnstileGate(req, body, { action = 'turnstile_gate', secr
     ip: clientIp(req),
     userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
   });
+
+  // Hostname/action tidak cocok = pengunjung ditolak padahal tokennya SAH.
+  // Ini jenis kegagalan yang paling mudah salah konfigurasi, jadi dicatat
+  // eksplisit di console dengan nilai yang diterima — supaya kalau
+  // TURNSTILE_HOSTNAMES salah isi, penyebabnya langsung terlihat tanpa
+  // harus menebak.
+  if (result.error === 'hostname_tidak_cocok' || result.error === 'action_tidak_cocok') {
+    console.warn(
+      `[turnstile] ${result.error}: diterima hostname="${result.hostname}" — `
+      + `daftar diizinkan: ${JSON.stringify(config.turnstileHostnames)}. `
+      + 'Perbarui TURNSTILE_HOSTNAMES di service.env kalau hostname ini sah.',
+    );
+  }
+
+  // 503 untuk gangguan infrastruktur (Cloudflare tidak terjangkau / secret
+  // kosong) — ini bukan salah pengunjung, jadi statusnya beda dari 403.
+  // 403 untuk penolakan verifikasi sungguhan (token salah/kedaluwarsa).
+  const infra = result.error === 'cloudflare_tidak_terjangkau'
+    || result.error === 'cloudflare_timeout'
+    || result.error === 'secret_kosong';
   return {
     ok: false,
-    status: 403,
+    status: infra ? 503 : 403,
     body: { ok: false, error: result.error, message: turnstileMessage(result.error) },
   };
 }
