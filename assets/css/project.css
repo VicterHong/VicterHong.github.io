@@ -555,3 +555,28 @@
 }
 
 .gate-turnstile[hidden] { display: none; }
+
+/* ── Gerak diminimalkan (audit desain Batch 2) ───────────────────────────────
+   Halaman proyek punya transisi hover pada tautan, tombol, dan tier badge.
+   Transisi ini halus dan tidak memicu masalah vestibular, tapi pengguna yang
+   meminta gerak diminimalkan tetap harus mendapat halaman yang tenang.
+
+   Yang dipertahankan: PERUBAHAN WARNA tetap ada (hover tetap terlihat) —
+   hanya peralihannya yang dibuat instan. Menghilangkan perubahan warna
+   akan membuat hover tidak terlihat sama sekali, dan itu merusak
+   kegunaan, bukan mengurangi gerak. */
+@media (prefers-reduced-motion: reduce) {
+  .project-page a,
+  .project-page button,
+  .gate-turnstile,
+  .tier-badge,
+  [class*="project-"] {
+    transition-duration: 0.01ms !important;
+  }
+  /* Transform yang dipakai untuk hover-lift dimatikan total — ini gerak
+     yang sebenarnya, bukan sekadar perubahan warna. */
+  .project-page a:hover,
+  .project-page button:hover {
+    transform: none !important;
+  }
+}

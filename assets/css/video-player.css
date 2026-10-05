@@ -141,3 +141,27 @@
     font-size: 0.75rem;
   }
 }
+
+/* ── Gerak diminimalkan (audit desain Batch 2) ───────────────────────────────
+   Dua hal di pemutar video: spinner loading yang berputar terus, dan
+   transisi opacity pada kontrol.
+
+   Spinner: sama seperti gate — berhenti berputar, tetap terlihat.
+   Kontrol: transisi opacity dibuat instan supaya kontrol muncul/hilang
+   seketika, bukan memudar.
+
+   Video ITU SENDIRI tidak diubah: ia hanya berjalan kalau pengguna
+   menekan play. Gerak yang dipicu pengguna bukan masalah — yang masalah
+   adalah gerak yang terjadi tanpa diminta. */
+@media (prefers-reduced-motion: reduce) {
+  .video-spinner,
+  [class*="video-spin"] {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .video-controls,
+  .video-overlay,
+  .video-btn {
+    transition-duration: 0.01ms !important;
+  }
+}

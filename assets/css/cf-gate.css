@@ -125,3 +125,28 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 
 /* Pesan untuk pengunjung tanpa JavaScript (seperti Cloudflare). */
 #cf-gate .cf-noscript { margin-top: 2rem; font-weight: 600; }
+
+/* ── Gerak diminimalkan (audit desain Batch 2) ───────────────────────────────
+   Halaman gate menampilkan spinner yang berputar TERUS-MENERUS dan titik
+   yang berkedip. Untuk pengguna dengan gangguan vestibular, animasi loop
+   tanpa henti seperti ini adalah pemicu paling umum — bukan animasi sesaat
+   seperti transisi hover, tapi gerak yang tidak pernah berhenti.
+
+   Yang TIDAK dimatikan: spinner tetap terlihat sebagai indikator status,
+   hanya tidak berputar. Pengguna tetap tahu halaman sedang bekerja —
+   mereka hanya tidak dipaksa menonton gerakan.
+
+   `animation-iteration-count: 1` + durasi sangat pendek membuat animasi
+   "selesai" seketika, sehingga elemen berhenti di state akhirnya alih-alih
+   menghilang (kalau hanya `animation: none`, sebagian browser bisa
+   mengembalikan ke state awal). */
+@media (prefers-reduced-motion: reduce) {
+  #cf-gate .cf-lds-ring,
+  #cf-gate .cf-lds-ring div,
+  #cf-gate .cf-dots,
+  #cf-gate [class*="spin"],
+  #cf-gate [class*="pulse"] {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
