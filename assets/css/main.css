@@ -230,6 +230,52 @@ a { color: inherit; text-decoration: none; }
 .site-nav a { transition: color 0.2s var(--ease); }
 .site-nav a:hover { color: var(--text); }
 
+/* ── Tautan nav AKTIF (audit desain P1-6) ────────────────────────────────────
+   Dua jenis "aktif" yang berbeda dan butuh penanganan berbeda:
+
+   1. aria-current="page" → halaman ini yang sedang dibuka.
+      Dipakai docs.html untuk menandai "Panduan". Harus jelas: pengunjung
+      perlu tahu di mana mereka berada.
+
+   2. aria-current="true" → SECTION ini yang sedang dilihat (scroll-spy).
+      Ditandai oleh scroll-spy.js saat pengunjung menggulir halaman utama.
+
+   Keduanya dipisah supaya bisa diberi bobot berbeda: halaman aktif adalah
+   konteks yang lebih besar, section aktif lebih halus. Kalau keduanya
+   sama-sama tebal, navigasi terasa berisik.
+
+   `text-underline-offset` memberi jarak supaya garis bawah tidak menempel
+   ke descender huruf (g, y, p) — detail kecil yang membuatnya terlihat
+   disengaja, bukan kebetulan. */
+.site-nav a[aria-current="page"] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.site-nav a[aria-current="true"] {
+  color: var(--text);
+  position: relative;
+}
+
+/* Penanda garis bawah untuk section aktif. Dibuat dengan ::after supaya
+   tidak mengubah layout (bukan border-bottom yang menambah tinggi). */
+.site-nav a[aria-current="true"]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.35rem;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* Saat reduced-motion aktif, penanda tetap muncul (ia informasi, bukan
+   gerak) — hanya peralihan warnanya yang instan, ditangani aturan global. */
+@media (prefers-reduced-motion: reduce) {
+  .site-nav a[aria-current="true"]::after { transition: none; }
+}
+
 /* Catatan: tombol CTA "Hubungi" di header DIHAPUS — "Kontak" sudah ada di
    navigasi, jadi CTA hanya mengulang tujuan yang sama dan menambah noise.
    Aksi kontak tetap tersedia lewat tautan navigasi dan form di halaman. */

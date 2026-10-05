@@ -30,6 +30,7 @@ import { initCinematic } from './cinematic.js';
 import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
 import { createTiltPanel } from './tilt-panel.js';
+import { initScrollSpy } from './scroll-spy.js';
 import { icon } from './icons.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -467,3 +468,8 @@ initRipple();
 // Efek sinematik (teknik PRIOR, vanilla) — clip reveal, parallax, text stagger,
 // scroll-scrub video, hero fade. Semua hormati prefers-reduced-motion.
 initCinematic();
+
+// Tandai section aktif di navigasi saat menggulir (audit desain P1-6).
+// Pakai IntersectionObserver, BUKAN listener scroll — proyek ini punya satu
+// scroll-manager, dan menambah listener baru melanggar arsitektur itu.
+initScrollSpy();
