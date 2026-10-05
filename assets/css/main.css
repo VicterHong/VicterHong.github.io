@@ -558,6 +558,83 @@ a { color: inherit; text-decoration: none; }
 
 /* ── PROYEK UNGGULAN ─────────────────────────────────────────────────────────── */
 
+
+/* ── RITME GALERI (PRD desain — pola feed) ───────────────────────────────────
+   Diagnosis: section terbaca sebagai tiga panel dokumentasi, bukan koleksi
+   yang ingin dijelajahi — semua kartu rata dan seragam.
+   Yang terlihat: kartu 2 bergeser kanan, kartu 3 ke kiri. Mata membaca tiga
+   objek tersendiri. Offset TETAP (bukan animasi) — tidak beradu depth.js. */
+.projects-bento > .project:nth-child(2) { margin-inline-start: clamp(0px, 4vw, 48px); }
+.projects-bento > .project:nth-child(3) { margin-inline-end: clamp(0px, 4vw, 48px); }
+
+/* ── ARTEFAK PROYEK ─────────────────────────────────────────────────────────
+   Visual dari DATA ASLI (metrics/stack/highlights) — bukan screenshot generik.
+   Kontras dan bentuk dibuat besar supaya terbaca sekilas, sebelum membaca. */
+.project-art {
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+  margin: 0 0 1.75rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(ellipse at 18% 15%, var(--accent-soft), transparent 48%),
+    linear-gradient(135deg, #1b191a, #101012 72%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+}
+/* Detail bereaksi saat hover — KARTU TIDAK IKUT BERGOYANG. Respons lokal. */
+.project-art__detail {
+  transition: opacity 280ms var(--ease), color 280ms var(--ease),
+              border-color 280ms var(--ease), background-color 280ms var(--ease);
+}
+.project:hover .project-art__detail,
+.project:focus-within .project-art__detail {
+  color: #fff;
+  border-color: rgba(255, 122, 69, .42);
+}
+/* Aksen naik 4px — gerak kecil yang berhenti halus. Elemen ini tidak
+   dikendalikan depth.js/tilt-panel.js, jadi aman dari konflik transform. */
+.project-art__accent { transition: transform 380ms cubic-bezier(.16, 1, .3, 1); }
+.project:hover .project-art__accent,
+.project:focus-within .project-art__accent { transform: translateY(-4px); }
+
+.project-art__metrics { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.project-art__metric { display: flex; flex-direction: column; gap: .15rem; }
+.project-art__metric dd {
+  margin: 0; font-size: 1.6rem; font-weight: 700;
+  letter-spacing: -.03em; color: var(--text); line-height: 1;
+}
+.project-art__metric dt {
+  font-size: .68rem; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text-faint);
+}
+.project-art__stack { display: flex; gap: .4rem; flex-wrap: wrap; }
+.project-art__chip {
+  font-size: .7rem; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  padding: .2rem .55rem; border: 1px solid var(--line);
+  border-radius: 999px; color: var(--text-dim); white-space: nowrap;
+}
+.project-art__label {
+  font-size: .72rem; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--accent);
+}
+.project-art__title {
+  font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em;
+  margin: 0; color: var(--text);
+}
+
+@media (max-width: 700px) {
+  .projects-bento > .project:nth-child(2),
+  .projects-bento > .project:nth-child(3) { margin-inline: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-art__detail, .project-art__accent { transition: none; }
+}
+
 .project {
   position: relative;
   border: 1px solid var(--line-soft);

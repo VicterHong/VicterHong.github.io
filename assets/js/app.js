@@ -139,6 +139,59 @@ function renderServices() {
   }
 }
 
+// ── ARTEFAK PROYEK ─────────────────────────────────────────────────────────────
+/**
+ * Visual ringkas per proyek — dari DATA ASLI, bukan screenshot generik.
+ *
+ * ── KENAPA (PRD desain, diagnosis) ──────────────────────────────────────────
+ *
+ * "Isi kartu dominan teks. Mata melihat judul dan paragraf panjang, bukan
+ *  artefak yang mewakili proyek. Tanpa visual data, perspektif kartu hanya
+ *  membengkokkan bidang gelap."
+ *
+ * ── ATURAN DARI PRD ─────────────────────────────────────────────────────────
+ *
+ * "Jangan isi artefak dengan angka, log, atau percakapan rekaan. Semua isi
+ *  harus bersumber dari data proyek."
+ *
+ * Jadi: MINA menampilkan metrik nyata (231 tes, ~25 MB, MIT) + stack.
+ * Spareparts tidak punya metrics[] — jadi menampilkan label kategori + stack,
+ * BUKAN angka karangan. WhatsApp sama.
+ *
+ * Tiap proyek dapat komposisi berbeda (variasi `variant`) supaya terlihat
+ * sebagai tiga karya tersendiri, bukan tiga panel seragam.
+ */
+function renderProjectArt(p) {
+  const art = el('figure', { class: `project-art project-art--${p.variant ?? 'default'}` });
+
+  // Baris atas: label kategori atau judul
+  const top = el('div', { class: 'project-art__accent' });
+  if (p.metrics?.length) {
+    // Proyek dengan metrik: tampilkan angka besar (data nyata)
+    const dl = el('dl', { class: 'project-art__metrics' });
+    for (const m of p.metrics) {
+      dl.append(el('div', { class: 'project-art__metric' },
+        el('dd', { text: m.value }),
+        el('dt', { text: m.label }),
+      ));
+    }
+    top.append(dl);
+  } else {
+    // Proyek tanpa metrik: label kategori, bukan angka rekaan
+    top.append(el('p', { class: 'project-art__label', text: p.artLabel ?? 'Proyek' }));
+  }
+  art.append(top);
+
+  // Baris bawah: stack sebagai chip
+  const stack = el('div', { class: 'project-art__stack project-art__detail' });
+  for (const tech of (p.stack ?? []).slice(0, 5)) {
+    stack.append(el('span', { class: 'project-art__chip', text: tech }));
+  }
+  art.append(stack);
+
+  return art;
+}
+
 // ── PROYEK ─────────────────────────────────────────────────────────────────────
 function renderProjects() {
   const host = $('#featuredProjects');
@@ -150,6 +203,10 @@ function renderProjects() {
     // 3D pada elemen yang sama akan saling menimpa transform — pemisahan ini
     // yang membuat keduanya bisa hidup berdampingan.
     const inner = el('div', { class: 'project-card-inner' });
+
+    // Artefak visual dari data asli — sebelum teks, supaya mata punya
+    // titik masuk sebelum membaca.
+    inner.append(renderProjectArt(p));
 
     inner.append(el('div', { class: 'project-head' },
       el('h3', { class: 'project-name', text: p.name }),

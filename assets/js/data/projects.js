@@ -123,6 +123,9 @@ export const projects = [
     stack: ['Python', 'HMAC-SHA256', 'stdlib only', 'Telegram', 'Discord'],
     repo: 'https://github.com/VicterHong/mina-remote-control',
     accent: 'amina',
+    // Variasi artefak (PRD desain): tiap proyek dapat komposisi berbeda
+    // supaya terlihat sebagai karya tersendiri, bukan panel seragam.
+    variant: 'terminal',
   },
   {
     slug: 'spareparts',
@@ -143,6 +146,11 @@ export const projects = [
     stack: ['FastAPI', 'PostgreSQL', 'Docker', 'n8n', 'Telegram'],
     repo: 'https://github.com/VicterHong/spareparts-inventory-system',
     accent: 'parts',
+    variant: 'inventory',
+    // Proyek ini TIDAK punya metrics[] — artefak menampilkan label kategori,
+    // bukan angka rekaan. Sesuai aturan PRD: "jangan isi artefak dengan
+    // angka, log, atau percakapan rekaan."
+    artLabel: 'Inventory & logistik',
   },
   {
     slug: 'whatsapp-bot',
@@ -163,6 +171,8 @@ export const projects = [
     stack: ['Node.js', 'Baileys', 'JSONL', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
     accent: 'wa',
+    variant: 'flow',
+    artLabel: 'Bot keluarga',
   },
 ];
 
