@@ -51,10 +51,47 @@ initRoutes();
 /**
  * Penangan permintaan — dipakai oleh SEMUA listener (IPv4 + IPv6).
  * Dipisah jadi fungsi supaya logikanya tidak terduplikasi.
+ *
+ * Dua lapis, dan pemisahan ini disengaja:
+ *   requestHandler — pembungkus tipis. Tugasnya HANYA memastikan satu
+ *                    request rusak tidak bisa mematikan proses.
+ *   handleRequest  — logika sebenarnya.
+ *
+ * Kenapa dipisah: `resolveRoute()`, `rateLimited()`, dan `new URL()`
+ * dipanggil SEBELUM blok try yang lama. Ketiganya bisa melempar
+ * (URIError dari decodeURIComponent, TypeError dari header Host rusak).
+ * Karena fungsi ini async, lemparan itu menjadi unhandledRejection —
+ * dan di Node ≥15 itu MEMATIKAN proses. systemd me-restart, tapi state
+ * rate limit di memori ikut tereset, jadi penyerang bisa mengulanginya
+ * tanpa henti. Pembungkus ini menutup celah itu.
  */
 async function requestHandler(req, res) {
+  try {
+    await handleRequest(req, res);
+  } catch (err) {
+    console.error('[server] request gagal:', err?.stack ?? err);
+    if (!res.headersSent) {
+      sendJson(res, 400, { ok: false, error: 'permintaan_tidak_valid' });
+    } else {
+      res.destroy();
+    }
+  }
+}
+
+async function handleRequest(req, res) {
   const startedAt = Date.now();
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+
+  // Base URL TETAP, tidak memakai req.headers.host.
+  // Header Host dikendalikan klien — nilai seperti "[" atau "a b" membuat
+  // new URL() melempar TypeError, dan sebelum perbaikan ini itu mematikan
+  // proses. Path yang dipakai dispatcher hanya butuh pathname, jadi host
+  // palsu tidak memberi keuntungan apa pun pada penyerang.
+  let url;
+  try {
+    url = new URL(req.url ?? '/', 'http://localhost');
+  } catch {
+    return sendJson(res, 400, { ok: false, error: 'url_tidak_valid' });
+  }
   const pathname = url.pathname;
 
   // SLA: catat setiap respons publik (bukan health check itu sendiri).
@@ -118,12 +155,19 @@ async function requestHandler(req, res) {
   }
 }
 
-// Cleanup sesi expired setiap 1 jam
+// Cleanup sesi expired setiap 1 jam.
+// Dibungkus try/catch: kalau DB sedang terkunci (mis. backup sedang jalan),
+// error di sini sebelumnya bisa mematikan proses — padahal ini tugas
+// pemeliharaan, bukan hal yang perlu menghentikan layanan.
 setInterval(() => {
-  const removed = cleanupExpiredSessions();
-  if (removed > 0) console.log(`[cleanup] ${removed} sesi expired dihapus`);
-  // Heartbeat disimpan 90 hari (cukup untuk laporan SLA bulanan + margin).
-  cleanupHeartbeats(90 * 24 * 3_600_000);
+  try {
+    const removed = cleanupExpiredSessions();
+    if (removed > 0) console.log(`[cleanup] ${removed} sesi expired dihapus`);
+    // Heartbeat disimpan 90 hari (cukup untuk laporan SLA bulanan + margin).
+    cleanupHeartbeats(90 * 24 * 3_600_000);
+  } catch (err) {
+    console.error('[cleanup] gagal:', err?.message ?? err);
+  }
 }, 3_600_000);
 
 /**
@@ -175,3 +219,26 @@ function shutdown(signal) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+/**
+ * Jaring pengaman terakhir.
+ *
+ * requestHandler sudah membungkus semua yang ia panggil, tapi kode di
+ * luar jalur itu (timer, event emitter, promise yang lupa di-await) bisa
+ * melempar tanpa tertangkap. Tanpa handler ini, Node mematikan proses.
+ *
+ * Sengaja HANYA mencatat, bukan keluar: satu bug di jalur pinggir tidak
+ * seharusnya menghentikan layanan yang sedang melayani pengunjung.
+ * Kalau ada yang benar-benar fatal, health check akan menangkapnya.
+ */
+process.on('unhandledRejection', (err) => {
+  console.error('[fatal-dicegah] unhandledRejection:', err?.stack ?? err);
+});
+
+process.on('uncaughtException', (err) => {
+  // Ini lebih serius dari unhandledRejection — state proses bisa rusak.
+  // Dicatat, lalu keluar dengan kode error supaya systemd me-restart
+  // dengan state bersih (bukan melanjutkan dengan state yang tidak pasti).
+  console.error('[fatal] uncaughtException:', err?.stack ?? err);
+  shutdown('uncaughtException');
+});
