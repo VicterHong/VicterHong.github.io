@@ -178,25 +178,48 @@ export const sideProjects = [
 ];
 
 /**
- * Prinsip kerja — dipakai di bagian "Cara saya bekerja".
- * Ditulis sebagai keyakinan yang bisa dipertanggungjawabkan, bukan slogan.
+ * Prinsip kerja — ditulis untuk CALON KLIEN, bukan sesama engineer.
+ *
+ * ── KENAPA DIUBAH (analisis desain) ─────────────────────────────────────────
+ *
+ * Versi sebelumnya berbunyi sebagai manifesto engineering: "Hemat itu fitur",
+ * "Tanpa ketergantungan berlebih". Dua dari empat prinsip itu sebenarnya
+ * ARGUMEN YANG SAMA (lebih sedikit resource/dependency = lebih baik) —
+ * satu slot terbuang untuk ide yang berulang.
+ *
+ * Yang hilang: apa yang klien dapatkan saat BEKERJA dengan saya. Komunikasi,
+ * cara menangani ketidakpastian, cara melaporkan hasil.
+ *
+ * ── SEMUA KLAIM DI SINI BISA DIBUKTIKAN ────────────────────────────────────
+ *
+ * Setiap pernyataan di bawah punya bukti yang bisa diperiksa pembaca.
+ * Semua angka diverifikasi sebelum ditulis — bukan dari ingatan:
+ *
+ *   1. "Saya ukur, bukan menebak" → docs/PRD-PERBAIKAN-DESAIN.md mencatat
+ *      pengukuran 9 opsi max-width × 3 viewport; 12ch terbukti memperburuk
+ *      (keseimbangan 20% → 28%)
+ *   2. "Anda bisa memeriksa" → 21 file dokumentasi (5.793 baris) di docs/
+ *   3. "Saya terima koreksi" → docs/AUDIT-ENTERPRISE-KOREKSI.md mencatat
+ *      5 dari 8 temuan saya yang dibatalkan setelah diverifikasi
+ *   4. "Batas jelas" → CSS 118 KB dari anggaran 120 KB, dijaga
+ *      scripts/preflight.mjs yang MENOLAK deploy kalau lewat
  */
 export const principles = [
   {
-    title: 'Hemat itu fitur',
-    body: 'Perangkat lunak yang berjalan di 25 MB RAM bisa hidup di mesin yang tidak sanggup menjalankan alternatifnya. Keterbatasan memori memaksa keputusan desain yang lebih baik.',
+    title: 'Saya ukur, bukan menebak',
+    body: 'Setiap keputusan desain diuji dengan angka sebelum diterapkan. Usulan "max-width 12ch" terlihat masuk akal — setelah diukur ternyata justru memperburuk. Saya ganti dengan solusi yang terbukti.',
   },
   {
-    title: 'Keamanan bukan tempelan',
-    body: 'HMAC di setiap permintaan, allowlist yang ketat, shell=False. Kalau sebuah alat bisa mematikan komputer Anda, ia harus dibangun seolah ada orang yang mencoba menyalahgunakannya.',
+    title: 'Anda bisa memeriksa pekerjaan saya',
+    body: 'Dokumentasi 5.793 baris, termasuk audit yang saya tulis sendiri dan hasilnya saya batalkan saat terbukti salah. Kalau saya mengklaim sesuatu, ada angka atau kode yang bisa Anda buka.',
   },
   {
-    title: 'Bisa dibuktikan',
-    body: 'MINA punya 231 tes otomatis, keluarga bot 1045. Tidak ada klaim di portofolio ini yang tidak bisa Anda periksa sendiri dengan membuka repositorinya.',
+    title: 'Saya terima koreksi',
+    body: 'Audit pihak ketiga membatalkan 5 dari 8 temuan saya — semuanya benar, dan saya catat apa yang salah. Koreksi yang diterima lebih berguna daripada temuan yang dipertahankan demi gengsi.',
   },
   {
-    title: 'Tanpa ketergantungan berlebih',
-    body: 'Web UI MINA hanya memakai stdlib. Bot keluarga memakai JSONL, bukan basis data yang butuh dependensi native. Lebih sedikit bagian yang bisa rusak.',
+    title: 'Batas jelas, bukan janji',
+    body: 'Setiap sistem punya batas yang bisa diukur: anggaran halaman 120 KB, retensi data, kapasitas server. Saya sebutkan batasnya di depan — bukan baru mengakui saat sudah bermasalah.',
   },
 ];
 
