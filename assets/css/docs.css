@@ -563,7 +563,16 @@
 }
 
 @media (max-width: 640px) {
-  .docs-page { padding: 5.5rem 1rem 3rem; }
+  /* ── Kenapa 3rem, bukan 5.5rem (audit desain P1-4) ─────────────────────────
+     Sebelumnya 5.5rem = 88px. Diukur di produksi 390px: jarak dari bawah
+     header ke label "DOKUMENTASI" = 103px — memakan ruang viewport tanpa
+     manfaat dan mendorong konten ke bawah.
+
+     CATATAN PENTING: aturan ini MENIMPA aturan di @media (max-width: 900px)
+     (baris ~497) karena di 390px KEDUANYA cocok, dan yang belakangan menang.
+     Jadi mengubah hanya blok 900px TIDAK berpengaruh di HP — inilah sebabnya
+     perbaikan pertama tidak terlihat saat diukur. Kedua blok harus konsisten. */
+  .docs-page { padding: 3rem 1rem 3rem; }
   .docs-head { margin-bottom: 2rem; padding-bottom: 1.5rem; }
   .docs-head h1 { font-size: 1.75rem; }
   .docs-head > p { font-size: 0.95rem; }
