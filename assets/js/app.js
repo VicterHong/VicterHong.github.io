@@ -151,6 +151,47 @@ function renderProjects() {
     // yang membuat keduanya bisa hidup berdampingan.
     const inner = el('div', { class: 'project-card-inner' });
 
+    // ── SAMPUL PROYEK (PRD desain 3D) ────────────────────────────────────────
+    //
+    // KEPEMILIKAN TRANSFORM — ini yang paling penting:
+    //   .project        → depth.js (scroll-stand)
+    //   .project-card-inner → tilt-panel.js
+    //   .project-cover  → HANYA efek hover dari CSS (satu penulis)
+    //
+    // Kalau tilt-panel.js juga menyentuh .project-cover, dua penulis
+    // transform akan bertabrakan — persis masalah yang dulu terjadi pada
+    // magnetic.js vs depth.js. Sampul ini SENGAJA tidak didaftarkan ke
+    // modul tilt mana pun.
+    //
+    // Gambar hanya dirender kalau ada — Luna menulis dengan tegas:
+    // "Jika screenshot belum ada, rilis tanpa efek sampul — jangan membuat
+    // galeri palsu dari elemen kosong." Proyek tanpa `cover` tidak dapat
+    // slot gambar kosong.
+    if (p.cover) {
+      const media = el('div', { class: 'project-cover' });
+      const img = el('img', {
+        class: 'project-cover-img',
+        src: p.cover,
+        alt: p.coverAlt ?? `Tampilan ${p.name}`,
+        loading: 'lazy',
+        decoding: 'async',
+        width: '1200',
+        height: '750',
+      });
+      // Versi mobile: screenshot desktop yang diperkecil jadi tidak terbaca.
+      // Dipilih lewat srcset+sizes supaya BROWSER yang menentukan — bukan JS.
+      // Tanpa JS, `src` desktop tetap dipakai dan tetap terlihat benar.
+      // Ukuran 1200x750 dicantumkan di atribut width/height supaya browser
+      // sudah tahu rasio sebelum gambar selesai dimuat — mencegah layout
+      // shift (CLS), yang Luna sebut sebagai syarat rilis.
+      if (p.coverMobile) {
+        img.setAttribute('srcset', `${p.coverMobile} 800w, ${p.cover} 1200w`);
+        img.setAttribute('sizes', '(max-width: 640px) 100vw, 560px');
+      }
+      media.append(img);
+      inner.append(media);
+    }
+
     inner.append(el('div', { class: 'project-head' },
       el('h3', { class: 'project-name', text: p.name }),
       el('span', { class: 'project-sub', text: p.subtitle }),

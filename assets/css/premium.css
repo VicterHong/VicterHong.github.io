@@ -1,25 +1,7 @@
-/* ── TEKNIK PREMIUM — dari Linear, Vercel, Stripe ───────────────────────────────
-   Lapisan polish yang diterapkan di atas styles.css. Semua teknik di sini
-   berasal dari praktik yang didokumentasikan publik oleh tim desain produk
-   premium (Linear Method, Vercel Geist, Stripe Dashboard craft notes).
-
-   Prinsip yang diterapkan:
-   1. LUMINANCE STACKING (Linear) — di tema gelap, elevasi diungkapkan dengan
-      permukaan yang SEDIKIT LEBIH TERANG, bukan drop-shadow gelap. Shadow
-      gelap di atas permukaan gelap terlihat seperti lubang, bukan ketinggian.
-   2. HAIRLINE BORDERS (Linear) — border putih transparan bertingkat
-      (0.06 / 0.08 / 0.10) untuk mengomunikasikan hierarki.
-   3. STACKED SHADOWS (Vercel) — beberapa bayangan kecil berlapis, bukan satu
-      drop-shadow besar. Ditambah inset ring supaya tepi kartu tetap tajam.
-   4. FOCUS RING BERLAPIS (Linear) — dua cincin: 2px + 4px dengan opasitas
-      berbeda. Cincin satu lapis terlihat terlalu tipis di latar gelap.
-   5. TABULAR NUMBERS (Stripe) — angka statistik disejajarkan secara tabular
-      supaya kolom angka tidak "bergoyang".
-   6. NEGATIVE TRACKING AGRESIF (Linear/Vercel) — headline besar dirapatkan
-      proporsional dengan ukurannya (~4% ukuran font).
-   7. MOTION CURVES TERDEFINISI (Linear) — kurva easing yang dirancang,
-      bukan default browser. Cepat dan tepat, tidak memantul.
-   ───────────────────────────────────────────────────────────────────────────── */
+/* ── TEKNIK PREMIUM ─────────────────────────────────────────────────────────
+   Surface ladder (kartu naik satu tingkat luminansi, bukan bayangan tebal),
+   stacked shadow, dan fokus keyboard yang dirancang — bukan outline default.
+   Pola dari Linear/Vercel/Stripe. Detail: docs/REFERENSI-KOMBAI.md */
 
 :root {
   /* ── Surface ladder (luminance stacking) ─────────────────────────────────────

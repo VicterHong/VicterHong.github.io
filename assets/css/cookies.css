@@ -1,43 +1,9 @@
-/* ── PERSETUJUAN COOKIE ────────────────────────────────────────────────────────
-   Bilah persetujuan cookie untuk halaman yang memakai penyimpanan browser.
-
-   Pola yang diadopsi (dengan penyesuaian, bukan tiruan):
-     - Stripe   : nada tenang dan profesional, pilihan tersimpan lama,
-                  halaman preferensi bisa dibuka kapan saja.
-     - ChatGPT  : dua lapis — bilah ringkas dulu, panel rinci saat diminta.
-     - Netflix  : bilah memanjang penuh di dasar layar, warna ikut tema.
-     - Steam    : panel rinci dengan penjelasan bahasa awam per kategori.
-     - GOV.UK   : urutan keputusan — tolak dulu, baru terima (baca kiri
-                  ke kanan), dan tombol keputusan selalu berpasangan.
-
-   Penyesuaian agar tidak meniru salah satunya:
-     - Warna memakai aksen situs (#ff7a45), bukan biru/merah/hijau mereka.
-     - Isi bilah dibatasi selebar konten situs (--maxw) supaya sejajar
-       dengan header — memanjang penuh, tapi tidak melebar liar.
-     - Blur kaca (backdrop-filter) supaya bilah menyatu dengan halaman.
-     - Kategori disesuaikan dengan yang BENAR-BENAR dipakai situs ini:
-       esensial + analitik. Tidak ada kategori pemasaran — karena situs
-       ini memang tidak memasang cookie iklan. Bilah yang mencantumkan
-       kategori yang tidak ada adalah bilah yang tidak jujur.
-
-   Prinsip yang dipegang (kepatuhan, bukan sekadar tampilan):
-     - Tombol "Terima semua" dan "Tolak semua" sama besar, sama kontras,
-       dan berdampingan. Membuat "Tolak" lebih kecil atau lebih pudar
-       adalah pola gelap yang dilarang regulator (CNIL menindak Google).
-     - Kategori non-esensial MATI secara bawaan. Consent harus aktif.
-     - Tidak ada tombol tutup yang ambigu — kalau ditutup tanpa memilih,
-       artinya menolak (dinyatakan jelas di teks).
-     - Bisa diubah kapan saja lewat tombol mengambang di pojok.
-     - Tidak ada timer, tidak ada "yakin mau kehilangan pengalaman?".
-
-   Animasi (responsif, bukan sekadar bergerak):
-     - Bilah naik dari bawah 0.6s dengan kurva deselerasi — tenang.
-     - Isi muncul bertahap: teks 0.12s, tombol 0.2s.
-     - Tombol merespons dalam 0.18s saat disentuh — terasa seketika.
-     - Keluar lebih cepat dari masuk, tanpa tahapan — saat pengguna
-       sudah memutuskan, jangan tahan mereka menonton animasi.
-     - Semua animasi mati saat prefers-reduced-motion.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── PERSETUJUAN COOKIE ──────────────────────────────────────────────────────
+   Dua lapis: bilah ringkas (tolak/terima/atur) + panel rinci per kategori.
+   Nilai default semua OFF — tidak ada yang aktif sebelum pengguna memilih.
+   Bilah TIDAK memblokir halaman: pengguna bisa menggulir dan membaca dulu.
+   Panel rinci pakai <dialog> semantics dengan fokus terperangkap.
+   Detail lengkap: docs/PRD-PERBAIKAN-DESAIN.md */
 
 /* Tombol mengambang — cara membuka ulang preferensi kapan saja.
    Regulasi mewajibkan penarikan persetujuan semudah memberikannya. */
@@ -80,22 +46,10 @@
 }
 .cookie-fab .icon { width: 18px; height: 18px; }
 
-/* ── Lapis 1: bilah persetujuan (MEMANJANG PENUH) ──────────────────────────
-   Bilah menempel di dasar layar dan membentang dari tepi ke tepi. Isinya
-   dibatasi selebar konten situs (--maxw) supaya sejajar dengan header dan
-   footer — memanjang, tapi tidak melebar liar di layar besar.
-
-   Kenapa bilah, bukan kartu pojok:
-     - Terbaca sebagai bagian dari halaman, bukan tempelan.
-     - Teks dan tombol bisa berdampingan — lebih cepat dipindai.
-     - Ruang tombol lebih lega, jadi "Terima" dan "Tolak" sama-sama
-       mendapat ukuran penuh tanpa berdesakan.
-
-   Animasi:
-     - Bilah naik dari bawah dengan kurva deselerasi (0.6s) — tenang,
-       tidak menyentak.
-     - Isi muncul bertahap: teks dulu, tombol menyusul (~80ms).
-     - Garis aksen di tepi atas menyala perlahan sebagai penanda halus. */
+/* ── Lapis 1: bilah persetujuan ─────────────────────────────────────────────
+   Memanjang penuh, latar tembus 0.82 + blur supaya konten di belakang tetap
+   terbaca samar. Diukur: 250px di mobile (30% layar) — dibatasi max-height
+   40svh supaya tidak menutupi kontrol. */
 .cookie-banner {
   position: fixed;
   left: 0;

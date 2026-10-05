@@ -1,21 +1,9 @@
-/* ── EFEK TEKAN TOMBOL ─────────────────────────────────────────────────────────
-   Dua bagian yang bekerja bersama:
-
-   1. GELOMBANG (ripple) — muncul dari titik sentuh saat tombol ditekan.
-      Pola Material Design 3. Radius dihitung di JS supaya selalu menutupi
-      seluruh tombol, bukan berhenti di tengah pada tombol lebar.
-
-   2. KACA (glass) — tombol memakai latar semi-transparan dengan blur.
-      Pola Framer/Dribbble: tombol terasa sebagai lapisan di atas halaman,
-      bukan bidang pekat yang menempel.
-
-   Keduanya dijalankan dengan prinsip yang sama:
-     - Cepat (≤0.5s). Pada produk yang sering dipakai, animasi panjang
-       terasa seperti hambatan, bukan kehalusan.
-     - Halus (kurva deselerasi), bukan linear — gerakan terasa mekanis
-       kalau kecepatannya rata.
-     - Mati total saat prefers-reduced-motion.
-   ──────────────────────────────────────────────────────────────────────────── */
+/* ── EFEK TEKAN TOMBOL ──────────────────────────────────────────────────────
+   Gelombang Material Design 3 dari TITIK SENTUH (bukan tengah), plus
+   glass morphism. Tombol perlu position:relative + overflow:hidden supaya
+   gelombang terpotong rapi.
+   PENGECUALIAN: .orb-item — tooltip ::after akan terpotong overflow:hidden.
+   Elemen itu tetap dapat efek tekan (scale), hanya tanpa gelombang. */
 
 /* ── Gelombang ──────────────────────────────────────────────────────────────
    Tombol perlu position: relative + overflow: hidden supaya gelombang
