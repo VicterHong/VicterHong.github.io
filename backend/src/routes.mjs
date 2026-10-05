@@ -21,7 +21,7 @@
 
 import { config } from './config.mjs';
 import { openDb } from './db.mjs';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import {
   findTokenByPlaintext, getToken, issueToken, listTokens, revokeToken,
@@ -235,15 +235,44 @@ export function matchPath(pattern, pathname) {
   return params;
 }
 
-/** Apakah permintaan ini dari admin (kunci cocok).
- *  Perbandingan timing-safe: `===` membocorkan panjang awalan yang cocok lewat
- *  waktu respons, sehingga kunci bisa ditebak karakter demi karakter. */
+/**
+ * Apakah permintaan ini dari admin (kunci cocok).
+ *
+ * Perbandingan harus timing-safe: `===` membocorkan panjang awalan yang
+ * cocok lewat waktu respons, sehingga kunci bisa ditebak karakter demi
+ * karakter.
+ *
+ * MASALAH LAMA — dua bug pada pemeriksaan panjang:
+ *
+ * 1. `key.length !== expected.length` membandingkan panjang STRING,
+ *    sementara timingSafeEqual membutuhkan panjang BYTE yang sama.
+ *    Kunci 8 karakter berisi karakter multibyte = 16 byte, dan kunci
+ *    8 karakter ASCII = 8 byte. Panjang string sama (8), panjang byte
+ *    beda → timingSafeEqual melempar RangeError. Terbukti:
+ *      timingSafeEqual(Buffer.from('åååååååå'), Buffer.from('12345678'))
+ *      → RangeError: Input buffers must have the same byte length
+ *    Lemparan itu jadi error 500 dan ikut membocorkan informasi panjang.
+ *
+ * 2. Pemeriksaan panjang itu sendiri membocorkan panjang kunci lewat
+ *    perbedaan waktu respons (kunci yang panjangnya salah ditolak lebih
+ *    cepat, sebelum perbandingan byte).
+ *
+ * PERBAIKAN: hash kedua nilai dengan SHA-256 lebih dulu. Hash selalu
+ * 32 byte apa pun panjang inputnya, jadi:
+ *   - timingSafeEqual tidak pernah melempar
+ *   - tidak ada pemeriksaan panjang yang membocorkan informasi
+ *   - waktu perbandingan selalu sama, terlepas dari panjang kunci
+ *
+ * SHA-256 di sini bukan untuk kerahasiaan (kunci tidak pernah disimpan
+ * sebagai hash) — hanya untuk menyeragamkan panjang sebelum dibandingkan.
+ */
 function isAdmin(req) {
   const key = req.headers['x-admin-key'];
   if (typeof key !== 'string' || key.length === 0) return false;
   const expected = config.adminKey;
-  if (!expected || key.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(key, 'utf8'), Buffer.from(expected, 'utf8'));
+  if (!expected) return false;
+  const h = (s) => createHash('sha256').update(String(s), 'utf8').digest();
+  return timingSafeEqual(h(key), h(expected));
 }
 
 /** Bungkus handler: tangkap error supaya satu permintaan buruk tidak menjatuhkan layanan.
