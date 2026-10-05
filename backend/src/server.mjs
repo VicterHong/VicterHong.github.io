@@ -162,7 +162,11 @@ async function handleRequest(req, res) {
 
   const match = resolveRoute(req.method ?? 'GET', pathname);
   if (!match) {
-    return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan', path: pathname });
+    // Path TIDAK dikembalikan di respons. Mengembalikannya hanya
+    // mengonfirmasi ke penyerang bagaimana input mereka dinormalisasi
+    // (mis. bahwa '/etc/passwd' sampai utuh ke sini) — tidak ada gunanya
+    // untuk klien yang sah, karena mereka sudah tahu path yang dipanggil.
+    return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan' });
   }
 
   try {
