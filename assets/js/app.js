@@ -297,6 +297,22 @@ function renderSpotlight() {
 
   // Gabungkan proyek unggulan + sampingan jadi satu koleksi.
   // Sampingan tidak punya metrics/subtitle, jadi dipakai deskripsi singkat.
+  //
+  // `image` — visual kartu. Kritik desain: "kartu tidak memamerkan karya,
+  // hanya kotak teks" — carousel komersial selalu menampilkan preview produk.
+  // Tiga proyek unggulan punya poster dari video narasinya; sisanya memakai
+  // pola yang diturunkan dari data proyek (bukan screenshot palsu).
+  const VISUAL = {
+    MINA: 'mina-terminal',
+    'Spareparts Inventory System': 'spareparts-shelf',
+    'WhatsApp Family Assistant': 'portal-door',
+    Monitoring: 'monitoring',
+    'EFMS Fintech': 'efms',
+    'Daftar Hadir': 'daftar',
+    jsloop: 'jsloop',
+    strktrdata: 'strktrdata',
+  };
+
   const items = [
     ...projects.map((p) => ({
       title: p.name,
@@ -309,6 +325,7 @@ function renderSpotlight() {
         return t ? Number(String(t.value).replace(/\./g, '')).toLocaleString('id-ID') : '';
       })(),
       accent: ACCENT_WARNA[p.accent] || '#f5c542',
+      image: VISUAL[p.name] ? `assets/spotlight/${VISUAL[p.name]}.jpg` : '',
     })),
     ...sideProjects.map((p) => ({
       title: p.name,
@@ -316,6 +333,7 @@ function renderSpotlight() {
       meta: p.description,
       rating: '',
       accent: '#a9a9b3',
+      image: VISUAL[p.name] ? `assets/spotlight/${VISUAL[p.name]}.jpg` : '',
     })),
   ];
 

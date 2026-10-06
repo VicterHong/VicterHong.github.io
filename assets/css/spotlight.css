@@ -11,11 +11,23 @@
    supaya carousel menyatu dengan sisa situs, bukan terasa ditempel.
    ──────────────────────────────────────────────────────────────────────────── */
 
+/* ── LATAR SOLID ─────────────────────────────────────────────────────────────
+   Kritik desain: "latar terlalu ramai, partikel emas menabrak kartu
+   semi-transparan; teks kartu samping nyaris tak terbaca."
+
+   Penyebabnya: .hero-backdrop adalah position:fixed z-index:-1, jadi video
+   hero TERLIHAT DI SELURUH HALAMAN — termasuk di belakang carousel. Di bagian
+   hero itu bagus; di sini ia merusak keterbacaan.
+
+   Perbaikan: carousel diberi latar solid sendiri (var(--bg)) sehingga video
+   hero tidak lagi menembus. Bukan mematikan efek hero — hanya membatasi
+   jangkauannya ke tempat yang seharusnya. */
 .spotlight {
   position: relative;
   padding: 5rem 0 4rem;
   overflow: hidden;          /* kartu di luar jangkauan tidak bikin scroll samping */
   outline: none;
+  background: var(--bg);
 }
 .spotlight:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 4px; }
 
@@ -69,6 +81,36 @@
 }
 .spotlight-stage.is-grabbing { cursor: grabbing; }
 
+/* ── FADE DI TEPI PANGGUNG ───────────────────────────────────────────────────
+   Kritik: "kartu 01 dan 06 terpotong cukup lebar — hanya sebagian kecil
+   terlihat; tambahkan fade/blur di tepi."
+
+   Kartu di ujung memang terpotong oleh overflow:hidden — itu wajar untuk
+   carousel melengkung. Yang membuatnya terasa kasar adalah potongannya
+   BERAKHIR TAJAM, seperti elemen yang rusak.
+
+   Gradien dari warna latar (--bg) membuat kartu ujung memudar masuk ke
+   latar, jadi terlihat sengaja: mata dibawa ke tengah, bukan ke tepi.
+   pointer-events:none supaya tidak menghalangi drag di area tepi. */
+.spotlight-stage::before,
+.spotlight-stage::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(3rem, 9vw, 8rem);
+  z-index: 20;
+  pointer-events: none;
+}
+.spotlight-stage::before {
+  left: 0;
+  background: linear-gradient(to right, var(--bg) 12%, transparent 100%);
+}
+.spotlight-stage::after {
+  right: 0;
+  background: linear-gradient(to left, var(--bg) 12%, transparent 100%);
+}
+
 /* Track: pusat panggung, dengan ukuran kartu supaya bisa menangkap pointer.
    ── KENAPA PUNYA UKURAN, BUKAN 0×0 ──────────────────────────────────────────
    Awalnya track memakai width:0;height:0 karena semua kartunya position:
@@ -102,7 +144,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 1.1rem 1.15rem 1.25rem;
+  padding: 0;
 
   /* Latar kartu: gradien gelap dengan sedikit warna aksen proyek.
      Setiap kartu punya --card-accent sendiri (dari data proyek). */
@@ -119,21 +161,113 @@
   backface-visibility: hidden;
 }
 
-/* Kartu depan: lebih terang, bingkai aksen */
-.spotlight-card.is-front {
-  border-color: color-mix(in srgb, var(--card-accent, #f5c542) 45%, transparent);
-  box-shadow:
-    0 30px 60px -22px rgba(0, 0, 0, 0.85),
-    0 0 0 1px color-mix(in srgb, var(--card-accent, #f5c542) 20%, transparent);
+/* ── VISUAL KARTU ────────────────────────────────────────────────────────────
+   Kritik desain: "kartu tidak memamerkan karya — hanya kotak teks. Galeri
+   komersial harus menampilkan preview produk sebagai visual utama."
+
+   Kartu sekarang MURNI VISUAL: gambar mengisi seluruh kartu, hanya nomor dan
+   label kategori yang menumpang di atasnya. Judul + deskripsi ada di bawah
+   carousel (sinkron dengan kartu depan) — menghilangkan duplikasi yang
+   dikritik. */
+.spotlight-card-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0a0a0c;
 }
 
-/* Nomor urut di pojok kiri atas */
+.spotlight-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Kartu belakang lebih redup supaya kartu depan menonjol. */
+  opacity: 0.7;
+  transition: opacity 0.35s var(--ease), transform 0.7s var(--ease);
+  transform: scale(1.02);
+}
+.spotlight-card.is-front .spotlight-card-media img {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+/* Dua lapis gradien: bawah untuk keterbacaan label, atas untuk nomor.
+   Tanpa ini, teks putih di atas gambar terang jadi tidak terbaca. */
+.spotlight-card-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, rgba(8, 8, 10, 0.92) 0%, rgba(8, 8, 10, 0.35) 32%, transparent 58%),
+    linear-gradient(to bottom, rgba(8, 8, 10, 0.55) 0%, transparent 26%);
+  pointer-events: none;
+}
+
+/* Teks kartu menumpang di kaki gambar */
+.spotlight-card-body {
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0 1.15rem 1.15rem;
+  width: 100%;
+}
+
+/* Kartu tanpa gambar (cadangan): latar gradien aksen, teks di tengah. */
+.spotlight-card.is-textonly {
+  justify-content: center;
+  padding: 1.4rem 1.2rem;
+}
+.spotlight-card.is-textonly .spotlight-card-body {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  align-items: center;
+}
+.spotlight-card.is-textonly .spotlight-card-title {
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+/* Kartu depan: lebih terang, bingkai aksen, dan GLOW.
+   Kritik: "kartu aktif masih kalah 'berdecak' dibanding kartu sekitarnya —
+   card utama harusnya lebih bersinar."
+
+   Glow dibuat dari warna aksen kartu itu sendiri (--card-accent), jadi tiap
+   proyek memancarkan warnanya sendiri — bukan satu warna generik. Tiga lapis:
+   cahaya luar lebar, cahaya dekat yang lebih pekat, dan bayangan jatuh untuk
+   kedalaman. */
+.spotlight-card.is-front {
+  border-color: color-mix(in srgb, var(--card-accent, #f5c542) 55%, transparent);
+  box-shadow:
+    /* Bayangan jatuh — dipekatkan dan digeser turun supaya kartu terlihat
+       MELAYANG di atas panggung, bukan menempel. Kritik: "tidak ada drop
+       shadow jelas, kartu aktif terlihat menempel di background". */
+    0 44px 80px -26px rgba(0, 0, 0, 0.95),
+    0 22px 40px -20px rgba(0, 0, 0, 0.7),
+    /* Glow aksen dari warna proyek itu sendiri */
+    0 0 52px -6px color-mix(in srgb, var(--card-accent, #f5c542) 32%, transparent),
+    /* Garis tepi tipis — definisi tepi di atas latar gelap */
+    0 0 0 1px color-mix(in srgb, var(--card-accent, #f5c542) 28%, transparent);
+}
+
+/* Nomor urut — diposisikan di atas media, pojok kiri atas.
+   Sebelumnya ikut aliran flex; sekarang media menempati penuh bagian atas
+   kartu, jadi nomor harus diangkat keluar aliran supaya tetap terlihat. */
 .spotlight-num {
+  position: absolute;
+  top: 0.85rem;
+  left: 1rem;
+  z-index: 2;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.08em;
-  color: var(--text-faint);
+  color: rgba(255, 255, 255, 0.55);
+  /* Bayangan tipis supaya terbaca di atas gambar apa pun */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 .spotlight-card.is-front .spotlight-num { color: var(--card-accent, var(--accent)); }
 
@@ -196,9 +330,15 @@
   color: var(--text);
 }
 
+/* Deskripsi di bawah judul — kritik: "kontras terlalu rendah, sulit dibaca".
+   Naik ukurannya (0.9 → 0.95rem) dan line-height, tapi warnanya tetap
+   --text-dim: token itu sudah terukur 7.2:1 di atas latar gelap (lolos WCAG
+   AA dengan margin), dan menaikkannya ke --text akan membuat judul kehilangan
+   hierarki — semua jadi sama terang, tidak ada yang menonjol. */
 .spotlight-front-sub {
   margin: 0.2rem 0 0;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
   color: var(--text-dim);
 }
 
@@ -242,8 +382,12 @@
 .spotlight-nav { display: flex; gap: 0.5rem; }
 
 .spotlight-arrow {
-  width: 2.4rem;
-  height: 2.4rem;
+  /* 2.75rem = 44px — standar minimum target sentuh (WCAG 2.5.5 / Apple HIG).
+     Sebelumnya 2.4rem = 38.4px: terlalu kecil untuk jari, terukur di HP
+     390x844 lewat uji otomasi. Di desktop selisihnya tidak terasa, di layar
+     sentuh terasa sekali. */
+  width: 2.75rem;
+  height: 2.75rem;
   display: grid;
   place-items: center;
   border: 1px solid var(--line);

@@ -50,10 +50,10 @@ const prefersReduced = () =>
 
 /** Jarak antar kartu dalam busur, dalam px pada skala 1. */
 const ARC = {
-  stepX: 148,      // geser horizontal per langkah
-  stepY: 26,       // turun per langkah (membentuk busur cekung)
-  rotate: 26,      // derajat putar per langkah
-  scaleStep: 0.055, // pengecilan per langkah
+  stepX: 178,      // geser horizontal per langkah
+  stepY: 22,       // turun per langkah (membentuk busur cekung)
+  rotate: 21,      // derajat putar per langkah
+  scaleStep: 0.05, // pengecilan per langkah
   maxVisible: 3,   // langkah terjauh yang masih tampil
 };
 
@@ -97,24 +97,71 @@ export function createSpotlightCarousel(items) {
     card.className = 'spotlight-card';
     card.dataset.index = String(i);
 
+    // ── VISUAL KARTU ────────────────────────────────────────────────────────
+    // Kritik desain: "kartu tidak memamerkan karya — hanya kotak teks."
+    //
+    // Kartu sekarang MURNI VISUAL: gambar + nomor + label. Judul dan deskripsi
+    // hanya ada di bawah carousel, sinkron dengan kartu depan.
+    //
+    // Kenapa judul TIDAK di kartu: kritik menemukan duplikasi ("MINA" muncul
+    // di kartu dan di bawahnya). Spesifikasi aslinya pun begitu — "its title,
+    // rating and dots staying synced to the front card" — judul tinggal di
+    // bawah, kartu cukup menampilkan karyanya.
+    if (item.image) {
+      const media = document.createElement('div');
+      media.className = 'spotlight-card-media';
+      const img = document.createElement('img');
+      img.src = item.image;
+      img.alt = '';
+      // alt kosong disengaja: gambar dekoratif, judul proyek ada di bawah
+      // carousel. Screen reader tidak perlu membacanya dua kali.
+      img.loading = i < 3 ? 'eager' : 'lazy';
+      img.decoding = 'async';
+      media.setAttribute('aria-hidden', 'true');
+      media.append(img);
+      card.append(media);
+    }
+
     // Nomor urut di pojok — memberi posisi dalam koleksi
     const num = document.createElement('span');
     num.className = 'spotlight-num';
     num.textContent = String(i + 1).padStart(2, '0');
 
-    // Isi kartu: label, judul, meta
+    // Label kategori di kaki kartu (judul TIDAK di sini — lihat catatan atas)
     const body = document.createElement('div');
     body.className = 'spotlight-card-body';
     const label = document.createElement('span');
     label.className = 'spotlight-card-label';
     label.textContent = item.label;
-    const title = document.createElement('h3');
-    title.className = 'spotlight-card-title';
-    title.textContent = item.title;
-    const meta = document.createElement('p');
-    meta.className = 'spotlight-card-meta';
-    meta.textContent = item.meta;
-    body.append(label, title, meta);
+    body.append(label);
+
+    // ── CADANGAN KALAU GAMBAR GAGAL DIMUAT ───────────────────────────────────
+    // Kartu murni visual jadi kosong kalau gambarnya tidak ada. Jaringan
+    // lambat, berkas terhapus, atau CDN bermasalah → kartu jadi kotak hitam
+    // tanpa identitas. Jadi kalau gambar gagal, kartu MENAMPILKAN JUDUL
+    // sebagai gantinya.
+    //
+    // Dipasang lewat event 'error', bukan ditebak di awal: saat render,
+    // gambar belum selesai dimuat, jadi statusnya belum diketahui.
+    if (!item.image) {
+      // Tidak ada gambar sejak awal — langsung tampilkan teksnya.
+      const t = document.createElement('h3');
+      t.className = 'spotlight-card-title';
+      t.textContent = item.title;
+      body.prepend(t);
+      card.classList.add('is-textonly');
+    } else {
+      const img = card.querySelector('.spotlight-card-media img');
+      img?.addEventListener('error', () => {
+        const media = card.querySelector('.spotlight-card-media');
+        if (media) media.remove();
+        const t = document.createElement('h3');
+        t.className = 'spotlight-card-title';
+        t.textContent = item.title;
+        body.prepend(t);
+        card.classList.add('is-textonly');
+      });
+    }
 
     card.append(num, body);
     card.style.setProperty('--card-accent', item.accent);
@@ -235,7 +282,11 @@ export function createSpotlightCarousel(items) {
       const y = abs * ARC.stepY;              // turun makin jauh → busur cekung
       const rot = -sign * ARC.rotate;          // kartu kiri menghadap kanan
       const scale = Math.max(0.6, 1 - abs * ARC.scaleStep);
-      const op = abs < 0.5 ? 1 : Math.max(0.35, 1 - abs * 0.3);
+      // Opacity kartu belakang — kritik: "kartu belakang ~30% hampir hilang,
+      // stack terasa datar". Dinaikkan: lantai 0.35 → 0.52, dan peluruhan
+      // per langkah 0.3 → 0.24 supaya kartu kedua masih terbaca sebagai karya.
+      // Tetap ada gradasi jelas: 1.0 di depan, 0.52 di ujung.
+      const op = abs < 0.5 ? 1 : Math.max(0.52, 1 - abs * 0.24);
 
       card.style.transform =
         `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) ` +
