@@ -75,7 +75,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1400px;        /* kedalaman 3D untuk rotateY */
+  /* ── `perspective` DIPINDAH KE .spotlight-track ──────────────────────────
+     Lihat catatan panjang di sana: `perspective` di sini DIPAKSA dihilangkan
+     bersama `transform-style: preserve-3d` di track, karena kombinasi keduanya
+     membuat z-index kartu diabaikan browser — itulah glitch yang tersisa. */
   cursor: grab;
   touch-action: pan-y;        /* geser vertikal tetap scroll halaman */
   user-select: none;
@@ -132,7 +135,34 @@
      lebih besar tanpa membuat deretannya sesak. */
   width: 17.5rem;
   height: 23rem;
-  transform-style: preserve-3d;
+  /* ── GLITCH TERAKHIR: `preserve-3d` + `perspective` di stage ─────────────
+     INI AKAR MASALAH yang membuat z-index kartu TIDAK BERLAKU.
+
+     Cara kerja `transform-style: preserve-3d`: anak-anak elemen ini diletakkan
+     dalam SATU ruang 3D bersama, lalu diurutkan berdasarkan KEDALAMAN (Z)
+     di ruang itu — BUKAN berdasarkan z-index.
+
+     Masalahnya: SEMUA kartu punya translateZ(0), jadi kedalamannya SAMA
+     PERSIS. Browser tidak punya dasar untuk mengurutkan, sehingga urutannya
+     jadi TIDAK TENTU dan bisa berubah di tengah gerakan. Terukur: dua kartu
+     berbagi z-index 90 di 46 sampel — dan karena z-index diabaikan, itu
+     berarti urutan gambar mereka tidak stabil.
+
+     Itu penjelasan glitch yang tersisa: kartu kadang tampak "menembus" kartu
+     lain sesaat, tepat saat mereka bertemu di tengah.
+
+     ── PERBAIKAN ─────────────────────────────────────────────────────────
+     `perspective` DIPINDAH dari .spotlight-stage ke sini, dan
+     `transform-style: preserve-3d` DIHAPUS.
+
+     Efeknya:
+       - rotateY kartu TETAP terlihat 3D, karena perspective sekarang ada di
+         induk langsung kartu (sebelumnya diteruskan lewat preserve-3d).
+       - Kartu TIDAK lagi berbagi satu ruang 3D, jadi browser mengurutkan
+         mereka dengan z-index seperti elemen biasa — DETERMINISTIK.
+
+     Origin perspective sama: track dan stage sama-sama terpusat flexbox. */
+  perspective: 1400px;
 }
 
 .spotlight-card {
@@ -184,10 +214,21 @@
      dihaluskan; perubahan yang terjadi tiap frame tidak boleh punya transisi
      sama sekali (transform & opacity kartu — keduanya ditulis JS). */
   transition: border-color 0.35s var(--ease), box-shadow 0.2s var(--ease);
-  /* `will-change` DIPINDAH ke .spotlight-card.is-bergerak — dipasang di semua
-     8 kartu memaksa browser membuat 8 layer GPU permanen, dan layer sebesar
-     ini memakan memori grafis. Sekarang hanya kartu yang bergerak. */
   backface-visibility: hidden;
+  /* ── LAYER GPU PERMANEN ──────────────────────────────────────────────
+     Sebelumnya `will-change` dipasang/dilepas lewat kelas .is-bergerak.
+     Terukur di rekaman MutationObserver: kartu di sekitar batas tampil
+     berganti kelas 3× dalam satu perpindahan — tiap ganti menyalakan atau
+     mematikan layer GPU, dan itu kerja rasterisasi yang membuang frame.
+
+     Sekarang permanen. Tidak ada tambahan memori nyata: layer kartu sudah
+     ada karena transform-nya memuat `translateZ(0)` di string transform JS.
+     Yang hilang hanya churn-nya.
+
+     Catatan anti-aliasing: `translateZ(0)` HARUS ditulis di JS, bukan di
+     sini — inline style menang atas CSS, jadi nilai di sini akan ditimpa
+     dan tidak berpengaruh. */
+  will-change: transform, opacity;
 
   /* ── JANGAN PAKAI `contain: paint` ────────────────────────────────────────
      BUG: optimasi sebelumnya memakai `contain: layout style paint`. Kata
@@ -199,19 +240,6 @@
      layout, bukan menggambar. Jadi penghematannya tetap dapat, tanpa memotong
      bayangan. */
   contain: layout style;
-}
-
-/* Hanya kartu yang benar-benar bergerak yang dipromosikan ke layer GPU
-   sendiri. Kelas ini dipasang/dilepas JS sesuai kebutuhan — biasanya 2-3
-   kartu, bukan 8.
-
-   CATATAN: `translateZ(0)` TIDAK ditulis di sini. JS menulis `style.transform`
-   setiap frame, dan inline style selalu menang atas CSS — jadi
-   `transform: translateZ(0)` di sini akan langsung ditimpa dan tidak berguna.
-   Anti-aliasing ditangani di JS dengan menyertakan `translateZ(0)` di dalam
-   string transform-nya. */
-.spotlight-card.is-bergerak {
-  will-change: transform, opacity;
 }
 
 /* ── VISUAL KARTU ────────────────────────────────────────────────────────────

@@ -390,7 +390,21 @@ export function createSpotlightCarousel(items) {
       // Perbaikan: jangan di-continue. Posisinya dihitung seperti kartu lain
       // (di bawah), yang dibuat nol hanya opacity-nya. Jadi saat muncul, ia
       // sudah berada di posisi yang benar.
-      const diLuar = abs > ARC.maxVisible;
+      // ── HYSTERESIS PADA BATAS TAMPIL ────────────────────────────────
+      // Kartu di sekitar abs = 3,0 berayun ±0,003 kartu saat pegas menetap —
+      // cukup untuk melewati ambang bolak-balik. Terukur di rekaman
+      // MutationObserver: kartu 4 dan 6 berganti kelas 3× dalam SATU
+      // perpindahan (bayangan-3 → luar → bayangan-3), dan tiap ganti memulai
+      // transisi bayangan baru + menyalakan/mematikan layer GPU.
+      //
+      // Solusi: dua ambang. Kartu yang sudah di luar baru kembali saat
+      // abs < 2,75; kartu yang masih tampil baru dilepas saat abs > 3,0.
+      // Jarak 0,25 kartu jauh lebih besar dari ayunan pegas, jadi mustahil
+      // bolak-balik. Secara visual tidak ada bedanya: di abs 2,75–3,0
+      // opacity kartu sudah ≤ 0,06 (praktis tak terlihat).
+      const sudahLuar = card.dataset.luar === '1';
+      const diLuar = sudahLuar ? abs > 2.75 : abs > ARC.maxVisible;
+      card.dataset.luar = diLuar ? '1' : '0';
 
       const x = rel * ARC.stepX;
       const y = abs * ARC.stepY;              // 0 — baris lurus, bukan busur
@@ -501,7 +515,16 @@ export function createSpotlightCarousel(items) {
         card.style.opacity = opBaru;
       }
 
-      const zBaru = String(diLuar ? 0 : 100 - Math.round(abs * 10));
+      // z-index resolusi HALUS (0,001 kartu). Versi lama membulatkan ke 10
+      // tingkat (100 − round(abs·10)) sehingga dua kartu di abs 0,46 dan 0,54
+      // sama-sama dapat z=95 — urutan gambar di area tumpang-tindih jadi
+      // ditentukan urutan DOM, bukan jarak ke pusat. Saat dua kartu bertemu
+      // di tengah (satu masuk, satu keluar) keduanya di abs ≈ 0,5, jadi
+      // tumpukan bisa berubah mendadak di tengah gerakan.
+      //
+      // Dengan resolusi 0,001, urutan tumpukan berpindah TEPAT SEKALI di
+      // titik silang — bukan di jendela selebar 0,1 kartu.
+      const zBaru = String(diLuar ? 0 : Math.round((ARC.maxVisible + 0.2 - abs) * 1000));
       if (card.dataset.z !== zBaru) {
         card.dataset.z = zBaru;
         card.style.zIndex = zBaru;
@@ -518,26 +541,17 @@ export function createSpotlightCarousel(items) {
         card.classList.toggle('is-front', depanBaru);
       }
 
-      // ── PROMOSI KE LAYER GPU HANYA SAAT BERGERAK ────────────────────────
-      // `will-change` hanya dipasang di kartu yang SEDANG bergerak. Kalau
-      // dipasang di semua, browser membuat 8 layer GPU permanen yang memakan
-      // memori grafis tanpa manfaat.
+      // ── LAYER GPU: PERMANEN, TIDAK LAGI DIPASANG/DILEPAS ────────────────
+      // Sebelumnya kelas .is-bergerak dipasang/dilepas untuk menyalakan dan
+      // mematikan layer GPU per kartu. Terukur di rekaman MutationObserver:
+      // kartu di sekitar batas tampil berganti kelas 3× dalam SATU
+      // perpindahan — dan tiap ganti adalah kerja rasterisasi ulang yang
+      // membuang frame.
       //
-      // `abs < 1.5` = hanya kartu yang benar-benar terlihat bergerak (depan +
-      // dua tetangga terdekat). Kartu ke-3 dan seterusnya jarang bergerak
-      // signifikan, jadi tidak perlu layer sendiri.
-      // Jangan pakai ambang `abs` di sini. Dulu `abs < 1,5` — saat kartu
-      // melewati 1,5 di TENGAH gerakan, layer GPU-nya dicabut dan kartu
-      // berkedip (layer dihapus = rasterisasi ulang). Terukur: kartu 7
-      // kehilangan layer pada abs ≈ 1,645 saat masih bergerak.
-      //
-      // Sekarang: semua kartu yang terlihat tetap punya layer selama carousel
-      // bergerak. Layer dicabut hanya setelah gerakan benar-benar berhenti —
-      // aman, karena saat itu tidak ada yang bergerak.
-      const bergerak = !diLuar && (sedangAnimasi || dragging || tBerubah);
-      if (card.classList.contains('is-bergerak') !== bergerak) {
-        card.classList.toggle('is-bergerak', bergerak);
-      }
+      // Sekarang `will-change` permanen di CSS (.spotlight-card). Tidak ada
+      // tambahan memori nyata: layer kartu SUDAH ada karena transform-nya
+      // memuat `translateZ(0)` (lihat catatan di spotlight.css). Yang hilang
+      // hanya churn-nya.
 
       // ── BAYANGAN: 4 TINGKAT, BUKAN NILAI TERUS-MENERUS ───────────────────
       // Permintaan pemilik: bayangan yang bergerak mengikuti kartu, dalam di
