@@ -497,5 +497,39 @@ GitHub:         https://github.com/VicterHong</code>
 </script>
 <script type="module" src="assets/js/docs-page.js"></script>
 <script type="module" src="assets/js/docs.js"></script>
+
+<!-- ── GERBANG VERIFIKASI ────────────────────────────────────────────────────
+     Halaman ini sekarang IKUT digerbang, atas permintaan pemilik: "pasang gate
+     di keduanya — lindungi seluruh situs".
+
+     Sebelumnya hanya index.html dan home.html yang punya gate. Akibatnya
+     pengunjung bisa masuk lewat /docs atau halaman 404 tanpa melewati
+     verifikasi sama sekali — celah dalam cakupan perlindungan.
+
+     ── KENAPA GATE DINAMIS (TIDAK ADA HTML GATE DI SINI) ───────────────────
+     index.html punya markup gate statis karena SELURUH halaman itu gate.
+     Di sini tidak: kontennya harus tetap ada di DOM supaya bisa langsung
+     ditampilkan kalau pengunjung sedang dalam masa tenggang.
+
+     cf-gate.js mendeteksi tidak adanya #cf-gate, lalu MEMBANGUN overlay-nya
+     sendiri (mode dinamis). Konten disembunyikan lewat kelas .cf-gated pada
+     body, dan dilepas begitu verifikasi lolos atau tenggang masih aktif.
+
+     ── URUTAN MUAT ─────────────────────────────────────────────────────────
+     cf-gate-i18n.js HARUS lebih dulu: cf-gate.js membaca window.CF_GATE_I18N
+     saat dijalankan (bukan saat DOMContentLoaded). Kalau urutannya terbalik,
+     semua teks gate jatuh ke bahasa Inggris.
+
+     Turnstile dimuat `async defer` — tidak menghambat render halaman. -->
+<link rel="stylesheet" href="assets/css/cf-gate.css">
+<script>
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    verifyEndpoint: 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile'
+  };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="assets/js/cf-gate-i18n.js"></script>
+<script src="assets/js/cf-gate.js"></script>
 </body>
 </html>

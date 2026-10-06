@@ -56,8 +56,21 @@
   var MULAI_KEY = 'cf_mulai_' + HOST;
   var AKHIR_KEY = 'cf_akhir_' + HOST;
 
-  /** Lama tenggang: pengunjung bebas menjelajah tanpa gate. */
-  var TENGGANG_MS = 3 * 60 * 1000;   // 3 menit
+  /**
+   * Lama tenggang: pengunjung bebas menjelajah tanpa gate.
+   *
+   * ── KENAPA 15 MENIT, BUKAN 3 ────────────────────────────────────────────
+   * Versi pertama memakai 3 menit. Itu TERLALU PENDEK untuk sebuah
+   * portfolio: pengunjung yang membaca halaman proyek dengan saksama bisa
+   * menghabiskan 5-8 menit, lalu tiba-tiba kena layar verifikasi di tengah
+   * penjelajahan. Itu pengalaman buruk — dan tidak menambah keamanan sama
+   * sekali (keamanan sesungguhnya ada di token akses API, bukan di gate).
+   *
+   * 15 menit dipilih karena sejalan dengan pola Cloudflare sendiri: clearance
+   * mereka berlaku 15-30 menit. Cukup lama untuk menjelajah dengan tenang,
+   * cukup pendek supaya gate tetap terlihat "hidup".
+   */
+  var TENGGANG_MS = 15 * 60 * 1000;   // 15 menit
 
   /** Setelah sekian lama tidak berkunjung, anggap kunjungan baru. */
   var KUNJUNGAN_BARU_MS = 12 * 60 * 60 * 1000;   // 12 jam
