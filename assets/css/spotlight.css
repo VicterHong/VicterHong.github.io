@@ -282,29 +282,16 @@
   color: var(--text-dim);
 }
 
-/* ── Info kartu depan: counter · judul · rating ─────────────────────────── */
+/* ── Info kartu depan: judul + deskripsi ─────────────────────────────────────
+   Counter "01/08" dan rating "★ 231" DIHAPUS. Karena sekarang hanya satu blok
+   teks, layout grid dua kolom tidak diperlukan lagi — diganti satu kolom
+   terpusat, yang justru memberi ruang lebih lega untuk judul. */
 .spotlight-info {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0 2.5rem;
-  align-items: center;
   max-width: 44rem;
-  margin: 3rem auto 0;
+  margin: 2.75rem auto 0;
   padding: 0 1.5rem;
+  text-align: center;
 }
-
-.spotlight-counter {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 0.2rem;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 1.5rem;
-  color: var(--text-faint);
-}
-.spotlight-idx { color: var(--accent); font-weight: 500; }
-.spotlight-sep { opacity: 0.4; }
-.spotlight-total { font-size: 0.95rem; }
 
 .spotlight-meta { min-width: 0; }
 
@@ -322,17 +309,11 @@
    AA dengan margin), dan menaikkannya ke --text akan membuat judul kehilangan
    hierarki — semua jadi sama terang, tidak ada yang menonjol. */
 .spotlight-front-sub {
-  margin: 0.2rem 0 0;
+  margin: 0.35rem auto 0;
+  max-width: 52ch;
   font-size: 0.95rem;
   line-height: 1.5;
   color: var(--text-dim);
-}
-
-.spotlight-rating {
-  margin: 0.5rem 0 0;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.85rem;
-  color: var(--accent);
 }
 
 /* ── Kaki: dots + panah ─────────────────────────────────────────────────── */
@@ -408,17 +389,21 @@
   .spotlight-card { width: 12.5rem; height: 17rem; margin: -8.5rem 0 0 -6.25rem; }
   .spotlight-card-title { font-size: 1.1rem; }
   .spotlight-card-meta { font-size: 0.74rem; }
-  .spotlight-info { grid-template-columns: 1fr; gap: 0.75rem; text-align: center; }
-  .spotlight-counter { justify-content: center; }
+  /* Info sudah satu kolom terpusat di CSS dasar — tidak perlu override
+     grid lagi. Baris .spotlight-counter dihapus bersama elemennya. */
   .spotlight-front-title { font-size: 1.35rem; }
   .spotlight-foot { flex-direction: column-reverse; gap: 1rem; }
-}
+  }
 
 /* ── Gerak diminimalkan ─────────────────────────────────────────────────────
    Kartu tetap bisa digeser (itu gerakan yang diminta pengguna), tapi animasi
-   "mendarat" dimatikan di JS. Di sini hanya matikan transisi dekoratif. */
+   "mendarat" dan drift otomatis dimatikan. Drift dimatikan di JS lewat
+   `driftAktif = !prefersReduced()`; di sini hanya transisi dekoratif. */
 @media (prefers-reduced-motion: reduce) {
   .spotlight-card,
   .spotlight-dot,
   .spotlight-arrow { transition: none; }
+  /* Kartu belakang tidak diredamkan transisinya — opacity-nya ditulis JS
+     setiap frame saat drift, dan di mode reduced-motion drift tidak jalan,
+     jadi nilainya statis. Tidak ada yang perlu dimatikan. */
 }

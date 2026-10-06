@@ -180,15 +180,23 @@ export function createSpotlightCarousel(items) {
 
   root.append(stage);
 
-  // ── Info kartu depan: judul, rating, counter ──────────────────────────────
+  // ── Info kartu depan: judul + deskripsi saja ──────────────────────────────
+  // Counter "01 / 08" dan rating "★ 231" DIHAPUS (permintaan pemilik: "angka
+  // belum hilang"). Keduanya angka yang tidak menambah pemahaman:
+  //
+  //   - Counter: posisi kartu sudah ditunjukkan busur visual + dots. Angka
+  //     "01/08" hanya mengulang informasi yang sudah terlihat.
+  //   - Rating "★ 231": itu JUMLAH TES, bukan rating pengguna. Menampilkannya
+  //     dengan ikon bintang menyesatkan — pengunjung mengira itu penilaian
+  //     orang lain, padahal angka dari hasil uji otomatis.
+  //
+  // Judul dan deskripsi tetap — itu yang benar-benar menjelaskan proyek.
   const info = document.createElement('div');
   info.className = 'spotlight-info';
   info.innerHTML = `
-    <p class="spotlight-counter"><span class="spotlight-idx">01</span><span class="spotlight-sep">/</span><span class="spotlight-total"></span></p>
     <div class="spotlight-meta">
       <h3 class="spotlight-front-title"></h3>
       <p class="spotlight-front-sub"></p>
-      <p class="spotlight-rating" aria-label="Rating"></p>
     </div>`;
   root.append(info);
 
@@ -240,13 +248,10 @@ export function createSpotlightCarousel(items) {
   let current = 0;
   let draggedFar = false;
 
-  const idxEl = info.querySelector('.spotlight-idx');
-  const totalEl = info.querySelector('.spotlight-total');
   const frontTitle = info.querySelector('.spotlight-front-title');
   const frontSub = info.querySelector('.spotlight-front-sub');
-  const ratingEl = info.querySelector('.spotlight-rating');
-
-  totalEl.textContent = String(items.length).padStart(2, '0');
+  // idxEl, totalEl, ratingEl dihapus bersama elemennya — tidak ada lagi
+  // referensi ke elemen yang tidak ada.
 
   /**
    * Hitung jarak TERPENDEK antara dua indeks pada lingkaran.
@@ -298,14 +303,11 @@ export function createSpotlightCarousel(items) {
     }
   }
 
-  /** Perbarui judul, rating, dan dots agar sinkron dengan kartu depan. */
+  /** Perbarui judul + deskripsi + dots agar sinkron dengan kartu depan. */
   function syncInfo() {
     const item = items[current];
-    idxEl.textContent = String(current + 1).padStart(2, '0');
     frontTitle.textContent = item.title;
     frontSub.textContent = item.meta;
-    ratingEl.textContent = item.rating ? `★ ${item.rating}` : '';
-    ratingEl.hidden = !item.rating;
 
     dots.forEach((d, i) => {
       const aktif = i === current;
@@ -466,87 +468,116 @@ export function createSpotlightCarousel(items) {
   });
   root.tabIndex = 0;
 
-  // ── AUTO-SCROLL ───────────────────────────────────────────────────────────
-  // Kartu bergeser sendiri supaya pengunjung melihat isi koleksi tanpa harus
-  // menggeser. Ini pola galeri komersial: gerakan halus menarik mata ke
-  // carousel, lalu berhenti begitu pengunjung menunjukkan minat.
+  // ── AUTO-SCROLL: DRIFT KONTINU ─────────────────────────────────────────────
+  // Kartu bergerak TERUS tanpa henti, bukan "gerak 620ms lalu diam 4 detik".
   //
-  // ── KAPAN BERHENTI (semua otomatis, tanpa tombol) ─────────────────────────
-  //   - Pengunjung menggeser sendiri (drag/swipe) — hormati niatnya
-  //   - Kursor masuk area carousel — mereka sedang melihat
-  //   - Fokus keyboard masuk — mereka sedang menavigasi
-  //   - Tab disembunyikan — jangan buang baterai
-  //   - Carousel di luar layar — tidak ada yang melihat
-  //   - prefers-reduced-motion — hormati setelan sistem
+  // ── KENAPA POLA LAMA DIGANTI ──────────────────────────────────────────────
+  // Pola pertama (interval 4,2 detik + animasi 620ms) terasa MENYENTAK: kartu
+  // meluncur, lalu berhenti mati, lalu meluncur lagi. Mata membaca itu sebagai
+  // "gerakan yang terputus-putus", bukan galeri yang hidup.
   //
-  // Setelah berhenti karena interaksi, auto-scroll TIDAK dimulai lagi sampai
-  // halaman dimuat ulang. Kalau ia menyala lagi setelah pengunjung menggeser,
-  // itu terasa seperti carousel yang "merebut" kendali — pengalaman buruk yang
-  // justru membuat orang meninggalkan galeri.
-  const AUTO_MS = 4200;        // jeda antar perpindahan
-  const AUTO_RESUME_MS = 9000; // jeda setelah kursor keluar, sebelum lanjut
-  let autoTimer = null;
-  let autoHenti = prefersReduced(); // true = jangan auto-scroll sama sekali
+  // Skill motion-advanced: "Physics-based motion always feels more natural
+  // than duration-based for direct manipulation." Jadi kecepatan sekarang
+  // KONSTAN — kartu meluncur pelan terus-menerus, seperti piringan berputar.
+  //
+  // ── CARA KERJANYA ─────────────────────────────────────────────────────────
+  // Satu rAF loop menambah `drift` sedikit setiap frame. `drift` disuapkan ke
+  // render() yang sudah ada — rumus posisi tidak berubah sama sekali.
+  //
+  // Setelah `drift` mencapai 1 (satu kartu penuh), indeks digeser dan `drift`
+  // dikurangi 1. Karena kartu tetangga berada di posisi yang sama persis,
+  // peralihan itu TIDAK TERLIHAT — tidak ada lompatan. Ini yang membuatnya
+  // mulus tanpa batas.
+  //
+  // ── KAPAN BERHENTI ────────────────────────────────────────────────────────
+  //   - kursor masuk / fokus keyboard → berhenti, lanjut saat keluar
+  //   - pengunjung menggeser / klik dot / panah → berhenti PERMANEN
+  //   - tab disembunyikan → berhenti
+  //   - carousel di luar layar → berhenti
+  //   - prefers-reduced-motion → tidak jalan sama sekali
+  const DRIFT_PX_PER_SEC = 13;   // ~1 kartu (178px) per 13,7 detik — pelan, tenang
+  const AUTO_RESUME_MS = 6000;   // jeda setelah kursor keluar, sebelum lanjut
+
+  let drift = 0;                 // posisi pecahan antara kartu (0..1)
+  let driftAktif = !prefersReduced();
+  let driftPermanen = false;     // true setelah pengunjung ambil kendali
   let kursorDiArea = false;
   let terlihatDiLayar = true;
+  let rafId = null;
+  let frameTerakhir = 0;
+  let resumeTimer = null;
 
-  function autoMulai() {
-    if (autoHenti || autoTimer) return;
-    autoTimer = setInterval(() => {
-      // Semua syarat dicek lagi di tiap langkah — bukan hanya saat memulai.
-      // Kalau tidak, auto-scroll tetap jalan setelah kursor masuk area.
-      if (autoHenti || kursorDiArea || !terlihatDiLayar) return;
-      if (document.visibilityState === 'hidden') return;
-      if (dragging) return;
-      goTo(current + 1);
-    }, AUTO_MS);
+  function loopDrift(now) {
+    rafId = null;
+    if (!driftAktif || driftPermanen) return;
+
+    // Hitung delta waktu. Frame pertama tidak punya pembanding — lewati.
+    if (!frameTerakhir) { frameTerakhir = now; rafId = requestAnimationFrame(loopDrift); return; }
+    const dt = Math.min(now - frameTerakhir, 100); // batasi 100ms — cegah lompatan setelah jeda panjang
+    frameTerakhir = now;
+
+    if (driftAktif && !kursorDiArea && terlihatDiLayar && !dragging
+        && document.visibilityState !== 'hidden') {
+      drift += (DRIFT_PX_PER_SEC * dt / 1000) / ARC.stepX;
+
+      // Satu kartu penuh tercapai → geser indeks, kurangi drift.
+      // Kartu tetangga ada di posisi identik, jadi peralihan tidak terlihat.
+      while (drift >= 1) {
+        drift -= 1;
+        current = (current + 1) % items.length;
+        syncInfo();
+      }
+      render(-drift);
+    }
+
+    rafId = requestAnimationFrame(loopDrift);
   }
 
-  function autoStop(permanen = false) {
-    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
-    if (permanen) autoHenti = true;
+  function driftMulai() {
+    if (rafId || driftPermanen || !driftAktif) return;
+    frameTerakhir = 0; // reset supaya dt frame pertama tidak raksasa
+    rafId = requestAnimationFrame(loopDrift);
   }
 
-  // Pengunjung menggeser → berhenti permanen. Niat mereka lebih penting
-  // daripada keinginan kita memamerkan koleksi.
-  stage.addEventListener('pointerdown', () => autoStop(true));
-  root.addEventListener('keydown', () => autoStop(true));
-  // Klik dot/panah juga berarti pengunjung ambil kendali
-  dotsWrap.addEventListener('click', () => autoStop(true));
-  nav.addEventListener('click', () => autoStop(true));
+  function driftStop(permanen = false) {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    if (permanen) { driftPermanen = true; }
+  }
 
-  // Kursor masuk/keluar — berhenti sementara, lanjut lagi setelah keluar
+  // Pengunjung mengambil kendali → berhenti PERMANEN. Kalau drift menyala lagi
+  // setelah mereka menggeser, itu terasa seperti carousel "merebut" kendali.
+  stage.addEventListener('pointerdown', () => driftStop(true));
+  dotsWrap.addEventListener('click', () => driftStop(true));
+  nav.addEventListener('click', () => driftStop(true));
+  root.addEventListener('focusin', () => driftStop(true));
+
+  // Kursor masuk → berhenti. Keluar → lanjut setelah jeda.
   stage.addEventListener('pointerenter', () => { kursorDiArea = true; });
   stage.addEventListener('pointerleave', () => {
     kursorDiArea = false;
-    // Jeda tambahan sebelum lanjut, supaya tidak langsung bergerak
-    // begitu kursor lewat begitu saja.
-    setTimeout(() => { if (!kursorDiArea && !autoHenti) autoMulai(); }, AUTO_RESUME_MS);
+    if (driftPermanen || !driftAktif) return;
+    clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(() => {
+      if (!kursorDiArea && !driftPermanen) driftMulai();
+    }, AUTO_RESUME_MS);
   });
 
-  // Fokus keyboard masuk area → berhenti (pengguna sedang menavigasi)
-  root.addEventListener('focusin', () => autoStop(true));
-
-  // Pantau apakah carousel terlihat di layar. Kalau tidak terlihat,
-  // auto-scroll tidak ada gunanya — hanya membuang baterai.
+  // Carousel di luar layar → tidak ada yang melihat, tidak perlu bergerak.
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(([entry]) => {
       terlihatDiLayar = entry.isIntersecting;
-      if (terlihatDiLayar && !autoHenti) autoMulai();
-      else autoStop();
-    }, { threshold: 0.25 });
+      if (terlihatDiLayar && !driftPermanen) driftMulai();
+      else driftStop();
+    }, { threshold: 0.2 });
     io.observe(root);
   } else {
-    // Browser lama tanpa IntersectionObserver — auto-scroll tetap jalan,
-    // hanya tanpa optimasi visibilitas.
-    autoMulai();
+    driftMulai();
   }
 
-  // Tab disembunyikan → hentikan timer. Tidak perlu menahan interval saat
-  // tidak ada yang melihat.
+  // Tab disembunyikan → hentikan loop. Jangan buang baterai/GPU.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') autoStop();
-    else if (!autoHenti && terlihatDiLayar && !kursorDiArea) autoMulai();
+    if (document.visibilityState === 'hidden') driftStop();
+    else if (!driftPermanen && terlihatDiLayar && !kursorDiArea) driftMulai();
   });
 
   // ── Render awal ───────────────────────────────────────────────────────────
