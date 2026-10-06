@@ -834,12 +834,14 @@ export const routes = [
       //
       // IP ikut ditandatangani: cookie yang dicuri dari satu pengunjung tidak
       // berguna di mesin lain.
-      const ip = clientIp(req);
       // Nama variabel `clearance`, BUKAN `token` — `token` sudah dipakai di
       // atas untuk token Turnstile dari body. Menimpa nama yang sama membuat
       // Node menolak seluruh berkas dengan "Identifier 'token' has already
       // been declared" (const tidak boleh dideklarasikan ulang di scope sama).
-      const { token: clearance } = buatClearance(ip);
+      //
+      // Tidak butuh IP: clearance ditandatangani HMAC dan berisi nonce acak.
+      // Lihat catatan di gate.mjs tentang kenapa IP binding dilepas.
+      const { token: clearance } = buatClearance();
       setCookieClearance(res, clearance);
 
       sendJson(res, 200, {
@@ -1865,7 +1867,7 @@ export const routes = [
       // Biaya: satu permintaan kecil (~100 byte respons). Itu harga yang
       // dibayar untuk clearance yang tidak bisa dipalsukan.
       const token = bacaCookieClearance(req);
-      const hasil = verifikasiClearance(token, clientIp(req));
+      const hasil = verifikasiClearance(token);
 
       if (hasil.ok) {
         sendJson(res, 200, {

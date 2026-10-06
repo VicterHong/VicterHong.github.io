@@ -145,9 +145,47 @@ export default {
 
     // ── 3. API → BACKEND ────────────────────────────────────────────────────
     if (pathname.startsWith("/api/")) {
+      // ── TERUSKAN IP PENGUNJUNG ASLI (BUG YANG DIPERBAIKI) ────────────────
+      // Cloudflare MENIMPA `CF-Connecting-IP` setiap kali Worker memanggil
+      // fetch() ke origin lain. Jadi backend melihat IP Worker — yang
+      // BERUBAH tiap permintaan karena edge yang melayani berbeda-beda.
+      //
+      // Akibatnya clearance cookie tidak pernah cocok: token ditandatangani
+      // dengan IP pengunjung, tapi saat diperiksa backend melihat IP Worker
+      // yang lain. Terukur: token sah untuk 129.225.15.88 selalu ditolak.
+      //
+      // Solusi: kirim IP asli di header KHUSUS yang tidak disentuh Cloudflare.
+      // `X-Client-IP` adalah konvensi umum dan tidak ditimpa.
+      //
+      // CATATAN KEAMANAN: header ini TIDAK BOLEH dipercaya kalau datang
+      // langsung dari internet — penyerang bisa memalsukannya. Di sini aman
+      // karena:
+      //   1. Worker SELALU menimpanya dengan nilai dari request.cf (bukan
+      //      meneruskan nilai yang dikirim klien)
+      //   2. Backend hanya listen di loopback — satu-satunya jalur masuk
+      //      adalah tunnel, dan tunnel lewat Worker ini
+      const headers = new Headers(request.headers);
+
+      // ── JANGAN BACA `CF-Connecting-IP` DI SINI ────────────────────────────
+      // Di hop ini (workers.dev), header itu SUDAH DITIMPA Cloudflare dengan
+      // IP Cloudflare sendiri — bukan IP pengunjung. Membacanya di sini
+      // berarti menyimpan nilai yang salah.
+      //
+      // Yang benar: teruskan `X-Client-IP` yang sudah diisi Pages Function
+      // di hop pertama (pages.dev) — di sana header masih berisi IP
+      // pengunjung asli.
+      //
+      // Kalau Worker diakses LANGSUNG (bukan lewat Pages Function), tidak ada
+      // X-Client-IP. Dalam hal itu kita isi dari CF-Connecting-IP — nilai itu
+      // IP pengunjung karena ini hop pertama.
+      if (!headers.has("X-Client-IP")) {
+        const langsung = request.headers.get("CF-Connecting-IP") ?? "";
+        if (langsung) headers.set("X-Client-IP", langsung);
+      }
+
       return fetch(`${BACKEND_URL}${pathname}${url.search}`, {
         method: request.method,
-        headers: request.headers,
+        headers,
         body: request.body,
       });
     }

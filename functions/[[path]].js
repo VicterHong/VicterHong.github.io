@@ -59,9 +59,44 @@ export async function onRequest(context) {
   // adalah stream — makin cepat diteruskan, makin sedikit memori terpakai.
   const target = `${WORKER}${pathname}${url.search}`;
 
+  // ── TERUSKAN IP PENGUNJUNG ASLI (BUG YANG DIPERBAIKI) ────────────────────
+  // Cloudflare MENIMPA `CF-Connecting-IP` di SETIAP lompatan fetch() antar
+  // origin. Rantainya panjang:
+  //
+  //   browser → pages.dev → [Pages Function] → workers.dev → [Worker]
+  //           → tunnel → backend
+  //
+  // Di setiap lompatan, header itu diganti dengan IP Cloudflare. Terukur:
+  // backend menerima `2a06:98c0:3600::103` (IP Cloudflare) padahal
+  // pengunjung dari `129.225.15.88`.
+  //
+  // Akibatnya clearance cookie tidak pernah cocok: token ditandatangani
+  // dengan IP pengunjung, tapi diperiksa dengan IP Cloudflare.
+  //
+  // Solusi: baca IP asli dari `request.cf` — itu SATU-SATUNYA sumber yang
+  // berisi IP pengunjung sungguhan di runtime Pages/Workers — lalu kirim
+  // di header khusus `X-Client-IP` yang tidak disentuh Cloudflare.
+  //
+  // Worker (site.ts) melakukan hal yang sama, jadi nilainya bertahan
+  // sepanjang rantai.
+  const headers = new Headers(context.request.headers);
+
+  // ── URUTAN PEMBACAAN PENTING ──────────────────────────────────────────────
+  // Di hop INI (pages.dev), `CF-Connecting-IP` berisi IP PENGUNJUNG yang
+  // sungguhan. Cloudflare baru menimpanya di hop BERIKUTNYA.
+  //
+  // JANGAN pakai `context.request.cf.clientIp` — nilainya bisa sudah
+  // tertimpa tergantung bagaimana permintaan masuk. Header adalah sumber
+  // yang lebih dapat diandalkan di hop pertama.
+  //
+  // Terukur: dengan cf.clientIp, backend menerima 2a06:98c0:3600::103
+  // (IP Cloudflare) padahal pengunjung dari 129.225.15.88.
+  const ipAsli = context.request.headers.get('CF-Connecting-IP') || '';
+  if (ipAsli) headers.set('X-Client-IP', ipAsli);
+
   const init = {
     method: context.request.method,
-    headers: context.request.headers,
+    headers,
     // Redirect tidak diikuti: kalau Worker menjawab 302, kita ingin
     // pengunjung melihat 302 itu — bukan mengikutinya diam-diam.
     redirect: 'manual',

@@ -134,6 +134,36 @@ export function applyCors(req, res) {
  * alamat asli. Untuk kunci rate limit, pakai `ipBucket()`.
  */
 export function clientIp(req) {
+  // ── X-Client-IP DIPERIKSA LEBIH DULU (BUG YANG DIPERBAIKI) ────────────────
+  // Cloudflare MENIMPA `CF-Connecting-IP` setiap kali Worker memanggil
+  // fetch() ke origin lain. Jadi nilai itu berisi IP WORKER, bukan IP
+  // pengunjung — dan IP Worker berubah tiap permintaan karena edge yang
+  // melayani berbeda-beda.
+  //
+  // Akibatnya clearance cookie tidak pernah cocok: token ditandatangani
+  // dengan IP pengunjung asli, tapi saat diperiksa backend melihat IP Worker
+  // yang lain. Terukur: token sah untuk 129.225.15.88 selalu ditolak.
+  //
+  // Worker kita mengirim IP asli di `X-Client-IP` — header yang tidak
+  // disentuh Cloudflare. Header itu diperiksa lebih dulu.
+  //
+  // ── KENAPA INI AMAN ─────────────────────────────────────────────────────
+  // Header dari klien TIDAK dipercaya. Yang membuatnya aman:
+  //   1. Worker SELALU menimpa `X-Client-IP` dengan nilai dari request.cf —
+  //      tidak pernah meneruskan nilai yang dikirim klien
+  //   2. Backend hanya listen di loopback; satu-satunya jalur masuk adalah
+  //      tunnel, dan tunnel lewat Worker yang menimpanya
+  //
+  // Kalau backend pernah dibuka ke jaringan publik, header ini HARUS
+  // diabaikan — penyerang bisa memalsukannya.
+  const xc = req.headers['x-client-ip'];
+  if (typeof xc === 'string') {
+    const v = xc.trim();
+    if (v && v.length <= 45) return v;
+  }
+
+  // Cadangan: kalau permintaan datang langsung (bukan lewat Worker), header
+  // Cloudflare masih asli.
   const cf = req.headers['cf-connecting-ip'];
   if (typeof cf === 'string') {
     const v = cf.trim();
