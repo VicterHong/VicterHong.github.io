@@ -74,9 +74,25 @@ const prefersReduced = () =>
  * bukan membuat kartu miring. Kalau 0°, deretannya terasa datar.
  */
 const ARC = {
-  stepX: 232,      // geser horizontal per langkah — cukup lega antar kartu
+  // ── stepX PROPORSIONAL, BUKAN PIXEL TETAP ──────────────────────────────
+  // Dulu 232px tetap. Terukur: di laptop rasio stepX/kartu = 0,84 (kartu
+  // 280px) tapi di HP = 0,98 (kartu 216px) — kartu HP jadi berjauhan dan
+  // deretannya terasa kosong, tidak seperti di laptop.
+  //
+  // Sekarang stepX = lebar kartu × rasio ini, dihitung ulang saat resize.
+  // Hasilnya jarak antar kartu SELALU proporsional di layar mana pun.
+  stepXRatio: 0.85,
   stepY: 0,        // TIDAK turun — baris lurus, bukan busur
-  rotate: 4,       // derajat — sangat kecil, hanya kesan kedalaman
+  // ── ARAH ROTASI: PELUKAN ───────────────────────────────────────────────
+  // CSS rotateY(θ) memetakan titik (x,0,0) → z' = −x·sin θ.
+  // Untuk kartu di KANAN yang memeluk kartu depan, tepi DALAMnya (x negatif
+  // relatif pusat kartu) harus MAJU, jadi butuh sin θ > 0 → θ positif.
+  // Rumusnya `rot = +sign · sudut`, bukan `−sign`.
+  //
+  // Terukur dengan sudut 5° pada kartu 280px, perspective 1400px:
+  // tepi dalam lebih lebar 4,9px dari tepi luar — cukup terasa melengkung,
+  // belum sampai terlihat bengkok.
+  rotate: 5,
   scaleStep: 0.2,  // pengecilan per langkah: ke-2 = 80%, ke-3 = 60%
   maxVisible: 3,   // langkah terjauh yang masih tampil
 };
@@ -273,6 +289,19 @@ export function createSpotlightCarousel(items) {
   let current = 0;
   let draggedFar = false;
 
+  // ── stepX DINAMIS ─────────────────────────────────────────────────────────
+  // Dibaca dari lebar kartu yang SEDANG dirender, bukan konstanta. Jadi
+  // jarak antar kartu otomatis proporsional di HP, tablet, dan laptop —
+  // dan ikut menyesuaikan saat layar diputar (lihat listener resize).
+  //
+  // Kenapa dari offsetWidth, bukan dari getComputedStyle: offsetWidth sudah
+  // dibulatkan ke bilangan bulat dan tidak memaksa style recalc tambahan.
+  let stepX = 232;   // nilai sementara sampai kartu ter-render
+  function hitungStepX() {
+    const w = cards[0] ? cards[0].offsetWidth : 0;
+    if (w > 0) stepX = Math.round(w * ARC.stepXRatio);
+  }
+
   const frontTitle = info.querySelector('.spotlight-front-title');
   const frontSub = info.querySelector('.spotlight-front-sub');
   // idxEl, totalEl, ratingEl dihapus bersama elemennya — tidak ada lagi
@@ -406,9 +435,11 @@ export function createSpotlightCarousel(items) {
       const diLuar = sudahLuar ? abs > 2.75 : abs > ARC.maxVisible;
       card.dataset.luar = diLuar ? '1' : '0';
 
-      const x = rel * ARC.stepX;
+      const x = rel * stepX;
       const y = abs * ARC.stepY;              // 0 — baris lurus, bukan busur
-      const rot = -sign * ARC.rotate;         // hanya 4°, kesan kedalaman
+      // `+sign` = PELUKAN. Lihat catatan di ARC.rotate — dengan `−sign`,
+      // tepi LUAR kartu yang maju dan deretannya justru terlihat menganga.
+      const rot = sign * ARC.rotate;
 
       // ── SKALA: KARTU AKTIF MEMBESAR, TETANGGA MENGECIL ──────────────────
       // Referensi Shadcnblocks Gallery 17: kartu aktif 100%, tetangga 70%.
@@ -792,7 +823,7 @@ export function createSpotlightCarousel(items) {
     if (moved > 6) draggedFar = true;
 
     // progress = seberapa jauh digeser, dalam satuan "kartu"
-    pendingProgress = -dx / ARC.stepX;
+    pendingProgress = -dx / stepX;
 
     // ── Ukur kecepatan dari dua sampel terakhir ────────────────────────────
     // Bukan rata-rata seluruh drag. Yang menentukan "niat" pengguna adalah
@@ -1000,8 +1031,42 @@ export function createSpotlightCarousel(items) {
   });
 
   // ── Render awal ───────────────────────────────────────────────────────────
+  // CATATAN PENTING: hitungStepX() TIDAK dipanggil di sini. Saat fungsi ini
+  // berjalan, `root` belum masuk ke dokumen (pemanggil baru menempelkannya
+  // setelah return), jadi offsetWidth kartu masih 0 dan stepX akan tetap
+  // memakai nilai cadangan. Terukur: stepX 232 di SEMUA viewport meski
+  // kartu HP 240px dan kartu laptop 280px — seharusnya 204 dan 238.
   render();
   syncInfo();
+
+  // ── ResizeObserver: hitung stepX saat kartu benar-benar punya ukuran ──────
+  // Ini mengurus TIGA hal sekaligus, tanpa listener terpisah:
+  //   1. Ukuran pertama muncul (root baru selesai ditempelkan ke dokumen)
+  //   2. Jendela di-resize
+  //   3. HP diputar (portrait → landscape)
+  //
+  // Tidak perlu debounce: ResizeObserver sudah dibatching browser dan hanya
+  // menyala saat ukuran BENAR-BENAR berubah — bukan tiap piksel seperti
+  // event 'resize'. Jadi tidak ada kerja berulang yang terbuang.
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(() => {
+      const sebelum = stepX;
+      hitungStepX();
+      if (stepX !== sebelum) render();
+    });
+    ro.observe(cards[0]);
+  } else {
+    // Cadangan untuk browser tanpa ResizeObserver (Safari < 13.1).
+    // rAF ganda: tunggu satu frame supaya layout sudah selesai.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      hitungStepX();
+      render();
+    }));
+    window.addEventListener('resize', () => {
+      hitungStepX();
+      render();
+    }, { passive: true });
+  }
 
   return root;
 }

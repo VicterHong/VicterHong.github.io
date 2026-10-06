@@ -551,8 +551,20 @@
    yang mengintip di kedua sisi. */
 @media (max-width: 640px) {
   .spotlight { padding: 3.5rem 0 3rem; }
-  .spotlight-stage { height: 24rem; }
-  .spotlight-card { width: 13.5rem; height: 18rem; margin: -9rem 0 0 -6.75rem; }
+  /* ── UKURAN KARTU DI HP: DIPERBESAR SUPAYA SETARA LAPTOP ──────────────
+     Sebelumnya 13,5rem (216px). Terukur di HP 390px: kartu hanya 55% lebar
+     layar, sementara di laptop 280px terasa penuh. Karena stepX sekarang
+     proporsional (lebar × 0,85), memperbesar kartu di sini otomatis
+     memperlebar jarak antar kartu juga — proporsinya tetap benar.
+
+     15rem (240px) dipilih karena:
+       - HP 320px  → 75% lebar layar, masih ada ruang untuk tepi tetangga
+       - HP 390px  → 62% lebar layar, terasa penuh seperti di laptop
+       - HP 430px+ → 56% lebar layar, masih proporsional
+     Di bawah 15rem kartunya terasa kecil; di atasnya tepi tetangga hilang
+     dari layar dan carousel kehilangan kesan "deretan". */
+  .spotlight-stage { height: 26rem; }
+  .spotlight-card { width: 15rem; height: 20rem; margin: -10rem 0 0 -7.5rem; }
   .spotlight-card-title { font-size: 1.1rem; }
   .spotlight-card-meta { font-size: 0.74rem; }
   /* Info sudah satu kolom terpusat di CSS dasar — tidak perlu override
