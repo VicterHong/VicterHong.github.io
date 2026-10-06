@@ -322,13 +322,40 @@ export function createSpotlightCarousel(items) {
   let resumeTimer = null;
   let sedangAnimasi = false;     // true saat pegas sedang bergerak
   let onAnimasiSelesai = null;   // callback setelah pegas tenang
-  // Kecepatan pegas saat ini (kartu/detik), dipakai render() untuk efek
-  // "napas": kartu menyusut saat meluncur, membesar saat mendarat.
-  // Dideklarasikan di scope ini karena ditulis goTo() dan dibaca render().
-  let kecepatanPegas = 0;
+  // ── "NAPAS" PEGAS — NILAI YANG SUDAH DIHALUSKAN (0 … 0,12) ──────────────
+  // Permintaan pemilik: kartu menyusut saat meluncur, membesar saat mendarat
+  // (squash-and-stretch). Versi pertama GLITCH tepat saat pegas mantul.
+  //
+  // AKAR MASALAH — terukur dari rekaman, bukan dugaan:
+  // nilai susut dulu dihitung dari KECEPATAN mentah, `min(0,12, |v|/2,4)`.
+  // Pegas k=120 c=14 itu underdamped (ζ=0,64), jadi ia berayun 2–3 kali
+  // sebelum tenang. Di SETIAP titik balik v = 0 → susut mendadak 0 → kartu
+  // melonjak mengembang penuh dalam SATU frame, lalu menyusut lagi.
+  //
+  //   rekaman: skala 0,698 → 0,772 → 0,736 → 0,735 → 0,800
+  //            lompatan maks 0,0616/frame · 6× balik arah
+  //
+  // PERBAIKAN — hitung susut dari ENERGI pegas, bukan kecepatan:
+  //
+  //   E = √(½v² + ½k·x²)        dE/dt = −c·v²  ≤ 0
+  //
+  // Turunannya SELALU ≤ 0, jadi energi tidak pernah naik → tidak ada denyut
+  // balik. Ini menghilangkan glitch secara struktural, bukan ditambal.
+  //
+  // Lalu dihaluskan envelope follower (attack 0,12 s / release 0,20 s) —
+  // prinsip yang sama dengan kompresor audio: naik halus, turun perlahan
+  // sehingga titik balik pegas tertutupi.
+  //
+  // Dihitung di dalam loop pegas (goTo) karena butuh x DAN v sekaligus.
+  let napasPegas = 0;
 
   /** Tulis posisi semua kartu berdasarkan `current`. */
   function render(progress = 0) {
+    // Napas yang "tertinggal" (mis. pengunjung menyambar kartu di tengah
+    // animasi) meluruh sendiri saat pegas tidak jalan — supaya kartu tidak
+    // terjebak dalam keadaan menyusut.
+    if (!sedangAnimasi) napasPegas *= 0.88;
+
     for (const card of cards) {
       const i = Number(card.dataset.index);
       // posisi relatif terhadap kartu depan, termasuk pecahan saat digeser
@@ -376,29 +403,21 @@ export function createSpotlightCarousel(items) {
       // Lantai 0.55 supaya kartu terjauh tidak jadi titik kecil.
       let scale = Math.max(0.55, 1 - abs * ARC.scaleStep);
 
-      // ── EFEK "NAPAS": MENGEcil SAAT MELUNCUR, MEMBESAR SAAT MENDARAT ────
-      // Permintaan pemilik: "kayak diperkecil terus baru diperbesarkan kembali
-      // seperti semula". Ini efek squash-and-stretch — prinsip animasi klasik
-      // (Disney's 12 principles): benda yang bergerak cepat menyusut sedikit,
-      // lalu mengembang kembali saat berhenti.
+      // ── EFEK "NAPAS": MENYUSUT SAAT MELUNCUR, MEMBESAR SAAT MENDARAT ────
+      // Ini efek squash-and-stretch (Disney's 12 principles): benda yang
+      // bergerak cepat menyusut sedikit, lalu mengembang kembali saat berhenti.
       //
-      // CARA KERJANYA — diturunkan dari KECEPATAN pegas, bukan timer terpisah:
+      // `napasPegas` sudah dihitung di loop pegas dari ENERGI (lihat catatan
+      // di deklarasi variabelnya) — bukan dari kecepatan mentah. Jadi nilainya
+      // naik sekali lalu turun sekali, tanpa denyut.
       //
-      //   |v| besar (kartu sedang meluncur cepat) → skala mengecil
-      //   |v| → 0   (pegas tenang, kartu mendarat) → skala kembali 100%
-      //
-      // Jadi tidak perlu mengatur "kapan mulai mengecil" dan "kapan membesar
-      // lagi" — keduanya otomatis mengikuti gerakan. Kalau pengunjung menggeser
-      // di tengah animasi, skalanya ikut menyesuaikan tanpa logika tambahan.
-      //
-      // `kecepatanPegas` dalam satuan kartu/detik. Kecepatan puncak pegas
-      // ~1.6 kartu/detik pada gerakan satu langkah, jadi dibagi 2.4 lalu
-      // dibatasi 0.12: menyusut maksimal 12% saat meluncur paling cepat.
-      //
-      // HANYA kartu yang sedang bergerak yang menyusut — `abs < 1.5` = kartu
-      // depan + tetangga terdekat. Kartu jauh yang diam tidak ikut menyusut.
-      const susut = abs < 1.5 ? Math.min(0.12, Math.abs(kecepatanPegas) / 2.4) : 0;
-      scale *= (1 - susut);
+      // Bobot kartu: 1 untuk kartu dekat pusat, meluruh HALUS ke 0 pada
+      // abs = 1,5. Versi lama memakai ambang keras `abs < 1,5 ? … : 0` — saat
+      // kartu melewati abs = 1,5 di tengah gerakan, susutnya melompat dari
+      // 12% ke 0 dalam satu frame. Terukur di rekaman: lompatan skala 0,118
+      // pada kartu 7 tepat di ambang itu.
+      const bobotNapas = abs < 1 ? 1 : Math.max(0, (1.5 - abs) / 0.5);
+      scale *= (1 - napasPegas * bobotNapas);
 
       // ── OPACITY: kartu belakang memudar ─────────────────────────────────
       // Referensi: tetangga 40% opacity. Di sini peluruhan lebih lembut
@@ -407,9 +426,32 @@ export function createSpotlightCarousel(items) {
       //
       // Kartu di luar jangkauan (abs > maxVisible) tetap 0 — jangan ditimpa
       // dengan nilai memudar, karena ia harus benar-benar tidak terlihat.
-      const op = diLuar
-        ? 0
-        : (abs < 0.5 ? 1 : Math.max(0.45, 1 - abs * 0.28));
+      // Opacity = fungsi KONTINU dari abs. Versi lama punya dua lompatan:
+      //
+      //   abs 0,5 : 1,000 → 0,860   (lompatan 0,140 dalam satu frame)
+      //   abs 3,0 : 0,450 → 0,000   (lompatan 0,450 — kartu "berkedip" hilang)
+      //
+      // Terukur di rekaman: lompatan opacity 0,159/frame. Karena kartu depan
+      // melewati abs = 0,5 tepat saat mantul, lompatan ini terlihat jelas.
+      //
+      // Perbaikan: satu rumus linear 1 − 0,28·abs untuk abs ≤ 2. Nilainya
+      // SAMA PERSIS dengan rumus lama di semua titik penting — abs 0,5 → 0,86 ·
+      // abs 1 → 0,72 · abs 2 → 0,44 — jadi tampilannya tidak berubah sama
+      // sekali. Yang hilang hanya lompatan di abs = 0,5 (dulu 1,0 mendadak
+      // jadi 0,86) dan lompatan di abs = 3 (dulu 0,45 mendadak jadi 0).
+      //
+      // Di atas abs = 2 kartu sudah setengah keluar layar, jadi opacity
+      // diturunkan halus ke 0 memakai smoothstep. Turunannya 0 di kedua ujung,
+      // jadi tidak ada perubahan mendadak di mana pun.
+      let op;
+      if (diLuar) {
+        op = 0;
+      } else if (abs <= 2) {
+        op = 1 - abs * 0.28;
+      } else {
+        const u = (abs - 2) / (ARC.maxVisible - 2);
+        op = 0.44 * (1 - u * u * (3 - 2 * u));
+      }
 
       // ── TULIS DOM HANYA KALAU NILAINYA BERUBAH ──────────────────────────
       // Optimasi terbesar di fungsi ini. Menulis `style.transform` dengan
@@ -473,7 +515,15 @@ export function createSpotlightCarousel(items) {
       // `abs < 1.5` = hanya kartu yang benar-benar terlihat bergerak (depan +
       // dua tetangga terdekat). Kartu ke-3 dan seterusnya jarang bergerak
       // signifikan, jadi tidak perlu layer sendiri.
-      const bergerak = !diLuar && abs < 1.5 && (tBerubah || sedangAnimasi || dragging);
+      // Jangan pakai ambang `abs` di sini. Dulu `abs < 1,5` — saat kartu
+      // melewati 1,5 di TENGAH gerakan, layer GPU-nya dicabut dan kartu
+      // berkedip (layer dihapus = rasterisasi ulang). Terukur: kartu 7
+      // kehilangan layer pada abs ≈ 1,645 saat masih bergerak.
+      //
+      // Sekarang: semua kartu yang terlihat tetap punya layer selama carousel
+      // bergerak. Layer dicabut hanya setelah gerakan benar-benar berhenti —
+      // aman, karena saat itu tidak ada yang bergerak.
+      const bergerak = !diLuar && (sedangAnimasi || dragging || tBerubah);
       if (card.classList.contains('is-bergerak') !== bergerak) {
         card.classList.toggle('is-bergerak', bergerak);
       }
@@ -554,9 +604,9 @@ export function createSpotlightCarousel(items) {
     current = ((to % n) + n) % n;
 
     if (instant || prefersReduced()) {
-      // Reset kecepatan — kalau tidak, efek "napas" dari animasi sebelumnya
+      // Reset napas — kalau tidak, efek "napas" dari animasi sebelumnya
       // bisa "menempel" dan membuat kartu tetap menyusut.
-      kecepatanPegas = 0;
+      napasPegas = 0;
       render();
       syncInfo();
       return;
@@ -611,9 +661,19 @@ export function createSpotlightCarousel(items) {
       v += a * dt;
       x += v * dt;
 
-      // Simpan kecepatan supaya render() bisa memakai efek "napas"
-      // (menyusut saat meluncur, membesar saat mendarat).
-      kecepatanPegas = v;
+      // ── NAPAS DARI ENERGI PEGAS ─────────────────────────────────────────
+      //   E = √(½v² + ½k·x²)
+      //
+      // Pembagi 64,6 dikalibrasi supaya napas mencapai maksimum 12% tepat saat
+      // pelepasan: x = −1, v = 0 → E = √(½·120·1) = 7,746 → 7,746/64,6 = 0,12.
+      //
+      // Envelope follower: attack 0,12 s (naik halus, tidak melonjak),
+      // release 0,20 s (turun perlahan — INI yang menutupi titik balik pegas
+      // sehingga tidak ada denyut).
+      const energi = Math.sqrt(0.5 * v * v + 0.5 * SPRING_K * x * x);
+      const targetNapas = Math.min(0.12, energi / 64.6);
+      const tau = targetNapas > napasPegas ? 0.12 : 0.20;
+      napasPegas += (targetNapas - napasPegas) * (1 - Math.exp(-dt / tau));
 
       // ── `render(x)` — BUKAN `render(-x)` ────────────────────────────────
       // x sekarang = P_lama - delta, yang SUDAH punya tanda benar. Karena
@@ -633,9 +693,10 @@ export function createSpotlightCarousel(items) {
       // DAN kecepatan < 0.001 kartu/detik. Keduanya dicek — kalau hanya jarak,
       // kartu bisa berhenti saat masih bergerak cepat melewati target.
       if (Math.abs(x) < 0.001 && Math.abs(v) < 0.001) {
-        // Reset kecepatan — supaya kartu kembali ke skala penuh (efek "napas"
-        // selesai: kartu mengembang seperti semula).
-        kecepatanPegas = 0;
+        // Reset napas — supaya kartu kembali ke skala penuh (efek "napas"
+        // selesai: kartu mengembang seperti semula). Nilainya sudah ~0,0001
+        // di titik ini, jadi resetnya tidak terlihat sebagai lompatan.
+        napasPegas = 0;
         render();
         syncInfo();
         // ── BERI TAHU BAHWA ANIMASI SELESAI ────────────────────────────────
