@@ -214,7 +214,23 @@ export function initCookieConsent() {
   const { banner, scrim, panel, fab } = build();
   paintIcons(document.body);
 
-  const saved = loadConsent();
+  // ── `saved` HARUS BISA DIPERBARUI (BUG YANG DIPERBAIKI) ──────────────────
+  // Versi lama memakai `const saved = loadConsent()` — dibaca SEKALI saat
+  // init, dan TIDAK PERNAH diperbarui.
+  //
+  // Akibatnya: pengunjung klik "Terima semua" → pilihan tersimpan ke
+  // localStorage, TAPI `saved` masih berisi nilai lama (null). Saat mereka
+  // membuka panel "Atur pilihan", toggle analitik terisi dari `saved` yang
+  // basi → TIDAK tercentang, padahal mereka baru saja menerima semua.
+  //
+  // Dua dampak:
+  //   1. Membingungkan — pengunjung mengira pilihannya tidak tersimpan,
+  //      lalu klik "Simpan pilihan" → analitik justru ikut MATI
+  //   2. Tidak jujur — panel menampilkan keadaan yang bukan keadaan
+  //      sebenarnya. Untuk dialog persetujuan, itu cacat kepatuhan.
+  //
+  // `let` (bukan `const`) supaya commit() bisa memperbaruinya.
+  let saved = loadConsent();
 
   // Keluar lebih cepat dari masuk — saat pengguna sudah memutuskan,
   // jangan tahan mereka menonton animasi. Kelas `is-hiding` mempercepat
@@ -229,7 +245,16 @@ export function initCookieConsent() {
   };
 
   const openPanel = () => {
-    // Isi sakelar dari pilihan tersimpan (atau bawaan: mati).
+    // ── ISI ULANG TOGGLE SETIAP PANEL DIBUKA ─────────────────────────────────
+    // Ini yang membuat panel selalu menampilkan keadaan SEBENARNYA.
+    //
+    // `saved` dibaca ulang (bukan disalin sekali di init) — jadi kalau
+    // pengunjung klik "Terima semua" lalu membuka panel, toggle analitik
+    // sudah tercentang. Sebelumnya nilai basi membuat toggle tampil mati.
+    //
+    // `cat?.locked` dilewati: kategori esensial selalu aktif dan tidak boleh
+    // diubah. Toggle-nya sudah `disabled` di markup, tapi pemeriksaan di sini
+    // membuat niatnya eksplisit — dan mencegah bug kalau markup berubah.
     panel.querySelectorAll('input[data-cat]').forEach((input) => {
       const id = input.dataset.cat;
       const cat = CATEGORIES.find((c) => c.id === id);
@@ -250,10 +275,25 @@ export function initCookieConsent() {
     document.body.classList.remove('cookie-panel-open');
   };
 
-  /** Simpan pilihan dan tutup semua lapisan. */
+  /**
+   * Simpan pilihan dan tutup semua lapisan.
+   *
+   * ── `saved` DIPERBARUI DI SINI (BUG YANG DIPERBAIKI) ─────────────────────
+   * Ini baris yang membuat panel selalu menampilkan keadaan sebenarnya.
+   *
+   * Tanpa ini, urutan berikut terjadi:
+   *   1. Klik "Terima semua"  → localStorage = { analytics: true }
+   *   2. `saved` masih null   → panel berikutnya membaca nilai basi
+   *   3. Toggle tampil TIDAK tercentang, padahal pengunjung baru menerima
+   *
+   * Sekarang `saved` selalu mencerminkan apa yang terakhir dipilih, jadi
+   * panel "Atur pilihan" menampilkan keadaan yang JUJUR.
+   */
   const commit = (choices) => {
     saveConsent(choices);
     applyConsent(choices);
+    // Perbarui salinan di memori supaya openPanel() membaca nilai terbaru.
+    saved = loadConsent();
     hideBanner();
     closePanel();
     fab.classList.add('is-visible');
@@ -274,6 +314,16 @@ export function initCookieConsent() {
       closePanel();
       if (!loadConsent()) showBanner();
     } else if (action === 'reject-all') {
+      // Perbarui toggle dulu supaya panel mencerminkan pilihan ini kalau
+      // pengunjung membukanya lagi dalam sesi yang sama. Tanpa ini, toggle
+      // masih menampilkan keadaan sebelum tombol ditekan.
+      //
+      // (commit() juga memperbarui `saved`, jadi dua-duanya konsisten.)
+      panel.querySelectorAll('input[data-cat]').forEach((input) => {
+        const cat = CATEGORIES.find((c) => c.id === input.dataset.cat);
+        if (cat?.locked) return;
+        input.checked = false;
+      });
       commit({ analytics: false });
     } else if (action === 'save') {
       const choices = {};
