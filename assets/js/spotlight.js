@@ -308,6 +308,21 @@ export function createSpotlightCarousel(items) {
     return d;
   }
 
+  // ── STATE AUTO-SCROLL ──────────────────────────────────────────────────────
+  // Dideklarasikan DI ATAS goTo() karena goTo() memakainya (menandai animasi
+  // mulai/selesai). Kalau dideklarasikan di bawah, `let` membuat TDZ error:
+  // variabel diakses sebelum deklarasinya dieksekusi.
+  //
+  // Ini pernah jadi bug nyata — gejalanya carousel tidak jalan sama sekali.
+  let autoAktif = !prefersReduced();
+  let autoPermanen = false;      // true setelah pengunjung ambil kendali
+  let kursorDiArea = false;
+  let terlihatDiLayar = true;
+  let jedaTimer = null;
+  let resumeTimer = null;
+  let sedangAnimasi = false;     // true saat pegas sedang bergerak
+  let onAnimasiSelesai = null;   // callback setelah pegas tenang
+
   /** Tulis posisi semua kartu berdasarkan `current`. */
   function render(progress = 0) {
     for (const card of cards) {
@@ -501,10 +516,21 @@ export function createSpotlightCarousel(items) {
       if (Math.abs(x) < 0.001 && Math.abs(v) < 0.001) {
         render();
         syncInfo();
+        // ── BERI TAHU BAHWA ANIMASI SELESAI ────────────────────────────────
+        // Auto-scroll (slide + jeda) butuh sinyal ini: setelah kartu mendarat,
+        // baru jeda dijadwalkan. Tanpa sinyal, jeda akan dihitung dari SAAT
+        // ANIMASI DIMULAI — sehingga total waktunya jadi jeda + durasi
+        // animasi, tidak konsisten.
+        //
+        // Variabelnya dideklarasikan di scope createSpotlightCarousel, bukan
+        // di sini, supaya bisa dibaca/ditulis dari kedua tempat.
+        sedangAnimasi = false;
+        if (typeof onAnimasiSelesai === 'function') onAnimasiSelesai();
         return;
       }
       requestAnimationFrame(frame);
     }
+    sedangAnimasi = true;
     syncInfo();
     requestAnimationFrame(frame);
   }
@@ -660,155 +686,109 @@ export function createSpotlightCarousel(items) {
   });
   root.tabIndex = 0;
 
-  // ── AUTO-SCROLL: DRIFT KONTINU ─────────────────────────────────────────────
-  // Kartu bergerak TERUS tanpa henti, bukan "gerak 620ms lalu diam 4 detik".
+  // ── AUTO-SCROLL: SLIDE + JEDA (gaya Slick autoplay) ────────────────────────
+  // Kartu meluncur ke kartu berikutnya, lalu DIAM sejenak, lalu meluncur lagi.
   //
-  // ── KENAPA POLA LAMA DIGANTI ──────────────────────────────────────────────
-  // Pola pertama (interval 4,2 detik + animasi 620ms) terasa MENYENTAK: kartu
-  // meluncur, lalu berhenti mati, lalu meluncur lagi. Mata membaca itu sebagai
-  // "gerakan yang terputus-putus", bukan galeri yang hidup.
+  // ── KENAPA POLA INI (varian A, dipilih pemilik) ───────────────────────────
+  // Tiga pola pernah dicoba:
+  //   1. Interval 4,2s + animasi 620ms — menyentak, transisi terputus
+  //   2. Drift kontinu 21px/s — mulus tapi terlalu pelan, "belum sesuai"
+  //   3. Drift kontinu cepat 62px/s — gambar lewat sebelum sempat dilihat
   //
-  // Skill motion-advanced: "Physics-based motion always feels more natural
-  // than duration-based for direct manipulation." Jadi kecepatan sekarang
-  // KONSTAN — kartu meluncur pelan terus-menerus, seperti piringan berputar.
+  // Pola ini (slide + jeda) yang dipilih. Ini juga pola standar Slick
+  // autoplay dan galeri produk komersial: bergerak dengan jelas, lalu diam
+  // cukup lama supaya gambar bisa dilihat. Gerakannya "sengaja", bukan
+  // mengalir pelan.
   //
-  // ── CARA KERJANYA ─────────────────────────────────────────────────────────
-  // Satu rAF loop menambah `drift` sedikit setiap frame. `drift` disuapkan ke
-  // render() yang sudah ada — rumus posisi tidak berubah sama sekali.
-  //
-  // Setelah `drift` mencapai 1 (satu kartu penuh), indeks digeser dan `drift`
-  // dikurangi 1. Karena kartu tetangga berada di posisi yang sama persis,
-  // peralihan itu TIDAK TERLIHAT — tidak ada lompatan. Ini yang membuatnya
-  // mulus tanpa batas.
-  //
-  // ── KAPAN BERHENTI ────────────────────────────────────────────────────────
-  //   - kursor masuk / fokus keyboard → berhenti, lanjut saat keluar
-  //   - pengunjung menggeser / klik dot / panah → berhenti PERMANEN
-  //   - tab disembunyikan → berhenti
-  //   - carousel di luar layar → berhenti
-  //   - prefers-reduced-motion → tidak jalan sama sekali
-  // ── KECEPATAN ─────────────────────────────────────────────────────────────
-  // 38px/detik terlalu cepat (pemilik: "kayak lompatan"). 13px/detik terlalu
-  // pelan. 21px/detik ≈ 8,5 detik per kartu — cukup tenang untuk dilihat,
-  // cukup hidup supaya tidak terasa diam.
-  //
-  // Tidak ada jeda sama sekali — kecepatan konstan, tidak pernah berhenti
-  // sendiri. Itu yang membuatnya terasa "slip" seperti eskalator.
-  const DRIFT_PX_PER_SEC = 21;   // ≈1 kartu (178px) per 8,5 detik
-  const AUTO_RESUME_MS = 4000;   // jeda setelah kursor keluar, sebelum lanjut
+  // Bedanya dengan percobaan pertama: animasinya pakai PEGAS (spring), bukan
+  // easing kurva. Jadi kartu "mendarat" dengan lembut dan sedikit overshoot —
+  // bukan berhenti mendadak. Itu yang membuatnya terasa hidup, bukan mekanis.
+  const AUTO_JEDA_MS = 2600;   // diam setelah kartu mendarat, sebelum meluncur lagi
 
   // ── SPRING PHYSICS (dari skill motion-foundations) ────────────────────────
-  // Efek "jeli": saat kartu mendarat setelah drag/klik, posisinya TIDAK
-  // langsung berhenti — ada momentum yang mengikutinya, sedikit melewati
-  // target, lalu mengendap. Ini yang membuat gerakan terasa hidup seperti
-  // benda nyata, bukan animasi yang dipindahkan.
-  //
   // Rumus: F = -k·x - c·v  (Hooke's law + peredam)
-  //   k (stiffness) — seberapa kuat pegas menarik ke target
-  //   c (damping)   — seberapa cepat getaran mereda
-  //
-  // Nilai dari springs.gentle di skill: k=120, c=14 — preset untuk "kartu
-  // yang mendarat dengan lembut". Bukan angka karangan.
+  // Nilai dari springs.gentle: k=120, c=14 — preset "kartu mendarat dengan
+  // lembut". Overshoot ~5,6%, waktu mendarat ~0,9 detik.
   const SPRING_K = 120;   // springs.gentle.stiffness
   const SPRING_C = 14;    // springs.gentle.damping
 
-  let drift = 0;                 // posisi pecahan antara kartu (0..1)
-  let driftAktif = !prefersReduced();
-  let driftPermanen = false;     // true setelah pengunjung ambil kendali
-  let kursorDiArea = false;
-  let terlihatDiLayar = true;
-  let rafId = null;
-  let frameTerakhir = 0;
-  let resumeTimer = null;
+  // (State auto-scroll dideklarasikan di atas goTo() — lihat catatan di sana.)
 
-  function loopDrift(now) {
-    rafId = null;
-    if (!driftAktif || driftPermanen) return;
+  /** Jadwalkan perpindahan berikutnya setelah jeda. */
+  function jadwalkanBerikutnya() {
+    if (!autoAktif || autoPermanen) return;
+    clearTimeout(jedaTimer);
+    jedaTimer = setTimeout(() => {
+      if (!autoAktif || autoPermanen || kursorDiArea || !terlihatDiLayar) return;
+      if (document.visibilityState === 'hidden') return;
+      if (dragging || sedangAnimasi) return;
+      // Meluncur ke kartu berikutnya. Setelah pegas tenang, `onAnimasiSelesai`
+      // dipanggil → menjadwalkan perpindahan berikutnya. Jadi ritmenya
+      // konsisten: jeda dihitung SETELAH kartu mendarat, bukan setelah
+      // animasi dimulai.
+      goTo(current + 1);
+    }, AUTO_JEDA_MS);
+  }
 
-    // Hitung delta waktu. Frame pertama tidak punya pembanding — lewati.
-    if (!frameTerakhir) { frameTerakhir = now; rafId = requestAnimationFrame(loopDrift); return; }
-    const dt = Math.min(now - frameTerakhir, 100); // batasi 100ms — cegah lompatan setelah jeda panjang
-    frameTerakhir = now;
-
-    if (driftAktif && !kursorDiArea && terlihatDiLayar && !dragging
-        && document.visibilityState !== 'hidden') {
-      drift += (DRIFT_PX_PER_SEC * dt / 1000) / ARC.stepX;
-
-      // Satu kartu penuh tercapai → geser indeks, kurangi drift.
-      //
-      // ── KENAPA `render(+drift)`, BUKAN `render(-drift)` ──────────────────
-      // Ini bug yang membuat auto-scroll terlihat "tidak slick" — ada lompatan
-      // 441px setiap kali kartu berganti. Dihitung dengan tangan:
-      //
-      //   render(P) → rel = sd(current, i) - P
-      //   Kartu di kiri kartu-depan punya rel = -1 (sd = -1), jadi untuk
-      //   memindahkannya ke tengah (rel = 0) dibutuhkan P = -1.
-      //
-      //   drift berjalan 0 → +1. Jadi P harus = +drift, dan swap terjadi saat
-      //   drift mencapai 1 (kartu berikutnya sudah di rel ≈ 0).
-      //
-      // Dengan render(-drift): drift +0.9 → P = -0.9 → kartu-depan bergerak
-      // ke rel +0.9 (KANAN). Lalu saat swap, current naik dan P kembali 0 →
-      // kartu itu melompat ke rel -1 (KIRI). Terukur: lompatan 441px.
-      //
-      // Dengan render(+drift): drift +0.9 → P = +0.9 → kartu-depan bergerak
-      // ke rel -0.9 (KIRI), swap saat drift = 1 → kartu itu di rel -1 (KIRI).
-      // Mulus — diverifikasi lewat simulasi: lompatan 0.00px.
-      while (drift >= 1) {
-        drift -= 1;
-        current = (current + 1) % items.length;
-        syncInfo();
-      }
-      render(drift);
+  // Dipanggil goTo() saat pegas tenang. Kalau auto-scroll aktif, jadwalkan
+  // perpindahan berikutnya. Kalau tidak, tidak ada yang terjadi.
+  onAnimasiSelesai = () => {
+    if (autoAktif && !autoPermanen && !kursorDiArea && terlihatDiLayar) {
+      jadwalkanBerikutnya();
     }
+  };
 
-    rafId = requestAnimationFrame(loopDrift);
+  /** Mulai auto-scroll (dipanggil saat carousel terlihat / kursor keluar). */
+  function autoMulai() {
+    if (!autoAktif || autoPermanen) return;
+    if (sedangAnimasi) return;   // sedang meluncur — nanti dijadwalkan sendiri
+    jadwalkanBerikutnya();
   }
 
-  function driftMulai() {
-    if (rafId || driftPermanen || !driftAktif) return;
-    frameTerakhir = 0; // reset supaya dt frame pertama tidak raksasa
-    rafId = requestAnimationFrame(loopDrift);
+  /** Hentikan auto-scroll. `permanen` = pengunjung ambil kendali. */
+  function autoStop(permanen = false) {
+    clearTimeout(jedaTimer);
+    jedaTimer = null;
+    if (permanen) autoPermanen = true;
   }
 
-  function driftStop(permanen = false) {
-    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-    if (permanen) { driftPermanen = true; }
-  }
-
-  // Pengunjung mengambil kendali → berhenti PERMANEN. Kalau drift menyala lagi
+  // Pengunjung mengambil kendali → berhenti PERMANEN. Kalau auto menyala lagi
   // setelah mereka menggeser, itu terasa seperti carousel "merebut" kendali.
-  stage.addEventListener('pointerdown', () => driftStop(true));
-  dotsWrap.addEventListener('click', () => driftStop(true));
-  root.addEventListener('focusin', () => driftStop(true));
+  stage.addEventListener('pointerdown', () => autoStop(true));
+  dotsWrap.addEventListener('click', () => autoStop(true));
+  root.addEventListener('focusin', () => autoStop(true));
 
-  // Kursor masuk → berhenti. Keluar → lanjut setelah jeda.
-  stage.addEventListener('pointerenter', () => { kursorDiArea = true; });
+  // Kursor masuk → berhenti (mereka sedang melihat). Keluar → lanjut.
+  stage.addEventListener('pointerenter', () => {
+    kursorDiArea = true;
+    clearTimeout(jedaTimer);
+    jedaTimer = null;
+  });
   stage.addEventListener('pointerleave', () => {
     kursorDiArea = false;
-    if (driftPermanen || !driftAktif) return;
+    if (autoPermanen || !autoAktif) return;
     clearTimeout(resumeTimer);
     resumeTimer = setTimeout(() => {
-      if (!kursorDiArea && !driftPermanen) driftMulai();
-    }, AUTO_RESUME_MS);
+      if (!kursorDiArea && !autoPermanen) autoMulai();
+    }, 1200);   // jeda singkat — jangan langsung bergerak saat kursor lewat
   });
 
   // Carousel di luar layar → tidak ada yang melihat, tidak perlu bergerak.
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(([entry]) => {
       terlihatDiLayar = entry.isIntersecting;
-      if (terlihatDiLayar && !driftPermanen) driftMulai();
-      else driftStop();
+      if (terlihatDiLayar && !autoPermanen) autoMulai();
+      else autoStop();
     }, { threshold: 0.2 });
     io.observe(root);
   } else {
-    driftMulai();
+    autoMulai();
   }
 
-  // Tab disembunyikan → hentikan loop. Jangan buang baterai/GPU.
+  // Tab disembunyikan → hentikan timer. Jangan buang baterai.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') driftStop();
-    else if (!driftPermanen && terlihatDiLayar && !kursorDiArea) driftMulai();
+    if (document.visibilityState === 'hidden') autoStop();
+    else if (!autoPermanen && terlihatDiLayar && !kursorDiArea) autoMulai();
   });
 
   // ── Render awal ───────────────────────────────────────────────────────────
