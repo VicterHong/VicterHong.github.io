@@ -50,6 +50,15 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 #cf-gate .main-content { margin: 8rem auto; padding-left: 1.5rem; padding-right: 1.5rem; max-width: 60rem; width: 100%; }
 @media (width <= 720px) { #cf-gate .main-content { margin-top: 4rem; } }
 
+/* Layar pendek: rapatkan supaya footer terlihat. */
+@media (height <= 700px) {
+  #cf-gate .main-content { margin-top: 2rem; margin-bottom: 1rem; }
+  #cf-gate .cf-sub { margin: .25rem 0 1rem; }
+  #cf-gate .cf-lead { margin-bottom: 1rem; }
+  #cf-gate .cf-status { margin: 1rem 0; }
+  #cf-gate #cf-checking { min-height: 56px; }
+}
+
 /* Baris brand: ikon situs + nama domain */
 #cf-gate .cf-brand { display: flex; gap: 16px; align-items: center; }
 #cf-gate .cf-brand img { width: 2rem; height: 2rem; }
@@ -59,8 +68,7 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 
 /* Blok status */
 #cf-gate .cf-status { margin: 2rem 0; }
-/* Area spinner menyisakan tinggi seperti Cloudflare (GSCv1: 76px),
-   supaya tata letak tidak melompat saat status berganti. */
+/* Sisakan tinggi seperti Cloudflare (76px) agar tata letak tidak melompat. */
 #cf-gate #cf-checking { min-height: 76px; }
 #cf-gate .cf-status-title { margin: 0; }
 
@@ -92,17 +100,19 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
   100% { content: ""; }
 }
 
-/* Slot widget Turnstile — mode interaction-only: kosong selama verifikasi,
-   hanya terisi kalau Cloudflare meminta interaksi (persis ko-fi.com).
-   Lebar dibatasi supaya widget tidak melebar penuh seperti blok konten. */
+/* Slot widget Turnstile — interaction-only: kosong selama verifikasi,
+   terisi hanya kalau Cloudflare minta interaksi (persis ko-fi.com). */
 #cf-gate #cf-widget { display: grid; max-width: 320px; }
 #cf-gate #cf-widget:empty { min-height: 0; }
 
-/* Footer — persis Cloudflare */
+/* Footer — persis Cloudflare. */
 #cf-gate .footer {
   margin: 0 auto;
+  margin-top: auto;
+  flex-shrink: 0;
   padding-right: 2rem;
   padding-left: 2rem;
+  padding-bottom: env(safe-area-inset-bottom, 0);
   width: 100%;
   max-width: 60rem;
   line-height: 1.125rem;
@@ -127,12 +137,9 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 /* Pesan untuk pengunjung tanpa JavaScript (seperti Cloudflare). */
 #cf-gate .cf-noscript { margin-top: 2rem; font-weight: 600; }
 
-/* ── Gerak diminimalkan ─────────────────────────────────────────────────────
-   Spinner berputar TERUS-MENERUS adalah pemicu vestibular paling umum.
-   Yang tidak dimatikan: spinner tetap terlihat sebagai indikator status,
-   hanya tidak berputar. animation-duration 0.01ms + iteration-count 1
-   membuatnya berhenti di state AKHIR (dengan `animation:none` sebagian
-   browser mengembalikan ke state awal — spinner bisa hilang). */
+/* Gerak diminimalkan: spinner berputar terus adalah pemicu vestibular umum.
+   Tetap terlihat sebagai indikator, hanya tidak berputar. 0.01ms +
+   iteration-count 1 (bukan animation:none) supaya berhenti di state akhir. */
 @media (prefers-reduced-motion: reduce) {
   #cf-gate .cf-lds-ring,
   #cf-gate .cf-lds-ring div,
