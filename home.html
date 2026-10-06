@@ -284,7 +284,17 @@
 <script>
   window.CF_GATE_CONFIG = {
     siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
-    verifyEndpoint: 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile'
+    // RELATIF, bukan absolut — ini WAJIB untuk cookie clearance.
+    //
+    // Dengan endpoint relatif, permintaan melewati Pages Function
+    // (functions/[[path]].js) yang mem-proxy ke Worker. Hasilnya SEMUA SAMA
+    // ORIGIN dari sudut browser, sehingga Set-Cookie dari backend disimpan
+    // untuk domain halaman ini.
+    //
+    // Kalau endpoint absolut ke workers.dev, cookie disimpan untuk domain
+    // workers.dev — dan TIDAK PERNAH terkirim saat browser meminta halaman
+    // dari pages.dev. Clearance tidak akan terbaca sama sekali.
+    verifyEndpoint: '/api/verify-turnstile'
   };
 </script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>

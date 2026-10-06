@@ -60,7 +60,11 @@ import {
   mediaAktif, unggahGambar, hapusGambar, bacaManifest, daftarPublik,
   validasiUnggahan, MAX_UPLOAD_BYTES,
 } from './media.mjs'
-import { bacaBodyBiner } from './http-util.mjs';
+import { bacaBodyBiner } from './http-util.mjs'
+import {
+  buatClearance, verifikasiClearance, setCookieClearance,
+  hapusCookieClearance, bacaCookieClearance, GATE_TTL_SECONDS,
+} from './gate.mjs';
 import {
   applyCors, clientCountry, clientIp, ipBucket, extractToken, handlePreflight,
   readJson, sendJson, parseCookies, setCookie, clearCookie,
@@ -819,9 +823,31 @@ export const routes = [
         userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
       });
 
+      // ── SET COOKIE CLEARANCE BERTANDA TANGAN ──────────────────────────────
+      // Verifikasi Turnstile sudah lolos di server. Sekarang server menerbitkan
+      // clearance token yang ditandatangani HMAC dan mengirimnya sebagai cookie
+      // HttpOnly.
+      //
+      // JavaScript TIDAK BISA membaca cookie ini, apalagi memalsukannya —
+      // tanpa SERVICE_SECRET, signature tidak bisa dihitung. Ini yang membuat
+      // clearance tidak bisa dilewati dengan menulis sessionStorage.
+      //
+      // IP ikut ditandatangani: cookie yang dicuri dari satu pengunjung tidak
+      // berguna di mesin lain.
+      const ip = clientIp(req);
+      // Nama variabel `clearance`, BUKAN `token` — `token` sudah dipakai di
+      // atas untuk token Turnstile dari body. Menimpa nama yang sama membuat
+      // Node menolak seluruh berkas dengan "Identifier 'token' has already
+      // been declared" (const tidak boleh dideklarasikan ulang di scope sama).
+      const { token: clearance } = buatClearance(ip);
+      setCookieClearance(res, clearance);
+
       sendJson(res, 200, {
         success: true,
         hostname: result.hostname,
+        // Masa berlaku dikirim supaya frontend bisa menampilkan sisa waktu
+        // kalau perlu — dan untuk pengujian.
+        gateTtlSeconds: GATE_TTL_SECONDS,
       });
     }),
   },
@@ -1822,6 +1848,57 @@ export const routes = [
   //   - Kunci R2 tidak boleh ada di browser (siapa pun bisa menghapus isi bucket)
   //   - Konversi WebP + LQIP butuh CPU; sharp jalan di Node, bukan di Worker
   //   - Validasi tipe berkas yang sesungguhnya cuma bisa setelah didekode
+
+  {
+    method: 'GET',
+    pattern: '/api/gate/check',
+    handler: safe(async (req, res) => {
+      // ── PUBLIK: apakah pengunjung sudah punya clearance sah? ──────────────
+      // Dipanggil setiap kali halaman dibuka. Kalau clearance ada dan sah,
+      // gate TIDAK ditampilkan sama sekali.
+      //
+      // Kenapa endpoint terpisah, bukan langsung dari verify-turnstile:
+      // clearance berlaku 30 menit dan mencakup SEMUA halaman. Halaman baru
+      // (mis. /docs dibuka 10 menit setelah verifikasi) hanya perlu TANYA
+      // apakah clearance-nya masih sah — tidak perlu verifikasi ulang.
+      //
+      // Biaya: satu permintaan kecil (~100 byte respons). Itu harga yang
+      // dibayar untuk clearance yang tidak bisa dipalsukan.
+      const token = bacaCookieClearance(req);
+      const hasil = verifikasiClearance(token, clientIp(req));
+
+      if (hasil.ok) {
+        sendJson(res, 200, {
+          ok: true,
+          bersih: true,
+          expiresAt: hasil.expiresAt,
+        });
+        return;
+      }
+
+      // Clearance tidak sah — beri tahu alasan SPESIFIK hanya kalau itu
+      // membantu (kedaluwarsa vs tidak ada), tapi JANGAN bocorkan detail
+      // internal seperti perbedaan IP (itu bisa dipakai memetakan jaringan).
+      const publik = hasil.alasan === 'kedaluwarsa' ? 'kedaluwarsa' : 'perlu_verifikasi';
+      sendJson(res, 200, {
+        ok: true,
+        bersih: false,
+        alasan: publik,
+      });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/gate/clear',
+    handler: safe(async (req, res) => {
+      // Hapus clearance — dipakai saat pengunjung keluar, atau saat
+      // pengujian. Tidak butuh admin key: menghapus clearance MILIK SENDIRI
+      // tidak berbahaya (efeknya hanya verifikasi ulang).
+      hapusCookieClearance(res);
+      sendJson(res, 200, { ok: true });
+    }),
+  },
 
   {
     method: 'GET',

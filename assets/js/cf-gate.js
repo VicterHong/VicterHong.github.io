@@ -210,12 +210,53 @@
     return out;
   }
 
+  /**
+   * Apakah pengunjung sudah punya clearance sah?
+   *
+   * ── PERUBAHAN BESAR: DARI sessionStorage KE COOKIE SERVER ─────────────────
+   * Versi lama membaca timestamp dari sessionStorage:
+   *
+   *     cf_clearance_<host> = 1759761234567
+   *
+   * Nilai itu bisa dibaca DAN DITULIS JavaScript mana pun. Pengunjung cukup
+   * membuka DevTools dan menulis satu baris — gate lewat seketika, tanpa
+   * verifikasi Turnstile. Jadi gate lama BUKAN batas keamanan.
+   *
+   * Sekarang server menerbitkan clearance token yang ditandatangani HMAC
+   * dan mengirimnya sebagai cookie HttpOnly. JavaScript TIDAK BISA membaca
+   * cookie itu, apalagi memalsukannya — tanpa SERVICE_SECRET, signature
+   * tidak bisa dihitung.
+   *
+   * ── KENAPA PERLU REQUEST KE SERVER ────────────────────────────────────────
+   * Karena cookie HttpOnly tidak bisa dibaca JavaScript, satu-satunya cara
+   * tahu isinya adalah bertanya ke server. Itu satu permintaan kecil
+   * (~100 byte) setiap halaman dibuka — harga yang dibayar untuk clearance
+   * yang tidak bisa dipalsukan.
+   *
+   * ── FAIL-CLOSED, BUKAN FAIL-OPEN ──────────────────────────────────────────
+   * Kalau server tidak terjangkau, fungsi ini mengembalikan false → gate
+   * ditampilkan. Untuk KONTROL KEAMANAN, gagal-tertutup adalah pilihan yang
+   * benar: lebih baik pengunjung melihat verifikasi daripada situs terbuka
+   * tanpa perlindungan saat backend bermasalah.
+   *
+   * Catatan: itu KEBALIKAN dari keputusan di dalamTenggang() yang fail-open.
+   * Alasannya beda: tenggang adalah UX (jangan kunci pengunjung karena
+   * storage diblokir), clearance adalah keamanan (jangan buka tanpa bukti).
+   */
   function passed() {
-    try {
-      var raw = sessionStorage.getItem(SESSION_KEY);
-      if (!raw) return false;
-      return (Date.now() - Number(raw)) < SESSION_MS;
-    } catch (e) { return false; }
+    return fetch('/api/gate/check', {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'same-origin',
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { return Boolean(d && d.ok && d.bersih); })
+      .catch(function () {
+        // Server tidak terjangkau → gate ditampilkan (fail-closed).
+        // Pengunjung bisa verifikasi dan masuk; itu lebih baik daripada
+        // membuka situs tanpa perlindungan.
+        return false;
+      });
   }
 
   /**
@@ -236,19 +277,34 @@
    *   gagal    → tampilkan halaman tanpa reload (verifikasi sudah sah
    *              menurut server; yang gagal hanya penyimpanan lokal)
    */
+  /**
+   * Tandai bahwa verifikasi sudah lolos.
+   *
+   * ── TIDAK LAGI MENULIS APA PUN ────────────────────────────────────────────
+   * Versi lama menulis timestamp ke sessionStorage. Sekarang cookie clearance
+   * SUDAH DI-SET OLEH SERVER pada respons /api/verify-turnstile — cookie
+   * HttpOnly tidak bisa ditulis dari JavaScript, dan itu memang tujuannya.
+   *
+   * Jadi fungsi ini hanya membersihkan sisa data lama dan mereset tenggang.
+   *
+   * ── KENAPA SISA sessionStorage DIBERSIHKAN ────────────────────────────────
+   * Pengunjung yang pernah memakai versi lama masih punya
+   * `cf_clearance_<host>` di sessionStorage. Kalau tidak dibersihkan, nilai
+   * itu bisa disalahartikan sebagai bukti clearance oleh kode lain — dan
+   * menyembunyikan bug cookie selama pengujian.
+   *
+   * Fungsi ini mengembalikan true selalu: verifikasi server sudah sah, dan
+   * penyimpanan sekarang ditangani server (cookie), bukan browser.
+   */
   function markPassed() {
     try {
-      sessionStorage.setItem(SESSION_KEY, String(Date.now()));
-      // Baca ulang: beberapa browser menerima setItem tapi tidak menyimpannya
-      // (kuota habis, storage dinonaktifkan setelah halaman dimuat).
-      var tersimpan = sessionStorage.getItem(SESSION_KEY) !== null;
-      // Tenggang direset supaya kunjungan berikutnya — setelah clearance
-      // 30 menit habis — mendapat tenggang BARU, bukan langsung digerbang.
-      if (tersimpan) resetTenggang();
-      return tersimpan;
-    } catch (e) {
-      return false;
-    }
+      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    } catch (e) { /* storage diblokir — tidak ada yang perlu dibersihkan */ }
+    // Tenggang direset supaya kunjungan berikutnya — setelah clearance
+    // 30 menit habis — mendapat tenggang BARU, bukan langsung digerbang.
+    resetTenggang();
+    return true;
   }
 
   /** Gate aktif: sembunyikan konten halaman (hanya overlay gate yang tampak). */
@@ -712,14 +768,20 @@
     }, 100);
   }
 
-  function init() {
+  async function init() {
     var root = document.getElementById('cf-gate');
     var isStatic = Boolean(root);
 
-    // ── 1. SUDAH LOLOS VERIFIKASI (< 30 MENIT) ─────────────────────────────
-    // Tidak perlu apa-apa lagi. Di index.html langsung lanjut ke halaman
-    // konten; di halaman konten cukup tampilkan isinya.
-    if (passed()) {
+    // ── 1. SUDAH PUNYA CLEARANCE SAH DARI SERVER ───────────────────────────
+    // Clearance sekarang cookie HttpOnly bertanda tangan — JavaScript tidak
+    // bisa membacanya, jadi kita TANYA KE SERVER. Satu permintaan kecil
+    // (~100 byte) setiap halaman dibuka.
+    //
+    // Ini yang membuat clearance tidak bisa dipalsukan: pengunjung tidak
+    // bisa menulis apa pun di browser untuk melewati gate.
+    var bersih = await passed();
+
+    if (bersih) {
       if (isStatic && cfg().redirect) {
         location.replace(cfg().redirect);
         return;
@@ -733,13 +795,22 @@
     // sudah lama baru muncul seperti pada umumnya".
     //
     // Pengunjung yang baru datang TIDAK langsung digerbang — ia bisa
-    // menjelajah selama 3 menit. Gate baru muncul setelah tenggang habis.
+    // menjelajah selama 15 menit. Gate baru muncul setelah tenggang habis.
     //
     // Ini persis perilaku Cloudflare managed challenge: pengunjung baru lolos
     // tanpa hambatan, dan tantangan muncul saat sudah ada aktivitas.
     //
     // Di index.html, tenggang berarti langsung redirect ke halaman konten —
     // pengunjung tidak melihat halaman "Just a moment..." sama sekali.
+    //
+    // ── CATATAN PENTING: TENGGANG TIDAK MEMBATALKAN CLEARANCE ──────────────
+    // Dua hal ini BEDA dan tidak saling menggantikan:
+    //   tenggang   = UX, "jangan ganggu pengunjung baru"
+    //   clearance  = keamanan, "bukti verifikasi yang tidak bisa dipalsukan"
+    //
+    // Kalau server bilang clearance tidak sah, gate muncul setelah tenggang
+    // habis — dan setelah verifikasi, cookie clearance-lah yang menyimpan
+    // buktinya (bukan sessionStorage).
     if (dalamTenggang()) {
       if (isStatic && cfg().redirect) {
         location.replace(cfg().redirect);
@@ -761,9 +832,22 @@
     }
   }
 
+  // init() sekarang async (menunggu respons server). Kalau promise-nya
+  // ditolak tanpa penanganan, halaman bisa berhenti di keadaan setengah jadi.
+  // `.catch()` di sini memastikan halaman tetap ditampilkan — pengunjung
+  // tidak pernah terjebak di layar kosong karena error tak terduga.
+  function mulai() {
+    init().catch(function () {
+      // Error tak terduga saat init → tampilkan halaman apa adanya.
+      // Gate sudah punya jaring pengamannya sendiri (timeout + tombol);
+      // memblokir halaman karena error init hanya memperburuk keadaan.
+      revealPage();
+    });
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', mulai);
   } else {
-    init();
+    mulai();
   }
 })();
