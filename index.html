@@ -10,26 +10,8 @@
 <link rel="apple-touch-icon" href="/assets/favicon-180.png">
 <link rel="manifest" href="/assets/site.webmanifest">
 <meta name="theme-color" content="#f5c542">
-<!-- ── FONT: TIDAK ADA UNDUHAN EKSTERNAL ────────────────────────────────────
-     Versi sebelumnya memuat Satoshi + Playfair Display + JetBrains Mono dari
-     Fontshare dan Google Fonts. Itu LIMA permintaan jaringan (2 preconnect +
-     3 stylesheet) hanya untuk halaman verifikasi.
-
-     Sekarang gate memakai FONT STACK ASLI CLOUDFLARE — sama persis dengan
-     yang dipakai halaman challenge mereka:
-       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui,
-       Arial, sans-serif
-
-     Alasannya bukan sekadar penghematan. Halaman verifikasi harus tampil
-     INSTAN: tujuannya "cepat selesai lalu pergi", bukan dinikmati. Memuat
-     font eksternal berarti teks baru bisa dibaca setelah unduhan selesai —
-     dan kalau CDN font lambat atau diblokir (umum di jaringan seluler),
-     pengunjung melihat teks tak terbaca di halaman yang seharusnya cepat.
-
-     Font sistem sudah ada di perangkat, jadi teks tampil di frame pertama.
-     Efek sampingnya bagus: gate terasa NATIF di setiap platform — San
-     Francisco di iOS, Segoe UI di Windows, Roboto di Android — persis
-     seperti yang dialami pengunjung di halaman challenge Cloudflare asli. -->
+<!-- Font: font stack asli Cloudflare (sistem), tanpa unduhan eksternal.
+     Detail lengkap ada di komentar #cf-gate pada assets/css/cf-gate.css. -->
 <link rel="stylesheet" href="assets/css/cf-gate.css">
 </head>
 <body>
