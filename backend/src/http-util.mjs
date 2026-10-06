@@ -134,28 +134,36 @@ export function applyCors(req, res) {
  * alamat asli. Untuk kunci rate limit, pakai `ipBucket()`.
  */
 export function clientIp(req) {
-  // ── X-Client-IP DIPERIKSA LEBIH DULU (BUG YANG DIPERBAIKI) ────────────────
-  // Cloudflare MENIMPA `CF-Connecting-IP` setiap kali Worker memanggil
-  // fetch() ke origin lain. Jadi nilai itu berisi IP WORKER, bukan IP
-  // pengunjung — dan IP Worker berubah tiap permintaan karena edge yang
-  // melayani berbeda-beda.
+  // ── URUTAN PEMBACAAN, DAN BATAS KEMAMPUANNYA ─────────────────────────────
+  // `X-Client-IP` diperiksa lebih dulu karena Cloudflare MENIMPA
+  // `CF-Connecting-IP` di setiap hop fetch() antar domain.
   //
-  // Akibatnya clearance cookie tidak pernah cocok: token ditandatangani
-  // dengan IP pengunjung asli, tapi saat diperiksa backend melihat IP Worker
-  // yang lain. Terukur: token sah untuk 129.225.15.88 selalu ditolak.
+  // ── PENTING: NILAI INI TIDAK SEPENUHNYA AKURAT ───────────────────────────
+  // Rantai permintaan punya EMPAT hop:
   //
-  // Worker kita mengirim IP asli di `X-Client-IP` — header yang tidak
-  // disentuh Cloudflare. Header itu diperiksa lebih dulu.
+  //   browser → pages.dev → workers.dev → tunnel → backend
   //
-  // ── KENAPA INI AMAN ─────────────────────────────────────────────────────
-  // Header dari klien TIDAK dipercaya. Yang membuatnya aman:
-  //   1. Worker SELALU menimpa `X-Client-IP` dengan nilai dari request.cf —
-  //      tidak pernah meneruskan nilai yang dikirim klien
-  //   2. Backend hanya listen di loopback; satu-satunya jalur masuk adalah
-  //      tunnel, dan tunnel lewat Worker yang menimpanya
+  // Di setiap hop, Cloudflare menimpa header IP. Terukur: backend menerima
+  // `2a06:98c0:3600::103` (IP Cloudflare) meski Pages Function dan Worker
+  // sama-sama mencoba meneruskan IP asli.
   //
+  // Jadi nilai yang dikembalikan fungsi ini adalah **IP Cloudflare**, bukan
+  // IP pengunjung. Itu SUDAH CUKUP untuk dua pemakaian:
+  //
+  //   1. Rate limit per-IP — Cloudflare punya banyak IP edge, tapi jauh
+  //      lebih sedikit daripada tanpa batas sama sekali. Batas laju tetap
+  //      berfungsi, hanya lebih longgar dari yang ideal.
+  //   2. Audit log — mencatat IP Cloudflare lebih baik daripada kosong.
+  //
+  // Yang TIDAK BOLEH memakai nilai ini: apa pun yang butuh akurasi
+  // per-pengunjung, seperti mengikat cookie ke mesin. Itu sebabnya
+  // clearance gate memakai nonce acak, bukan IP — lihat gate.mjs.
+  //
+  // ── KENAPA TETAP AMAN DARI PEMALSUAN ────────────────────────────────────
+  // Header dari klien tidak dipercaya. Worker SELALU menimpanya, dan backend
+  // hanya listen di loopback — satu-satunya jalur masuk adalah tunnel.
   // Kalau backend pernah dibuka ke jaringan publik, header ini HARUS
-  // diabaikan — penyerang bisa memalsukannya.
+  // diabaikan.
   const xc = req.headers['x-client-ip'];
   if (typeof xc === 'string') {
     const v = xc.trim();

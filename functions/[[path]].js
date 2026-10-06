@@ -59,38 +59,24 @@ export async function onRequest(context) {
   // adalah stream — makin cepat diteruskan, makin sedikit memori terpakai.
   const target = `${WORKER}${pathname}${url.search}`;
 
-  // ── TERUSKAN IP PENGUNJUNG ASLI (BUG YANG DIPERBAIKI) ────────────────────
-  // Cloudflare MENIMPA `CF-Connecting-IP` di SETIAP lompatan fetch() antar
-  // origin. Rantainya panjang:
+  // ── TERUSKAN IP DI X-Client-IP (UNTUK RATE LIMIT & AUDIT) ────────────────
+  // Di hop INI (pages.dev), `CF-Connecting-IP` berisi IP pengunjung yang
+  // sungguhan. Cloudflare baru menimpanya di hop BERIKUTNYA. Jadi di sini
+  // adalah tempat TERBAIK untuk membacanya.
   //
-  //   browser → pages.dev → [Pages Function] → workers.dev → [Worker]
-  //           → tunnel → backend
+  // ── BATAS KEMAMPUANNYA — SUDAH DIUJI ────────────────────────────────────
+  // Meski fungsi ini meneruskan IP dengan benar, terukur backend TETAP
+  // menerima IP Cloudflare (`2a06:98c0:3600::103`). Rantai empat hop
+  // (pages.dev → workers.dev → tunnel → backend) terlalu panjang — Cloudflare
+  // menimpa header di salah satu hop setelah ini.
   //
-  // Di setiap lompatan, header itu diganti dengan IP Cloudflare. Terukur:
-  // backend menerima `2a06:98c0:3600::103` (IP Cloudflare) padahal
-  // pengunjung dari `129.225.15.88`.
-  //
-  // Akibatnya clearance cookie tidak pernah cocok: token ditandatangani
-  // dengan IP pengunjung, tapi diperiksa dengan IP Cloudflare.
-  //
-  // Solusi: baca IP asli dari `request.cf` — itu SATU-SATUNYA sumber yang
-  // berisi IP pengunjung sungguhan di runtime Pages/Workers — lalu kirim
-  // di header khusus `X-Client-IP` yang tidak disentuh Cloudflare.
-  //
-  // Worker (site.ts) melakukan hal yang sama, jadi nilainya bertahan
-  // sepanjang rantai.
+  // Nilainya tetap berguna untuk rate limit dan audit log. TAPI JANGAN
+  // dipakai untuk mengikat cookie ke mesin — itu sebabnya clearance gate
+  // memakai nonce acak, bukan IP.
   const headers = new Headers(context.request.headers);
 
-  // ── URUTAN PEMBACAAN PENTING ──────────────────────────────────────────────
-  // Di hop INI (pages.dev), `CF-Connecting-IP` berisi IP PENGUNJUNG yang
-  // sungguhan. Cloudflare baru menimpanya di hop BERIKUTNYA.
-  //
   // JANGAN pakai `context.request.cf.clientIp` — nilainya bisa sudah
-  // tertimpa tergantung bagaimana permintaan masuk. Header adalah sumber
-  // yang lebih dapat diandalkan di hop pertama.
-  //
-  // Terukur: dengan cf.clientIp, backend menerima 2a06:98c0:3600::103
-  // (IP Cloudflare) padahal pengunjung dari 129.225.15.88.
+  // tertimpa tergantung bagaimana permintaan masuk. Header lebih andal.
   const ipAsli = context.request.headers.get('CF-Connecting-IP') || '';
   if (ipAsli) headers.set('X-Client-IP', ipAsli);
 

@@ -145,25 +145,20 @@ export default {
 
     // ── 3. API → BACKEND ────────────────────────────────────────────────────
     if (pathname.startsWith("/api/")) {
-      // ── TERUSKAN IP PENGUNJUNG ASLI (BUG YANG DIPERBAIKI) ────────────────
-      // Cloudflare MENIMPA `CF-Connecting-IP` setiap kali Worker memanggil
-      // fetch() ke origin lain. Jadi backend melihat IP Worker — yang
-      // BERUBAH tiap permintaan karena edge yang melayani berbeda-beda.
+      // ── TERUSKAN IP DI X-Client-IP (UNTUK RATE LIMIT & AUDIT) ────────────
+      // Cloudflare MENIMPA `CF-Connecting-IP` di setiap hop fetch() antar
+      // domain. Header `X-Client-IP` tidak disentuh, jadi nilai hop-pertama
+      // bisa bertahan sampai backend.
       //
-      // Akibatnya clearance cookie tidak pernah cocok: token ditandatangani
-      // dengan IP pengunjung, tapi saat diperiksa backend melihat IP Worker
-      // yang lain. Terukur: token sah untuk 129.225.15.88 selalu ditolak.
+      // ── BATAS KEMAMPUANNYA — SUDAH DIUJI ────────────────────────────────
+      // Meski Pages Function dan Worker sama-sama meneruskan, terukur backend
+      // TETAP menerima IP Cloudflare (`2a06:98c0:3600::103`). Rantai empat
+      // hop terlalu panjang untuk header ini bertahan utuh.
       //
-      // Solusi: kirim IP asli di header KHUSUS yang tidak disentuh Cloudflare.
-      // `X-Client-IP` adalah konvensi umum dan tidak ditimpa.
-      //
-      // CATATAN KEAMANAN: header ini TIDAK BOLEH dipercaya kalau datang
-      // langsung dari internet — penyerang bisa memalsukannya. Di sini aman
-      // karena:
-      //   1. Worker SELALU menimpanya dengan nilai dari request.cf (bukan
-      //      meneruskan nilai yang dikirim klien)
-      //   2. Backend hanya listen di loopback — satu-satunya jalur masuk
-      //      adalah tunnel, dan tunnel lewat Worker ini
+      // Nilainya tetap berguna untuk rate limit dan audit log — lebih baik
+      // daripada tidak ada. TAPI JANGAN dipakai untuk apa pun yang butuh
+      // akurasi per-pengunjung (seperti mengikat cookie ke mesin). Clearance
+      // gate memakai nonce acak karena alasan ini.
       const headers = new Headers(request.headers);
 
       // ── JANGAN BACA `CF-Connecting-IP` DI SINI ────────────────────────────
