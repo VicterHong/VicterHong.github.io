@@ -168,20 +168,22 @@
   border: 1px solid var(--line);
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.75);
 
-  /* ── TRANSISI BAYANGAN: DIMATIKAN ────────────────────────────────────────
-     BUG: transisi box-shadow 420ms terlihat sebagai GLITCH. Saat kartu
-     bergerak cepat dan tingkat bayangannya berganti (0→1→2), transisi itu
-     membuat bayangan "mengejar" dengan jeda — dan pada kecepatan tinggi,
-     jeda itu terbaca mata sebagai kedutan/bergetar, bukan sebagai kehalusan.
+  /* ── TRANSISI BAYANGAN: SINGKAT 0,2 s ────────────────────────────────────
+     Riwayat penyetelannya, supaya tidak diubah bolak-balik tanpa alasan:
 
-     Bayangan sekarang berpindah INSTAN antar tingkat. Karena perpindahannya
-     hanya terjadi saat kartu melewati batas (bukan tiap frame), perubahan
-     mendadak itu tidak terasa — mata sudah fokus pada kartu yang bergerak.
+       420 ms  → terlalu lambat. Bayangan terlihat "mengejar" kartu karena
+                 transisinya belum selesai saat kartu mendarat.
+       dimatikan → perubahan tingkat bayangan jadi POP mendadak tepat di
+                 tengah gerakan (abs = 0,5) — bersamaan dengan pop gambar.
+                 Dua pop bertumpuk = glitch yang terlihat jelas.
+       200 ms  → titik tengahnya. Cukup singkat untuk terasa menempel pada
+                 kartu (selesai ~0,35 s, jauh sebelum kartu mendarat ~0,9 s),
+                 cukup lambat untuk menutupi pop antar tingkat bayangan.
 
-     Prinsipnya: transisi hanya berguna untuk perubahan yang JARANG. Kalau
-     perubahan itu sendiri sudah halus, menambah transisi malah menciptakan
-     gerakan kedua yang berkelahi dengan yang pertama. */
-  transition: border-color 0.35s var(--ease);
+     Prinsipnya: perubahan yang terjadi SEKALI per perpindahan sebaiknya
+     dihaluskan; perubahan yang terjadi tiap frame tidak boleh punya transisi
+     sama sekali (transform & opacity kartu — keduanya ditulis JS). */
+  transition: border-color 0.35s var(--ease), box-shadow 0.2s var(--ease);
   /* `will-change` DIPINDAH ke .spotlight-card.is-bergerak — dipasang di semua
      8 kartu memaksa browser membuat 8 layer GPU permanen, dan layer sebesar
      ini memakan memori grafis. Sekarang hanya kartu yang bergerak. */
@@ -236,25 +238,31 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Kartu belakang lebih redup supaya kartu depan menonjol. */
-  opacity: 0.7;
-  /* ── TRANSISI DI GAMBAR: HANYA OPACITY ───────────────────────────────────
-     Bug nyata: dulu ada `transform 0.7s` di sini. Karena JS menulis transform
-     kartu setiap frame saat drift/drag, gambar "mengejar" dengan delay 0,7
-     detik — terlihat seperti kedutan dan lompatan.
+  /* ── TIDAK ADA OPACITY DI SINI — DAN ITU DISENGAJA ───────────────────────
+     BUG YANG DIPERBAIKI (terukur dengan getComputedStyle):
 
-     Terukur: kartu 5 melompat 1845px saat berganti. Setelah transisi
-     transform dihapus, lompatan itu hilang.
+     Dulu gambar punya `opacity: 0,7` (belakang) dan `opacity: 1` (depan),
+     di-toggle kelas .is-front pada abs = 0,5 — TEPAT DI TENGAH GERAKAN.
+     Ditambah `transition: opacity 0,35 s`, gambar jadi punya ANIMASI KEDUA
+     yang berjalan bersamaan dengan animasi kartu.
 
-     Aturan umum: JANGAN pernah pasang transition pada properti yang ditulis
-     JS per frame. Hanya opacity yang aman di sini karena nilainya berubah
-     jarang (saat kartu ganti posisi, bukan setiap frame). */
-  transition: opacity 0.35s var(--ease);
-  transform: scale(1.02);
-}
-.spotlight-card.is-front .spotlight-card-media img {
-  opacity: 1;
-  transform: scale(1.06);
+     Yang dilihat mata adalah HASIL KALINYA:
+       opacity kartu (JS, mulus) × opacity gambar (CSS, melompat)
+     Terukur: melompat 0,30 dalam SATU frame — dari 0,865 ke 0,573.
+
+     Sekarang gambar tidak punya opacity sendiri. Peredupan kartu belakang
+     diurus SATU sistem saja: opacity kartu dari JS, yang sudah mulus tiap
+     frame. Satu sistem = tidak ada dua animasi yang berkelahi. */
+
+  /* Zoom TETAP 1,03 — tidak lagi berubah menurut kelas.
+     Dulu 1,02 (belakang) → 1,06 (depan), di-toggle pada abs = 0,5. Itu
+     lompatan 4% dalam satu frame — terukur Δskala gabungan 0,069.
+
+     Skala kartu dari JS sudah memberi efek zoom yang jauh lebih besar
+     (1,0 depan → 0,8 tetangga), jadi zoom tambahan ini hanya perlu menutup
+     celah sub-pixel di tepi membulat. Nilainya tetap, jadi tidak ada
+     lompatan. */
+  transform: scale(1.03);
 }
 
 /* Dua lapis gradien: bawah untuk keterbacaan label, atas untuk nomor.

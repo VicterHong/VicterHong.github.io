@@ -434,23 +434,34 @@ export function createSpotlightCarousel(items) {
       // Terukur di rekaman: lompatan opacity 0,159/frame. Karena kartu depan
       // melewati abs = 0,5 tepat saat mantul, lompatan ini terlihat jelas.
       //
-      // Perbaikan: satu rumus linear 1 − 0,28·abs untuk abs ≤ 2. Nilainya
-      // SAMA PERSIS dengan rumus lama di semua titik penting — abs 0,5 → 0,86 ·
-      // abs 1 → 0,72 · abs 2 → 0,44 — jadi tampilannya tidak berubah sama
-      // sekali. Yang hilang hanya lompatan di abs = 0,5 (dulu 1,0 mendadak
-      // jadi 0,86) dan lompatan di abs = 3 (dulu 0,45 mendadak jadi 0).
+      // ── KURVA 1/(1 + 0,9·abs) ───────────────────────────────────────────
+      // Gambar sekarang TIDAK lagi punya opacity sendiri (lihat catatan di
+      // spotlight.css). Dulu peredupan terjadi dua kali: opacity kartu ×
+      // opacity gambar, sehingga kartu belakang jadi 0,72 × 0,7 = 0,50.
       //
-      // Di atas abs = 2 kartu sudah setengah keluar layar, jadi opacity
-      // diturunkan halus ke 0 memakai smoothstep. Turunannya 0 di kedua ujung,
-      // jadi tidak ada perubahan mendadak di mana pun.
+      // Supaya tampilannya tetap seperti sebelumnya, peredupan itu dipindah
+      // SELURUHNYA ke opacity kartu. Kurva ini dipilih karena hasilnya
+      // mendekati nilai lama di titik-titik penting:
+      //
+      //   abs 0,5 → 0,690   (lama: 0,602)
+      //   abs 1,0 → 0,526   (lama: 0,504)  ← hampir sama persis
+      //   abs 1,5 → 0,426   (lama: 0,406)
+      //   abs 2,0 → 0,357   (lama: 0,308)
+      //
+      // Bentuknya hiperbolik, bukan linear, karena itulah yang meniru efek
+      // dua peredupan bertumpuk. Dan yang terpenting: KONTINU — tidak ada
+      // ambang di mana pun, jadi tidak ada lompatan di tengah gerakan.
+      //
+      // Di atas abs = 2 opacity diturunkan halus ke 0 memakai smoothstep.
+      // Turunannya 0 di kedua ujung, jadi sambungannya mulus.
       let op;
       if (diLuar) {
         op = 0;
       } else if (abs <= 2) {
-        op = 1 - abs * 0.28;
+        op = 1 / (1 + 0.9 * abs);
       } else {
         const u = (abs - 2) / (ARC.maxVisible - 2);
-        op = 0.44 * (1 - u * u * (3 - 2 * u));
+        op = 0.357 * (1 - u * u * (3 - 2 * u));
       }
 
       // ── TULIS DOM HANYA KALAU NILAINYA BERUBAH ──────────────────────────
