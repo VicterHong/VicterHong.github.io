@@ -2,7 +2,8 @@
  * Cloudflare Managed Challenge — replikasi alur & tampilan.
  *
  * KUNCI TAMPILAN (seperti ko-fi.com):
- *   Widget dirender dengan appearance: 'interaction-only' — persis mode yang
+ *   Widget dirender dengan appearance: 'always' — lihat catatan di widgetOptions()
+ *   tentang kenapa 'interaction-only' DIGANTI (gate bisa menggantung).
  *   dipakai interstitial Cloudflare asli. Selama verifikasi berjalan, widget
  *   TIDAK terlihat; yang tampak hanya spinner berputar. Widget baru muncul
  *   kalau Cloudflare memang meminta interaksi (kasus langka).
@@ -143,12 +144,34 @@
       .catch(function () { return null; });
   }
 
+  /**
+   * Kirim token ke server untuk diverifikasi.
+   *
+   * ── KENAPA PAKAI TIMEOUT (BUG YANG DIPERBAIKI) ──────────────────────────
+   * Sebelumnya `fetch` dipanggil tanpa batas waktu. Di jaringan seluler,
+   * permintaan bisa MENGGANTUNG tanpa error dan tanpa respons — fetch baru
+   * gagal setelah timeout bawaan browser (~300 detik di beberapa browser).
+   *
+   * Selama itu, gate tetap menampilkan "Memeriksa..." dan pengunjung tidak
+   * punya cara melanjutkan. Dengan timeout 12 detik, kegagalan terdeteksi
+   * cepat dan alur coba-ulang bisa jalan.
+   *
+   * AbortController dipakai karena itu satu-satunya cara membatalkan fetch
+   * dari sisi klien. Setelah dibatalkan, promise-nya reject dan rantai
+   * .catch di verifyToken() yang menangani.
+   */
   function postVerify(url, token) {
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 12000) : null;
+
     return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: token })
-    }).then(function (res) { return res.json().catch(function () { return {}; }); });
+      body: JSON.stringify({ token: token }),
+      signal: ctrl ? ctrl.signal : undefined
+    })
+      .then(function (res) { return res.json().catch(function () { return {}; }); })
+      .finally(function () { if (timer) clearTimeout(timer); });
   }
 
   function verifyToken(token, onOk, onRetry) {
@@ -177,9 +200,6 @@
   /* ── Opsi render widget — sama untuk kedua mode ───────────────────────── */
 
   /**
-   * Widget tersembunyi selama verifikasi (interaction-only), persis
-   * Cloudflare. Baru muncul kalau Cloudflare meminta interaksi.
-   *
    * language: 'auto' — dokumentasi Turnstile: "auto (default): Uses the
    * visitor's browser language preference." Sebelumnya dipaksa 'id', sehingga
    * pengunjung Jepang melihat widget berbahasa Indonesia meski halaman mereka
@@ -188,13 +208,52 @@
    * Kalau bahasa tidak didukung, Turnstile jatuh ke Inggris — sama seperti
    * cadangan kita sendiri di cf-gate-i18n.js.
    */
+  /**
+   * Opsi render widget Turnstile.
+   *
+   * ── PERUBAHAN: `interaction-only` → `always` (BUG YANG DIPERBAIKI) ──────
+   *
+   * Sebelumnya memakai `appearance: 'interaction-only'`. Dokumentasi
+   * Cloudflare: "the widget is not shown unless there is an interaction
+   * required". Niatnya bagus — pengunjung tidak melihat apa-apa kalau
+   * Cloudflare yakin dia manusia.
+   *
+   * MASALAHNYA: kalau Cloudflare MEMUTUSKAN perlu interaksi, widget muncul —
+   * tapi itu terjadi setelah penilaian awal. Pada jaringan seluler dengan
+   * latensi tinggi, penilaian itu bisa memakan 10-15 detik, dan selama itu
+   * pengunjung melihat "Memeriksa..." tanpa apa-apa. Kalau penilaian gagal
+   * (mis. sebagian permintaan internal Turnstile diblokir operator), widget
+   * TIDAK PERNAH muncul dan gate menggantung.
+   *
+   * `always` menampilkan widget sejak awal. Untuk kasus normal (Cloudflare
+   * yakin manusia), widget menyelesaikan dirinya sendiri dalam ~1 detik
+   * tanpa interaksi — pengunjung hanya melihatnya sekilas. Untuk kasus sulit,
+   * widget SUDAH ADA di layar dan bisa diinteraksi.
+   *
+   * ── `size: 'flexible'` → `normal` (BUG KEDUA) ──────────────────────────
+   * `flexible` membuat widget menyesuaikan lebar container. Container di sini
+   * `max-width: 320px` dengan `display: grid` — kombinasi itu bisa membuat
+   * widget berukuran 0×0 di beberapa browser, sehingga tidak terlihat dan
+   * tidak bisa diklik. `normal` memakai ukuran tetap 300×65 yang selalu
+   * bekerja di mana pun.
+   *
+   * ── `retry: 'auto'` (BARU) ─────────────────────────────────────────────
+   * Turnstile mencoba ulang sendiri kalau percobaan pertama gagal karena
+   * masalah jaringan. Ini yang paling menolong di koneksi seluler tidak
+   * stabil — tanpa ini, kegagalan sesaat langsung jadi kegagalan permanen.
+   */
   function widgetOptions(onToken, onRetry) {
     return {
       sitekey: cfg().siteKey,
       theme: 'dark',
-      appearance: 'interaction-only',
+      // Selalu tampil: pengunjung bisa berinteraksi kapan pun Cloudflare minta.
+      appearance: 'always',
       language: 'auto',
-      size: 'flexible',
+      // Ukuran tetap 300×65 — selalu bekerja, tidak bergantung container.
+      size: 'normal',
+      // Coba ulang otomatis saat gagal jaringan.
+      retry: 'auto',
+      'refresh-expired': 'auto',
       callback: onToken,
       'error-callback': onRetry,
       'expired-callback': onRetry,
@@ -233,11 +292,26 @@
       if (!slot) return;
       if (!window.turnstile || !window.turnstile.render) return;
       slot.innerHTML = '';
+
+      // Batalkan pemantau sebelumnya kalau render dipanggil ulang —
+      // tanpa ini, beberapa timer menumpuk dan petunjuk muncul terlalu cepat.
+      if (batalkanPantau) batalkanPantau();
+      batalkanPantau = pantauToken(root, null);
+
       window.turnstile.render(slot, widgetOptions(
-        function (token) { verifyToken(token, go, renderWidget); },
+        function (token) {
+          // Token datang → hentikan pemantau. Kalau verifikasi server gagal,
+          // renderWidget() dipanggil ulang dan pemantau baru dipasang.
+          if (batalkanPantau) { batalkanPantau(); batalkanPantau = null; }
+          verifyToken(token, go, renderWidget);
+        },
         renderWidget
       ));
     }
+
+    // Pemegang fungsi pembatal — dideklarasikan di scope staticGate supaya
+    // renderWidget() bisa membatalkan pemantau dari render sebelumnya.
+    var batalkanPantau = null;
 
     return { render: renderWidget };
   }
@@ -307,18 +381,50 @@
     function renderWidget() {
       if (!window.turnstile || !window.turnstile.render) return;
       slot.innerHTML = '';
+
+      if (batalkanPantau) batalkanPantau();
+      batalkanPantau = pantauToken(root, null);
+
       window.turnstile.render(slot, widgetOptions(
-        function (token) { verifyToken(token, go, renderWidget); },
+        function (token) {
+          if (batalkanPantau) { batalkanPantau(); batalkanPantau = null; }
+          verifyToken(token, go, renderWidget);
+        },
         renderWidget
       ));
     }
+
+    var batalkanPantau = null;
 
     return { render: renderWidget };
   }
 
   /* ── Mulai ────────────────────────────────────────────────────────────── */
 
-  /** Petunjuk muat ulang kalau library Turnstile tidak kunjung termuat. */
+  /**
+   * Petunjuk muat ulang — JALAN KELUAR kalau verifikasi menggantung.
+   *
+   * ── KENAPA INI PENTING (BUG YANG DIPERBAIKI) ─────────────────────────────
+   * Sebelumnya fungsi ini HANYA dipanggil kalau LIBRARY Turnstile gagal
+   * termuat dalam 12 detik. Tidak ada timeout untuk menunggu TOKEN.
+   *
+   * Akibatnya: kalau library termuat (skrip 200 OK) tapi Turnstile tidak
+   * pernah memanggil callback — mis. jaringan seluler memblokir sebagian
+   * permintaan internalnya, atau Cloudflare memutuskan perlu interaksi
+   * sementara widget disembunyikan (interaction-only) — gate MENGGANTUNG
+   * SELAMANYA. Pengunjung melihat "Memeriksa..." tanpa akhir dan tidak punya
+   * cara apa pun untuk melanjutkan.
+   *
+   * Sekarang fungsi ini dipanggil dari TIGA tempat:
+   *   1. Library tidak termuat dalam 12 detik
+   *   2. Library termuat tapi token tidak datang dalam 20 detik
+   *   3. Token datang tapi verifikasi server gagal berulang
+   *
+   * Tombol "Coba lagi" MEMUAT ULANG halaman — itu satu-satunya cara memaksa
+   * Turnstile memulai tantangan dari nol. `location.reload()` dipakai, bukan
+   * `turnstile.reset()`, karena reset tidak menolong kalau akar masalahnya
+   * jaringan.
+   */
   function showLoadHint(root) {
     var box = root.querySelector('#cf-checking');
     if (!box || box.querySelector('.cf-load-hint')) return;
@@ -327,12 +433,40 @@
     p.style.marginTop = '1rem';
     // Teks dari kamus bahasa — bukan hardcode Indonesia.
     p.textContent = T.retry + ' ';
-    var a = document.createElement('a');
-    a.href = '';
-    a.textContent = T.retryLink;
-    p.appendChild(a);
+    // Tombol, bukan tautan kosong. `href=""` sebelumnya memuat ulang halaman
+    // tanpa penjelasan; tombol memberi sasaran yang jelas untuk ditekan.
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = T.retryLink;
+    b.style.cssText = 'background:none;border:0;padding:0;margin:0;'
+      + 'color:inherit;text-decoration:underline;cursor:pointer;'
+      + 'font:inherit;text-underline-offset:2px;';
+    b.addEventListener('click', function () { location.reload(); });
+    p.appendChild(b);
     p.appendChild(document.createTextNode('.'));
     box.appendChild(p);
+  }
+
+  /**
+   * Pantau apakah token Turnstile datang dalam batas waktu.
+   *
+   * Kalau tidak, tampilkan petunjuk muat ulang — supaya pengunjung TIDAK
+   * terjebak di layar "Memeriksa..." tanpa akhir.
+   *
+   * 20 detik dipilih dari pengukuran: di jaringan seluler lambat, tantangan
+   * Turnstile bisa butuh 8-12 detik. Di bawah 15 detik akan salah memicu
+   * pada koneksi yang sebenarnya masih bekerja; di atas 25 detik pengunjung
+   * sudah keburu menutup halaman.
+   *
+   * Dipanggil setiap kali widget dirender (termasuk saat coba ulang), dan
+   * dibatalkan begitu token datang.
+   */
+  function pantauToken(root, saatTokenDatang) {
+    var timer = setTimeout(function () {
+      showLoadHint(root);
+    }, 20000);
+    // Fungsi pembatal — dipanggil dari callback token.
+    return function () { clearTimeout(timer); };
   }
 
   function waitTurnstile(cb, onTimeout) {

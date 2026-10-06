@@ -103,7 +103,7 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
   100% { content: ""; }
 }
 
-/* Slot widget Turnstile — interaction-only (persis ko-fi.com). */
+/* Slot widget Turnstile — ukuran normal 300×65 (lihat widgetOptions()). */
 #cf-gate #cf-widget { display: grid; max-width: 320px; }
 #cf-gate #cf-widget:empty { min-height: 0; }
 
