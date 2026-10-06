@@ -43,7 +43,10 @@
  *   const el = createSpotlightCarousel(items);
  *   host.append(el);
  */
-import { icon } from './icons.js';
+
+// Import `icon` DIHAPUS — satu-satunya pemakainya adalah tombol panah, dan
+// tombol itu sudah dibuang. Import yang tidak terpakai membuat berkas
+// membawa ketergantungan yang tidak perlu.
 
 const prefersReduced = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -216,33 +219,34 @@ export function createSpotlightCarousel(items) {
     return d;
   });
 
-  // ── Tombol panah ──────────────────────────────────────────────────────────
-  const nav = document.createElement('div');
-  nav.className = 'spotlight-nav';
-  const prev = document.createElement('button');
-  prev.type = 'button';
-  prev.className = 'spotlight-arrow';
-  prev.setAttribute('aria-label', 'Proyek sebelumnya');
-  const next = document.createElement('button');
-  next.type = 'button';
-  next.className = 'spotlight-arrow';
-  next.setAttribute('aria-label', 'Proyek berikutnya');
-  prev.append(icon('arrow-left', { size: 18 }) ?? document.createTextNode('←'));
-  next.append(icon('arrow-right', { size: 18 }) ?? document.createTextNode('→'));
-  prev.addEventListener('click', () => goTo(current - 1));
-  next.addEventListener('click', () => goTo(current + 1));
-  nav.append(prev, next);
+  // ── Tombol panah DIHAPUS ───────────────────────────────────────────────────
+  // Atas permintaan pemilik: "tombolnya juga dihilangkan saja biar rapi."
+  //
+  // Alasannya masuk akal: dengan auto-scroll yang berjalan sendiri plus drag
+  // dan dots, tombol panah jadi kontrol ketiga yang tidak perlu. Galeri
+  // komersial (Apple, Stripe, Linear) umumnya hanya pakai dots — lebih bersih,
+  // dan tidak ada tombol yang harus dijelaskan.
+  //
+  // Navigasi yang TETAP ada:
+  //   - drag / swipe (mouse + sentuh)
+  //   - dots di bawah (klik langsung ke kartu tertentu)
+  //   - tombol panah keyboard (← →) — tetap bekerja, tidak terlihat
+  //
+  // Keyboard tetap didukung penuh, jadi menghapus tombol tidak mengurangi
+  // aksesibilitas.
 
   const foot = document.createElement('div');
   foot.className = 'spotlight-foot';
-  foot.append(dotsWrap, nav);
+  foot.append(dotsWrap);
   root.append(foot);
 
-  // ── Petunjuk interaksi ────────────────────────────────────────────────────
-  const hint = document.createElement('p');
-  hint.className = 'spotlight-hint';
-  hint.textContent = 'Geser · Sentuh · Tombol panah';
-  root.append(hint);
+  // ── Petunjuk interaksi DIHAPUS ─────────────────────────────────────────────
+  // "Geser · Sentuh · Tombol panah" dibuang atas permintaan pemilik: terlalu
+  // menjelaskan hal yang sudah jelas. Carousel yang meluncur sendiri sudah
+  // memberi tahu bahwa ia bisa digeser — petunjuk tertulis justru membuat
+  // situs terasa seperti tutorial, bukan galeri.
+  //
+  // Tombol panah juga dihapus, jadi kalimat itu sudah tidak akurat lagi.
 
   // ── State ─────────────────────────────────────────────────────────────────
   let current = 0;
@@ -318,7 +322,7 @@ export function createSpotlightCarousel(items) {
   }
 
   /** Pindah ke indeks tertentu, dengan animasi mendarat (snap). */
-  function goTo(target, instant = false) {
+  function goTo(target, instant = false, kecepatanAwal = 0) {
     const n = items.length;
     // Selalu ambil jalur terpendek supaya gerakannya tidak "memutar jauh"
     const delta = shortestDelta(current, ((target % n) + n) % n);
@@ -331,52 +335,89 @@ export function createSpotlightCarousel(items) {
       return;
     }
 
-    // Animasi mendarat: dari -delta menuju 0, jadi kartu bergerak searah.
+    // ── SPRING PHYSICS, BUKAN DURASI ──────────────────────────────────────
+    // Setiap frame menghitung gaya pegas:
     //
-    // ── DURASI & EASING ───────────────────────────────────────────────────
-    // Sebelumnya 380ms easeOutCubic — terasa agak "kaku" untuk gerakan
-    // otomatis yang berulang. Dinaikkan ke 620ms dengan easeOutExpo: cepat di
-    // awal, melambat panjang di akhir. Efeknya kartu seperti "melayang" ke
-    // posisinya, bukan dipindahkan. Ini yang membuat auto-scroll enak dilihat
-    // berulang-ulang, bukan mengganggu.
+    //     F = -k·x - c·v
     //
-    // Durasi tetap dari token: 620ms = --motion-slow (bukan angka karangan).
-    const dur = 620;   // = --motion-slow
-    const ease = (t) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t)); // easeOutExpo
+    //   x = jarak dari target, v = kecepatan saat ini
+    //   k (stiffness) = 120 → seberapa kuat pegas menarik ke target
+    //   c (damping)   = 14  → seberapa cepat getaran mereda
+    //
+    // Nilai k=120, c=14 dari springs.gentle (skill motion-foundations:
+    // "cards, modals, panels landing softly").
+    //
+    // CATATAN PENTING — fisika pegas itu SCALE-INVARIANT: kalau x dikali
+    // konstanta, lintasannya sama persis, hanya skalanya yang ikut. Jadi
+    // satuan x (kartu vs piksel) TIDAK mempengaruhi bentuk kurva — overshoot
+    // selalu ~7% dari jarak tempuh, dan waktu mendarat selalu ~0,7 detik.
+    // (Sempat saya "konversi" nilainya, itu keliru dan membuat animasi 13×
+    // lebih lambat. Dibatalkan.)
+    const SPRING_K = 120;   // springs.gentle.stiffness
+    const SPRING_C = 14;    // springs.gentle.damping
+    let x = delta;          // jarak dari target, dalam satuan "kartu"
+    // Kecepatan awal: kalau kartu dilepas dari drag yang cepat, momentum itu
+    // dibawa masuk — kartu "melanjutkan" gerakannya lalu ditahan pegas.
+    // Inilah yang membuat lepas-drag terasa seperti melempar benda, bukan
+    // animasi yang dimulai dari nol.
+    let v = -kecepatanAwal;
 
     // ── TAHAN TAB-HIDDEN ──────────────────────────────────────────────────
     // Prinsip skill motion-advanced: "Infinite animations must pause when
     // document.visibilityState === 'hidden'." rAF memang otomatis pause saat
-    // tab disembunyikan, TAPI performance.now() tetap maju. Akibatnya saat
-    // tab dibuka lagi, t sudah > 1 dan kartu "melompat" ke posisi akhir —
-    // terlihat seperti glitch. Solusinya: catat waktu pause, lalu geser
-    // titik awal supaya durasi yang terlewat tidak dihitung.
-    let t0 = performance.now();
-    let jeda = 0;
-
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        jeda = performance.now();
-      } else if (jeda) {
-        // Tab kembali terlihat — geser titik awal sebanyak waktu yang hilang
-        t0 += performance.now() - jeda;
-        jeda = 0;
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility);
+    // tab disembunyikan, TAPI waktu tetap maju. Kalau tidak ditangani, saat
+    // tab dibuka lagi pegas "melompat" beberapa langkah sekaligus — terlihat
+    // seperti glitch. Solusinya: batasi dt maksimum 32ms (2 frame @60fps),
+    // jadi jeda sepanjang apa pun tidak pernah dihitung sebagai satu langkah
+    // raksasa.
+    let frameTerakhir = 0;
 
     function frame(now) {
-      const t = Math.min(1, (now - t0) / dur);
-      const p = ease(t);
-      // progress bergerak dari delta → 0 (kartu meluncur ke posisi baru)
-      render(delta * (1 - p));
-      if (t < 1) {
-        requestAnimationFrame(frame);
-      } else {
-        document.removeEventListener('visibilitychange', onVisibility);
+      if (!frameTerakhir) { frameTerakhir = now; requestAnimationFrame(frame); return; }
+      // Batasi dt — cegah lompatan setelah tab kembali dari background
+      const dt = Math.min((now - frameTerakhir) / 1000, 0.032);
+      frameTerakhir = now;
+
+      // Integrasi Euler: hitung gaya pegas, ubah ke percepatan, tambah ke
+      // kecepatan, lalu ke posisi. Urutan ini penting — kalau posisi dihitung
+      // sebelum kecepatan diperbarui, hasilnya kurang stabil.
+      const a = -SPRING_K * x - SPRING_C * v;
+      v += a * dt;
+      x += v * dt;
+
+      // ── TANDA `delta` DULU TERBALIK — INI PENYEBAB "LOMPATAN" ────────────
+      //
+      // render(p) menghitung: rel = shortestDelta(current, i) - p
+      // `current` SUDAH indeks baru saat frame pertama jalan.
+      //
+      // Untuk kartu i:
+      //   posisi sebelum animasi = sd(current_baru, i) + delta
+      //   posisi sesudah animasi = sd(current_baru, i)
+      //
+      // Jadi p harus bergerak dari +delta ke 0. Kalau p mulai dari delta:
+      //   rel = sd(current_baru, i) - delta = posisi_sebelum - 2·delta  ← SALAH
+      //
+      // Yang benar: mulai dari -delta, karena
+      //   rel = sd(current_baru, i) - (-delta) = sd(current_baru, i) + delta
+      //                                       = posisi_sebelum  ✓
+      //
+      // Jadi peta pegas → render harus dibalik tandanya: render(-x).
+      // (x bergerak dari delta ke 0; -x bergerak dari -delta ke 0.)
+      //
+      // Diukur di browser sebelum perbaikan: kartu melompat 356px dari posisi
+      // 0px ke -356px pada frame pertama. Itu yang terlihat seperti "lompatan",
+      // bukan soal kecepatan.
+      render(-x);
+
+      // Berhenti saat pegas benar-benar tenang: jarak < 0.001 kartu (≈0.18px)
+      // DAN kecepatan < 0.001 kartu/detik. Keduanya dicek — kalau hanya jarak,
+      // kartu bisa berhenti saat masih bergerak cepat melewati target.
+      if (Math.abs(x) < 0.001 && Math.abs(v) < 0.001) {
         render();
         syncInfo();
+        return;
       }
+      requestAnimationFrame(frame);
     }
     syncInfo();
     requestAnimationFrame(frame);
@@ -392,6 +433,12 @@ export function createSpotlightCarousel(items) {
   let rafPending = false;
   let pendingProgress = 0;
   let activePointerId = null;
+  // Kecepatan gesture (kartu/detik) — dihitung dari sampel terakhir, bukan
+  // rata-rata seluruh drag. Rata-rata akan membuat sentakan cepat di akhir
+  // terbaca sebagai gerakan lambat, padahal justru sentakan itu yang paling
+  // menunjukkan niat pengguna.
+  let kecepatanGesture = 0;
+  let sampelTerakhir = { t: 0, progress: 0 };
 
   const onDown = (e) => {
     if (e.button !== undefined && e.button !== 0) return; // hanya klik kiri
@@ -403,6 +450,8 @@ export function createSpotlightCarousel(items) {
     lockAxis = null;
     pendingProgress = 0;
     activePointerId = e.pointerId;
+    kecepatanGesture = 0;
+    sampelTerakhir = { t: performance.now(), progress: 0 };
     stage.classList.add('is-grabbing');
     try { stage.setPointerCapture?.(e.pointerId); } catch { /* abaikan */ }
   };
@@ -424,6 +473,19 @@ export function createSpotlightCarousel(items) {
 
     // progress = seberapa jauh digeser, dalam satuan "kartu"
     pendingProgress = -dx / ARC.stepX;
+
+    // ── Ukur kecepatan dari dua sampel terakhir ────────────────────────────
+    // Bukan rata-rata seluruh drag. Yang menentukan "niat" pengguna adalah
+    // gerakan pada saat MELEPAS, bukan gerakan di awal.
+    const now = performance.now();
+    const dtSampel = (now - sampelTerakhir.t) / 1000;
+    if (dtSampel > 0.008) { // minimal 8ms — di bawah itu noise, bukan gerakan
+      const dProgress = pendingProgress - sampelTerakhir.progress;
+      // Rata-rata berbobot: 70% sampel baru, 30% sebelumnya. Meredam lonjakan
+      // sesaat tanpa menghapus sentakan sungguhan.
+      kecepatanGesture = kecepatanGesture * 0.3 + (dProgress / dtSampel) * 0.7;
+      sampelTerakhir = { t: now, progress: pendingProgress };
+    }
 
     if (!rafPending) {
       rafPending = true;
@@ -449,9 +511,20 @@ export function createSpotlightCarousel(items) {
     // Ambang 1/2 (bukan 1/3) dipilih supaya drag pendek tidak tidak sengaja
     // memindah kartu — prinsip skill motion-advanced: "Swipe threshold must
     // be explicit."
+    //
+    // Aturan skill motion-advanced juga: "Never infer intent from velocity
+    // alone; combine offset + velocity checks." Jadi selain ambang jarak,
+    // kecepatan gesture dipakai — geseran pendek tapi CEPAT (sentakan) tetap
+    // memindah kartu, karena itu memang niat pengguna.
     const geser = Math.round(pendingProgress);
-    if (geser !== 0) goTo(current - geser);
-    else goTo(current, true);
+    const cepat = Math.abs(kecepatanGesture) > 0.6; // kartu/detik
+    if (geser !== 0 || cepat) {
+      // Arah dari geseran; kalau geseran 0 tapi cepat, pakai arah kecepatan
+      const arah = geser !== 0 ? geser : Math.sign(pendingProgress || kecepatanGesture);
+      goTo(current - arah, false, kecepatanGesture);
+    } else {
+      goTo(current, true);
+    }
   };
 
   stage.addEventListener('pointerdown', onDown);
@@ -495,8 +568,30 @@ export function createSpotlightCarousel(items) {
   //   - tab disembunyikan → berhenti
   //   - carousel di luar layar → berhenti
   //   - prefers-reduced-motion → tidak jalan sama sekali
-  const DRIFT_PX_PER_SEC = 13;   // ~1 kartu (178px) per 13,7 detik — pelan, tenang
-  const AUTO_RESUME_MS = 6000;   // jeda setelah kursor keluar, sebelum lanjut
+  // ── KECEPATAN ─────────────────────────────────────────────────────────────
+  // 38px/detik terlalu cepat (pemilik: "kayak lompatan"). 13px/detik terlalu
+  // pelan. 21px/detik ≈ 8,5 detik per kartu — cukup tenang untuk dilihat,
+  // cukup hidup supaya tidak terasa diam.
+  //
+  // Tidak ada jeda sama sekali — kecepatan konstan, tidak pernah berhenti
+  // sendiri. Itu yang membuatnya terasa "slip" seperti eskalator.
+  const DRIFT_PX_PER_SEC = 21;   // ≈1 kartu (178px) per 8,5 detik
+  const AUTO_RESUME_MS = 4000;   // jeda setelah kursor keluar, sebelum lanjut
+
+  // ── SPRING PHYSICS (dari skill motion-foundations) ────────────────────────
+  // Efek "jeli": saat kartu mendarat setelah drag/klik, posisinya TIDAK
+  // langsung berhenti — ada momentum yang mengikutinya, sedikit melewati
+  // target, lalu mengendap. Ini yang membuat gerakan terasa hidup seperti
+  // benda nyata, bukan animasi yang dipindahkan.
+  //
+  // Rumus: F = -k·x - c·v  (Hooke's law + peredam)
+  //   k (stiffness) — seberapa kuat pegas menarik ke target
+  //   c (damping)   — seberapa cepat getaran mereda
+  //
+  // Nilai dari springs.gentle di skill: k=120, c=14 — preset untuk "kartu
+  // yang mendarat dengan lembut". Bukan angka karangan.
+  const SPRING_K = 120;   // springs.gentle.stiffness
+  const SPRING_C = 14;    // springs.gentle.damping
 
   let drift = 0;                 // posisi pecahan antara kartu (0..1)
   let driftAktif = !prefersReduced();
@@ -548,7 +643,6 @@ export function createSpotlightCarousel(items) {
   // setelah mereka menggeser, itu terasa seperti carousel "merebut" kendali.
   stage.addEventListener('pointerdown', () => driftStop(true));
   dotsWrap.addEventListener('click', () => driftStop(true));
-  nav.addEventListener('click', () => driftStop(true));
   root.addEventListener('focusin', () => driftStop(true));
 
   // Kursor masuk → berhenti. Keluar → lanjut setelah jeda.

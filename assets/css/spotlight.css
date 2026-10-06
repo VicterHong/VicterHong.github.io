@@ -265,7 +265,20 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--card-accent, #f5c542) 80%, white);
+  /* Label kartu BELAKANG disembunyikan — kritik: "label di kartu samping
+     tumpang tindih dan tak terbaca efek skew+redup, jadi noise bukan
+     informasi."
+
+     Kartu belakang sudah punya opacity rendah + diputar 21°, jadi teksnya
+     memang tidak mungkin terbaca — ia hanya menambah bintik yang mengganggu
+     tanpa memberi informasi apa pun. Judul proyeknya tetap muncul di bawah
+     carousel saat kartu itu jadi depan.
+
+     Hanya kartu DEPAN yang menampilkan label. */
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
 }
+.spotlight-card.is-front .spotlight-card-label { opacity: 1; }
 
 .spotlight-card-title {
   margin: 0;
@@ -288,7 +301,11 @@
    terpusat, yang justru memberi ruang lebih lega untuk judul. */
 .spotlight-info {
   max-width: 44rem;
-  margin: 2.75rem auto 0;
+  /* Dirapatkan dari 2.75rem (44px) ke 1.5rem (24px) — diukur di browser:
+     jarak kartu-depan ke judul 74px, terasa longgar dan memutus hubungan
+     antara gambar dan namanya. Sekarang ~54px, masih ada napas tapi jelas
+     milik kartu yang sama. */
+  margin: 1.5rem auto 0;
   padding: 0 1.5rem;
   text-align: center;
 }
@@ -316,22 +333,27 @@
   color: var(--text-dim);
 }
 
-/* ── Kaki: dots + panah ─────────────────────────────────────────────────── */
+/* ── Kaki: dots saja ─────────────────────────────────────────────────────────
+   Tombol panah dihapus, jadi tidak ada lagi dua elemen yang perlu
+   disejajarkan kiri-kanan. Dots sekarang di tengah — lebih tenang, dan
+   sejajar dengan judul proyek di atasnya. */
 .spotlight-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
+  justify-content: center;
   max-width: 44rem;
-  margin: 2rem auto 0;
+  margin: 1.75rem auto 0;
   padding: 0 1.5rem;
 }
 
 .spotlight-dots { display: flex; align-items: center; gap: 0.5rem; }
 
 .spotlight-dot {
-  width: 0.5rem;
-  height: 0.5rem;
+  /* Dinaikkan dari 0.5rem (8px) ke 0.625rem (10px) — kritik: "dot kontras
+     rendah, mudah terlewat". */
+  position: relative;      /* jangkar untuk ::before area sentuh */
+  width: 0.625rem;
+  height: 0.625rem;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -340,46 +362,38 @@
   transition: width 0.3s var(--ease), background 0.3s var(--ease);
 }
 .spotlight-dot:hover { background: var(--text-faint); }
+/* ── AREA SENTUH DIPERLUAS ───────────────────────────────────────────────────
+   Dot 10px terlalu kecil untuk jari (standar minimum 24px). Solusinya pseudo-
+   element transparan yang memperluas area klik TANPA mengubah tampilan.
+
+   Dipakai ::before, BUKAN outline atau padding: outline bertabrakan dengan
+   focus-visible, dan padding akan memperbesar dot yang terlihat. */
+.spotlight-dot::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 999px;
+}
 .spotlight-dot.is-active {
   width: 1.5rem;
   background: var(--accent);
 }
 .spotlight-dot:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 3px; }
 
-.spotlight-nav { display: flex; gap: 0.5rem; }
+/* ── Tombol panah & petunjuk DIHAPUS ─────────────────────────────────────────
+   Atas permintaan pemilik: "tombolnya juga dihilangkan saja biar rapi" dan
+   "jangan kasih petunjuk biar profesional".
 
-.spotlight-arrow {
-  /* 2.75rem = 44px — standar minimum target sentuh (WCAG 2.5.5 / Apple HIG).
-     Sebelumnya 2.4rem = 38.4px: terlalu kecil untuk jari, terukur di HP
-     390x844 lewat uji otomasi. Di desktop selisihnya tidak terasa, di layar
-     sentuh terasa sekali. */
-  width: 2.75rem;
-  height: 2.75rem;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: border-color 0.25s var(--ease), color 0.25s var(--ease), background 0.25s var(--ease);
-}
-.spotlight-arrow:hover {
-  border-color: var(--accent-line);
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-.spotlight-arrow:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 3px; }
+   Alasannya: dengan auto-scroll yang berjalan sendiri plus drag dan dots,
+   tombol panah jadi kontrol ketiga yang tidak perlu — galeri komersial
+   (Apple, Stripe, Linear) umumnya hanya pakai dots. Petunjuk tertulis juga
+   membuat situs terasa seperti tutorial.
 
-.spotlight-hint {
-  margin: 2rem 0 0;
-  text-align: center;
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
+   Aturan .spotlight-nav, .spotlight-arrow, dan .spotlight-hint dihapus
+   seluruhnya — bukan dikosongkan — supaya tidak menyisakan kode mati.
+
+   Navigasi yang TETAP ada: drag/swipe, dots, dan tombol panah keyboard
+   (← →) yang tidak terlihat tapi berfungsi penuh. */
 
 /* ── Layar kecil ────────────────────────────────────────────────────────────
    Kartu diperkecil supaya busur tetap terbaca tanpa memenuhi layar. */
@@ -392,8 +406,9 @@
   /* Info sudah satu kolom terpusat di CSS dasar — tidak perlu override
      grid lagi. Baris .spotlight-counter dihapus bersama elemennya. */
   .spotlight-front-title { font-size: 1.35rem; }
-  .spotlight-foot { flex-direction: column-reverse; gap: 1rem; }
-  }
+  /* .spotlight-foot tidak perlu override — sudah satu baris terpusat di
+     CSS dasar, dan dots tetap muat di layar sempit. */
+}
 
 /* ── Gerak diminimalkan ─────────────────────────────────────────────────────
    Kartu tetap bisa digeser (itu gerakan yang diminta pengguna), tapi animasi
@@ -401,8 +416,8 @@
    `driftAktif = !prefersReduced()`; di sini hanya transisi dekoratif. */
 @media (prefers-reduced-motion: reduce) {
   .spotlight-card,
-  .spotlight-dot,
-  .spotlight-arrow { transition: none; }
+  .spotlight-dot { transition: none; }
+  /* .spotlight-arrow dihapus dari daftar — elemennya sudah tidak ada. */
   /* Kartu belakang tidak diredamkan transisinya — opacity-nya ditulis JS
      setiap frame saat drift, dan di mode reduced-motion drift tidak jalan,
      jadi nilainya statis. Tidak ada yang perlu dimatikan. */
