@@ -1825,6 +1825,20 @@ export const routes = [
 
   {
     method: 'GET',
+    pattern: '/api/projects',
+    handler: safe(async (req, res) => {
+      // PUBLIK — daftar nama proyek. Dipakai panel admin untuk mengisi saran
+      // slug saat mengunggah gambar, supaya admin tidak salah ketik dan
+      // gambar tidak tersimpan dengan slug yang tidak cocok proyek mana pun.
+      //
+      // Aman dilihat publik: ini hanya nama proyek yang sudah tampil di
+      // halaman depan. Tidak ada data internal.
+      sendJson(res, 200, { ok: true, projects: listProjects() });
+    }),
+  },
+
+  {
+    method: 'GET',
     pattern: '/api/media/manifest',
     handler: safe(async (req, res) => {
       // PUBLIK — frontend memanggil ini tanpa kunci apa pun.
@@ -1896,8 +1910,15 @@ export const routes = [
         urutan: Number.isFinite(urutan) ? urutan : null,
       });
 
+      // `action` + `outcome` adalah kontrak recordEvent() — bukan `kind`.
+      // Memakai nama field yang salah membuat INSERT gagal dengan
+      // "Provided value cannot be bound to SQLite parameter 3", dan
+      // SELURUH permintaan ikut gagal walau gambarnya sudah tersimpan di R2.
+      // Pelajaran: peristiwa audit tidak boleh bisa menggagalkan operasi
+      // utamanya — kalau perlu, bungkus dengan try/catch di masa depan.
       recordEvent({
-        kind: 'media_unggah',
+        action: 'media_unggah',
+        outcome: 'berhasil',
         detail: `${slug} → ${hasil.entri.bytes} byte (hemat ${hasil.hemat}%)`,
         ip: clientIp(req),
       });
@@ -1918,7 +1939,8 @@ export const routes = [
       if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
       const hasil = await hapusGambar(params.slug);
       recordEvent({
-        kind: 'media_hapus',
+        action: 'media_hapus',
+        outcome: 'berhasil',
         detail: params.slug,
         ip: clientIp(req),
       });

@@ -827,6 +827,91 @@ td, th { word-break: break-word; }
 /* Media query lama dihapus — digantikan oleh blok "TABEL RESPONSIF" di atas,
    yang menangani mode kartu + scroll. Menyisakan dua aturan di sini akan
    menimpa (override) aturan mode kartu karena urutan cascade. */
+
+/* ══ MEDIA: GALERI PROYEK ══════════════════════════════════════════════════
+   Tata letak formulir unggah memakai grid auto-fit — kolom yang tidak muat
+   otomatis turun ke baris berikutnya, jadi tidak perlu media query terpisah
+   untuk HP. */
+.media-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.9rem 1.1rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+.media-field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.media-field > span {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.media-field input {
+  padding: 0.5rem 0.65rem; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+  font-size: 0.84rem; font-family: inherit; min-width: 0;
+}
+.media-field input[type="file"] {
+  padding: 0.45rem 0.5rem; border-style: dashed;
+  color: var(--muted); font-size: 0.78rem; cursor: pointer;
+}
+.media-field input[type="file"]:hover { border-color: var(--accent); }
+.media-field input:focus-visible {
+  outline: 2px solid var(--accent-line, var(--accent)); outline-offset: 1px;
+}
+.media-field small { font-size: 0.7rem; line-height: 1.45; color: var(--muted); opacity: 0.72; }
+.media-field--file { grid-column: 1 / -1; }
+
+.media-actions {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+.media-status { font-size: 0.78rem; color: var(--muted); min-height: 1.1em; }
+.media-status.ok { color: var(--ok); }
+.media-status.err { color: var(--err); }
+.media-count { font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Kisi gambar tersimpan. minmax 150px: pratinjau tetap terbaca di HP sempit
+   tanpa media query tambahan. */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.85rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+.media-item {
+  position: relative; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--surface-2);
+  aspect-ratio: 3 / 4;
+}
+/* LQIP sebagai latar: kartu langsung berwarna sebelum gambar asli datang.
+   Pratinjau ini sama persis dengan yang dilihat pengunjung di situs. */
+.media-item .thumb {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.media-item .meta {
+  position: absolute; inset: auto 0 0 0;
+  padding: 0.5rem 0.6rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%);
+  font-size: 0.72rem; line-height: 1.35; color: #fff;
+}
+.media-item .meta strong { display: block; font-weight: 600; }
+.media-item .meta span { color: rgba(255,255,255,0.62); font-size: 0.66rem; }
+.media-item .hapus {
+  position: absolute; top: 0.4rem; right: 0.4rem;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 0; cursor: pointer; font-size: 0.9rem; line-height: 1;
+  background: rgba(0,0,0,0.62); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.18s ease;
+}
+.media-item:hover .hapus, .media-item:focus-within .hapus { opacity: 1; }
+.media-item .hapus:hover { background: var(--err); }
+/* Di perangkat sentuh tidak ada hover — tombol hapus selalu tampil. */
+@media (hover: none) { .media-item .hapus { opacity: 1; } }
+.media-empty {
+  grid-column: 1 / -1; padding: 2rem 1rem; text-align: center;
+  color: var(--muted); font-size: 0.82rem; opacity: 0.72;
+}
 </style>
 </head>
 <body>
@@ -864,6 +949,7 @@ td, th { word-break: break-word; }
     <button class="tab" data-tab="grow">Eksperimen</button>
     <button class="tab" data-tab="branches">Branch</button>
     <button class="tab" data-tab="publish">Publish</button>
+    <button class="tab" data-tab="media">Media</button>
   </div>
 
   <main>
@@ -977,6 +1063,66 @@ td, th { word-break: break-word; }
           </label>
         </div>
         <div id="cmsItems"></div>
+      </div>
+    </div>
+
+    <!-- ── MEDIA: GALERI PROYEK ──────────────────────────────────────────────
+         Satu-satunya tempat gambar galeri bisa masuk. Frontend tidak punya
+         jalur tulis sama sekali — ia hanya membaca manifest.
+
+         Alur: pilih berkas → konversi WebP di server → simpan ke R2 →
+         manifest diperbarui → galeri di situs ikut berubah. -->
+    <div class="panel" id="panel-media">
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Unggah gambar proyek</h2>
+          <div class="spacer"></div>
+          <button class="btn-sm" id="mediaRefreshBtn">↻ Muat ulang</button>
+        </div>
+
+        <div class="media-form">
+          <label class="media-field">
+            <span>Slug proyek</span>
+            <input id="mediaSlug" list="mediaSlugList" placeholder="MINA" autocomplete="off">
+            <datalist id="mediaSlugList"></datalist>
+            <small>Nama berkas di R2 diturunkan dari sini. Mengunggah ulang
+              dengan slug sama akan MENGGANTI gambar lama.</small>
+          </label>
+
+          <label class="media-field">
+            <span>Label (opsional)</span>
+            <input id="mediaLabel" placeholder="MINA Terminal" autocomplete="off">
+            <small>Nama yang tampil di daftar ini. Kosongkan untuk memakai slug.</small>
+          </label>
+
+          <label class="media-field">
+            <span>Urutan (opsional)</span>
+            <input id="mediaUrutan" type="number" min="1" max="99" placeholder="1" autocomplete="off">
+            <small>Angka kecil tampil lebih dulu. Berguna untuk mengatur
+              komposisi galeri.</small>
+          </label>
+
+          <label class="media-field media-field--file">
+            <span>Berkas gambar</span>
+            <input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp,image/avif">
+            <small>JPG, PNG, WebP, atau AVIF · maksimum 8 MB. Dikonversi ke WebP
+              otomatis — tidak perlu dioptimalkan dulu.</small>
+          </label>
+
+          <div class="media-actions">
+            <button class="btn-sm btn-primary" id="mediaUploadBtn">Unggah</button>
+            <span class="media-status" id="mediaStatus"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:1rem">
+        <div class="table-head">
+          <h2>Gambar tersimpan</h2>
+          <div class="spacer"></div>
+          <span class="media-count" id="mediaCount">—</span>
+        </div>
+        <div id="mediaGrid" class="media-grid"></div>
       </div>
     </div>
 
@@ -1246,6 +1392,25 @@ function toast(message, kind = 'ok') {
 const fmtDate = (ms) => ms ? new Date(Number(ms)).toLocaleString('id-ID', {
   day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
 }) : '—';
+
+/**
+ * Escape untuk nilai ATRIBUT (href, src, data-*, style).
+ *
+ * escapeHtml() cukup untuk isi teks, tapi TIDAK cukup untuk atribut: nilai
+ * yang mengandung tanda kutip akan menutup atributnya lebih awal dan sisa
+ * teksnya bisa jadi atribut baru. Untuk src dan style yang nilainya berasal
+ * dari nama berkas, itu risiko nyata.
+ *
+ * Fungsi ini meng-escape karakter yang bisa keluar dari konteks atribut,
+ * termasuk backtick (beberapa parser lama memperlakukannya seperti kutip).
+ */
+const escapeAttr = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
+  .replace(/`/g, '&#96;');
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -1876,7 +2041,8 @@ async function loadAll() {
     ['eksperimen', loadGrow],
     ['branch', loadBranches],
     ['rilis', loadReleases],
-  ];
+    ['media', loadMedia],
+    ];
 
   const failed = [];
   await Promise.all(loaders.map(async ([name, fn]) => {
@@ -1892,6 +2058,162 @@ async function loadAll() {
   }
   return { failed };
 }
+
+// ══ MEDIA (GALERI PROYEK) ═════════════════════════════════════════
+//
+// Panel ini adalah SATU-SATUNYA jalur gambar masuk ke galeri situs.
+// Alurnya: pilih berkas → kirim sebagai body biner → server konversi ke
+// WebP + buat LQIP → simpan ke R2 → manifest diperbarui → galeri ikut
+// berubah saat halaman dimuat ulang.
+//
+// KENAPA BODY BINER, BUKAN FormData/multipart:
+//   Multipart butuh parser di server (dependensi tambahan) dan membungkus
+//   berkas dengan boundary + header bagian. Mengirim byte mentah dengan
+//   metadata di query string jauh lebih sederhana — dan untuk satu berkas
+//   per permintaan, tidak ada yang hilang.
+
+async function loadMedia() {
+  const host = $('#mediaGrid');
+  const countEl = $('#mediaCount');
+  if (!host) return;
+
+  skeletonIfEmpty(host, '<div class="media-item"></div>'.repeat(4));
+
+  let data;
+  try {
+    data = await api('/api/admin/media');
+  } catch (err) {
+    clearSkeleton(host);
+    host.innerHTML = '<div class="media-empty">Gagal memuat daftar gambar.</div>';
+    return;
+  }
+  clearSkeleton(host);
+
+  if (!data.aktif) {
+    countEl.textContent = 'penyimpanan nonaktif';
+    host.innerHTML = '<div class="media-empty">Penyimpanan media belum dikonfigurasi '
+      + '(CLOUDFLARE_API_TOKEN kosong di service.env). Galeri memakai gambar bawaan.</div>';
+    return;
+  }
+
+  const daftar = data.images ?? [];
+  countEl.textContent = `${daftar.length} gambar · ${data.updatedAt ? new Date(data.updatedAt).toLocaleString('id-ID') : 'belum ada'}`;
+
+  if (!daftar.length) {
+    host.innerHTML = '<div class="media-empty">Belum ada gambar. Unggah yang pertama di atas.</div>';
+    return;
+  }
+
+  host.innerHTML = daftar.map((g) => `
+    <div class="media-item" data-slug="${escapeAttr(g.slug)}">
+      <img class="thumb" src="${escapeAttr(g.key ? '/' + 'media/' + g.key : '')}"
+           alt="" loading="lazy" decoding="async"
+           ${g.lqip ? `style="background-image:url('${escapeAttr(g.lqip)}');background-size:cover;background-position:center"` : ''}>
+      <button class="hapus" data-slug="${escapeAttr(g.slug)}" title="Hapus ${escapeAttr(g.slug)}" aria-label="Hapus ${escapeAttr(g.slug)}">✕</button>
+      <div class="meta">
+        <strong>${escapeHtml(g.label ?? g.slug)}</strong>
+        <span>${(g.bytes / 1024).toFixed(0)} KB · ${g.lebar}×${g.tinggi}${g.urutan ? ' · #' + g.urutan : ''}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Delegasi: satu listener untuk semua tombol hapus. Lebih hemat daripada
+  // memasang listener di tiap kartu (dan otomatis bekerja untuk kartu baru).
+  host.querySelectorAll('.hapus').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const slug = btn.dataset.slug;
+      if (!confirm(`Hapus gambar untuk "${slug}"?\n\nGaleri akan kembali memakai gambar bawaan untuk proyek ini.`)) return;
+      btn.disabled = true;
+      try {
+        await fetch(`/api/admin/media/${encodeURIComponent(slug)}`, {
+          method: 'DELETE',
+          headers: { 'x-admin-key': adminKey },
+        });
+        toast('Gambar dihapus');
+        loadMedia();
+      } catch {
+        toast('Gagal menghapus', 'err');
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+/** Isi datalist slug dari daftar proyek supaya admin tidak salah ketik. */
+async function isiSlugMedia() {
+  const dl = $('#mediaSlugList');
+  if (!dl) return;
+  try {
+    const res = await fetch('/api/projects', { cache: 'no-store' });
+    const data = await res.json();
+    const proyek = data.projects ?? data.items ?? [];
+    dl.innerHTML = proyek
+      .map((p) => `<option value="${escapeAttr(p.name ?? p.slug ?? '')}"></option>`)
+      .join('');
+  } catch { /* daftar saran opsional — jangan gagalkan panel karenanya */ }
+}
+
+async function unggahMedia() {
+  const slug = $('#mediaSlug').value.trim();
+  const label = $('#mediaLabel').value.trim();
+  const urutan = $('#mediaUrutan').value.trim();
+  const file = $('#mediaFile').files?.[0];
+  const status = $('#mediaStatus');
+  const btn = $('#mediaUploadBtn');
+
+  const setStatus = (teks, jenis = '') => {
+    status.textContent = teks;
+    status.className = 'media-status' + (jenis ? ' ' + jenis : '');
+  };
+
+  if (!slug) return setStatus('Slug wajib diisi.', 'err');
+  if (!file) return setStatus('Pilih berkas gambar dulu.', 'err');
+  if (file.size > 8 * 1024 * 1024) {
+    return setStatus(`Berkas ${(file.size / 1024 / 1024).toFixed(1)} MB — maksimum 8 MB.`, 'err');
+  }
+
+  btn.disabled = true;
+  setStatus(`Mengunggah ${(file.size / 1024).toFixed(0)} KB…`);
+
+  try {
+    const qs = new URLSearchParams({ slug });
+    if (label) qs.set('label', label);
+    if (urutan) qs.set('urutan', urutan);
+
+    const res = await fetch(`/api/admin/media?${qs}`, {
+      method: 'POST',
+      headers: {
+        'x-admin-key': adminKey,
+        // Content-Type dari berkasnya sendiri — server memakainya untuk
+        // menyaring cepat sebelum sharp memeriksa isinya.
+        'content-type': file.type || 'application/octet-stream',
+      },
+      body: file,
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+
+    setStatus(
+      `Berhasil · ${(data.entri.bytes / 1024).toFixed(0)} KB WebP`
+      + (data.hematPersen ? ` (hemat ${data.hematPersen}%)` : '')
+      + ` · total ${data.totalGambar} gambar`,
+      'ok',
+    );
+    $('#mediaFile').value = '';
+    toast('Gambar diunggah');
+    loadMedia();
+  } catch (err) {
+    setStatus(`Gagal: ${err.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+$('#mediaRefreshBtn')?.addEventListener('click', loadMedia);
+$('#mediaUploadBtn')?.addEventListener('click', unggahMedia);
 
 // ══ KONTEN (CMS) ═════════════════════════════════════════════════
 

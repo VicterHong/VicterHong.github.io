@@ -1,40 +1,22 @@
-# ── Cloudflare Pages: proxy API ke Worker ────────────────────────────────────
+# ── Cloudflare Pages: aturan redirect ────────────────────────────────────────
 #
-# MASALAH YANG DIPECAHKAN
+# CATATAN PENTING — KENAPA TIDAK ADA PROXY /api DI SINI
 #
-# Situs disajikan dari portfolio-victer.pages.dev (Cloudflare Pages), sementara
-# endpoint /api hanya ada di Worker (portfolio-victer.victerphanjaya.workers.dev).
-# Pages TIDAK otomatis mem-proxy /api — terukur:
+# Percobaan pertama menaruh ini:
+#     /api/*   https://portfolio-victer.victerphanjaya.workers.dev/api/:splat  200
+#     /media/* https://portfolio-victer.victerphanjaya.workers.dev/media/:splat  200
 #
-#   GET https://portfolio-victer.pages.dev/api/media/manifest        → 404
-#   GET https://portfolio-victer.victerphanjaya.workers.dev/api/... → 200
+# Itu TIDAK BEKERJA, dan dokumentasi Cloudflare menjelaskan sebabnya:
 #
-# Akibatnya frontend yang memanggil `/api/media/manifest` (relatif) selalu
-# gagal, dan galeri jatuh ke gambar bawaan.
+#     "Proxying will only support relative URLs on your site.
+#      You cannot proxy external domains."
+#     — https://developers.cloudflare.com/pages/configuration/redirects/
 #
-# ── KENAPA PROXY, BUKAN ALAMAT ABSOLUT DI JAVASCRIPT ────────────────────────
-# Mengarahkan fetch langsung ke workers.dev dari halaman pages.dev berarti
-# permintaan LINTAS ORIGIN. Itu butuh:
-#   - CORS yang benar di setiap respons (termasuk preflight OPTIONS)
-#   - Cookie sesi dengan SameSite=None + Secure
-#   - Dua kali DNS + TLS handshake (satu untuk halaman, satu untuk API)
+# Status 200 di _redirects hanya bisa me-rewrite ke path RELATIF di situs yang
+# sama. Domain eksternal tidak bisa. Permintaannya tetap 404.
 #
-# Dengan proxy, semuanya SAMA ORIGIN dari sudut pandang browser. Tidak ada
-# preflight, tidak ada masalah cookie, dan tidak ada koneksi tambahan.
-# Ini juga cara kerjanya di produksi nanti saat domain sendiri sudah aktif:
-# cukup ganti satu baris di bawah, tidak ada kode yang perlu diubah.
+# SOLUSI YANG DIPAKAI: Pages Function di functions/[[path]].js — ia berjalan
+# di edge dan BOLEH fetch() ke domain mana pun. Lihat berkas itu untuk detail.
 #
-# ── FORMAT ───────────────────────────────────────────────────────────────────
-# Cloudflare Pages _redirects: `dari  ke  status`
-# Status 200 = PROXY (bukan redirect) — browser tidak tahu ada lompatan,
-# URL di address bar tetap sama. Ini yang diinginkan.
-
-/api/*  https://portfolio-victer.victerphanjaya.workers.dev/api/:splat  200
-
-# ── GAMBAR DARI R2 ───────────────────────────────────────────────────────────
-# Sama alasannya: /media/* hanya ada di Worker (R2 tidak punya public URL).
-# Tanpa baris ini, gambar galeri 404 di pages.dev.
-#
-# Catatan: saat domain sendiri sudah aktif dan Worker Route dipasang,
-# dua baris ini bisa dihapus — Worker akan menangani keduanya langsung.
-/media/*  https://portfolio-victer.victerphanjaya.workers.dev/media/:splat  200
+# Berkas ini sengaja tetap ada untuk aturan redirect internal di masa depan
+# (mis. /proyek → /home#proyek). Selama kosong, tidak ada efek samping.
