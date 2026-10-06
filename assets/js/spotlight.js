@@ -153,9 +153,45 @@ export function createSpotlightCarousel(items) {
     // di kartu dan di bawahnya). Spesifikasi aslinya pun begitu — "its title,
     // rating and dots staying synced to the front card" — judul tinggal di
     // bawah, kartu cukup menampilkan karyanya.
+    // ── ELEMEN MEDIA SELALU DIBUAT ──────────────────────────────────────────
+    // Versi lama membungkus pembuatan media dengan `if (item.image)` — jadi
+    // kartu tanpa gambar TIDAK PUNYA elemen media sama sekali, dan tidak bisa
+    // menampilkan holding state.
+    //
+    // Sekarang elemennya selalu dibuat. Yang berbeda hanya isinya:
+    //   ada gambar  → <img> + skeleton + LQIP
+    //   tanpa gambar → holding state (monogram + gradien aksen)
+    //
+    // Ini juga yang membuat live update mungkin: saat admin mengunggah gambar
+    // untuk proyek yang tadinya kosong, elemennya sudah ada dan siap diisi.
+    const media = document.createElement('div');
+    media.className = 'spotlight-card-media';
+    media.setAttribute('aria-hidden', 'true');
+
+    // Monogram: dua huruf pertama kata bermakna dari judul proyek.
+    // Dipakai di DUA tempat — holding state dan keadaan gagal muat.
+    //
+    // Contoh: "MINA" → "MI" · "Spareparts Inventory System" → "SI"
+    // Kata yang dilewati: "dan", "the", "of" — supaya monogram tidak
+    // jadi "DA" hanya karena judulnya dimulai kata sambung.
+    const monogram = (() => {
+      const kata = String(item.title ?? '')
+        .split(/\s+/)
+        .filter((w) => w.length > 2 && !/^(dan|the|of|untuk|dengan)$/i.test(w));
+      if (kata.length >= 2) return (kata[0][0] + kata[1][0]).toUpperCase();
+      if (kata.length === 1) return kata[0].slice(0, 2).toUpperCase();
+      return String(item.title ?? '?').slice(0, 2).toUpperCase();
+    })();
+    media.dataset.monogram = monogram;
+
+    // ── DUA JALUR: ADA GAMBAR ATAU HOLDING STATE ───────────────────────────
+    // Kalau proyek ini belum punya gambar di manifest, kartu TIDAK memakai
+    // gambar contoh — ia tampil sebagai holding state yang disengaja.
+    //
+    // Alasannya: gambar contoh di kartu proyek itu menyesatkan. Pengunjung
+    // melihat gambar yang tidak mewakili apa pun. Holding state jujur:
+    // "gambar menyusul" — dan itu justru terlihat rapi, bukan rusak.
     if (item.image) {
-      const media = document.createElement('div');
-      media.className = 'spotlight-card-media';
       const img = document.createElement('img');
       img.alt = '';
       // alt kosong disengaja: gambar dekoratif, judul proyek ada di bawah
@@ -171,41 +207,17 @@ export function createSpotlightCarousel(items) {
       // selesai dimuat — browser sudah tahu ruang yang dibutuhkan.
       img.width = 280;
       img.height = 368;
-      media.setAttribute('aria-hidden', 'true');
-      // Monogram: dua huruf pertama kata bermakna dari judul proyek.
-      // Dipakai di DUA tempat — holding state dan keadaan gagal muat.
-      //
-      // Contoh: "MINA" → "MI" · "Spareparts Inventory System" → "SI"
-      // Kata yang dilewati: "dan", "the", "of" — supaya monogram tidak
-      // jadi "DA" hanya karena judulnya dimulai kata sambung.
-      const monogram = (() => {
-        const kata = String(item.title ?? '')
-          .split(/\s+/)
-          .filter((w) => w.length > 2 && !/^(dan|the|of|untuk|dengan)$/i.test(w));
-        if (kata.length >= 2) return (kata[0][0] + kata[1][0]).toUpperCase();
-        if (kata.length === 1) return kata[0].slice(0, 2).toUpperCase();
-        return String(item.title ?? '?').slice(0, 2).toUpperCase();
-      })();
-      media.dataset.monogram = monogram;
       media.append(img);
-      card.append(media);
 
-      // ── DUA JALUR: ADA GAMBAR ATAU HOLDING STATE ─────────────────────────
-      // Kalau proyek ini belum punya gambar di manifest, kartu TIDAK memakai
-      // gambar contoh — ia tampil sebagai holding state yang disengaja.
-      //
-      // Alasannya: gambar contoh di kartu proyek itu menyesatkan. Pengunjung
-      // melihat gambar yang tidak mewakili apa pun. Holding state jujur:
-      // "gambar menyusul" — dan itu justru terlihat rapi, bukan rusak.
-      if (item.image) {
-        // Pemasangan gambar (skeleton, LQIP, gagal-muat) diurus media-loader —
-        // satu tempat untuk semua logika pemuatan, supaya carousel tidak
-        // perlu tahu soal manifest atau LQIP sama sekali.
-        pasangGambar(img, { url: item.image, lqip: item.lqip ?? null });
-      } else {
-        pasangHolding(media, { monogram });
-      }
+      // Pemasangan gambar (skeleton, LQIP, gagal-muat) diurus media-loader —
+      // satu tempat untuk semua logika pemuatan, supaya carousel tidak
+      // perlu tahu soal manifest atau LQIP sama sekali.
+      pasangGambar(img, { url: item.image, lqip: item.lqip ?? null });
+    } else {
+      pasangHolding(media, { monogram });
     }
+
+    card.append(media);
 
     // Nomor urut DIHAPUS — permintaan pemilik: "angkanya dihilangkan".
     // Angka 01/02/03 di tiap kartu terbaca sebagai hiasan, bukan informasi:
@@ -220,14 +232,6 @@ export function createSpotlightCarousel(items) {
     label.textContent = item.label;
     body.append(label);
 
-    // ── CADANGAN KALAU GAMBAR GAGAL DIMUAT ───────────────────────────────────
-    // Kartu murni visual jadi kosong kalau gambarnya tidak ada. Jaringan
-    // lambat, berkas terhapus, atau CDN bermasalah → kartu jadi kotak hitam
-    // tanpa identitas. Jadi kalau gambar gagal, kartu MENAMPILKAN JUDUL
-    // sebagai gantinya.
-    //
-    // Dipasang lewat event 'error', bukan ditebak di awal: saat render,
-    // gambar belum selesai dimuat, jadi statusnya belum diketahui.
     // ── CADANGAN KALAU GAMBAR GAGAL DIMUAT ──────────────────────────────────
     // Versi lama MENGHAPUS elemen media dan menggantinya dengan judul teks.
     // Itu membuat kartu kehilangan bentuknya — tinggi kartu berubah, deretan
