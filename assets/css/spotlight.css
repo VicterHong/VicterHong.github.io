@@ -69,7 +69,9 @@
 /* ── Panggung ───────────────────────────────────────────────────────────── */
 .spotlight-stage {
   position: relative;
-  height: 25rem;
+  /* Stage diperbesar dari 25rem ke 28rem — kartu 23rem + ruang untuk
+     bayangan jatuh dan skala tetangga yang mengecil. */
+  height: 28rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -125,8 +127,11 @@
    diposisikan lewat transform — yang berubah hanya track punya kotak nyata. */
 .spotlight-track {
   position: relative;
-  width: 15.5rem;
-  height: 20.5rem;
+  /* Kartu diperbesar dari 15.5rem (248px) ke 17.5rem (280px) — pola center
+     mode membuat hanya kartu DEPAN yang tampil penuh, jadi kartu aktif bisa
+     lebih besar tanpa membuat deretannya sesak. */
+  width: 17.5rem;
+  height: 23rem;
   transform-style: preserve-3d;
 }
 
@@ -134,11 +139,11 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 15.5rem;
-  height: 20.5rem;
+  width: 17.5rem;
+  height: 23rem;
   /* Kartu dipusatkan pada titik tengah track. Karena track kini berukuran
      sama dengan kartu, margin-nya setengah dari ukuran kartu itu sendiri. */
-  margin: -10.25rem 0 0 -7.75rem;
+  margin: -11.5rem 0 0 -8.75rem;
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -396,11 +401,14 @@
    (← →) yang tidak terlihat tapi berfungsi penuh. */
 
 /* ── Layar kecil ────────────────────────────────────────────────────────────
-   Kartu diperkecil supaya busur tetap terbaca tanpa memenuhi layar. */
+   Kartu diperkecil supaya deretan tetap terbaca tanpa memenuhi layar.
+   Karena pola center-mode hanya menampilkan kartu depan penuh, kartu di HP
+   bisa cukup besar — 13.5rem (216px) muat di layar 390px dengan tetangga
+   yang mengintip di kedua sisi. */
 @media (max-width: 640px) {
   .spotlight { padding: 3.5rem 0 3rem; }
-  .spotlight-stage { height: 21rem; }
-  .spotlight-card { width: 12.5rem; height: 17rem; margin: -8.5rem 0 0 -6.25rem; }
+  .spotlight-stage { height: 24rem; }
+  .spotlight-card { width: 13.5rem; height: 18rem; margin: -9rem 0 0 -6.75rem; }
   .spotlight-card-title { font-size: 1.1rem; }
   .spotlight-card-meta { font-size: 0.74rem; }
   /* Info sudah satu kolom terpusat di CSS dasar — tidak perlu override

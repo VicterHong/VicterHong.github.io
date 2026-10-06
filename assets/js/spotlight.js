@@ -51,12 +51,33 @@
 const prefersReduced = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Jarak antar kartu dalam busur, dalam px pada skala 1. */
+/**
+ * Geometri kartu dalam satu baris horizontal.
+ *
+ * ── KENAPA POLA INI, BUKAN COVER-FLOW 3D ─────────────────────────────────────
+ * Versi sebelumnya memakai cover-flow (kartu diputar rotateY, membentuk busur
+ * cekung). Hasilnya kartu samping miring + terpotong, dan teksnya tidak
+ * terbaca — terlihat berantakan.
+ *
+ * Referensi yang dipakai sekarang (dua-duanya pola "center mode"):
+ *   - Shadcnblocks Gallery 17: "active slide renders at full scale and opacity
+ *     while neighboring slides shrink and fade" — 100% vs 70% skala,
+ *     100% vs 40% opacity.
+ *   - Slick center mode: `.slick-center { transform: scale(1.25) }`.
+ *
+ * Intinya: kartu aktif MEMBESAR penuh dan tegak lurus, kartu lain MENGECIL
+ * dan memudar, semuanya bergerak HORIZONTAL. Tidak ada rotasi — jadi gambar
+ * tidak terpotong dan label tetap terbaca. Ini yang dipakai galeri produk
+ * komersial (Apple, Stripe, Linear).
+ *
+ * Rotasi tetap ada TAPI sangat kecil (4°) — hanya memberi kesan kedalaman,
+ * bukan membuat kartu miring. Kalau 0°, deretannya terasa datar.
+ */
 const ARC = {
-  stepX: 178,      // geser horizontal per langkah
-  stepY: 22,       // turun per langkah (membentuk busur cekung)
-  rotate: 21,      // derajat putar per langkah
-  scaleStep: 0.05, // pengecilan per langkah
+  stepX: 232,      // geser horizontal per langkah — cukup lega antar kartu
+  stepY: 0,        // TIDAK turun — baris lurus, bukan busur
+  rotate: 4,       // derajat — sangat kecil, hanya kesan kedalaman
+  scaleStep: 0.2,  // pengecilan per langkah: ke-2 = 80%, ke-3 = 60%
   maxVisible: 3,   // langkah terjauh yang masih tampil
 };
 
@@ -280,22 +301,45 @@ export function createSpotlightCarousel(items) {
       const sign = Math.sign(rel);
 
       if (abs > ARC.maxVisible) {
-        // Di luar jangkauan pandang — sembunyikan supaya tidak ada kartu
-        // "nyempil" di tepi panggung.
+        // ── KENAPA KARTU INI HARUS DIPINDAHKAN DULU, BARU DISEMBUNYIKAN ──────
+        // Bug nyata: `continue` sebelum menulis transform membuat kartu ini
+        // tetap di posisi TERAKHIRNYA. Kalau posisi terakhir itu di tengah
+        // panggung, ia duduk di sana dengan opacity 0 — tidak terlihat, tapi
+        // MENGHALANGI klik dan mengacaukan pengukuran.
+        //
+        // Terukur di uji otomasi: kartu index 4 terdeteksi di x=0 (tengah)
+        // dengan lebar penuh 280px, padahal opacity 0. Ia "hantu" di tengah
+        // carousel.
+        //
+        // Perbaikan: dorong dulu ke luar jangkauan (3.5 langkah), baru
+        // disembunyikan. Jadi ia tidak pernah menempati ruang yang terlihat.
+        const jauh = Math.sign(rel) * (ARC.maxVisible + 0.5) * ARC.stepX;
+        card.style.transform = `translate3d(${jauh.toFixed(1)}px, 0, 0) scale(0.6)`;
         card.style.opacity = '0';
         card.style.pointerEvents = 'none';
+        card.style.zIndex = '0';
+        card.classList.remove('is-front');
         continue;
       }
 
       const x = rel * ARC.stepX;
-      const y = abs * ARC.stepY;              // turun makin jauh → busur cekung
-      const rot = -sign * ARC.rotate;          // kartu kiri menghadap kanan
-      const scale = Math.max(0.6, 1 - abs * ARC.scaleStep);
-      // Opacity kartu belakang — kritik: "kartu belakang ~30% hampir hilang,
-      // stack terasa datar". Dinaikkan: lantai 0.35 → 0.52, dan peluruhan
-      // per langkah 0.3 → 0.24 supaya kartu kedua masih terbaca sebagai karya.
-      // Tetap ada gradasi jelas: 1.0 di depan, 0.52 di ujung.
-      const op = abs < 0.5 ? 1 : Math.max(0.52, 1 - abs * 0.24);
+      const y = abs * ARC.stepY;              // 0 — baris lurus, bukan busur
+      const rot = -sign * ARC.rotate;         // hanya 4°, kesan kedalaman
+
+      // ── SKALA: KARTU AKTIF MEMBESAR, TETANGGA MENGECIL ──────────────────
+      // Referensi Shadcnblocks Gallery 17: kartu aktif 100%, tetangga 70%.
+      // Awalnya saya pakai peluruhan 14%/langkah — terukur hasilnya cuma
+      // 1.14× (280px vs 244px), kurang terasa. Naikkan ke 20%/langkah:
+      // kartu ke-2 = 80%, ke-3 = 64% → rasio ~1.25× seperti referensi.
+      //
+      // Lantai 0.55 supaya kartu terjauh tidak jadi titik kecil.
+      const scale = Math.max(0.55, 1 - abs * ARC.scaleStep);
+
+      // ── OPACITY: kartu belakang memudar ─────────────────────────────────
+      // Referensi: tetangga 40% opacity. Di sini peluruhan lebih lembut
+      // (lantai 0.45) supaya kartu ke-2 masih bisa dilihat gambarnya —
+      // terlalu pudar membuat deretannya terasa kosong.
+      const op = abs < 0.5 ? 1 : Math.max(0.45, 1 - abs * 0.28);
 
       card.style.transform =
         `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) ` +
