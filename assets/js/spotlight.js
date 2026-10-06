@@ -97,7 +97,7 @@ const ARC = {
   maxVisible: 3,   // langkah terjauh yang masih tampil
 };
 
-import { pasangGambar } from './media-loader.js';
+import { pasangGambar, pasangHolding } from './media-loader.js';
 
 /**
  * Buat elemen carousel.
@@ -138,6 +138,10 @@ export function createSpotlightCarousel(items) {
     const card = document.createElement('article');
     card.className = 'spotlight-card';
     card.dataset.index = String(i);
+    // Judul disimpan di dataset supaya live update bisa mencocokkan kartu
+    // dengan gambar baru. Cocokkan lewat JUDUL, bukan indeks: urutan kartu
+    // bisa berubah kalau data proyek diedit, sedangkan judul tetap.
+    card.dataset.judul = item.title;
 
     // ── VISUAL KARTU ────────────────────────────────────────────────────────
     // Kritik desain: "kartu tidak memamerkan karya — hanya kotak teks."
@@ -168,28 +172,39 @@ export function createSpotlightCarousel(items) {
       img.width = 280;
       img.height = 368;
       media.setAttribute('aria-hidden', 'true');
-      // Monogram untuk placeholder kalau gambar gagal dimuat. Diambil dari
-      // judul proyek: dua huruf pertama kata pertama yang bermakna.
+      // Monogram: dua huruf pertama kata bermakna dari judul proyek.
+      // Dipakai di DUA tempat — holding state dan keadaan gagal muat.
       //
       // Contoh: "MINA" → "MI" · "Spareparts Inventory System" → "SI"
       // Kata yang dilewati: "dan", "the", "of" — supaya monogram tidak
       // jadi "DA" hanya karena judulnya dimulai kata sambung.
-      media.dataset.monogram = (() => {
+      const monogram = (() => {
         const kata = String(item.title ?? '')
           .split(/\s+/)
           .filter((w) => w.length > 2 && !/^(dan|the|of|untuk|dengan)$/i.test(w));
-        if (kata.length >= 2) {
-          return (kata[0][0] + kata[1][0]).toUpperCase();
-        }
+        if (kata.length >= 2) return (kata[0][0] + kata[1][0]).toUpperCase();
         if (kata.length === 1) return kata[0].slice(0, 2).toUpperCase();
         return String(item.title ?? '?').slice(0, 2).toUpperCase();
       })();
+      media.dataset.monogram = monogram;
       media.append(img);
       card.append(media);
-      // Pemasangan gambar (skeleton, LQIP, fallback) diurus media-loader —
-      // satu tempat untuk semua logika pemuatan, supaya carousel tidak
-      // perlu tahu soal manifest atau LQIP sama sekali.
-      pasangGambar(img, { url: item.image, lqip: item.lqip ?? null });
+
+      // ── DUA JALUR: ADA GAMBAR ATAU HOLDING STATE ─────────────────────────
+      // Kalau proyek ini belum punya gambar di manifest, kartu TIDAK memakai
+      // gambar contoh — ia tampil sebagai holding state yang disengaja.
+      //
+      // Alasannya: gambar contoh di kartu proyek itu menyesatkan. Pengunjung
+      // melihat gambar yang tidak mewakili apa pun. Holding state jujur:
+      // "gambar menyusul" — dan itu justru terlihat rapi, bukan rusak.
+      if (item.image) {
+        // Pemasangan gambar (skeleton, LQIP, gagal-muat) diurus media-loader —
+        // satu tempat untuk semua logika pemuatan, supaya carousel tidak
+        // perlu tahu soal manifest atau LQIP sama sekali.
+        pasangGambar(img, { url: item.image, lqip: item.lqip ?? null });
+      } else {
+        pasangHolding(media, { monogram });
+      }
     }
 
     // Nomor urut DIHAPUS — permintaan pemilik: "angkanya dihilangkan".
@@ -213,23 +228,30 @@ export function createSpotlightCarousel(items) {
     //
     // Dipasang lewat event 'error', bukan ditebak di awal: saat render,
     // gambar belum selesai dimuat, jadi statusnya belum diketahui.
+    // ── CADANGAN KALAU GAMBAR GAGAL DIMUAT ──────────────────────────────────
+    // Versi lama MENGHAPUS elemen media dan menggantinya dengan judul teks.
+    // Itu membuat kartu kehilangan bentuknya — tinggi kartu berubah, deretan
+    // jadi tidak rata.
+    //
+    // Sekarang: elemen media TETAP, hanya kelasnya berubah jadi .is-gagal.
+    // CSS menampilkan holding state dengan monogram — bentuk kartu tidak
+    // berubah sama sekali, dan pengunjung tetap melihat identitas proyek.
+    //
+    // Judul proyek tidak perlu ditambahkan ke kartu: ia sudah tampil di bawah
+    // carousel saat kartu itu jadi depan (lihat syncInfo).
     if (!item.image) {
-      // Tidak ada gambar sejak awal — langsung tampilkan teksnya.
-      const t = document.createElement('h3');
-      t.className = 'spotlight-card-title';
-      t.textContent = item.title;
-      body.prepend(t);
-      card.classList.add('is-textonly');
+      // Tidak ada gambar sejak awal — holding state sudah dipasang di atas.
+      // Tidak ada yang perlu ditambahkan ke body.
     } else {
       const img = card.querySelector('.spotlight-card-media img');
       img?.addEventListener('error', () => {
         const media = card.querySelector('.spotlight-card-media');
-        if (media) media.remove();
-        const t = document.createElement('h3');
-        t.className = 'spotlight-card-title';
-        t.textContent = item.title;
-        body.prepend(t);
-        card.classList.add('is-textonly');
+        if (!media) return;
+        // Jangan hapus elemennya — ubah keadaannya saja. Bentuk kartu
+        // dipertahankan, monogram sudah ada di dataset dari pembuatan kartu.
+        media.classList.remove('is-memuat', 'is-siap', 'punya-lqip');
+        media.classList.add('is-gagal');
+        media.style.backgroundImage = '';
       });
     }
 

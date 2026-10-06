@@ -32,7 +32,7 @@ import { techGroups, techLogos, createTechCard } from './tech-logos.js';
 import { createTiltPanel } from './tilt-panel.js';
 import { initScrollSpy } from './scroll-spy.js';
 import { createSpotlightCarousel } from './spotlight.js';
-import { ambilManifest, susunGambar } from './media-loader.js';
+import { ambilManifest, susunGambar, pantauPerubahan } from './media-loader.js';
 import { icon } from './icons.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -337,7 +337,60 @@ async function renderSpotlight() {
       })),
   ];
 
-  host.append(createSpotlightCarousel(items));
+  const carousel = createSpotlightCarousel(items);
+  host.append(carousel);
+
+  // ── LIVE UPDATE: ADMIN UNGGAH GAMBAR → KARTU IKUT BERUBAH ────────────────
+  // Pemilik minta: "agar bisa memproses ketika tiba tiba update dari backend
+  // ke R2". Jadi halaman yang SEDANG TERBUKA tidak perlu di-reload saat admin
+  // mengunggah gambar.
+  //
+  // Cara kerja: pantauPerubahan() memeriksa manifest setiap 20 detik. Kalau
+  // updatedAt berubah, callback ini dipanggil dan kita pasang gambar baru ke
+  // kartu yang cocok.
+  //
+  // Yang TIDAK dilakukan: membangun ulang carousel. Itu akan mereset posisi,
+  // mematikan auto-scroll, dan menghilangkan gambar yang sudah termuat.
+  // Kita hanya menukar gambar di kartu yang sudah ada — jauh lebih ringan dan
+  // tidak mengganggu pengunjung yang sedang melihat.
+  pantauPerubahan((manifestBaru) => {
+    const petaBaru = susunGambar(semuaProyek, manifestBaru);
+
+    // Setiap kartu dicocokkan lewat judul proyeknya (tersimpan di dataset).
+    // Cocokkan lewat judul, bukan indeks: urutan kartu bisa berubah kalau
+    // data proyek diedit, sedangkan judul tetap.
+    for (const kartu of carousel.querySelectorAll('.spotlight-card')) {
+      const judul = kartu.dataset.judul;
+      if (!judul) continue;
+
+      const gambar = petaBaru.get(judul);
+      const media = kartu.querySelector('.spotlight-card-media');
+      if (!media) continue;
+
+      // Belum ada gambar baru untuk proyek ini → biarkan seperti sekarang.
+      if (!gambar?.url) continue;
+
+      // Sudah pakai gambar yang sama → tidak ada yang perlu dilakukan.
+      // Pemeriksaan ini yang mencegah kedipan pada kartu yang tidak berubah.
+      if (media.dataset.url === gambar.url && media.classList.contains('is-siap')) continue;
+
+      // Ada gambar baru: lepas holding/gagal, pasang gambarnya.
+      media.classList.remove('is-holding', 'is-gagal');
+      let img = media.querySelector('img');
+      if (!img) {
+        // Holding state menghapus elemen img (tidak ada yang menunggu).
+        // Sekarang gambarnya datang — buat ulang elemennya.
+        img = document.createElement('img');
+        img.alt = '';
+        img.decoding = 'async';
+        img.loading = 'eager';
+        media.append(img);
+      }
+      pasangGambar(img, { url: gambar.url, lqip: gambar.lqip ?? null });
+    }
+  });
+
+  return carousel;
 }
 
 function renderSideProjects() {

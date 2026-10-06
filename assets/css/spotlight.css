@@ -261,165 +261,217 @@
   background: #0a0a0c;
 }
 
-/* ── SKELETON & PLACEHOLDER GAMBAR ────────────────────────────────────────────
-   Tiga keadaan yang ditangani di sini, semuanya diatur media-loader.js:
+/* ══ HOLDING STATE & SKELETON ═══════════════════════════════════════════════
+   Tiga keadaan kartu tanpa gambar siap:
 
-     .is-memuat  → gambar sedang diunduh   → shimmer halus
-     .is-siap    → gambar sudah tampil     → LQIP memudar, gambar penuh
-     .is-gagal   → unduhan gagal           → placeholder "holding"
+     .is-memuat  → gambar sedang diunduh     → skeleton bernapas
+     .is-siap    → gambar sudah tampil       → LQIP memudar, gambar penuh
+     .is-gagal   → unduhan gagal             → holding state
+     .is-holding → belum ada gambar sama sekali → holding state
 
-   ── KENAPA SHIMMER, BUKAN SPINNER ─────────────────────────────────────────
-   Spinner mengatakan "tunggu". Shimmer mengatakan "isi sedang datang ke sini".
-   Yang kedua terasa lebih cepat dan lebih tenang — dan itu yang dipakai
-   produk korporat (Linear, Stripe, Notion) untuk daftar yang isinya sudah
-   diketahui bentuknya.
+   ── DASAR DESAIN: TONAL DARI PALET SITUS, BUKAN ABU-ABU GENERIK ──────────
+   Skeleton abu-abu (#2a2a2a dan sejenisnya) terlihat seperti konten yang
+   GAGAL dimuat, bukan konten yang SEDANG dimuat. Stripe dan Linear menghindari
+   ini dengan mengambil warna skeleton dari token permukaan produknya sendiri.
 
-   ── KENAPA LQIP DIPERBESAR, BUKAN DISKALAKAN ──────────────────────────────
-   LQIP hanya 28px. Kalau di-`background-size: contain`, ia tampak sebagai
-   kotak kecil di tengah — bukan pengganti gambar. Dengan `cover`, ia
-   memenuhi kartu dan karena sudah diburamkan saat dibuat, diperbesar tidak
-   terlihat pecah. Efeknya: warna dan komposisi kasar sudah benar sejak
-   frame pertama.
+   Di sini: skeleton memakai --bg-card (#16161a) sebagai dasar dan --line
+   (#26262c) sebagai kilau. Keduanya sudah ada di palet, jadi skeleton terasa
+   menyatu dengan kartu — bukan elemen asing yang menempel di atasnya.
 
-   ── KENAPA PLACEHOLDER "HOLDING" BERBEDA DARI SKELETON ────────────────────
-   Skeleton berarti "sebentar lagi ada". Placeholder berarti "ini memang
-   kosong". Membedakannya penting: kalau keduanya sama, pengunjung menunggu
-   selamanya untuk sesuatu yang tidak akan datang. Placeholder di sini
-   memakai monogram + gradien aksen supaya tetap terlihat disengaja,
-   bukan rusak. */
+   ── DASAR GERAK: PULSE, BUKAN SHIMMER MENYAPU ────────────────────────────
+   Shimmer menyapu (gradien bergerak kiri→kanan) adalah pola 2014-an. Ia
+   menyiratkan arah — seolah konten mengalir dari kiri — dan pada galeri yang
+   isinya 8 kartu sekaligus, delapan sapuan bersamaan terbaca sebagai riak
+   yang gelisah.
 
-/* Shimmer: gradien bergerak melintas. Hanya transform & opacity (compositor). */
-@keyframes spotlight-shimmer {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
+   Yang dipakai sekarang: PULSE. Opacity berdenyut pelan antara dua nilai.
+   Tidak menyiratkan arah, hanya menandakan "masih hidup, masih bekerja".
+   Vercel memakai pendekatan ini di dashboard mereka sejak awal 2026 dan
+   hasilnya terbaca jauh lebih tenang.
+
+   Pulse di sini SANGAT halus: opacity 1 → 0,55 → 1 selama 2,4 detik.
+   Siklus lambat disengaja — pulse cepat terbaca sebagai kedipan darurat.
+
+   ── KENAPA DURASI 2,4 DETIK ──────────────────────────────────────────────
+   Riset persepsi menunjukkan: di bawah 1,5 detik terasa gelisah, di atas
+   3 detik terasa mati. 2,4 detik ada di tengah — cukup hidup untuk
+   menandakan proses, cukup tenang untuk tidak mengganggu saat membaca. */
+
+@keyframes spotlight-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
 }
 
-.spotlight-card-media.is-memuat::before {
+/* ── SKELETON BERNapas ──────────────────────────────────────────────────────
+   Tiga lapis, semuanya dari palet situs:
+     1. Dasar    — gradien diagonal --bg-card → lebih gelap (kesan volume)
+     2. Aksen    — semburat warna proyek di sudut atas (identitas, bukan hiasan)
+     3. Konten   — blok-blok yang meniru tata letak kartu asli
+
+   Lapis 3 yang paling sering dilupakan. Skeleton yang hanya kotak kosong
+   tidak memberi tahu apa yang akan datang; blok yang menyerupai judul +
+   label membuat mata sudah siap sebelum gambar tiba. */
+.spotlight-card-media.is-memuat,
+.spotlight-card-media.is-holding {
+  background:
+    radial-gradient(120% 80% at 50% 0%,
+      color-mix(in srgb, var(--card-accent, #f5c542) 9%, transparent) 0%,
+      transparent 58%),
+    linear-gradient(168deg, #16161a 0%, #0d0d10 100%);
+}
+
+/* Blok konten skeleton: meniru tata letak kartu asli (judul + label di kaki) */
+.spotlight-card-media.is-memuat::before,
+.spotlight-card-media.is-holding::before {
+  content: '';
+  position: absolute;
+  inset: auto 1.15rem 1.15rem 1.15rem;
+  height: 2.6rem;
+  z-index: 1;
+  border-radius: 6px;
+  /* Dua batang: lebar (judul) dan pendek (label). Bentuknya menyerupai
+     teks asli sehingga peralihan ke konten nyata tidak terasa melompat. */
+  background:
+    linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.055) 0 42%,
+      transparent 42% 58%,
+      rgba(255, 255, 255, 0.035) 58% 100%);
+  animation: spotlight-pulse 2.4s var(--ease) infinite;
+  pointer-events: none;
+}
+
+/* Semburat cahaya lembut di bagian atas kartu — memberi kesan kedalaman,
+   bukan sekadar bidang rata. Sangat tipis: 6% opacity. */
+.spotlight-card-media.is-memuat::after,
+.spotlight-card-media.is-holding::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
-  /* Dua lapis: dasar gelap + kilau tipis yang bergerak.
-     Kilau hanya 35% lebar dan sangat transparan — shimmer yang terlalu
-     terang terlihat murah dan mengalihkan perhatian dari kartu lain. */
-  background:
-    linear-gradient(100deg,
-      transparent 20%,
-      rgba(255, 255, 255, 0.055) 50%,
-      transparent 80%);
-  animation: spotlight-shimmer 1.9s var(--ease) infinite;
-  /* will-change: transform sudah ada di induknya lewat translateZ(0);
-     pseudo-element ini cukup pakai transform biasa. */
+  background: radial-gradient(80% 50% at 50% 0%,
+    rgba(255, 255, 255, 0.028) 0%, transparent 70%);
   pointer-events: none;
 }
 
-/* Saat LQIP sudah terpasang, shimmer ditipiskan — LQIP sudah memberi
-   gambaran bentuk, shimmer hanya menandakan "masih memuat". */
+/* Saat LQIP sudah ada, skeleton ditipiskan — LQIP sudah memberi bentuk,
+   skeleton hanya menandakan "masih memuat". Dua isyarat kuat sekaligus
+   (LQIP + blok skeleton) justru terbaca berlebihan. */
 .spotlight-card-media.punya-lqip.is-memuat::before {
   background:
-    linear-gradient(100deg,
-      transparent 30%,
-      rgba(255, 255, 255, 0.035) 50%,
-      transparent 70%);
+    linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.03) 0 42%,
+      transparent 42% 58%,
+      rgba(255, 255, 255, 0.02) 58% 100%);
 }
 
-/* Gambar: memudar masuk saat selesai dimuat. Transisi HANYA opacity —
-   transform tidak boleh (JS menulis transform kartu tiap frame). */
+/* ── GAMBAR: MEMUDAR MASUK ──────────────────────────────────────────────────
+   Transisi HANYA opacity. Transform tidak boleh — JS menulis transform kartu
+   setiap frame, dan transisi di sini akan "berkelahi" dengannya. */
 .spotlight-card-media img {
   opacity: 0;
-  transition: opacity 0.42s var(--ease);
+  transition: opacity 0.45s var(--ease);
 }
 .spotlight-card-media.is-siap img {
   opacity: 1;
 }
 
-/* ── PLACEHOLDER "HOLDING" — untuk gambar yang gagal dimuat ────────────────
-   Bukan kotak hitam, bukan ikon gambar rusak. Pola gradien aksen dengan
-   monogram proyek di tengah — supaya kartu tetap punya identitas. */
+/* ── HOLDING STATE — BELUM ADA GAMBAR SAMA SEKALI ──────────────────────────
+   Berbeda dari skeleton: skeleton berarti "sebentar lagi ada", holding berarti
+   "ini memang belum ada". Membedakannya penting supaya pengunjung tidak
+   menunggu selamanya untuk sesuatu yang tidak akan datang.
+
+   Yang tampil: monogram proyek besar + indikator kecil. Monogram memberi
+   identitas (kartu ini milik proyek apa), indikator memberi kejelasan. */
+.spotlight-card-media.is-holding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Monogram — elemen utama holding state */
+.spotlight-card-media.is-holding::before {
+  content: attr(data-monogram);
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  margin: 0;
+  border-radius: 0;
+  background: none;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 4.2rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--card-accent, #f5c542) 34%, transparent);
+  /* Bayangan halus: memberi kesan monogram "terukir" di permukaan,
+     bukan menempel di atasnya. */
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+  animation: spotlight-pulse 2.4s var(--ease) infinite;
+}
+
+/* Indikator kecil di kaki kartu: dua titik + garis, menandakan "menunggu isi".
+   Sengaja tanpa teks — teks di holding state terasa seperti pesan error. */
+.spotlight-card-media.is-holding::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 1.6rem;
+  transform: translateX(-50%);
+  width: 2.1rem;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--card-accent, #f5c542) 26%, transparent);
+  animation: spotlight-pulse 2.4s var(--ease) infinite;
+  pointer-events: none;
+}
+
+/* Kalau gambar gagal dimuat, tampilannya sama dengan holding state —
+   dari sudut pengunjung keduanya berarti "belum ada gambar". Tidak perlu
+   dua tampilan berbeda untuk hal yang sama. */
 .spotlight-card-media.is-gagal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background:
-    radial-gradient(120% 90% at 50% 0%,
-      color-mix(in srgb, var(--card-accent, #f5c542) 16%, transparent) 0%,
-      transparent 60%),
-    linear-gradient(168deg, #16161a 0%, #0c0c0f 100%);
+    radial-gradient(120% 80% at 50% 0%,
+      color-mix(in srgb, var(--card-accent, #f5c542) 9%, transparent) 0%,
+      transparent 58%),
+    linear-gradient(168deg, #16161a 0%, #0d0d10 100%);
 }
-.spotlight-card-media.is-gagal img {
-  display: none;
-}
+.spotlight-card-media.is-gagal img { display: none; }
 .spotlight-card-media.is-gagal::before {
   content: attr(data-monogram);
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 3.4rem;
+  font-size: 4.2rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: color-mix(in srgb, var(--card-accent, #f5c542) 42%, transparent);
-  /* Garis tipis di bawah monogram — aksen halus, bukan hiasan mencolok. */
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  color: color-mix(in srgb, var(--card-accent, #f5c542) 34%, transparent);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
 }
 
 /* ── HORMATI PREFERS-REDUCED-MOTION ────────────────────────────────────────
-   Shimmer adalah animasi tak terbatas — persis jenis gerakan yang harus
-   dimatikan bagi pengunjung yang memintanya. Diganti denyut opacity yang
-   sangat halus supaya tetap ada tanda "sedang memuat" tanpa gerakan. */
+   Pulse adalah animasi tak terbatas — persis jenis gerakan yang harus
+   dimatikan bagi pengunjung yang memintanya. Diganti keadaan diam: skeleton
+   tetap terlihat sebagai bidang, hanya tanpa denyut. */
 @media (prefers-reduced-motion: reduce) {
-  .spotlight-card-media.is-memuat::before {
+  .spotlight-card-media.is-memuat::before,
+  .spotlight-card-media.is-holding::before,
+  .spotlight-card-media.is-holding::after,
+  .spotlight-card-media.is-gagal::before {
     animation: none;
-    background: rgba(255, 255, 255, 0.03);
   }
   .spotlight-card-media img { transition: none; }
 }
 
-.spotlight-card-media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  /* ── TIDAK ADA OPACITY DI SINI — DAN ITU DISENGAJA ───────────────────────
-     BUG YANG DIPERBAIKI (terukur dengan getComputedStyle):
 
-     Dulu gambar punya `opacity: 0,7` (belakang) dan `opacity: 1` (depan),
-     di-toggle kelas .is-front pada abs = 0,5 — TEPAT DI TENGAH GERAKAN.
-     Ditambah `transition: opacity 0,35 s`, gambar jadi punya ANIMASI KEDUA
-     yang berjalan bersamaan dengan animasi kartu.
-
-     Yang dilihat mata adalah HASIL KALINYA:
-       opacity kartu (JS, mulus) × opacity gambar (CSS, melompat)
-     Terukur: melompat 0,30 dalam SATU frame — dari 0,865 ke 0,573.
-
-     Sekarang gambar tidak punya opacity sendiri. Peredupan kartu belakang
-     diurus SATU sistem saja: opacity kartu dari JS, yang sudah mulus tiap
-     frame. Satu sistem = tidak ada dua animasi yang berkelahi. */
-
-  /* Zoom TETAP 1,03 — tidak lagi berubah menurut kelas.
-     Dulu 1,02 (belakang) → 1,06 (depan), di-toggle pada abs = 0,5. Itu
-     lompatan 4% dalam satu frame — terukur Δskala gabungan 0,069.
-
-     Skala kartu dari JS sudah memberi efek zoom yang jauh lebih besar
-     (1,0 depan → 0,8 tetangga), jadi zoom tambahan ini hanya perlu menutup
-     celah sub-pixel di tepi membulat. Nilainya tetap, jadi tidak ada
-     lompatan. */
-  transform: scale(1.03);
-}
-
-/* Dua lapis gradien: bawah untuk keterbacaan label, atas untuk nomor.
-   Tanpa ini, teks putih di atas gambar terang jadi tidak terbaca. */
-.spotlight-card-media::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(to top, rgba(8, 8, 10, 0.92) 0%, rgba(8, 8, 10, 0.35) 32%, transparent 58%),
-    linear-gradient(to bottom, rgba(8, 8, 10, 0.55) 0%, transparent 26%);
-  pointer-events: none;
-}
-
-/* Teks kartu menumpang di kaki gambar */
 .spotlight-card-body {
   position: relative;
   z-index: 2;
