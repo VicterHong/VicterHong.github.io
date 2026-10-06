@@ -87,6 +87,7 @@
 <link rel="stylesheet" href="assets/css/hscroll.css">
 <link rel="stylesheet" href="assets/css/orb-menu.css">
 <link rel="stylesheet" href="assets/css/variable-weight.css">
+<link rel="stylesheet" href="assets/css/spotlight.css">
 <link rel="stylesheet" href="assets/css/video-player.css">
 <link rel="stylesheet" href="assets/css/masonry.css">
 <link rel="stylesheet" href="assets/css/cf-gate.css">
@@ -222,6 +223,12 @@
     </div>
 
     <div id="featuredProjects" class="projects-bento"></div>
+
+    <!-- Carousel spotlight: gambaran cepat seluruh koleksi. Ditaruh SEBELUM
+         kartu bento — carousel untuk menjelajah, bento untuk membaca detail.
+         Diisi oleh renderSpotlight() di app.js. -->
+    <div id="spotlightHost"></div>
+
     <div class="side-projects" id="sideProjects" aria-label="Proyek pendukung"></div>
 
     <!-- Marquee pemisah: dua baris teks berjalan berlawanan arah. Memberi

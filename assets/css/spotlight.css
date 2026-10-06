@@ -1,0 +1,294 @@
+/* ── SPOTLIGHT CAROUSEL ───────────────────────────────────────────────────────
+   Galeri proyek dengan kartu melengkung (concave arc). Kartu depan tegak,
+   kartu di kiri/kanan diputar + diturunkan sehingga membentuk busur.
+
+   Semua posisi dihitung di JavaScript (satu rumus untuk semua kartu) dan
+   ditulis sebagai transform. CSS di sini hanya mengatur TAMPILAN kartu —
+   ukuran, warna, bayangan — bukan posisinya. Pembagian ini disengaja:
+   posisi butuh matematika, tampilan cukup deklaratif.
+
+   Semua warna diambil dari token yang sudah ada (--accent, --bg, --text)
+   supaya carousel menyatu dengan sisa situs, bukan terasa ditempel.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.spotlight {
+  position: relative;
+  padding: 5rem 0 4rem;
+  overflow: hidden;          /* kartu di luar jangkauan tidak bikin scroll samping */
+  outline: none;
+}
+.spotlight:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 4px; }
+
+/* ── Kepala section ─────────────────────────────────────────────────────── */
+.spotlight-head { text-align: center; padding: 0 1.5rem 3rem; }
+
+.spotlight-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0 0 1.1rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+/* Garis pendek di kiri-kanan label — pola "framed" */
+.spotlight-eyebrow::before,
+.spotlight-eyebrow::after {
+  content: '';
+  width: 2.5rem;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.spotlight-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.spotlight-title em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+/* ── Panggung ───────────────────────────────────────────────────────────── */
+.spotlight-stage {
+  position: relative;
+  height: 25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1400px;        /* kedalaman 3D untuk rotateY */
+  cursor: grab;
+  touch-action: pan-y;        /* geser vertikal tetap scroll halaman */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.spotlight-stage.is-grabbing { cursor: grabbing; }
+
+/* Track: pusat panggung, dengan ukuran kartu supaya bisa menangkap pointer.
+   ── KENAPA PUNYA UKURAN, BUKAN 0×0 ──────────────────────────────────────────
+   Awalnya track memakai width:0;height:0 karena semua kartunya position:
+   absolute. Akibatnya track — dan stage (anak flex, justify-content:center) —
+   jadi 0×0. Terukur di browser: "panggung: pusat (0, 0) · 0x0".
+
+   Bug yang timbul: elemen berukuran nol tidak menerima pointerdown di area
+   kosong, jadi drag tidak berfungsi sama sekali. Ditemukan lewat uji otomasi:
+   4 dari 5 interaksi lulus, drag gagal.
+
+   Perbaikannya: track diberi ukuran kartu. Kartu tetap absolute dan tetap
+   diposisikan lewat transform — yang berubah hanya track punya kotak nyata. */
+.spotlight-track {
+  position: relative;
+  width: 15.5rem;
+  height: 20.5rem;
+  transform-style: preserve-3d;
+}
+
+.spotlight-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15.5rem;
+  height: 20.5rem;
+  /* Kartu dipusatkan pada titik tengah track. Karena track kini berukuran
+     sama dengan kartu, margin-nya setengah dari ukuran kartu itu sendiri. */
+  margin: -10.25rem 0 0 -7.75rem;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.1rem 1.15rem 1.25rem;
+
+  /* Latar kartu: gradien gelap dengan sedikit warna aksen proyek.
+     Setiap kartu punya --card-accent sendiri (dari data proyek). */
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--card-accent, #f5c542) 22%, transparent) 0%, transparent 62%),
+    linear-gradient(170deg, #17171b 0%, #0d0d10 100%);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.75);
+
+  /* Bayangan + transisi opacity saja — transform ditulis JS tiap frame,
+     jadi TIDAK boleh ada transition transform di sini (akan berkelahi). */
+  transition: box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Kartu depan: lebih terang, bingkai aksen */
+.spotlight-card.is-front {
+  border-color: color-mix(in srgb, var(--card-accent, #f5c542) 45%, transparent);
+  box-shadow:
+    0 30px 60px -22px rgba(0, 0, 0, 0.85),
+    0 0 0 1px color-mix(in srgb, var(--card-accent, #f5c542) 20%, transparent);
+}
+
+/* Nomor urut di pojok kiri atas */
+.spotlight-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+.spotlight-card.is-front .spotlight-num { color: var(--card-accent, var(--accent)); }
+
+.spotlight-card-body { display: flex; flex-direction: column; gap: 0.35rem; }
+
+.spotlight-card-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--card-accent, #f5c542) 80%, white);
+}
+
+.spotlight-card-title {
+  margin: 0;
+  font-size: 1.28rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.spotlight-card-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+/* ── Info kartu depan: counter · judul · rating ─────────────────────────── */
+.spotlight-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 2.5rem;
+  align-items: center;
+  max-width: 44rem;
+  margin: 3rem auto 0;
+  padding: 0 1.5rem;
+}
+
+.spotlight-counter {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 1.5rem;
+  color: var(--text-faint);
+}
+.spotlight-idx { color: var(--accent); font-weight: 500; }
+.spotlight-sep { opacity: 0.4; }
+.spotlight-total { font-size: 0.95rem; }
+
+.spotlight-meta { min-width: 0; }
+
+.spotlight-front-title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.spotlight-front-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.spotlight-rating {
+  margin: 0.5rem 0 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
+
+/* ── Kaki: dots + panah ─────────────────────────────────────────────────── */
+.spotlight-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  max-width: 44rem;
+  margin: 2rem auto 0;
+  padding: 0 1.5rem;
+}
+
+.spotlight-dots { display: flex; align-items: center; gap: 0.5rem; }
+
+.spotlight-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line-strong);
+  cursor: pointer;
+  transition: width 0.3s var(--ease), background 0.3s var(--ease);
+}
+.spotlight-dot:hover { background: var(--text-faint); }
+.spotlight-dot.is-active {
+  width: 1.5rem;
+  background: var(--accent);
+}
+.spotlight-dot:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 3px; }
+
+.spotlight-nav { display: flex; gap: 0.5rem; }
+
+.spotlight-arrow {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease), color 0.25s var(--ease), background 0.25s var(--ease);
+}
+.spotlight-arrow:hover {
+  border-color: var(--accent-line);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.spotlight-arrow:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 3px; }
+
+.spotlight-hint {
+  margin: 2rem 0 0;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ── Layar kecil ────────────────────────────────────────────────────────────
+   Kartu diperkecil supaya busur tetap terbaca tanpa memenuhi layar. */
+@media (max-width: 640px) {
+  .spotlight { padding: 3.5rem 0 3rem; }
+  .spotlight-stage { height: 21rem; }
+  .spotlight-card { width: 12.5rem; height: 17rem; margin: -8.5rem 0 0 -6.25rem; }
+  .spotlight-card-title { font-size: 1.1rem; }
+  .spotlight-card-meta { font-size: 0.74rem; }
+  .spotlight-info { grid-template-columns: 1fr; gap: 0.75rem; text-align: center; }
+  .spotlight-counter { justify-content: center; }
+  .spotlight-front-title { font-size: 1.35rem; }
+  .spotlight-foot { flex-direction: column-reverse; gap: 1rem; }
+}
+
+/* ── Gerak diminimalkan ─────────────────────────────────────────────────────
+   Kartu tetap bisa digeser (itu gerakan yang diminta pengguna), tapi animasi
+   "mendarat" dimatikan di JS. Di sini hanya matikan transisi dekoratif. */
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-card,
+  .spotlight-dot,
+  .spotlight-arrow { transition: none; }
+}

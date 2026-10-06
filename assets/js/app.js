@@ -31,6 +31,7 @@ import { mountInteractiveLogo } from './logo.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
 import { createTiltPanel } from './tilt-panel.js';
 import { initScrollSpy } from './scroll-spy.js';
+import { createSpotlightCarousel } from './spotlight.js';
 import { icon } from './icons.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -264,6 +265,57 @@ function renderProjects() {
   }
 }
 
+// ── CAROUSEL SPOTLIGHT ─────────────────────────────────────────────────────────
+/**
+ * Galeri proyek dengan kartu melengkung, bisa digeser.
+ *
+ * Ditaruh di dalam section Proyek, SEBELUM daftar kartu bento. Alasannya:
+ * carousel memberi gambaran cepat seluruh koleksi (mata bisa menjelajah tanpa
+ * scroll), sedangkan kartu bento di bawahnya memberi detail yang bisa dibaca.
+ * Dua peran berbeda, bukan duplikasi.
+ *
+ * Warna aksen per proyek diambil dari `p.accent` di data — nilainya nama
+ * ('amina', 'parts', 'wa'), bukan hex. Peta di bawah menerjemahkannya ke warna
+ * yang selaras dengan palet situs: tetap dalam keluarga hangat, tidak
+ * memperkenalkan warna baru yang bertabrakan dengan aksen kuning premium.
+ */
+const ACCENT_WARNA = {
+  amina: '#f5c542',   // kuning premium — proyek unggulan
+  parts: '#7fb3d5',   // biru tenang — inventory/logistik
+  wa: '#8fc98f',      // hijau tenang — bot percakapan
+};
+
+function renderSpotlight() {
+  const host = $('#spotlightHost');
+  if (!host) return;
+
+  // Gabungkan proyek unggulan + sampingan jadi satu koleksi.
+  // Sampingan tidak punya metrics/subtitle, jadi dipakai deskripsi singkat.
+  const items = [
+    ...projects.map((p) => ({
+      title: p.name,
+      label: p.featured ? 'Proyek unggulan' : 'Proyek',
+      meta: p.subtitle || p.summary?.slice(0, 70) || '',
+      // Rating: dari jumlah tes kalau ada — angka NYATA, bukan karangan.
+      // Kalau tidak ada tes, tidak ada rating (elemen disembunyikan).
+      rating: (() => {
+        const t = (p.metrics ?? []).find((m) => m.label.includes('tes'));
+        return t ? Number(String(t.value).replace(/\./g, '')).toLocaleString('id-ID') : '';
+      })(),
+      accent: ACCENT_WARNA[p.accent] || '#f5c542',
+    })),
+    ...sideProjects.map((p) => ({
+      title: p.name,
+      label: 'Proyek pendukung',
+      meta: p.description,
+      rating: '',
+      accent: '#a9a9b3',
+    })),
+  ];
+
+  host.append(createSpotlightCarousel(items));
+}
+
 function renderSideProjects() {
   const host = $('#sideProjects');
   for (const p of sideProjects) {
@@ -407,6 +459,7 @@ renderStats();
 renderAbout();
 renderServices();
 renderProjects();
+renderSpotlight();
 renderSideProjects();
 renderPrinciples();
 renderContact();
