@@ -43,7 +43,7 @@ if [ -r "$ENV_FILE" ]; then
 fi
 
 catat() {
-  echo "[$(date -u '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+  echo "[$(TZ='Asia/Jakarta' date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
 
 # ── Hitung ban per periode ─────────────────────────────────────────────────
@@ -122,7 +122,7 @@ print(f'Negara: {top}')
 
     if [ -n "$TOKEN" ] && [ -n "$CHAT" ]; then
       PESAN="🚨 <b>Lonjakan serangan SSH</b>
-$(date -u '+%Y-%m-%d %H:%M UTC')
+$(TZ='Asia/Jakarta' date '+%Y-%m-%d %H:%M WIB')
 
 ${JAM_INI} percobaan dalam 1 jam terakhir
 Baseline: ${BASELINE}/jam (7 hari)

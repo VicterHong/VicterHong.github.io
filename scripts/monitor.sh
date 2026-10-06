@@ -55,7 +55,7 @@ MASALAH=()
 
 catat() {
   MASALAH+=("$1")
-  echo "[$(date -u +%H:%M:%S)] $1" >> "$LOG_FILE"
+  echo "[$(TZ='Asia/Jakarta' date +%H:%M:%S)] $1" >> "$LOG_FILE"
 }
 
 # ── 1. Website produksi ─────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ if [ ${#MASALAH[@]} -gt 0 ]; then
   if [ "$SEKARANG" != "$SEBELUMNYA" ]; then
     if [ -n "$TOKEN" ] && [ -n "$CHAT" ]; then
       PESAN="⚠️ <b>Pemantauan portfolio-victer</b>
-$(date -u '+%Y-%m-%d %H:%M UTC')
+$(TZ='Asia/Jakarta' date '+%Y-%m-%d %H:%M WIB')
 
 $(printf '%s\n' "${MASALAH[@]}")"
 
@@ -130,7 +130,7 @@ else
         -d "chat_id=${CHAT}" \
         -d "parse_mode=HTML" \
         --data-urlencode "text=✅ <b>Semua normal kembali</b>
-$(date -u '+%Y-%m-%d %H:%M UTC')
+$(TZ='Asia/Jakarta' date '+%Y-%m-%d %H:%M WIB')
 Website, API, layanan, disk, swap, load — semua sehat." 2>/dev/null
     fi
     rm -f "$STATE_FILE"
