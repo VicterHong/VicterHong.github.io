@@ -148,6 +148,37 @@ function renderLocked(payload) {
     contentHost.append(wrap);
   }
 
+  // ── AKSES REPO — HANYA UNTUK PEMEGANG TOKEN ────────────────────────────────
+  // Kode sumber proyek ini privat. Tautan repo dikirim SERVER sebagai bagian
+  // dari konten terkunci, jadi ia tidak pernah ada di HTML maupun JS halaman
+  // sebelum token lolos. Ini yang membuat token punya nilai nyata: bukan
+  // sekadar membuka tulisan, tapi membuka akses ke kode.
+  //
+  // Kalau server tidak mengirim `repo`, blok ini tidak ditampilkan sama sekali
+  // — tidak ada kotak kosong atau tautan mati.
+  if (content.repo) {
+    const repoBox = document.createElement('div');
+    repoBox.className = 'locked-repo';
+
+    const h3 = document.createElement('h3');
+    h3.textContent = 'Akses kode sumber';
+
+    const note = document.createElement('p');
+    note.className = 'locked-repo-note';
+    note.textContent = content.repoNote
+      || 'Repositori privat. Tautan di bawah berlaku untuk pemegang token Anda — mohon tidak dibagikan ulang.';
+
+    const link = document.createElement('a');
+    link.className = 'btn btn-primary';
+    link.href = content.repo;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = content.repoLabel || 'Buka repositori privat';
+
+    repoBox.append(h3, note, link);
+    contentHost.append(repoBox);
+  }
+
   // Video narasi proyek — dimuat lazy, hanya untuk pengguna dengan akses.
   const videoSlug = { mina: 'mina', spareparts: 'spareparts' }[PROJECT] ?? 'portal';
   contentHost.append(createNarrativeVideo({

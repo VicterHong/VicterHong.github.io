@@ -33,7 +33,7 @@ export const about = {
   paragraphs: [
     'Saya Victer — pengembang yang fokus pada alat otomasi dan sistem self-hosted. Saya percaya perangkat lunak yang baik tidak harus menuntut perangkat baru atau langganan bulanan.',
     'Selama beberapa tahun terakhir saya membangun sistem yang berjalan di perangkat sederhana: remote control yang hidup di laptop 2 GB RAM, bot keluarga dengan kontrol anti-ban berlapis, dan sistem inventaris yang menggantikan pencatatan manual.',
-    'Pendekatan saya sederhana: hemat sumber daya sejak desain, keamanan yang serius bukan tempelan, dan setiap klaim bisa dibuktikan dengan membuka repositorinya.',
+    'Pendekatan saya sederhana: hemat sumber daya sejak desain, keamanan yang serius bukan tempelan, dan setiap klaim saya siap tunjukkan buktinya saat diminta.',
   ],
   skills: [
     { group: 'Bahasa', items: ['Python', 'JavaScript', 'TypeScript', 'SQL'] },
@@ -181,7 +181,9 @@ export const projects = [
  */
 export const sideProjects = [
   { name: 'Monitoring', description: 'Pemantauan bandwidth yang mengalirkan statistik jaringan ke Firebase.', stack: ['Python'], repo: 'https://github.com/VicterHong/Monitoring' },
-  { name: 'EFMS Fintech', description: 'Sistem manajemen keuangan perusahaan.', stack: ['TypeScript'], repo: 'https://github.com/VicterHong/efms-fintech' },
+  // Repo privat — tanpa tautan. Kartu dirender sebagai <div>, bukan <a>,
+  // supaya tidak ada tautan yang mendarat di 404 (lihat renderSideProjects).
+  { name: 'EFMS Fintech', description: 'Sistem manajemen keuangan perusahaan. Kode privat.', stack: ['TypeScript'] },
   { name: 'Daftar Hadir', description: 'Aplikasi absensi berbasis web dengan Firebase.', stack: ['HTML', 'Firebase'], repo: 'https://github.com/VicterHong/Daftar-Hadir' },
   { name: 'jsloop', description: 'Contoh perulangan JavaScript, ditulis dalam Bahasa Indonesia.', stack: ['JavaScript'], repo: 'https://github.com/VicterHong/jsloop' },
   { name: 'strktrdata', description: 'Contoh struktur data JavaScript, ditulis dalam Bahasa Indonesia.', stack: ['JavaScript'], repo: 'https://github.com/VicterHong/strktrdata' },

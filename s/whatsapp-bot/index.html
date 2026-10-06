@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Family Assistant — Studi Kasus | Victer</title>
+<meta name="description" content="Bot WhatsApp grup keluarga: reaktif, bukan berisik. 1.045 tes otomatis, 14 kelas anti-ban, memori per grup yang tidak bocor antar grup.">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/css/main.css">
+<link rel="stylesheet" href="../../assets/css/project.css">
+<link rel="stylesheet" href="../../assets/css/astra.css">
+<link rel="stylesheet" href="../../assets/css/narrative.css">
+<link rel="stylesheet" href="../../assets/css/logo.css">
+<link rel="stylesheet" href="../../assets/css/premium.css">
+<link rel="stylesheet" href="../../assets/css/cf-gate.css">
+<link rel="stylesheet" href="../../assets/css/interactions.css">
+</head>
+<body>
+
+<!-- ── GERBANG VERIFIKASI ──────────────────────────────────────────────────
+     Sama seperti halaman lain: replikasi interstitial Cloudflare. -->
+<script>
+  try {
+    if (!sessionStorage.getItem('cf_clearance_' + location.hostname)) {
+      document.documentElement.classList.add('cf-gating');
+      setTimeout(function () { document.documentElement.classList.remove('cf-gating'); }, 8000);
+    }
+  } catch (e) { /* mode privasi ketat */ }
+</script>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="../../">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">Victer</span>
+    </a>
+    <nav class="site-nav" aria-label="Navigasi utama">
+      <a href="../../#utqvwf">Proyek</a>
+      <a href="../../#5nfyzw">Cara kerja</a>
+      <a href="../../#89fk39">Kontak</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ── SEMUA PUBLIK ───────────────────────────────────────────────────────
+       Berbeda dari halaman MINA dan Spareparts yang punya bagian terkunci,
+       proyek ini tidak punya bagian rahasia — seluruh isinya boleh dibaca
+       siapa pun. Jadi tidak ada gerbang token di sini, dan tidak ada konten
+       yang diambil dari server. Semua bukti terbuka. -->
+  <article class="project-page">
+    <a class="back-link" href="../../#utqvwf">← Semua proyek</a>
+
+    <header class="project-hero">
+      <p class="project-kicker">Studi kasus</p>
+      <h1 class="project-title">WhatsApp Family Assistant</h1>
+      <p class="project-subtitle">Bot grup keluarga yang reaktif dan aman</p>
+      <p class="project-lede">
+        Bot grup biasanya berisik dan rawan diblokir. Yang ini dirancang untuk diam sampai
+        dipanggil, dengan 14 kelas kontrol anti-ban dan memori per grup yang tidak bocor
+        antar grup. Berjalan sebagai layanan systemd di perangkat sendiri.
+      </p>
+      <dl class="project-facts">
+        <div><dd>1.045</dd><dt>tes otomatis</dt></div>
+        <div><dd>14</dd><dt>kelas anti-ban</dt></div>
+        <div><dd>MIT</dd><dt>lisensi</dt></div>
+      </dl>
+      <div class="stack">
+        <span class="tag">Node.js</span>
+        <span class="tag">Baileys</span>
+        <span class="tag">JSONL</span>
+        <span class="tag">systemd</span>
+      </div>
+      <a class="btn btn-ghost" href="../../#89fk39">Minta akses kode</a>
+    </header>
+
+    <section class="public-section">
+      <h2>Masalah yang diselesaikan</h2>
+      <p>
+        Bot grup biasanya berisik dan rawan diblokir. Yang ini dirancang untuk diam sampai
+        dipanggil, dengan kontrol anti-ban berlapis dan privasi yang dijaga ketat.
+      </p>
+      <p>
+        Masalah nyata yang dihadapi bot WhatsApp bukan "apakah bisa membalas" — itu mudah.
+        Yang sulit: bertahan hidup. WhatsApp memblokir akun yang berperilaku seperti bot,
+        dan akun yang diblokir berarti seluruh riwayat grup hilang.
+      </p>
+    </section>
+
+    <!-- ── VIDEO NARASI ──────────────────────────────────────────────────
+         Artefak produk: cuplikan sistem berjalan. Diisi narrative.js, yang
+         menangani lazy-load + reduced-motion + fallback WebM→MP4. -->
+    <div id="narrativeHost" class="public-section"></div>
+
+    <section class="public-section">
+      <h2>Yang saya buktikan sendiri</h2>
+      <ul class="public-list">
+        <li>1.045 tes otomatis berjalan di setiap perubahan. Angka ini dari hasil uji terakhir — kalau Anda butuh buktinya, saya tunjukkan saat diminta.</li>
+        <li>14 kelas kontrol anti-ban: ritme manusia, batas laju per pengguna, jam tenang, dan jeda mandiri saat ada dorongan dari server.</li>
+        <li>Memori per grup dengan pemulihan otomatis saat berkas rusak — tidak bocor antar grup.</li>
+        <li>Kunci sesi tidak pernah ditulis ke log: dua lapis penjaga mencegahnya bocor.</li>
+        <li>Berjalan sebagai layanan systemd dengan pemantauan kesehatan dan pemulihan otomatis.</li>
+      </ul>
+    </section>
+
+    <section class="public-section">
+      <h2>Keputusan desain</h2>
+      <div class="decision-list">
+        <div class="decision">
+          <h3>Reaktif, bukan berisik</h3>
+          <p>
+            Bot hanya menjawab saat dipanggil atau dibalas. Tidak pernah menyela percakapan
+            yang sedang berjalan. Di grup keluarga, bot yang aktif sendiri adalah gangguan —
+            jadi perilaku default-nya adalah diam.
+          </p>
+        </div>
+        <div class="decision">
+          <h3>Anti-ban berlapis, bukan satu pengaman</h3>
+          <p>
+            14 kelas kontrol terpisah: ritme manusia, batas laju, jam tenang, dan pemantau
+            kesehatan yang menjeda sendiri. Kalau satu lapis gagal, lapis lain masih bekerja.
+            Satu pengaman tunggal berarti satu titik kegagalan.
+          </p>
+        </div>
+        <div class="decision">
+          <h3>JSONL, bukan basis data</h3>
+          <p>
+            Riwayat percakapan disimpan sebagai baris JSON. Alasannya: berkas rusak bisa
+            dipulihkan sebagian (baris yang valid tetap terbaca), sedangkan basis data yang
+            korup bisa hilang seluruhnya. Untuk perangkat sederhana, ini lebih tahan banting.
+          </p>
+        </div>
+        <div class="decision">
+          <h3>Kunci sesi tidak pernah masuk log</h3>
+          <p>
+            Kunci sesi WhatsApp adalah kredensial penuh — siapa pun yang memegangnya bisa
+            mengambil alih akun. Dua lapis penjaga mencegahnya tertulis ke log: pembersih
+            sebelum penulisan, dan pemeriksa berkas log berkala.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="public-section">
+      <h2>Batas dan kegagalan</h2>
+      <ul class="public-list">
+        <li><strong>WhatsApp bisa mengubah kebijakan kapan saja.</strong> Ini risiko yang tidak bisa dihilangkan oleh kode apa pun. Yang bisa dilakukan: meminimalkan jejak yang mencurigakan.</li>
+        <li><strong>Baileys bukan API resmi.</strong> Ia bekerja dengan protokol WhatsApp Web. Pembaruan WhatsApp bisa memutusnya sampai library menyesuaikan.</li>
+        <li><strong>Bukan untuk skala besar.</strong> Dirancang untuk satu akun dan beberapa grup keluarga — bukan untuk ratusan grup.</li>
+        <li><strong>Perangkat harus menyala.</strong> Kalau perangkat mati, bot mati. Tidak ada failover cloud, karena itu memang bukan tujuannya.</li>
+      </ul>
+    </section>
+
+    <section class="public-section">
+      <h2>Metrik operasional</h2>
+      <dl class="project-facts">
+        <div><dd>1.045</dd><dt>tes otomatis</dt></div>
+        <div><dd>14</dd><dt>kelas anti-ban</dt></div>
+        <div><dd>2</dd><dt>lapis penjaga kunci</dt></div>
+        <div><dd>0</dd><dt>kebocoran kunci di log</dt></div>
+      </dl>
+    </section>
+
+    <div class="project-cta">
+      <a class="btn btn-primary" href="../../#89fk39">Minta akses kode</a>
+      <a class="btn btn-ghost" href="../../#89fk39">Diskusikan kebutuhan serupa</a>
+    </div>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
+</footer>
+
+<script>
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    verifyEndpoint: 'https://portfolio-victer.victerphanjaya.workers.dev/api/verify-turnstile'
+  };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="../../assets/js/cf-gate-i18n.js"></script>
+<script src="../../assets/js/cf-gate.js"></script>
+<script>
+  document.getElementById('year').textContent = String(new Date().getFullYear());
+</script>
+
+<script type="module">
+  // Video narasi — satu-satunya JS yang diperlukan halaman ini.
+  // Tidak ada project.js karena tidak ada bagian terkunci (tidak butuh token).
+  import { createNarrativeVideo } from '../../assets/js/narrative.js';
+
+  const host = document.getElementById('narrativeHost');
+  if (host) {
+    host.append(createNarrativeVideo({
+      slug: 'portal',
+      title: 'WhatsApp Family Assistant — cara kerjanya',
+      caption: 'Cuplikan sistem berjalan: pesan masuk, keputusan membalas, dan jeda mandiri saat laju tinggi.',
+      aspect: '16 / 9',
+    }));
+  }
+
+  // Efek tekan tombol — sama seperti halaman lain.
+  import('../../assets/js/ripple.js')
+    .then(({ initRipple }) => initRipple())
+    .catch(() => { /* tombol tetap berfungsi tanpa efek */ });
+</script>
+</body>
+</html>

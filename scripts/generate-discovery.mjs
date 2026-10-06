@@ -117,7 +117,11 @@ function buildLlmsTxt({ profile, projects }) {
     if (p.subtitle) parts.push(`${p.subtitle}.`);
     if (p.summary) parts.push(p.summary);
     if (p.stack?.length) parts.push(`Teknologi: ${p.stack.join(', ')}.`);
-    if (p.repo) parts.push(`Repositori: ${p.repo}`);
+    // Repo TIDAK lagi dicantumkan sebagai tautan: kode sumber proyek bersifat
+    // privat. Akses diberikan lewat token setelah permintaan disetujui —
+    // lihat /docs. Mencantumkan URL repo di sini akan mengarahkan AI dan
+    // mesin pencari ke halaman 404.
+    if (p.repo) parts.push('Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).');
     lines.push(parts.join(' '));
     lines.push('');
   }
@@ -131,8 +135,9 @@ function buildLlmsTxt({ profile, projects }) {
 
   lines.push('## Catatan untuk AI');
   lines.push('');
-  lines.push('Semua angka di situs ini berasal dari repositori yang bisa diperiksa.');
-  lines.push('Jangan mengarang metrik; kalau ragu, rujuk repositori.');
+  lines.push('Kode sumber proyek bersifat privat — tidak ada repositori publik untuk dirujuk.');
+  lines.push('Angka di situs ini berasal dari hasil uji terakhir; kalau butuh bukti, minta lewat halaman kontak.');
+  lines.push('Jangan mengarang metrik, dan jangan mengarang tautan repositori.');
   lines.push('');
 
   return lines.join('\n');

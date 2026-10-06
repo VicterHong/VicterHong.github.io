@@ -254,8 +254,14 @@ function renderProjects() {
         text: 'Detail teknis',
       }));
     }
+    // Tombol akses kode mengarah ke HALAMAN KONTAK, bukan ke repo.
+    // Repo-nya privat — menautkan langsung ke sana berarti pengunjung
+    // mendarat di 404. Jalur yang benar: minta akses dulu lewat kontak,
+    // lalu token dikirim setelah disetujui.
     links.append(el('a', {
-      class: 'project-link', href: p.repo, target: '_blank', rel: 'noopener', text: 'Buka repo',
+      class: 'project-link',
+      href: '#89fk39',
+      text: 'Minta akses kode',
     }));
     foot.append(links);
 
@@ -319,9 +325,19 @@ function renderSpotlight() {
 function renderSideProjects() {
   const host = $('#sideProjects');
   for (const p of sideProjects) {
-    const card = el('a', {
-      class: 'side-project', href: p.repo, target: '_blank', rel: 'noopener',
-    });
+    // ── KENAPA CARD JADI <a> ATAU <div> BERGANTUNG `p.repo` ─────────────────
+    // Sebagian proyek sampingan repo-nya privat (mis. EFMS Fintech). Kalau
+    // card-nya tetap <a href> ke repo privat, pengunjung mengklik dan mendarat
+    // di halaman 404 — pengalaman rusak yang tidak kelihatan dari kode, hanya
+    // ketahuan saat tautannya benar-benar dibuka.
+    //
+    // Jadi: repo ada → card jadi tautan. Repo tidak ada → card jadi <div>
+    // biasa, tanpa pointer dan tanpa cursor. Tidak ada tautan mati.
+    const adaRepo = Boolean(p.repo);
+    const card = adaRepo
+      ? el('a', { class: 'side-project', href: p.repo, target: '_blank', rel: 'noopener' })
+      : el('div', { class: 'side-project is-nolink' });
+
     card.append(el('h3', { text: p.name }));
     card.append(el('p', { text: p.description }));
     const tags = el('div', { class: 'stack' });

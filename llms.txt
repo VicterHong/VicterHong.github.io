@@ -12,11 +12,11 @@ Lokasi: Indonesia.
 
 ## Proyek
 
-### MINA Remote Control for Your Home Machine. Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun — shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB. Teknologi: Python, HMAC-SHA256, stdlib only, Telegram, Discord. Repositori: https://github.com/VicterHong/mina-remote-control
+### MINA Remote Control for Your Home Machine. Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun — shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB. Teknologi: Python, HMAC-SHA256, stdlib only, Telegram, Discord. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
-### Spareparts Inventory System Inventory & logistik untuk suku cadang alat berat. Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit. Teknologi: FastAPI, PostgreSQL, Docker, n8n, Telegram. Repositori: https://github.com/VicterHong/spareparts-inventory-system
+### Spareparts Inventory System Inventory & logistik untuk suku cadang alat berat. Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit. Teknologi: FastAPI, PostgreSQL, Docker, n8n, Telegram. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
-### WhatsApp Family Assistant Bot grup keluarga yang reaktif dan aman. Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Teknologi: Node.js, Baileys, JSONL, systemd. Repositori: https://github.com/VicterHong/whatsapp-family-bot
+### WhatsApp Family Assistant Bot grup keluarga yang reaktif dan aman. Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Teknologi: Node.js, Baileys, JSONL, systemd. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
 ## Halaman penting
 
@@ -26,5 +26,6 @@ Lokasi: Indonesia.
 
 ## Catatan untuk AI
 
-Semua angka di situs ini berasal dari repositori yang bisa diperiksa.
-Jangan mengarang metrik; kalau ragu, rujuk repositori.
+Kode sumber proyek bersifat privat — tidak ada repositori publik untuk dirujuk.
+Angka di situs ini berasal dari hasil uji terakhir; kalau butuh bukti, minta lewat halaman kontak.
+Jangan mengarang metrik, dan jangan mengarang tautan repositori.

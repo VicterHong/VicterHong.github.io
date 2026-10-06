@@ -169,3 +169,11 @@
 @media (prefers-reduced-motion: reduce) {
   .project:hover { transform: none; }
 }
+
+/* Kartu proyek tanpa tautan (repo privat). Cursor default + tanpa efek hover
+   angkat, supaya tidak terlihat bisa diklik padahal tidak. */
+.side-project.is-nolink { cursor: default; }
+.side-project.is-nolink:hover {
+  border-color: var(--line-soft);
+  transform: none;
+}
