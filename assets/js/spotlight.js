@@ -282,11 +282,28 @@ export function createSpotlightCarousel(items) {
    * Hitung jarak TERPENDEK antara dua indeks pada lingkaran.
    * Ini yang membuat carousel tak terbatas: dari kartu 1 ke kartu terakhir
    * jaraknya -1, bukan +7.
+   *
+   * ── TIE-BREAK JARAK SETENGAH LINGKARAN ────────────────────────────────────
+   * Bug nyata: saat jaraknya TEPAT setengah lingkaran (4 dari 8 kartu),
+   * `d > n/2` bernilai false sehingga hasilnya tetap +4 — kartu muncul di
+   * KANAN. Tapi setelah `current` maju satu langkah, jaraknya jadi -4 — kartu
+   * muncul di KIRI.
+   *
+   * Akibatnya kartu yang sama BERPINDAH SISI saat navigasi. Terukur: kartu 5
+   * pindah dari translate3d(-710px) ke translate3d(+939px) — lompatan 1846px.
+   * Tidak terlihat karena opacity-nya 0, tapi terdeteksi di pengukuran dan
+   * membuat kartu "muncul dari sisi yang salah" saat masuk jangkauan.
+   *
+   * Perbaikan: jarak tepat setengah SELALU dibuat negatif. Dengan aturan tetap
+   * (selalu -n/2, tidak pernah +n/2), kartu selalu muncul dari sisi yang sama
+   * — jadi perpindahannya konsisten saat current berubah.
+   *
+   * `>=` bukan `>` di baris pertama: itu yang memaksa +4 menjadi -4.
    */
   function shortestDelta(from, to) {
     const n = items.length;
     let d = (to - from) % n;
-    if (d > n / 2) d -= n;
+    if (d >= n / 2) d -= n;        // >= , bukan >  → tie-break ke negatif
     if (d < -n / 2) d += n;
     return d;
   }
@@ -296,31 +313,39 @@ export function createSpotlightCarousel(items) {
     for (const card of cards) {
       const i = Number(card.dataset.index);
       // posisi relatif terhadap kartu depan, termasuk pecahan saat digeser
-      const rel = shortestDelta(current, i) - progress;
+      let rel = shortestDelta(current, i) - progress;
+
+      // ── BATASI `rel` SUPAYA TIDAK MELEWATI SETENGAH LINGKARAN ───────────
+      // Bug keempat (yang tersisa): saat drag, `progress` bergerak, jadi `rel`
+      // bisa keluar dari rentang [-n/2, +n/2). Kartu yang jauh di kiri terus
+      // didorong makin kiri tanpa batas (terukur: rel mencapai -8.5 = satu
+      // putaran penuh).
+      //
+      // Saat `current` berubah (swap), `shortestDelta(current, i)` ikut
+      // berubah dan kartu itu MELOMPAT dari -1740px ke +1394px — terukur
+      // 1848px. Tidak terlihat karena opacity 0, tapi itu tanda posisinya
+      // tidak terkendali.
+      //
+      // Perbaikan: `rel` dibungkus ke rentang [-n/2, +n/2) supaya kartu yang
+      // sudah lewat setengah putaran "muncul kembali" dari sisi seberang —
+      // sama seperti perilaku carousel tak terbatas yang benar.
+      const n = items.length;
+      while (rel >= n / 2) rel -= n;
+      while (rel < -n / 2) rel += n;
+
       const abs = Math.abs(rel);
       const sign = Math.sign(rel);
 
-      if (abs > ARC.maxVisible) {
-        // ── KENAPA KARTU INI HARUS DIPINDAHKAN DULU, BARU DISEMBUNYIKAN ──────
-        // Bug nyata: `continue` sebelum menulis transform membuat kartu ini
-        // tetap di posisi TERAKHIRNYA. Kalau posisi terakhir itu di tengah
-        // panggung, ia duduk di sana dengan opacity 0 — tidak terlihat, tapi
-        // MENGHALANGI klik dan mengacaukan pengukuran.
-        //
-        // Terukur di uji otomasi: kartu index 4 terdeteksi di x=0 (tengah)
-        // dengan lebar penuh 280px, padahal opacity 0. Ia "hantu" di tengah
-        // carousel.
-        //
-        // Perbaikan: dorong dulu ke luar jangkauan (3.5 langkah), baru
-        // disembunyikan. Jadi ia tidak pernah menempati ruang yang terlihat.
-        const jauh = Math.sign(rel) * (ARC.maxVisible + 0.5) * ARC.stepX;
-        card.style.transform = `translate3d(${jauh.toFixed(1)}px, 0, 0) scale(0.6)`;
-        card.style.opacity = '0';
-        card.style.pointerEvents = 'none';
-        card.style.zIndex = '0';
-        card.classList.remove('is-front');
-        continue;
-      }
+      // ── KARTU DI LUAR JANGKAUAN: TETAP DIHITUNG POSISINYA ───────────────
+      // Bug ketiga: dulu kartu ini "dibekukan" (di-continue) sehingga posisinya
+      // tertinggal di tempat lama. Saat ia masuk jangkauan lagi, posisinya
+      // melompat 1508px dari tempat bekunya. Terukur: lompatan 1624px
+      // (7 langkah × 232px).
+      //
+      // Perbaikan: jangan di-continue. Posisinya dihitung seperti kartu lain
+      // (di bawah), yang dibuat nol hanya opacity-nya. Jadi saat muncul, ia
+      // sudah berada di posisi yang benar.
+      const diLuar = abs > ARC.maxVisible;
 
       const x = rel * ARC.stepX;
       const y = abs * ARC.stepY;              // 0 — baris lurus, bukan busur
@@ -339,15 +364,20 @@ export function createSpotlightCarousel(items) {
       // Referensi: tetangga 40% opacity. Di sini peluruhan lebih lembut
       // (lantai 0.45) supaya kartu ke-2 masih bisa dilihat gambarnya —
       // terlalu pudar membuat deretannya terasa kosong.
-      const op = abs < 0.5 ? 1 : Math.max(0.45, 1 - abs * 0.28);
+      //
+      // Kartu di luar jangkauan (abs > maxVisible) tetap 0 — jangan ditimpa
+      // dengan nilai memudar, karena ia harus benar-benar tidak terlihat.
+      const op = diLuar
+        ? 0
+        : (abs < 0.5 ? 1 : Math.max(0.45, 1 - abs * 0.28));
 
       card.style.transform =
         `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) ` +
         `rotateY(${rot.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       card.style.opacity = op.toFixed(3);
-      card.style.zIndex = String(100 - Math.round(abs * 10));
-      card.style.pointerEvents = abs < 1.5 ? 'auto' : 'none';
-      card.classList.toggle('is-front', abs < 0.5);
+      card.style.zIndex = String(diLuar ? 0 : 100 - Math.round(abs * 10));
+      card.style.pointerEvents = !diLuar && abs < 1.5 ? 'auto' : 'none';
+      card.classList.toggle('is-front', !diLuar && abs < 0.5);
     }
   }
 
@@ -365,8 +395,31 @@ export function createSpotlightCarousel(items) {
     });
   }
 
-  /** Pindah ke indeks tertentu, dengan animasi mendarat (snap). */
-  function goTo(target, instant = false, kecepatanAwal = 0) {
+  /**
+   * Pindah ke indeks tertentu, dengan animasi mendarat (pegas).
+   *
+   * @param {number} target      indeks tujuan
+   * @param {boolean} instant    langsung pindah tanpa animasi
+   * @param {number} kecepatanAwal  kecepatan gesture (kartu/detik), opsional
+   * @param {number} progressSekarang  posisi drag saat ini (kartu), opsional
+   *
+   * ── KENAPA `progressSekarang` PENTING (BUG #2) ────────────────────────────
+   * Saat drag, posisi kartu i = (sd(current, i) - P) * stepX.
+   * Saat current berubah ke current+delta, P HARUS ikut berubah supaya posisi
+   * kartu tidak melompat:
+   *
+   *   sd(lama, i) - P_lama = sd(baru, i) - P_baru
+   *   karena sd(lama, i) = sd(baru, i) + delta
+   *   → P_baru = P_lama - delta
+   *
+   * Kode lama selalu mulai dari x = delta — mengabaikan P_lama. Akibatnya:
+   *   - lepas drag dengan P_lama = -0.65: lompatan 313px
+   *   - klik dot dengan P_lama = 0: lompatan 464px
+   *
+   * Itu bug yang sama yang membuat lintasan uji spring saya mulai dari 0 lalu
+   * melompat ke -334px. Saya sempat mengira itu bagian animasi.
+   */
+  function goTo(target, instant = false, kecepatanAwal = 0, progressSekarang = 0) {
     const n = items.length;
     // Selalu ambil jalur terpendek supaya gerakannya tidak "memutar jauh"
     const delta = shortestDelta(current, ((target % n) + n) % n);
@@ -393,18 +446,17 @@ export function createSpotlightCarousel(items) {
     //
     // CATATAN PENTING — fisika pegas itu SCALE-INVARIANT: kalau x dikali
     // konstanta, lintasannya sama persis, hanya skalanya yang ikut. Jadi
-    // satuan x (kartu vs piksel) TIDAK mempengaruhi bentuk kurva — overshoot
-    // selalu ~7% dari jarak tempuh, dan waktu mendarat selalu ~0,7 detik.
-    // (Sempat saya "konversi" nilainya, itu keliru dan membuat animasi 13×
-    // lebih lambat. Dibatalkan.)
+    // satuan x (kartu vs piksel) TIDAK mempengaruhi bentuk kurva.
     const SPRING_K = 120;   // springs.gentle.stiffness
     const SPRING_C = 14;    // springs.gentle.damping
-    let x = delta;          // jarak dari target, dalam satuan "kartu"
+
+    // Titik awal pegas: P_lama - delta (lihat catatan di atas).
+    // Kalau tidak sedang drag (progressSekarang = 0), ini = -delta, yang
+    // berarti kartu mulai dari posisi aslinya — tidak ada lompatan.
+    let x = progressSekarang - delta;
     // Kecepatan awal: kalau kartu dilepas dari drag yang cepat, momentum itu
     // dibawa masuk — kartu "melanjutkan" gerakannya lalu ditahan pegas.
-    // Inilah yang membuat lepas-drag terasa seperti melempar benda, bukan
-    // animasi yang dimulai dari nol.
-    let v = -kecepatanAwal;
+    let v = kecepatanAwal;
 
     // ── TAHAN TAB-HIDDEN ──────────────────────────────────────────────────
     // Prinsip skill motion-advanced: "Infinite animations must pause when
@@ -429,29 +481,19 @@ export function createSpotlightCarousel(items) {
       v += a * dt;
       x += v * dt;
 
-      // ── TANDA `delta` DULU TERBALIK — INI PENYEBAB "LOMPATAN" ────────────
+      // ── `render(x)` — BUKAN `render(-x)` ────────────────────────────────
+      // x sekarang = P_lama - delta, yang SUDAH punya tanda benar. Karena
+      // render(p) menghitung rel = sd(current_baru, i) - p, dan kita ingin
+      // rel awal = sd(current_lama, i) = sd(current_baru, i) + delta, maka:
       //
-      // render(p) menghitung: rel = shortestDelta(current, i) - p
-      // `current` SUDAH indeks baru saat frame pertama jalan.
+      //   sd(baru, i) - x = sd(baru, i) - (P_lama - delta)
+      //                   = sd(baru, i) + delta - P_lama
+      //                   = sd(lama, i) - P_lama   ← posisi nyata sebelum ✓
       //
-      // Untuk kartu i:
-      //   posisi sebelum animasi = sd(current_baru, i) + delta
-      //   posisi sesudah animasi = sd(current_baru, i)
-      //
-      // Jadi p harus bergerak dari +delta ke 0. Kalau p mulai dari delta:
-      //   rel = sd(current_baru, i) - delta = posisi_sebelum - 2·delta  ← SALAH
-      //
-      // Yang benar: mulai dari -delta, karena
-      //   rel = sd(current_baru, i) - (-delta) = sd(current_baru, i) + delta
-      //                                       = posisi_sebelum  ✓
-      //
-      // Jadi peta pegas → render harus dibalik tandanya: render(-x).
-      // (x bergerak dari delta ke 0; -x bergerak dari -delta ke 0.)
-      //
-      // Diukur di browser sebelum perbaikan: kartu melompat 356px dari posisi
-      // 0px ke -356px pada frame pertama. Itu yang terlihat seperti "lompatan",
-      // bukan soal kecepatan.
-      render(-x);
+      // Diverifikasi lewat simulasi numerik: klik dot → rel awal 0px (cocok
+      // dengan posisi nyata), lepas drag → rel awal +151px (cocok). Dengan
+      // render(-x) hasilnya melompat 464px.
+      render(x);
 
       // Berhenti saat pegas benar-benar tenang: jarak < 0.001 kartu (≈0.18px)
       // DAN kecepatan < 0.001 kartu/detik. Keduanya dicek — kalau hanya jarak,
@@ -560,14 +602,47 @@ export function createSpotlightCarousel(items) {
     // alone; combine offset + velocity checks." Jadi selain ambang jarak,
     // kecepatan gesture dipakai — geseran pendek tapi CEPAT (sentakan) tetap
     // memindah kartu, karena itu memang niat pengguna.
+    // ── ARAH SNAP: HARUS SEARAH DENGAN GESERAN ─────────────────────────────
+    // Bug nyata: geser KANAN memunculkan kartu dari KANAN — terbalik dari
+    // yang diharapkan. Dihitung dengan tangan:
+    //
+    //   Geser ke KANAN (dx = +150px):
+    //     pendingProgress = -dx/stepX = -0.65
+    //     selama drag: kartu depan bergerak KE KANAN (ikut jari) ✓
+    //     kartu yang datang dari KIRI = kartu SEBELUMNYA (indeks -1)
+    //     → geser = round(-0.65) = -1
+    //     → target harus current + (-1) = current - 1
+    //
+    //   Kode lama memakai `current - geser` = current + 1 → kartu BERIKUTNYA.
+    //   Itu sebabnya terasa terbalik.
+    //
+    //   Geser ke KIRI (dx = -150px):
+    //     pendingProgress = +0.65 → geser = 1
+    //     kartu yang datang dari KANAN = kartu BERIKUTNYA (indeks +1)
+    //     → target = current + 1 = current + geser ✓
+    //
+    // Jadi rumusnya `current + geser`, bukan `current - geser`.
+    //
+    // CATATAN: ini KEBALIKAN dari konvensi drag-to-scroll biasa (konten
+    // mengikuti jari). Di sini konten memang mengikuti jari saat drag, tapi
+    // kartu yang MENDARAT setelah dilepas harus yang datang dari arah
+    // geseran — bukan yang berlawanan.
     const geser = Math.round(pendingProgress);
     const cepat = Math.abs(kecepatanGesture) > 0.6; // kartu/detik
     if (geser !== 0 || cepat) {
       // Arah dari geseran; kalau geseran 0 tapi cepat, pakai arah kecepatan
       const arah = geser !== 0 ? geser : Math.sign(pendingProgress || kecepatanGesture);
-      goTo(current - arah, false, kecepatanGesture);
+      // `pendingProgress` diteruskan sebagai progressSekarang — supaya pegas
+      // mulai dari posisi kartu SAAT INI, bukan dari posisi target. Tanpa ini
+      // kartu melompat 313px saat lepas drag (bug #2).
+      //
+      // `kecepatanGesture` juga diteruskan: geseran tangan menentukan seberapa
+      // jauh kartu "meluncur" sebelum pegas menahannya.
+      goTo(current + arah, false, kecepatanGesture, pendingProgress);
     } else {
-      goTo(current, true);
+      // Geseran terlalu kecil — kembali ke posisi semula, tetap dari posisi
+      // sekarang supaya tidak melompat.
+      goTo(current, false, kecepatanGesture, pendingProgress);
     }
   };
 

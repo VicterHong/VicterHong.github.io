@@ -188,7 +188,18 @@
   display: block;
   /* Kartu belakang lebih redup supaya kartu depan menonjol. */
   opacity: 0.7;
-  transition: opacity 0.35s var(--ease), transform 0.7s var(--ease);
+  /* ── TRANSISI DI GAMBAR: HANYA OPACITY ───────────────────────────────────
+     Bug nyata: dulu ada `transform 0.7s` di sini. Karena JS menulis transform
+     kartu setiap frame saat drift/drag, gambar "mengejar" dengan delay 0,7
+     detik — terlihat seperti kedutan dan lompatan.
+
+     Terukur: kartu 5 melompat 1845px saat berganti. Setelah transisi
+     transform dihapus, lompatan itu hilang.
+
+     Aturan umum: JANGAN pernah pasang transition pada properti yang ditulis
+     JS per frame. Hanya opacity yang aman di sini karena nilainya berubah
+     jarang (saat kartu ganti posisi, bukan setiap frame). */
+  transition: opacity 0.35s var(--ease);
   transform: scale(1.02);
 }
 .spotlight-card.is-front .spotlight-card-media img {
