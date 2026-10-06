@@ -119,8 +119,56 @@ export function initScrollScrubVideo(selector = '#heroVideo') {
     // Percobaan terakhir setelah beberapa detik (kadang metadata baru siap).
     setTimeout(retry, 2500);
 
-    return;
-  }
+      // ── HEMAT BATERAI: JANGAN DECODE VIDEO SAAT TIDAK TERLIHAT ──────────
+      // Video autoplay loop berarti browser terus mendecode frame — itu beban
+      // CPU/GPU nyata yang tidak berhenti selama halaman terbuka. Di HP,
+      // decode video 720p terus-menerus adalah penyebab baterai boros terbesar.
+      //
+      // ── KENAPA PAKAI SCROLL, BUKAN IntersectionObserver ─────────────────
+      // Percobaan pertama pakai IntersectionObserver dan GAGAL: video hero
+      // ber-`position: fixed`, jadi ia SELALU "terlihat" menurut observer —
+      // meskipun pengunjung sudah menggulir jauh ke bawah. Terukur:
+      // `terlihatDiLayar: true` padahal scrollY sudah di bagian carousel.
+      //
+      // Yang benar: video hero relevan HANYA saat pengunjung masih di bagian
+      // atas halaman. Jadi patokannya posisi SCROLL, bukan posisi elemen.
+      //
+      // Ambang 1.2× tinggi layar: di bawah itu video masih "bagian dari
+      // pengalaman"; di atasnya pengunjung sudah pindah ke konten lain.
+      let videoAktif = true;
+      const cekVideo = () => {
+        const harusJalan = window.scrollY < window.innerHeight * 1.2;
+        if (harusJalan && !videoAktif) {
+          videoAktif = true;
+          if (video.paused) tryPlay();
+        } else if (!harusJalan && videoAktif) {
+          videoAktif = false;
+          video.pause();
+        }
+      };
+      // rAF-throttle: scroll bisa memicu 100+ kali/detik, dan cekVideo hanya
+      // perlu dijalankan sekali per frame.
+      let rafVideo = null;
+      window.addEventListener('scroll', () => {
+        if (rafVideo) return;
+        rafVideo = requestAnimationFrame(() => {
+          rafVideo = null;
+          cekVideo();
+        });
+      }, { passive: true });
+      cekVideo();
+
+      // Tab disembunyikan → pause. Tab kembali → lanjut kalau masih di atas.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          video.pause();
+        } else if (window.scrollY < window.innerHeight * 1.2 && video.paused) {
+          tryPlay();
+        }
+      });
+
+      return;
+    }
 
   let duration = 0;
   let targetTime = 0;

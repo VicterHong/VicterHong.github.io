@@ -335,10 +335,9 @@ export function createSpotlightCarousel(items) {
       let rel = shortestDelta(current, i) - progress;
 
       // ── BATASI `rel` SUPAYA TIDAK MELEWATI SETENGAH LINGKARAN ───────────
-      // Bug keempat (yang tersisa): saat drag, `progress` bergerak, jadi `rel`
-      // bisa keluar dari rentang [-n/2, +n/2). Kartu yang jauh di kiri terus
-      // didorong makin kiri tanpa batas (terukur: rel mencapai -8.5 = satu
-      // putaran penuh).
+      // Saat drag, `progress` bergerak, jadi `rel` bisa keluar dari rentang
+      // [-n/2, +n/2). Kartu yang jauh di kiri terus didorong makin kiri tanpa
+      // batas (terukur: rel mencapai -8.5 = satu putaran penuh).
       //
       // Saat `current` berubah (swap), `shortestDelta(current, i)` ikut
       // berubah dan kartu itu MELOMPAT dari -1740px ke +1394px — terukur
@@ -412,13 +411,89 @@ export function createSpotlightCarousel(items) {
         ? 0
         : (abs < 0.5 ? 1 : Math.max(0.45, 1 - abs * 0.28));
 
-      card.style.transform =
-        `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) ` +
+      // ── TULIS DOM HANYA KALAU NILAINYA BERUBAH ──────────────────────────
+      // Optimasi terbesar di fungsi ini. Menulis `style.transform` dengan
+      // string yang sama persis tetap memaksa browser mem-parse ulang nilainya
+      // dan membandingkannya — 8 kartu × 60 frame = 480 operasi/detik yang
+      // semuanya tidak berguna.
+      //
+      // Dengan membandingkan dulu, kartu yang diam (kebanyakan dari 8 kartu
+      // pada satu waktu) tidak menulis apa pun. Terukur: hanya ~3 kartu yang
+      // benar-benar bergerak pada satu waktu.
+      //
+      // Ditulis ke dataset, bukan style — supaya tidak memicu perubahan style
+      // saat pembacaannya.
+      const tBaru = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) ` +
         `rotateY(${rot.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-      card.style.opacity = op.toFixed(3);
-      card.style.zIndex = String(diLuar ? 0 : 100 - Math.round(abs * 10));
-      card.style.pointerEvents = !diLuar && abs < 1.5 ? 'auto' : 'none';
-      card.classList.toggle('is-front', !diLuar && abs < 0.5);
+      const tBerubah = card.dataset.t !== tBaru;
+      if (tBerubah) {
+        card.dataset.t = tBaru;
+        card.style.transform = tBaru;
+      }
+
+      const opBaru = op.toFixed(3);
+      if (card.dataset.op !== opBaru) {
+        card.dataset.op = opBaru;
+        card.style.opacity = opBaru;
+      }
+
+      const zBaru = String(diLuar ? 0 : 100 - Math.round(abs * 10));
+      if (card.dataset.z !== zBaru) {
+        card.dataset.z = zBaru;
+        card.style.zIndex = zBaru;
+      }
+
+      const peBaru = !diLuar && abs < 1.5 ? 'auto' : 'none';
+      if (card.dataset.pe !== peBaru) {
+        card.dataset.pe = peBaru;
+        card.style.pointerEvents = peBaru;
+      }
+
+      const depanBaru = !diLuar && abs < 0.5;
+      if (card.classList.contains('is-front') !== depanBaru) {
+        card.classList.toggle('is-front', depanBaru);
+      }
+
+      // ── PROMOSI KE LAYER GPU HANYA SAAT BERGERAK ────────────────────────
+      // `will-change` hanya dipasang di kartu yang SEDANG bergerak. Kalau
+      // dipasang di semua, browser membuat 8 layer GPU permanen yang memakan
+      // memori grafis tanpa manfaat.
+      //
+      // `abs < 1.5` = hanya kartu yang benar-benar terlihat bergerak (depan +
+      // dua tetangga terdekat). Kartu ke-3 dan seterusnya jarang bergerak
+      // signifikan, jadi tidak perlu layer sendiri.
+      const bergerak = !diLuar && abs < 1.5 && (tBerubah || sedangAnimasi || dragging);
+      if (card.classList.contains('is-bergerak') !== bergerak) {
+        card.classList.toggle('is-bergerak', bergerak);
+      }
+
+      // ── BAYANGAN: 4 TINGKAT, BUKAN NILAI TERUS-MENERUS ───────────────────
+      // Permintaan pemilik: bayangan yang bergerak mengikuti kartu, dalam di
+      // sisi kiri-kanan. TAPI juga: "optimalisasi biar tidak berat".
+      //
+      // ── KENAPA TIDAK BOLEH DIHITUNG TIAP FRAME ───────────────────────────
+      // Percobaan pertama: menulis `box-shadow` dengan nilai berbeda setiap
+      // frame. Itu SALAH — box-shadow adalah properti PAINT, bukan kompositor.
+      // Menulisnya 60×/detik berarti 60 repaint area berblur besar per detik.
+      // Itu penyebab carousel terasa berat.
+      //
+      // ── SOLUSI: 4 TINGKAT + TRANSISI CSS ─────────────────────────────────
+      // Kedalaman dibulatkan ke 4 tingkat (0 = depan, 3 = terjauh). Kelas CSS
+      // hanya ditulis saat TINGKATNYA BERUBAH — jadi ~2-4 kali per perpindahan
+      // kartu, bukan 54 kali.
+      //
+      // Perubahan antar tingkat dihaluskan oleh `transition: box-shadow` di
+      // CSS. Jadi mata tetap melihat bayangan yang berubah mulus, tapi browser
+      // hanya repaint beberapa kali.
+      //
+      // Efek sampingnya justru bagus: bayangan "menyusul" sedikit di belakang
+      // kartu, persis seperti bayangan asli saat bendanya bergerak cepat.
+      const tingkat = diLuar ? 4 : Math.min(3, Math.round(abs));
+      if (card.dataset.bayangan !== String(tingkat)) {
+        card.dataset.bayangan = String(tingkat);
+        card.classList.remove('bayangan-0', 'bayangan-1', 'bayangan-2', 'bayangan-3', 'bayangan-luar');
+        card.classList.add(tingkat === 4 ? 'bayangan-luar' : `bayangan-${tingkat}`);
+      }
     }
   }
 

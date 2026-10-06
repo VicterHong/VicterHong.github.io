@@ -159,11 +159,29 @@
   border: 1px solid var(--line);
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.75);
 
-  /* Bayangan + transisi opacity saja — transform ditulis JS tiap frame,
-     jadi TIDAK boleh ada transition transform di sini (akan berkelahi). */
-  transition: box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
-  will-change: transform, opacity;
+  /* ── TRANSISI BAYANGAN ───────────────────────────────────────────────────
+     Bayangan TIDAK dihitung tiap frame (itu 60 repaint/detik = berat).
+     JS hanya mengganti KELAS saat tingkat kedalaman berubah, dan transisi
+     ini yang menghaluskannya.
+
+     Durasi 420ms sengaja lebih lambat dari gerakan kartu (~900ms):
+     bayangan "menyusul" di belakang kartu, persis seperti bayangan asli saat
+     bendanya bergerak cepat. Itu yang membuatnya terasa fisik. */
+  transition: border-color 0.35s var(--ease), box-shadow 420ms var(--ease);
+  /* `will-change` DIPINDAH ke .spotlight-card.is-bergerak — dipasang di semua
+     8 kartu memaksa browser membuat 8 layer GPU permanen, dan layer sebesar
+     ini memakan memori grafis. Sekarang hanya kartu yang bergerak. */
   backface-visibility: hidden;
+  /* Isolasi render: perubahan di dalam kartu tidak memicu layout ulang di
+     luar kartu. Penghematan besar saat beberapa kartu bergerak bersamaan. */
+  contain: layout style paint;
+}
+
+/* Hanya kartu yang benar-benar bergerak yang dipromosikan ke layer GPU
+   sendiri. Kelas ini dipasang/dilepas JS sesuai kebutuhan — biasanya 2-3
+   kartu, bukan 8. */
+.spotlight-card.is-bergerak {
+  will-change: transform, opacity;
 }
 
 /* ── VISUAL KARTU ────────────────────────────────────────────────────────────
@@ -247,27 +265,74 @@
   line-height: 1.25;
 }
 
-/* Kartu depan: lebih terang, bingkai aksen, dan GLOW.
-   Kritik: "kartu aktif masih kalah 'berdecak' dibanding kartu sekitarnya —
-   card utama harusnya lebih bersinar."
+/* ── KARTU DEPAN: hanya bingkai aksen ────────────────────────────────────────
+   Bayangannya DIURUS oleh kelas .bayangan-0 (lihat bawah). Dulu di sini ada
+   box-shadow sendiri — itu jadi sumber konflik: dua aturan menulis properti
+   yang sama, dan yang menang tergantung urutan CSS, bukan logika.
 
-   Glow dibuat dari warna aksen kartu itu sendiri (--card-accent), jadi tiap
-   proyek memancarkan warnanya sendiri — bukan satu warna generik. Tiga lapis:
-   cahaya luar lebar, cahaya dekat yang lebih pekat, dan bayangan jatuh untuk
-   kedalaman. */
+   Sekarang pembagiannya jelas: border di sini, bayangan di kelas tingkat. */
 .spotlight-card.is-front {
   border-color: color-mix(in srgb, var(--card-accent, #f5c542) 55%, transparent);
-  box-shadow:
-    /* Bayangan jatuh — dipekatkan dan digeser turun supaya kartu terlihat
-       MELAYANG di atas panggung, bukan menempel. Kritik: "tidak ada drop
-       shadow jelas, kartu aktif terlihat menempel di background". */
-    0 44px 80px -26px rgba(0, 0, 0, 0.95),
-    0 22px 40px -20px rgba(0, 0, 0, 0.7),
-    /* Glow aksen dari warna proyek itu sendiri */
-    0 0 52px -6px color-mix(in srgb, var(--card-accent, #f5c542) 32%, transparent),
-    /* Garis tepi tipis — definisi tepi di atas latar gelap */
-    0 0 0 1px color-mix(in srgb, var(--card-accent, #f5c542) 28%, transparent);
 }
+
+/* ── BAYANGAN BERJENJANG: 4 TINGKAT ──────────────────────────────────────────
+   Permintaan pemilik: bayangan yang bergerak mengikuti kartu, dalam di sisi
+   kiri-kanan — TAPI juga "optimalisasi biar tidak berat".
+
+   ── KENAPA 4 TINGKAT, BUKAN NILAI TERUS-MENERUS ──────────────────────────
+   Percobaan pertama menghitung box-shadow dengan nilai berbeda setiap frame.
+   Itu SALAH: box-shadow adalah properti PAINT, bukan kompositor. Menulisnya
+   60×/detik = 60 repaint area berblur besar per detik. Itu penyebab berat.
+
+   Sekarang JS hanya mengganti KELAS saat tingkat kedalaman berubah — ~2-4
+   kali per perpindahan kartu, bukan 54 kali. Perubahan antar tingkat
+   dihaluskan `transition: box-shadow` (lihat .spotlight-card).
+
+   Efek sampingnya justru bagus: bayangan "menyusul" sedikit di belakang
+   kartu, seperti bayangan asli saat bendanya bergerak cepat.
+
+   ── KENAPA 3 LAPIS PER TINGKAT ───────────────────────────────────────────
+   Satu lapis terlihat datar. Tiga lapis memberi kesan objek punya berat:
+     1. Bayangan jatuh utama — ketinggian
+     2. Bayangan kontak      — kedekatan ke panggung (jangkar)
+     3. Glow aksen           — warna proyek itu sendiri, sangat tipis
+   Pola tiga lapis inilah yang dipakai UI profesional (Material, Apple HIG). */
+
+/* Tingkat 0 — kartu DEPAN. Paling mengambang. */
+.spotlight-card.bayangan-0 {
+  box-shadow:
+    0 44px 76px -28px rgba(0, 0, 0, 0.90),
+    0 12px 20px rgba(0, 0, 0, 0.65),
+    0 0 26px color-mix(in srgb, var(--card-accent, #f5c542) 22%, transparent);
+}
+
+/* Tingkat 1 — kartu ke-2. Sedikit lebih dekat ke panggung. */
+.spotlight-card.bayangan-1 {
+  box-shadow:
+    0 34px 60px -24px rgba(0, 0, 0, 0.78),
+    0 9px 16px rgba(0, 0, 0, 0.52),
+    0 0 18px color-mix(in srgb, var(--card-accent, #f5c542) 15%, transparent);
+}
+
+/* Tingkat 2 — kartu ke-3. Mulai menempel. */
+.spotlight-card.bayangan-2 {
+  box-shadow:
+    0 26px 46px -20px rgba(0, 0, 0, 0.66),
+    0 7px 13px rgba(0, 0, 0, 0.42),
+    0 0 12px color-mix(in srgb, var(--card-accent, #f5c542) 9%, transparent);
+}
+
+/* Tingkat 3 — kartu terjauh yang masih terlihat. Hampir menempel panggung. */
+.spotlight-card.bayangan-3 {
+  box-shadow:
+    0 18px 32px -16px rgba(0, 0, 0, 0.55),
+    0 5px 10px rgba(0, 0, 0, 0.34),
+    0 0 8px color-mix(in srgb, var(--card-accent, #f5c542) 5%, transparent);
+}
+
+/* Tingkat 4 — di luar jangkauan. Tidak terlihat, jadi tanpa bayangan:
+   tidak ada biaya render yang terbuang. */
+.spotlight-card.bayangan-luar { box-shadow: none; }
 
 /* Nomor urut kartu DIHAPUS (permintaan pemilik). Aturan .spotlight-num
    ikut dihapus supaya tidak menyisakan kode mati — kalau nanti perlu
