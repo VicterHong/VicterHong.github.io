@@ -30,6 +30,10 @@
   --motion-fast: 120ms;
   --motion-ui: 180ms;
   --motion-enter: 380ms;
+  /* Gerakan panjang — untuk perpindahan yang dilihat berulang (auto-scroll
+     carousel). Lebih lambat dari --motion-enter karena tujuannya bukan
+     "responsif", tapi "enak dilihat berkali-kali". */
+  --motion-slow: 620ms;
 
   /* ── TOKEN GERAK PANJANG ─────────────────────────────────────────────────────
      Animasi masuk saat menggulir (reveal, stagger). Jauh lebih panjang dari

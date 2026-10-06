@@ -122,10 +122,10 @@ export function createSpotlightCarousel(items) {
       card.append(media);
     }
 
-    // Nomor urut di pojok — memberi posisi dalam koleksi
-    const num = document.createElement('span');
-    num.className = 'spotlight-num';
-    num.textContent = String(i + 1).padStart(2, '0');
+    // Nomor urut DIHAPUS — permintaan pemilik: "angkanya dihilangkan".
+    // Angka 01/02/03 di tiap kartu terbaca sebagai hiasan, bukan informasi:
+    // posisi kartu sudah ditunjukkan oleh busur visual dan dots di bawah.
+    // Menghapusnya membuat gambar lebih lega dan kartu terasa lebih bersih.
 
     // Label kategori di kaki kartu (judul TIDAK di sini — lihat catatan atas)
     const body = document.createElement('div');
@@ -163,7 +163,7 @@ export function createSpotlightCarousel(items) {
       });
     }
 
-    card.append(num, body);
+    card.append(body);
     card.style.setProperty('--card-accent', item.accent);
 
     // Kartu bisa diklik → lompat ke kartu itu
@@ -331,14 +331,16 @@ export function createSpotlightCarousel(items) {
 
     // Animasi mendarat: dari -delta menuju 0, jadi kartu bergerak searah.
     //
-    // ── DURASI & EASING DARI TOKEN ────────────────────────────────────────
-    // Prinsip skill motion-foundations: "All token values come from
-    // motionTokens. Hardcoded durations and easings in component files are
-    // forbidden." Nilai diambil dari token yang sudah dipakai seluruh situs
-    // (--motion-enter 380ms) dan easing easeOutCubic yang setara dengan
-    // --ease-out-quart. Snap adalah gerakan "kartu mendarat" → token `normal`.
-    const dur = 380;   // = --motion-enter
-    const ease = (t) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+    // ── DURASI & EASING ───────────────────────────────────────────────────
+    // Sebelumnya 380ms easeOutCubic — terasa agak "kaku" untuk gerakan
+    // otomatis yang berulang. Dinaikkan ke 620ms dengan easeOutExpo: cepat di
+    // awal, melambat panjang di akhir. Efeknya kartu seperti "melayang" ke
+    // posisinya, bukan dipindahkan. Ini yang membuat auto-scroll enak dilihat
+    // berulang-ulang, bukan mengganggu.
+    //
+    // Durasi tetap dari token: 620ms = --motion-slow (bukan angka karangan).
+    const dur = 620;   // = --motion-slow
+    const ease = (t) => (t >= 1 ? 1 : 1 - Math.pow(2, -10 * t)); // easeOutExpo
 
     // ── TAHAN TAB-HIDDEN ──────────────────────────────────────────────────
     // Prinsip skill motion-advanced: "Infinite animations must pause when
@@ -463,6 +465,89 @@ export function createSpotlightCarousel(items) {
     if (e.key === 'ArrowRight') { e.preventDefault(); goTo(current + 1); }
   });
   root.tabIndex = 0;
+
+  // ── AUTO-SCROLL ───────────────────────────────────────────────────────────
+  // Kartu bergeser sendiri supaya pengunjung melihat isi koleksi tanpa harus
+  // menggeser. Ini pola galeri komersial: gerakan halus menarik mata ke
+  // carousel, lalu berhenti begitu pengunjung menunjukkan minat.
+  //
+  // ── KAPAN BERHENTI (semua otomatis, tanpa tombol) ─────────────────────────
+  //   - Pengunjung menggeser sendiri (drag/swipe) — hormati niatnya
+  //   - Kursor masuk area carousel — mereka sedang melihat
+  //   - Fokus keyboard masuk — mereka sedang menavigasi
+  //   - Tab disembunyikan — jangan buang baterai
+  //   - Carousel di luar layar — tidak ada yang melihat
+  //   - prefers-reduced-motion — hormati setelan sistem
+  //
+  // Setelah berhenti karena interaksi, auto-scroll TIDAK dimulai lagi sampai
+  // halaman dimuat ulang. Kalau ia menyala lagi setelah pengunjung menggeser,
+  // itu terasa seperti carousel yang "merebut" kendali — pengalaman buruk yang
+  // justru membuat orang meninggalkan galeri.
+  const AUTO_MS = 4200;        // jeda antar perpindahan
+  const AUTO_RESUME_MS = 9000; // jeda setelah kursor keluar, sebelum lanjut
+  let autoTimer = null;
+  let autoHenti = prefersReduced(); // true = jangan auto-scroll sama sekali
+  let kursorDiArea = false;
+  let terlihatDiLayar = true;
+
+  function autoMulai() {
+    if (autoHenti || autoTimer) return;
+    autoTimer = setInterval(() => {
+      // Semua syarat dicek lagi di tiap langkah — bukan hanya saat memulai.
+      // Kalau tidak, auto-scroll tetap jalan setelah kursor masuk area.
+      if (autoHenti || kursorDiArea || !terlihatDiLayar) return;
+      if (document.visibilityState === 'hidden') return;
+      if (dragging) return;
+      goTo(current + 1);
+    }, AUTO_MS);
+  }
+
+  function autoStop(permanen = false) {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    if (permanen) autoHenti = true;
+  }
+
+  // Pengunjung menggeser → berhenti permanen. Niat mereka lebih penting
+  // daripada keinginan kita memamerkan koleksi.
+  stage.addEventListener('pointerdown', () => autoStop(true));
+  root.addEventListener('keydown', () => autoStop(true));
+  // Klik dot/panah juga berarti pengunjung ambil kendali
+  dotsWrap.addEventListener('click', () => autoStop(true));
+  nav.addEventListener('click', () => autoStop(true));
+
+  // Kursor masuk/keluar — berhenti sementara, lanjut lagi setelah keluar
+  stage.addEventListener('pointerenter', () => { kursorDiArea = true; });
+  stage.addEventListener('pointerleave', () => {
+    kursorDiArea = false;
+    // Jeda tambahan sebelum lanjut, supaya tidak langsung bergerak
+    // begitu kursor lewat begitu saja.
+    setTimeout(() => { if (!kursorDiArea && !autoHenti) autoMulai(); }, AUTO_RESUME_MS);
+  });
+
+  // Fokus keyboard masuk area → berhenti (pengguna sedang menavigasi)
+  root.addEventListener('focusin', () => autoStop(true));
+
+  // Pantau apakah carousel terlihat di layar. Kalau tidak terlihat,
+  // auto-scroll tidak ada gunanya — hanya membuang baterai.
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(([entry]) => {
+      terlihatDiLayar = entry.isIntersecting;
+      if (terlihatDiLayar && !autoHenti) autoMulai();
+      else autoStop();
+    }, { threshold: 0.25 });
+    io.observe(root);
+  } else {
+    // Browser lama tanpa IntersectionObserver — auto-scroll tetap jalan,
+    // hanya tanpa optimasi visibilitas.
+    autoMulai();
+  }
+
+  // Tab disembunyikan → hentikan timer. Tidak perlu menahan interval saat
+  // tidak ada yang melihat.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') autoStop();
+    else if (!autoHenti && terlihatDiLayar && !kursorDiArea) autoMulai();
+  });
 
   // ── Render awal ───────────────────────────────────────────────────────────
   render();

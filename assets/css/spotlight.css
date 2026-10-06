@@ -253,23 +253,9 @@
     0 0 0 1px color-mix(in srgb, var(--card-accent, #f5c542) 28%, transparent);
 }
 
-/* Nomor urut — diposisikan di atas media, pojok kiri atas.
-   Sebelumnya ikut aliran flex; sekarang media menempati penuh bagian atas
-   kartu, jadi nomor harus diangkat keluar aliran supaya tetap terlihat. */
-.spotlight-num {
-  position: absolute;
-  top: 0.85rem;
-  left: 1rem;
-  z-index: 2;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.55);
-  /* Bayangan tipis supaya terbaca di atas gambar apa pun */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-}
-.spotlight-card.is-front .spotlight-num { color: var(--card-accent, var(--accent)); }
+/* Nomor urut kartu DIHAPUS (permintaan pemilik). Aturan .spotlight-num
+   ikut dihapus supaya tidak menyisakan kode mati — kalau nanti perlu
+   dikembalikan, riwayat git menyimpannya. */
 
 .spotlight-card-body { display: flex; flex-direction: column; gap: 0.35rem; }
 
