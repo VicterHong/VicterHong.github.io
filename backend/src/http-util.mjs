@@ -28,6 +28,46 @@ export function readBody(req) {
   });
 }
 
+/**
+ * Baca body permintaan BINER dengan batas ukuran yang bisa diatur.
+ *
+ * Kenapa terpisah dari readBody():
+ *
+ *   readBody() mengubah hasilnya jadi string UTF-8. Untuk gambar, itu MERUSAK
+ *   datanya — byte di atas 0x7F diganti karakter pengganti dan berkasnya tidak
+ *   bisa didekode lagi. readBody() juga dibatasi 64 KB, sedangkan gambar
+ *   butuh beberapa MB.
+ *
+ * Mengembalikan Buffer apa adanya, tanpa konversi.
+ *
+ * `maks` diteruskan pemanggil (bukan konstanta modul) supaya batas unggahan
+ * bisa diatur di satu tempat — media.mjs — dan tidak ada dua angka yang
+ * harus dijaga tetap sama.
+ */
+export function bacaBodyBiner(req, maks = 8 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > maks) {
+        reject(Object.assign(
+          new Error(`berkas terlalu besar (maksimum ${Math.round(maks / 1024 / 1024)} MB)`),
+          { statusCode: 413 },
+        ));
+        // Buang sisa data supaya koneksi tidak menggantung menunggu unggahan
+        // yang sudah pasti ditolak. Tanpa ini, klien bisa terus mengirim
+        // megabyte demi megabyte ke soket yang tidak dibaca siapa pun.
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
 /** Baca body dan urai sebagai JSON. Body kosong menghasilkan objek kosong. */
 export async function readJson(req) {
   const text = await readBody(req);

@@ -97,6 +97,8 @@ const ARC = {
   maxVisible: 3,   // langkah terjauh yang masih tampil
 };
 
+import { pasangGambar } from './media-loader.js';
+
 /**
  * Buat elemen carousel.
  *
@@ -151,15 +153,43 @@ export function createSpotlightCarousel(items) {
       const media = document.createElement('div');
       media.className = 'spotlight-card-media';
       const img = document.createElement('img');
-      img.src = item.image;
       img.alt = '';
       // alt kosong disengaja: gambar dekoratif, judul proyek ada di bawah
       // carousel. Screen reader tidak perlu membacanya dua kali.
+      //
+      // Tiga kartu pertama eager, sisanya lazy. Angka 3 dipilih karena itulah
+      // yang terlihat di layar saat carousel pertama kali muncul (kartu depan
+      // + dua tetangga) — memuat lebih banyak hanya menghabiskan kuota
+      // pengunjung untuk gambar yang belum tentu dilihat.
       img.loading = i < 3 ? 'eager' : 'lazy';
       img.decoding = 'async';
+      // Lebar/tinggi eksplisit mencegah layout shift (CLS) saat gambar
+      // selesai dimuat — browser sudah tahu ruang yang dibutuhkan.
+      img.width = 280;
+      img.height = 368;
       media.setAttribute('aria-hidden', 'true');
+      // Monogram untuk placeholder kalau gambar gagal dimuat. Diambil dari
+      // judul proyek: dua huruf pertama kata pertama yang bermakna.
+      //
+      // Contoh: "MINA" → "MI" · "Spareparts Inventory System" → "SI"
+      // Kata yang dilewati: "dan", "the", "of" — supaya monogram tidak
+      // jadi "DA" hanya karena judulnya dimulai kata sambung.
+      media.dataset.monogram = (() => {
+        const kata = String(item.title ?? '')
+          .split(/\s+/)
+          .filter((w) => w.length > 2 && !/^(dan|the|of|untuk|dengan)$/i.test(w));
+        if (kata.length >= 2) {
+          return (kata[0][0] + kata[1][0]).toUpperCase();
+        }
+        if (kata.length === 1) return kata[0].slice(0, 2).toUpperCase();
+        return String(item.title ?? '?').slice(0, 2).toUpperCase();
+      })();
       media.append(img);
       card.append(media);
+      // Pemasangan gambar (skeleton, LQIP, fallback) diurus media-loader —
+      // satu tempat untuk semua logika pemuatan, supaya carousel tidak
+      // perlu tahu soal manifest atau LQIP sama sekali.
+      pasangGambar(img, { url: item.image, lqip: item.lqip ?? null });
     }
 
     // Nomor urut DIHAPUS — permintaan pemilik: "angkanya dihilangkan".

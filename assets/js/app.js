@@ -32,6 +32,7 @@ import { techGroups, techLogos, createTechCard } from './tech-logos.js';
 import { createTiltPanel } from './tilt-panel.js';
 import { initScrollSpy } from './scroll-spy.js';
 import { createSpotlightCarousel } from './spotlight.js';
+import { ambilManifest, susunGambar } from './media-loader.js';
 import { icon } from './icons.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -291,27 +292,24 @@ const ACCENT_WARNA = {
   wa: '#8fc98f',      // hijau tenang — bot percakapan
 };
 
-function renderSpotlight() {
+async function renderSpotlight() {
   const host = $('#spotlightHost');
   if (!host) return;
 
   // Gabungkan proyek unggulan + sampingan jadi satu koleksi.
   // Sampingan tidak punya metrics/subtitle, jadi dipakai deskripsi singkat.
   //
-  // `image` — visual kartu. Kritik desain: "kartu tidak memamerkan karya,
-  // hanya kotak teks" — carousel komersial selalu menampilkan preview produk.
-  // Tiga proyek unggulan punya poster dari video narasinya; sisanya memakai
-  // pola yang diturunkan dari data proyek (bukan screenshot palsu).
-  const VISUAL = {
-    MINA: 'mina-terminal',
-    'Spareparts Inventory System': 'spareparts-shelf',
-    'WhatsApp Family Assistant': 'portal-door',
-    Monitoring: 'monitoring',
-    'EFMS Fintech': 'efms',
-    'Daftar Hadir': 'daftar',
-    jsloop: 'jsloop',
-    strktrdata: 'strktrdata',
-  };
+  // ── GAMBAR: DARI MANIFEST, BUKAN HARDCODE ────────────────────────────────
+  // Dulu ada map VISUAL yang menuliskan nama berkas untuk tiap proyek. Itu
+  // berarti mengganti gambar = mengubah kode + deploy ulang. Sekarang gambar
+  // datang dari manifest di R2 yang bisa diunggah admin kapan saja.
+  //
+  // Pemetaan gambar dilakukan SETELAH manifest diambil, jadi blok ini harus
+  // async. Kalau manifest gagal diambil, susunGambar() otomatis memakai
+  // gambar bawaan — galeri tetap tampil, tidak ada yang rusak.
+  const semuaProyek = [...projects, ...sideProjects];
+  const manifest = await ambilManifest();
+  const petaGambar = susunGambar(semuaProyek, manifest);
 
   const items = [
     ...projects.map((p) => ({
@@ -325,16 +323,18 @@ function renderSpotlight() {
         return t ? Number(String(t.value).replace(/\./g, '')).toLocaleString('id-ID') : '';
       })(),
       accent: ACCENT_WARNA[p.accent] || '#f5c542',
-      image: VISUAL[p.name] ? `assets/spotlight/${VISUAL[p.name]}.jpg` : '',
-    })),
+      image: petaGambar.get(p.name)?.url ?? '',
+      lqip: petaGambar.get(p.name)?.lqip ?? null,
+      })),
     ...sideProjects.map((p) => ({
       title: p.name,
       label: 'Proyek pendukung',
       meta: p.description,
       rating: '',
       accent: '#a9a9b3',
-      image: VISUAL[p.name] ? `assets/spotlight/${VISUAL[p.name]}.jpg` : '',
-    })),
+      image: petaGambar.get(p.name)?.url ?? '',
+      lqip: petaGambar.get(p.name)?.lqip ?? null,
+      })),
   ];
 
   host.append(createSpotlightCarousel(items));
@@ -493,7 +493,10 @@ renderStats();
 renderAbout();
 renderServices();
 renderProjects();
-renderSpotlight();
+// `await` — galeri menunggu daftar gambar dari backend (maks 4 detik).
+// Kalau backend lambat atau mati, ambilManifest() menyerah dan susunGambar()
+// memakai gambar bawaan; galeri tetap muncul, tidak pernah kosong.
+await renderSpotlight();
 renderSideProjects();
 renderPrinciples();
 renderContact();

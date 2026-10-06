@@ -131,7 +131,22 @@ export const config = {
 
   /** Maksimum sesi aktif per token (device). */
   maxDevices: Number(pick('MAX_DEVICES', '3')),
-};
+
+  /**
+   * ── Cloudflare R2 (penyimpanan gambar galeri) ──────────────────────────
+   *
+   * Dibaca lewat `pick()` yang sama dengan rahasia lain — jadi nilainya
+   * boleh datang dari environment ATAU service.env. Ini yang membuat
+   * modul media tidak perlu tahu dari mana asalnya.
+   *
+   * Kalau token kosong, fitur unggah gambar NONAKTIF tapi situs tetap
+   * jalan normal (galeri memakai gambar bawaan). Fitur opsional tidak
+   * boleh mematikan layanan inti.
+   */
+  r2AccountId: pick('CLOUDFLARE_ACCOUNT_ID', ''),
+  r2ApiToken: pick('CLOUDFLARE_API_TOKEN', ''),
+  r2Bucket: pick('R2_BUCKET', 'portfolio-assets'),
+  };
 
 /** Apakah konfigurasi cukup untuk menjalankan layanan produksi. */
 export function validateConfig() {

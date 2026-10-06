@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Victer">
+  <defs>
+    <!-- Gradien emas: sedikit lebih terang di kiri-atas, seperti cahaya
+         datang dari satu arah. Emas rata terlihat datar dan murah. -->
+    <linearGradient id="g" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0%" stop-color="#f7d77a"/>
+      <stop offset="52%" stop-color="#f5c542"/>
+      <stop offset="100%" stop-color="#d9a92c"/>
+    </linearGradient>
+    <!-- Latar: hampir hitam, bukan hitam pekat. Hitam murni di favicon
+         terlihat seperti lubang di tab browser yang berlatar terang. -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0%" stop-color="#17171b"/>
+      <stop offset="100%" stop-color="#0b0b0e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Latar membulat. Radius 14 dari 64 = 22% — sama dengan radius kartu
+       di situs, supaya ikon dan isi terasa satu keluarga. -->
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <!-- Garis tepi tipis: memberi kesan ikon "duduk" di dalam bidangnya,
+       dan membuatnya tetap terlihat di tab dengan latar gelap. -->
+  <rect x="0.5" y="0.5" width="63" height="63" rx="13.5" fill="none"
+        stroke="#f5c542" stroke-opacity="0.18"/>
+
+  <!-- Monogram V. Geometri dihitung supaya:
+         - tinggi 34 dari 64 = 53% (cukup besar, tidak sesak)
+         - kedua kaki simetris sempurna terhadap x = 32
+         - ujung atas rata di y = 15, ujung bawah di y = 49
+       Garis 7px dengan ujung membulat (round) — konsisten dengan
+       ketebalan garis aksen di situs. -->
+  <path d="M17 15 L32 49 L47 15"
+        fill="none" stroke="url(#g)" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

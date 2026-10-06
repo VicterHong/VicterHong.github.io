@@ -55,7 +55,12 @@ import {
   createExperiment, getExperiment, listExperiments, setStatus as setExpStatus,
   pickVariant, recordEvent as recordExpEvent, results as expResults,
 } from './grow.mjs';
-import { preflight, verify as verifyDeploy, recordRelease, listReleases } from './publish.mjs';
+import { preflight, verify as verifyDeploy, recordRelease, listReleases } from './publish.mjs'
+import {
+  mediaAktif, unggahGambar, hapusGambar, bacaManifest, daftarPublik,
+  validasiUnggahan, MAX_UPLOAD_BYTES,
+} from './media.mjs'
+import { bacaBodyBiner } from './http-util.mjs';
 import {
   applyCors, clientCountry, clientIp, ipBucket, extractToken, handlePreflight,
   readJson, sendJson, parseCookies, setCookie, clearCookie,
@@ -1806,6 +1811,118 @@ export const routes = [
         ok: Boolean(body.ok),
       });
       sendJson(res, 200, { ok: true, id });
+    }),
+  },
+
+  // ── MEDIA: GALERI PROYEK ──────────────────────────────────────────────────
+  // Gambar galeri HANYA bisa masuk lewat endpoint di bawah ini. Frontend
+  // tidak pernah menulis — ia hanya membaca daftar dan menampilkan berkas.
+  //
+  // KENAPA DI BACKEND, BUKAN LANGSUNG KE R2 DARI BROWSER:
+  //   - Kunci R2 tidak boleh ada di browser (siapa pun bisa menghapus isi bucket)
+  //   - Konversi WebP + LQIP butuh CPU; sharp jalan di Node, bukan di Worker
+  //   - Validasi tipe berkas yang sesungguhnya cuma bisa setelah didekode
+
+  {
+    method: 'GET',
+    pattern: '/api/media/manifest',
+    handler: safe(async (req, res) => {
+      // PUBLIK — frontend memanggil ini tanpa kunci apa pun.
+      // Yang dikembalikan hanya daftar (slug, label, URL) tanpa LQIP,
+      // jadi ukurannya kecil dan aman dilihat siapa saja.
+      if (!mediaAktif()) {
+        return sendJson(res, 200, { ok: true, aktif: false, images: [] });
+      }
+      const manifest = await bacaManifest();
+      sendJson(res, 200, {
+        ok: true,
+        aktif: true,
+        updatedAt: manifest.updatedAt,
+        count: manifest.images.length,
+        images: daftarPublik(manifest),
+      });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/admin/media',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const manifest = await bacaManifest();
+      sendJson(res, 200, {
+        ok: true,
+        aktif: mediaAktif(),
+        maxBytes: MAX_UPLOAD_BYTES,
+        updatedAt: manifest.updatedAt,
+        count: manifest.images.length,
+        // Panel admin menerima LQIP juga — dipakai untuk pratinjau kartu
+        // tanpa mengunduh gambar penuh.
+        images: manifest.images,
+      });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/admin/media',
+    handler: safe(async (req, res) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+
+      // Body BINER, bukan JSON. Dikirim sebagai application/octet-stream
+      // dengan metadata di query string, supaya tidak perlu multipart parser
+      // (satu dependensi lebih sedikit, satu lapisan lebih sedikit yang bisa salah).
+      const url = new URL(req.url ?? '/', 'http://localhost');
+      const slug = String(url.searchParams.get('slug') ?? '').trim();
+      const label = String(url.searchParams.get('label') ?? '').trim();
+      const urutanRaw = url.searchParams.get('urutan');
+      const urutan = urutanRaw === null ? null : Number(urutanRaw);
+
+      if (!slug) return sendJson(res, 400, { ok: false, error: 'slug_wajib' });
+      if (!/^[a-zA-Z0-9._-]{1,64}$/.test(slug)) {
+        return sendJson(res, 400, { ok: false, error: 'slug_tidak_valid' });
+      }
+
+      const buffer = await bacaBodyBiner(req, MAX_UPLOAD_BYTES);
+      // Dipanggil di sini juga supaya penolakan terjadi SEBELUM sharp
+      // menyentuh berkasnya (lebih cepat, pesan errornya lebih tepat).
+      validasiUnggahan(buffer, req.headers['content-type']);
+
+      const hasil = await unggahGambar({
+        slug,
+        label: label || slug,
+        buffer,
+        contentType: req.headers['content-type'],
+        urutan: Number.isFinite(urutan) ? urutan : null,
+      });
+
+      recordEvent({
+        kind: 'media_unggah',
+        detail: `${slug} → ${hasil.entri.bytes} byte (hemat ${hasil.hemat}%)`,
+        ip: clientIp(req),
+      });
+
+      sendJson(res, 200, {
+        ok: true,
+        entri: hasil.entri,
+        hematPersen: hasil.hemat,
+        totalGambar: hasil.manifest.images.length,
+      });
+    }),
+  },
+
+  {
+    method: 'DELETE',
+    pattern: '/api/admin/media/:slug',
+    handler: safe(async (req, res, params) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+      const hasil = await hapusGambar(params.slug);
+      recordEvent({
+        kind: 'media_hapus',
+        detail: params.slug,
+        ip: clientIp(req),
+      });
+      sendJson(res, 200, { ok: true, dihapus: hasil.dihapus.slug, totalGambar: hasil.manifest.images.length });
     }),
   },
 ];

@@ -1,12 +1,32 @@
 /**
  * Cloudflare Worker — Portfolio Edge Router
- * - Static assets → Cloudflare Pages (lebih cepat)
- * - API calls → Backend via Tunnel
- * - Health check → Worker itself
+ *
+ * Tiga tanggung jawab, dalam urutan prioritas:
+ *   1. /media/*   → sajikan gambar galeri dari R2 (cache 1 tahun)
+ *   2. /api/*     → teruskan ke backend Node lewat tunnel
+ *   3. sisanya    → redirect ke Cloudflare Pages
+ *
+ * ── KENAPA GAMBAR LEWAT WORKER, BUKAN R2 PUBLIC URL ─────────────────────────
+ * R2 public bucket URL (pub-xxxx.r2.dev) itu:
+ *   - Domain terpisah → DNS lookup + TLS handshake tambahan per gambar
+ *   - Tidak ada kontrol header (cache, CORS, Content-Type)
+ *   - Terlihat "murahan" di URL — bukan citra korporat
+ *
+ * Lewat Worker, semua gambar datang dari domain yang SAMA dengan situs:
+ *   - Tidak ada koneksi baru (koneksi sudah terbuka)
+ *   - Header cache bisa diatur sendiri (immutable 1 tahun)
+ *   - URL-nya rapi: /media/spotlight/mina-terminal.webp
+ *
+ * ── KENAPA CACHE 1 TAHUN AMAN ──────────────────────────────────────────────
+ * Karena nama berkas mengandung hash isi (dibuat backend saat unggah).
+ * Kalau admin mengganti gambar, hash berubah → nama berkas berubah → URL
+ * berubah. Jadi cache lama tidak pernah menyajikan gambar yang salah.
+ * Ini pola "content-addressed asset" yang dipakai semua CDN besar.
  */
 
 export interface Env {
   ENVIRONMENT: string;
+  ASSETS: R2Bucket;
 }
 
 const PAGES_URL = "https://portfolio-victer.pages.dev";
@@ -19,26 +39,111 @@ const SECURITY_HEADERS = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
 };
 
+/** Content-Type dari ekstensi. R2 tidak menyimpannya untuk semua objek. */
+const TIPE_BERKAS: Record<string, string> = {
+  webp: "image/webp",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  avif: "image/avif",
+  svg: "image/svg+xml",
+  ico: "image/x-icon",
+  json: "application/json; charset=utf-8",
+};
+
+function tipeDari(nama: string): string {
+  const titik = nama.lastIndexOf(".");
+  if (titik < 0) return "application/octet-stream";
+  return TIPE_BERKAS[nama.slice(titik + 1).toLowerCase()] ?? "application/octet-stream";
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const pathname = url.pathname;
-    
-    // Health check
+
+    // ── 1. MEDIA DARI R2 ────────────────────────────────────────────────────
+    if (pathname.startsWith("/media/")) {
+      // Hanya GET dan HEAD. Menolak metode lain di sini mencegah orang
+      // mencoba menulis lewat Worker — penulisan hanya lewat backend
+      // dengan X-Admin-Key, tidak pernah lewat jalur publik ini.
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return new Response("Metode tidak diizinkan", {
+          status: 405,
+          headers: { Allow: "GET, HEAD", ...SECURITY_HEADERS },
+        });
+      }
+
+      // Ambil key dari path. Didekode per segmen supaya nama berkas dengan
+      // spasi atau karakter khusus tetap benar, TAPI '/' tetap '/' supaya
+      // struktur folder terjaga.
+      const key = pathname
+        .slice("/media/".length)
+        .split("/")
+        .map((s) => {
+          try {
+            return decodeURIComponent(s);
+          } catch {
+            return s;
+          }
+        })
+        .join("/");
+
+      // Tolak percobaan keluar dari folder spotlight/.
+      //
+      // Tanpa pemeriksaan ini, `/media/../backups/tokens.db.enc` bisa membaca
+      // cadangan database dari bucket yang sama. R2 sendiri tidak menormalkan
+      // '..' seperti filesystem, tapi tetap: tolak di pintu masuk, jangan
+      // bergantung pada perilaku penyimpanan.
+      if (!key || key.includes("..") || key.startsWith("/")) {
+        return new Response("Kunci tidak valid", { status: 400, headers: SECURITY_HEADERS });
+      }
+
+      const obj = await env.ASSETS.get(key);
+      if (!obj) {
+        // 404 dengan cache pendek: kalau admin baru mengunggah gambar dengan
+        // nama ini, browser tidak menyimpan 404 itu lama.
+        return new Response("Tidak ditemukan", {
+          status: 404,
+          headers: { "Cache-Control": "public, max-age=60", ...SECURITY_HEADERS },
+        });
+      }
+
+      const headers = new Headers(SECURITY_HEADERS);
+      // Content-Type dari objek kalau ada, kalau tidak dari ekstensi.
+      headers.set("Content-Type", obj.httpMetadata?.contentType ?? tipeDari(key));
+      // immutable: browser tidak perlu bertanya lagi selama setahun.
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      headers.set("ETag", obj.httpEtag);
+      // Gambar galeri dipakai lintas origin (preview Pages, domain utama).
+      headers.set("Access-Control-Allow-Origin", "*");
+
+      // Dukungan 304: browser yang sudah punya berkasnya tidak perlu
+      // mengunduh ulang — cukup dapat "belum berubah".
+      const ifNoneMatch = request.headers.get("If-None-Match");
+      if (ifNoneMatch && ifNoneMatch === obj.httpEtag) {
+        return new Response(null, { status: 304, headers });
+      }
+
+      return new Response(request.method === "HEAD" ? null : obj.body, { headers });
+    }
+
+    // ── 2. HEALTH CHECK ─────────────────────────────────────────────────────
     if (pathname === "/health") {
       return new Response(JSON.stringify({
         ok: true,
         service: "portfolio-victer",
         environment: env.ENVIRONMENT || "production",
-        edge: request.cf?.colo || "unknown",
+        edge: (request as Request & { cf?: { colo?: string } }).cf?.colo || "unknown",
+        media: Boolean(env.ASSETS),
         pages_url: PAGES_URL,
         time: new Date().toISOString(),
       }), {
         headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
       });
     }
-    
-    // API proxy ke backend
+
+    // ── 3. API → BACKEND ────────────────────────────────────────────────────
     if (pathname.startsWith("/api/")) {
       return fetch(`${BACKEND_URL}${pathname}${url.search}`, {
         method: request.method,
@@ -46,8 +151,8 @@ export default {
         body: request.body,
       });
     }
-    
-    // Semua lainnya → redirect ke Pages (CDN global, lebih cepat)
+
+    // ── 4. SISANYA → PAGES ──────────────────────────────────────────────────
     return Response.redirect(`${PAGES_URL}${pathname}${url.search}`, 302);
   },
 };
