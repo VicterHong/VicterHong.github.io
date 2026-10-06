@@ -24,7 +24,36 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
-  font-family: "Satoshi", system-ui, sans-serif;
+  /* ── FONT STACK ASLI CLOUDFLARE ────────────────────────────────────────────
+     Diambil dari dokumentasi resmi Cloudflare challenge pages:
+       developers.cloudflare.com/cloudflare-challenges/challenge-types/
+       challenge-pages/additional-configuration/
+
+     Diverifikasi juga lewat analisis halaman challenge Cloudflare sungguhan
+     (interstitial "Just a moment..."), yang memakai:
+       Segoe UI, Roboto, system-ui, -apple-system, BlinkMacSystemFont, Arial
+
+     ── KENAPA SYSTEM STACK, BUKAN FONT BRAND ─────────────────────────────
+     Colfax adalah font brand Cloudflare di halaman marketing mereka, TAPI
+     halaman CHALLENGE tidak memakainya — mereka sengaja memakai font sistem.
+     Alasannya praktis: halaman verifikasi harus tampil INSTAN, dan memuat
+     font eksternal berarti satu permintaan jaringan tambahan sebelum teks
+     bisa dibaca. Di halaman yang tujuannya "cepat selesai lalu pergi", itu
+     pemborosan yang tidak perlu.
+
+     Urutan stack mengikuti dokumentasi Cloudflare persis:
+       -apple-system      → San Francisco (macOS, iOS)
+       BlinkMacSystemFont → San Francisco (Chrome di macOS)
+       Segoe UI           → Windows
+       Roboto             → Android
+       system-ui          → fallback modern (Linux, dll)
+       Arial              → fallback terakhir
+       sans-serif         → jaring pengaman
+
+     Hasilnya: gate terasa NATIF di setiap perangkat — persis seperti yang
+     dialami pengunjung di halaman challenge Cloudflare sungguhan. */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    system-ui, Arial, sans-serif;
   font-size: 16px;
   line-height: 1.15;
   text-align: start;
@@ -38,9 +67,19 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 #cf-gate h2,
 #cf-gate p { margin: 0; padding: 0; color: #f2f2f2; }
 
-/* Judul: Playfair, serif yang sama dengan judul situs. */
+/* Judul: font stack yang sama dengan body — lihat catatan di #cf-gate. */
 #cf-gate h1,
-#cf-gate h2 { line-height: 125%; font-weight: 500; font-family: "Playfair Display", Georgia, serif; letter-spacing: -0.01em; }
+/* Judul memakai font stack YANG SAMA dengan body — bukan font serif terpisah.
+   Halaman challenge Cloudflare tidak punya tipografi dua-keluarga: semua
+   teksnya satu stack, dibedakan hanya oleh ukuran dan ketebalan. Itu yang
+   membuatnya terasa seperti halaman sistem, bukan halaman desain. */
+#cf-gate h2 {
+  line-height: 125%;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    system-ui, Arial, sans-serif;
+  letter-spacing: -0.01em;
+}
 #cf-gate h1 { font-size: 2.5rem; }
 #cf-gate h2 { font-size: 1.5rem; }
 
@@ -103,6 +142,60 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
   100% { content: ""; }
 }
 
+/* ── PERINGATAN "VERIFIKASI LAMA" ──────────────────────────────────────────
+   Muncul setelah verifikasi melewati batas waktu. Teksnya persis kalimat
+   Cloudflare, jadi pengunjung yang pernah melihatnya di situs lain langsung
+   mengenali dan tahu apa yang harus dilakukan.
+
+   ── KENAPA WARNA NYA DIBEDAKAN, TAPI TIDAK MERAH ─────────────────────────
+   Merah berarti "gagal". Ini bukan kegagalan — verifikasi masih berjalan,
+   hanya lebih lambat dari biasanya. Warna kuning pucat menyampaikan
+   "perhatikan" tanpa menyampaikan "ada yang rusak".
+
+   Ukuran dan jarak mengikuti pola Cloudflare: teks kecil, jarak lega,
+   tidak mencolok. Tujuannya memberi informasi, bukan menarik perhatian. */
+#cf-gate .cf-lama {
+  margin-top: 1.1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 2px solid rgba(245, 197, 66, 0.55);
+  text-align: start;
+  max-width: 32rem;
+}
+#cf-gate .cf-lama p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: rgba(242, 242, 242, 0.82);
+}
+#cf-gate .cf-lama p + p {
+  margin-top: 0.35rem;
+  color: rgba(242, 242, 242, 0.6);
+}
+
+/* Tombol muat ulang — gaya tautan, bukan tombol kotak. Halaman challenge
+   Cloudflare tidak punya tombol berwarna; tindakan disajikan sebagai tautan
+   supaya tidak terlihat seperti ajakan komersial. */
+#cf-gate .cf-load-hint { margin-top: 0.85rem; }
+#cf-gate .cf-load-hint button {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+#cf-gate .cf-load-hint button:hover { color: #fff; }
+#cf-gate .cf-load-hint button:focus-visible {
+  outline: 2px solid rgba(245, 197, 66, 0.7);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 /* Slot widget Turnstile — ukuran normal 300×65 (lihat widgetOptions()). */
 #cf-gate #cf-widget { display: grid; max-width: 320px; }
 #cf-gate #cf-widget:empty { min-height: 0; }
@@ -132,7 +225,14 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 #cf-gate .footer-divider { border: 1px solid #f2f2f2; height: 12px; }
 #cf-gate .footer-text { color: #f2f2f2; font-size: .75rem; }
 #cf-gate .ray-id { margin-bottom: 4px; }
-#cf-gate code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; }
+/* Ray ID dan kode: font monospace SISTEM. Cloudflare memakai monospace
+   bawaan platform (bukan font kustom) supaya Ray ID — yang panjang dan harus
+   bisa disalin dengan tepat — tampil konsisten di mana pun tanpa unduhan. */
+#cf-gate code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  font-size: .75rem;
+}
 
 #cf-gate .cf-hidden { display: none !important; }
 

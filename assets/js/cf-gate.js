@@ -147,6 +147,9 @@
     noscript: 'Enable JavaScript and cookies to continue',
     retry: 'Verification could not load.',
     retryLink: 'Reload page',
+    // Teks persis Cloudflare untuk verifikasi yang memakan waktu lama.
+    lama: 'Verification is taking longer than expected.',
+    lamaSaran: 'Check your Internet connection and refresh the page if the issue persists.',
     rayId: 'Ray ID',
     footer: 'Performance and Security by',
     privacy: 'Privacy',
@@ -179,7 +182,12 @@
       ['[data-cf-t="noscript"]', T.noscript],
       ['[data-cf-t="rayId"]', T.rayId],
       ['[data-cf-t="privacy"]', T.privacy],
-      ['[data-cf-t="footer"]', T.footer]
+      ['[data-cf-t="footer"]', T.footer],
+      // Peringatan "verifikasi lama" — teks persis Cloudflare, diterjemahkan
+      // ke 37 bahasa. Dua baris terpisah supaya baris pertama bisa dibaca
+      // sebagai pernyataan dan baris kedua sebagai saran tindakan.
+      ['[data-cf-t="lama"]', T.lama],
+      ['[data-cf-t="lamaSaran"]', T.lamaSaran]
     ];
     for (var i = 0; i < map.length; i++) {
       var nodes = root.querySelectorAll(map[i][0]);
@@ -480,6 +488,24 @@
       '    <p class="cf-lead" data-cf-t="lead"></p>',
       '    <div class="cf-status" id="cf-checking" role="status" aria-live="polite">',
       '      <div class="cf-ring" aria-hidden="true"><div></div><div></div><div></div><div></div></div>',
+      // ── PERINGATAN "LAMA" ───────────────────────────────────────────────
+      // Teks ini PERSIS kalimat yang dipakai Cloudflare saat verifikasi
+      // memakan waktu lebih lama dari biasanya:
+      //
+      //   "Verification is taking longer than expected. Check your Internet
+      //    connection and refresh the page if the issue persists."
+      //
+      // Ditemukan dari laporan pengguna di komunitas Cloudflare yang
+      // menyalin pesan itu apa adanya. Diterjemahkan ke 37 bahasa di
+      // cf-gate-i18n.js dengan kunci `lama` + `lamaSaran`.
+      //
+      // Disembunyikan (cf-hidden) sejak awal — muncul hanya setelah timeout.
+      // Menampilkannya sebelum waktunya akan membuat pengunjung panik
+      // padahal verifikasinya berjalan normal.
+      '      <div class="cf-lama cf-hidden" id="cf-lama">',
+      '        <p data-cf-t="lama"></p>',
+      '        <p data-cf-t="lamaSaran"></p>',
+      '      </div>',
       '    </div>',
       '    <div class="cf-status cf-hidden" id="cf-success">',
       '      <h2 class="cf-status-title"><span data-cf-t="success"></span> <span data-cf-host></span><span class="cf-dots"></span></h2>',
@@ -582,23 +608,32 @@
    */
   function showLoadHint(root) {
     var box = root.querySelector('#cf-checking');
-    if (!box || box.querySelector('.cf-load-hint')) return;
+    if (!box) return;
+
+    // ── 1. TAMPILKAN PERINGATAN "LAMA" ──────────────────────────────────────
+    // Elemen #cf-lama berisi kalimat persis Cloudflare:
+    //   "Verification is taking longer than expected. Check your Internet
+    //    connection and refresh the page if the issue persists."
+    //
+    // Disembunyikan sejak awal (class cf-hidden) dan baru ditampilkan di
+    // sini. Teksnya diisi applyLanguage() dari kamus 37 bahasa.
+    var lama = box.querySelector('#cf-lama');
+    if (lama) lama.classList.remove('cf-hidden');
+
+    // ── 2. TOMBOL MUAT ULANG ────────────────────────────────────────────────
+    // Ditambahkan sebagai elemen terpisah, bukan menggantikan peringatan.
+    // Pengunjung melihat penjelasan DAN tindakan yang bisa diambil.
+    if (box.querySelector('.cf-load-hint')) return;
+
     var p = document.createElement('p');
     p.className = 'cf-load-hint';
-    p.style.marginTop = '1rem';
-    // Teks dari kamus bahasa — bukan hardcode Indonesia.
-    p.textContent = T.retry + ' ';
     // Tombol, bukan tautan kosong. `href=""` sebelumnya memuat ulang halaman
     // tanpa penjelasan; tombol memberi sasaran yang jelas untuk ditekan.
     var b = document.createElement('button');
     b.type = 'button';
     b.textContent = T.retryLink;
-    b.style.cssText = 'background:none;border:0;padding:0;margin:0;'
-      + 'color:inherit;text-decoration:underline;cursor:pointer;'
-      + 'font:inherit;text-underline-offset:2px;';
     b.addEventListener('click', function () { location.reload(); });
     p.appendChild(b);
-    p.appendChild(document.createTextNode('.'));
     box.appendChild(p);
   }
 
