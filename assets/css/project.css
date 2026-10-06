@@ -647,3 +647,13 @@
   line-height: 1.6;
   color: var(--text-dim);
 }
+
+.locked-repo-body {
+  margin: 0 0 1rem;
+  max-width: 62ch;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+.locked-repo .btn { margin-bottom: 0.25rem; }

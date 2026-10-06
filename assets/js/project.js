@@ -149,33 +149,52 @@ function renderLocked(payload) {
   }
 
   // ── AKSES REPO — HANYA UNTUK PEMEGANG TOKEN ────────────────────────────────
-  // Kode sumber proyek ini privat. Tautan repo dikirim SERVER sebagai bagian
-  // dari konten terkunci, jadi ia tidak pernah ada di HTML maupun JS halaman
-  // sebelum token lolos. Ini yang membuat token punya nilai nyata: bukan
-  // sekadar membuka tulisan, tapi membuka akses ke kode.
+  // Kode sumber proyek ini privat. Blok akses dikirim SERVER sebagai bagian
+  // dari konten terkunci, jadi isinya tidak pernah ada di HTML maupun JS
+  // halaman sebelum token lolos. Ini yang membuat token punya nilai nyata:
+  // bukan sekadar membuka tulisan, tapi membuka jalan ke kode.
   //
-  // Kalau server tidak mengirim `repo`, blok ini tidak ditampilkan sama sekali
-  // — tidak ada kotak kosong atau tautan mati.
-  if (content.repo) {
+  // CATATAN PENTING — kenapa TIDAK ada tautan repo di sini:
+  // GitHub menolak akses anonim ke repo privat, jadi tautan apa pun akan
+  // mendarat di 404 — bahkan untuk pemegang token. Satu-satunya mekanisme
+  // yang benar-benar bekerja adalah undangan collaborator: pemegang token
+  // mengirim username GitHub-nya, lalu diundang lewat GitHub.
+  //
+  // Kalau server tidak mengirim `repoAccess`, blok ini tidak ditampilkan
+  // sama sekali — tidak ada kotak kosong atau tombol mati.
+  if (content.repoAccess) {
+    const a = content.repoAccess;
     const repoBox = document.createElement('div');
     repoBox.className = 'locked-repo';
 
     const h3 = document.createElement('h3');
-    h3.textContent = 'Akses kode sumber';
+    h3.textContent = a.heading || 'Akses kode sumber';
 
-    const note = document.createElement('p');
-    note.className = 'locked-repo-note';
-    note.textContent = content.repoNote
-      || 'Repositori privat. Tautan di bawah berlaku untuk pemegang token Anda — mohon tidak dibagikan ulang.';
+    const body = document.createElement('p');
+    body.className = 'locked-repo-body';
+    body.textContent = a.body || '';
 
-    const link = document.createElement('a');
-    link.className = 'btn btn-primary';
-    link.href = content.repo;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.textContent = content.repoLabel || 'Buka repositori privat';
+    repoBox.append(h3, body);
 
-    repoBox.append(h3, note, link);
+    // Tombol hanya kalau server mengirim `label`. Tanpa label, blok tetap
+    // informatif tanpa tombol yang tidak jelas tujuannya.
+    if (a.label) {
+      const btn = document.createElement('a');
+      btn.className = 'btn btn-primary';
+      // mailto: membuka klien email pengguna dengan subjek sudah terisi.
+      // Tidak ada data sensitif di dalamnya — hanya subjek permintaan.
+      btn.href = a.mailto || 'mailto:?subject=Permintaan%20akses%20repo';
+      btn.textContent = a.label;
+      repoBox.append(btn);
+    }
+
+    if (a.note) {
+      const note = document.createElement('p');
+      note.className = 'locked-repo-note';
+      note.textContent = a.note;
+      repoBox.append(note);
+    }
+
     contentHost.append(repoBox);
   }
 
