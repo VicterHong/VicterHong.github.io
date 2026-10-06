@@ -634,6 +634,21 @@
     var box = root.querySelector('#cf-checking');
     if (!box) return;
 
+    // ── 0. SEMBUNYIKAN WIDGET TURNSTILE ─────────────────────────────────────
+    // Permintaan pemilik: "hilangin yang logo turnstile kan, saya verifikasi
+    // berhasil saja udah itu."
+    //
+    // Kalau verifikasi butuh waktu lama, yang ditampilkan adalah PERINGATAN —
+    // bukan kotak centang Turnstile dengan logo Cloudflare. Widget hanya
+    // menambah kebingungan: pengunjung tidak tahu apakah harus mengkliknya,
+    // dan sebagian mengira situsnya bermasalah.
+    //
+    // Kalau pengunjung memang perlu berinteraksi, Turnstile akan memanggil
+    // callback-nya sendiri dan widget muncul lewat jalur itu — bukan lewat
+    // timeout ini.
+    var slot = root.querySelector('#cf-widget');
+    if (slot) slot.classList.add('cf-hidden');
+
     // ── 1. TAMPILKAN PERINGATAN "LAMA" ──────────────────────────────────────
     // Elemen #cf-lama berisi kalimat persis Cloudflare:
     //   "Verification is taking longer than expected. Check your Internet

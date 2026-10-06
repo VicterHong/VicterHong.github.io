@@ -197,20 +197,38 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 }
 
 /* ── SLOT WIDGET TURNSTILE ─────────────────────────────────────────────────
-   Widget dirender dengan appearance:'interaction-only', jadi dalam kasus
-   normal (Cloudflare yakin pengunjung manusia) TIDAK ADA yang tampil di sini.
+   Widget dirender dengan appearance:'interaction-only' — dalam kasus normal
+   TIDAK ADA yang tampil, dan saat timeout showLoadHint() menyembunyikannya
+   sepenuhnya (class .cf-hidden).
 
-   Ruangnya dibiarkan nol supaya tidak ada celah kosong di tengah halaman —
-   tanpa ini, ada jarak menggantung di antara spinner dan footer yang membuat
-   tata letak terasa janggal.
+   ── KENAPA SEMUA JALUR "RUANG KOSONG" DITUTUP ────────────────────────────
+   Turnstile menyisipkan struktur bersarang (div > div > iframe/input) bahkan
+   saat tidak menampilkan apa pun. Setiap tingkat bisa menyumbang tinggi.
 
-   Kalau Cloudflare MEMANG minta interaksi, widget muncul di sini dengan
-   ukuran normal 300×65 (lihat widgetOptions()). */
+   Terukur: setelah timeout, #cf-widget masih setinggi 69px meski tidak ada
+   isinya — itu celah kosong yang membuat tata letak terasa menggantung.
+
+   Aturan di bawah menutup SEMUA kemungkinan: elemen kosong, anak langsung
+   kosong, dan slot yang disembunyikan. Tidak ada satu pun yang menyisakan
+   ruang. */
 #cf-gate #cf-widget { display: grid; max-width: 320px; }
 #cf-gate #cf-widget:empty { min-height: 0; margin: 0; }
-/* Wadah Turnstile yang kosong (dirender tapi tidak menampilkan apa pun)
-   juga tidak boleh menyisakan ruang. */
 #cf-gate #cf-widget > div:empty { min-height: 0; }
+/* Slot yang disembunyikan benar-benar hilang dari alur — bukan sekadar
+   tak terlihat. `display:none` dari .cf-hidden sudah menangani ini, tapi
+   aturan eksplisit di sini mencegah gaya lain menimpanya. */
+#cf-gate #cf-widget.cf-hidden { display: none !important; min-height: 0; margin: 0; }
+
+/* ── TATA LETAK: JANGAN MENGGANTUNG ────────────────────────────────────────
+   Halaman challenge Cloudflare mengisi tinggi layar penuh dan mendorong
+   footer ke bawah. Tanpa ini, kalau kontennya pendek (kasus normal — hanya
+   spinner + teks), ada celah hitam besar antara konten dan footer.
+
+   `justify-content: center` pada main-wrapper sudah ada; yang ditambahkan
+   di sini adalah memastikan footer benar-benar menempel di bawah, bukan
+   mengambang di tengah. */
+#cf-gate .main-wrapper { flex: 1 0 auto; }
+#cf-gate .footer { margin-top: auto; flex-shrink: 0; }
 
 /* Footer — persis Cloudflare. */
 #cf-gate .footer {
