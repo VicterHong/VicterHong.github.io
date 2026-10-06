@@ -9,3 +9,6 @@ backend/src/config.mjs
 backend/.env
 backend/node_modules/
 .env
+
+# Hasil build (CSS terminifikasi) — dihasilkan ulang oleh build-css.mjs
+dist/

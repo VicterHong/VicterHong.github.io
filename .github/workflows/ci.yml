@@ -46,6 +46,9 @@ jobs:
       - name: Regenerasi berkas discovery
         run: node scripts/generate-discovery.mjs
 
+      - name: Build CSS terminifikasi
+        run: node scripts/build-css.mjs
+
       - name: Periksa situs (berkas wajib, anggaran, rahasia)
         run: node scripts/preflight.mjs
 

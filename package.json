@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "node scripts/generate-discovery.mjs && wrangler pages deploy . --project-name=portfolio-victer",
+    "deploy": "node scripts/build-css.mjs && node scripts/generate-discovery.mjs && wrangler pages deploy dist --project-name=portfolio-victer",
     "discovery": "node scripts/generate-discovery.mjs",
-    "preflight": "node scripts/preflight.mjs",
+    "preflight": "node scripts/build-css.mjs && node scripts/preflight.mjs",
     "debug": "node scripts/debug-production.mjs",
     "debug:network": "node scripts/debug-network.mjs",
     "shot": "node scripts/shot.mjs",
@@ -19,7 +19,8 @@
     "r2:upload": "wrangler r2 object put portfolio-assets/ --file=",
     "r2:list": "wrangler r2 object list portfolio-assets",
     "logs": "wrangler tail",
-    "status": "curl -s https://portfolio-victer.victerphanjaya.workers.dev/health | python3 -m json.tool"
+    "status": "curl -s https://portfolio-victer.victerphanjaya.workers.dev/health | python3 -m json.tool",
+    "build": "node scripts/build-css.mjs"
   },
   "dependencies": {
     "cloudflare": "^1.0.0-beta.12"
@@ -28,7 +29,16 @@
     "wrangler": "^4.147.0",
     "typescript": "^5.6.0"
   },
-  "keywords": ["portfolio", "cloudflare", "workers", "b2b", "token-gated", "cms", "seo", "aeo"],
+  "keywords": [
+    "portfolio",
+    "cloudflare",
+    "workers",
+    "b2b",
+    "token-gated",
+    "cms",
+    "seo",
+    "aeo"
+  ],
   "author": "Victer",
   "license": "MIT"
 }

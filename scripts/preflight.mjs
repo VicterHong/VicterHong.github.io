@@ -15,6 +15,23 @@ import { auditAssets, BUDGETS } from '../backend/src/performance.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
+/**
+ * Direktori yang diaudit: dist/ kalau ada, selain itu root.
+ *
+ * ── KENAPA (minifikasi CSS) ─────────────────────────────────────────────────
+ * Sumber di assets/css/*.css TIDAK terminifikasi — itu yang dibaca manusia.
+ * Minifikasi terjadi saat build (scripts/build-css.mjs) dan hasilnya ke dist/.
+ * Kalau preflight mengukur root, ia akan mengukur berkas SUMBER (120 KB) dan
+ * menolak deploy — padahal yang benar-benar dikirim ke pengunjung adalah versi
+ * terminifikasi di dist/ (54 KB).
+ *
+ * Jadi preflight harus mengukur apa yang benar-benar di-deploy. Kalau dist/
+ * belum dibangun, jatuh ke root supaya preflight tetap berguna sendirian.
+ */
+const DIST = resolve(ROOT, 'dist');
+const AUDIT = existsSync(DIST) ? DIST : ROOT;
+if (AUDIT === DIST) console.log('(mengaudit dist/ — hasil build terminifikasi)');
+
 // Anggaran performa diimpor dari backend/src/performance.mjs — SATU sumber.
 // Sebelumnya didefinisikan ulang di sini, dan dua daftar anggaran yang
 // berbeda pasti akan menyimpang seiring waktu.
@@ -32,7 +49,7 @@ function check(name, ok, detail) {
 // ── 1. Berkas wajib ──────────────────────────────────────────────────────────
 console.log('\n── Berkas wajib ──');
 for (const f of ['home.html', 'index.html', '404.html', 'docs.html', 'robots.txt', 'sitemap.xml', 'llms.txt']) {
-  const exists = existsSync(resolve(ROOT, f));
+  const exists = existsSync(resolve(AUDIT, f));
   check(`file:${f}`, exists, exists ? 'ada' : 'HILANG');
 }
 
@@ -58,7 +75,7 @@ function walk(dir, depth = 0) {
     else if (ext === '.html') bytes.html += size;
   }
 }
-walk(ROOT);
+walk(AUDIT);
 
 const kb = (n) => `${Math.round(n / 1024)} KB`;
 
@@ -66,7 +83,7 @@ const kb = (n) => `${Math.round(n / 1024)} KB`;
 // Yang membebani pengunjung adalah berkas yang benar-benar dimuat satu
 // halaman. Menjumlahkan seluruh repo membuat laporan menyesatkan —
 // repo punya 22 berkas CSS, tapi tidak ada halaman yang memuat semuanya.
-const { perPage, heaviestPage } = auditAssets(ROOT);
+const { perPage, heaviestPage } = auditAssets(AUDIT);
 const heaviest = heaviestPage ?? { page: '—', css: 0, js: 0, html: 0 };
 
 check('total-bytes', bytes.total <= BUDGETS.totalBytes,
@@ -106,7 +123,7 @@ const leaks = [];
 for (const f of files) {
   if (!/\.(html|js|mjs|css|json|txt|xml)$/i.test(f.path)) continue;
   let text = '';
-  try { text = readFileSync(resolve(ROOT, f.path), 'utf8'); } catch { continue; }
+  try { text = readFileSync(resolve(AUDIT, f.path), 'utf8'); } catch { continue; }
 
   let found = false;
   for (const secret of literalSecrets) {
@@ -127,7 +144,7 @@ check('no-secret-leak', leaks.length === 0, leaks.length ? leaks.join(', ') : 'b
 // ── 4. JSON-LD ada di halaman utama ──────────────────────────────────────────
 console.log('\n── SEO / AEO ──');
 try {
-  const home = readFileSync(resolve(ROOT, 'home.html'), 'utf8');
+  const home = readFileSync(resolve(AUDIT, 'home.html'), 'utf8');
   check('json-ld', home.includes('application/ld+json'), 'structured data terpasang');
   check('canonical', home.includes('rel="canonical"'), 'canonical terpasang');
   check('og-tags', home.includes('og:title') && home.includes('og:image'), 'Open Graph lengkap');

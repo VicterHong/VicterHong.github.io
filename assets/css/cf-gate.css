@@ -10,17 +10,20 @@ html.cf-gating body { visibility: hidden; }
 body.cf-gated { background-color: #000; }
 body.cf-gated > *:not(#cf-gate) { display: none !important; }
 
-/* Wadah gate — menutup penuh layar, persis interstitial Cloudflare. */
+/* Wadah gate. 100dvh: di Android 100vh termasuk address bar, footer terdorong keluar. */
 #cf-gate {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background-color: #000;
   color: #f2f2f2;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: "Satoshi", system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.15;
@@ -100,8 +103,7 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
   100% { content: ""; }
 }
 
-/* Slot widget Turnstile — interaction-only: kosong selama verifikasi,
-   terisi hanya kalau Cloudflare minta interaksi (persis ko-fi.com). */
+/* Slot widget Turnstile — interaction-only (persis ko-fi.com). */
 #cf-gate #cf-widget { display: grid; max-width: 320px; }
 #cf-gate #cf-widget:empty { min-height: 0; }
 
@@ -137,8 +139,7 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
 /* Pesan untuk pengunjung tanpa JavaScript (seperti Cloudflare). */
 #cf-gate .cf-noscript { margin-top: 2rem; font-weight: 600; }
 
-/* Gerak diminimalkan: spinner berputar terus adalah pemicu vestibular umum.
-   Tetap terlihat sebagai indikator, hanya tidak berputar. 0.01ms +
+/* Gerak diminimalkan: spinner tetap terlihat, tidak berputar. 0.01ms +
    iteration-count 1 (bukan animation:none) supaya berhenti di state akhir. */
 @media (prefers-reduced-motion: reduce) {
   #cf-gate .cf-lds-ring,
