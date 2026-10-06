@@ -176,14 +176,15 @@ function renderLocked(payload) {
 
     repoBox.append(h3, body);
 
-    // Tombol hanya kalau server mengirim `label`. Tanpa label, blok tetap
-    // informatif tanpa tombol yang tidak jelas tujuannya.
-    if (a.label) {
+    // Tombol hanya dirender kalau server mengirim `mailto` DAN `label`.
+    // Fallback `mailto:` tanpa alamat akan membuka klien email pengguna
+    // dengan tujuan kosong — pengalaman rusak yang lebih buruk daripada
+    // tidak ada tombol sama sekali. Tanpa keduanya, blok tetap informatif
+    // lewat `body` yang menjelaskan caranya.
+    if (a.label && a.mailto) {
       const btn = document.createElement('a');
       btn.className = 'btn btn-primary';
-      // mailto: membuka klien email pengguna dengan subjek sudah terisi.
-      // Tidak ada data sensitif di dalamnya — hanya subjek permintaan.
-      btn.href = a.mailto || 'mailto:?subject=Permintaan%20akses%20repo';
+      btn.href = a.mailto;
       btn.textContent = a.label;
       repoBox.append(btn);
     }
