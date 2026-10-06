@@ -1,0 +1,40 @@
+# ── Cloudflare Pages: proxy API ke Worker ────────────────────────────────────
+#
+# MASALAH YANG DIPECAHKAN
+#
+# Situs disajikan dari portfolio-victer.pages.dev (Cloudflare Pages), sementara
+# endpoint /api hanya ada di Worker (portfolio-victer.victerphanjaya.workers.dev).
+# Pages TIDAK otomatis mem-proxy /api — terukur:
+#
+#   GET https://portfolio-victer.pages.dev/api/media/manifest        → 404
+#   GET https://portfolio-victer.victerphanjaya.workers.dev/api/... → 200
+#
+# Akibatnya frontend yang memanggil `/api/media/manifest` (relatif) selalu
+# gagal, dan galeri jatuh ke gambar bawaan.
+#
+# ── KENAPA PROXY, BUKAN ALAMAT ABSOLUT DI JAVASCRIPT ────────────────────────
+# Mengarahkan fetch langsung ke workers.dev dari halaman pages.dev berarti
+# permintaan LINTAS ORIGIN. Itu butuh:
+#   - CORS yang benar di setiap respons (termasuk preflight OPTIONS)
+#   - Cookie sesi dengan SameSite=None + Secure
+#   - Dua kali DNS + TLS handshake (satu untuk halaman, satu untuk API)
+#
+# Dengan proxy, semuanya SAMA ORIGIN dari sudut pandang browser. Tidak ada
+# preflight, tidak ada masalah cookie, dan tidak ada koneksi tambahan.
+# Ini juga cara kerjanya di produksi nanti saat domain sendiri sudah aktif:
+# cukup ganti satu baris di bawah, tidak ada kode yang perlu diubah.
+#
+# ── FORMAT ───────────────────────────────────────────────────────────────────
+# Cloudflare Pages _redirects: `dari  ke  status`
+# Status 200 = PROXY (bukan redirect) — browser tidak tahu ada lompatan,
+# URL di address bar tetap sama. Ini yang diinginkan.
+
+/api/*  https://portfolio-victer.victerphanjaya.workers.dev/api/:splat  200
+
+# ── GAMBAR DARI R2 ───────────────────────────────────────────────────────────
+# Sama alasannya: /media/* hanya ada di Worker (R2 tidak punya public URL).
+# Tanpa baris ini, gambar galeri 404 di pages.dev.
+#
+# Catatan: saat domain sendiri sudah aktif dan Worker Route dipasang,
+# dua baris ini bisa dihapus — Worker akan menangani keduanya langsung.
+/media/*  https://portfolio-victer.victerphanjaya.workers.dev/media/:splat  200

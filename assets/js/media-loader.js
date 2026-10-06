@@ -36,6 +36,31 @@
  * mengganggu selama satu kunjungan.
  */
 
+/**
+ * Alamat API.
+ *
+ * ── KENAPA ABSOLUT, BUKAN RELATIF ───────────────────────────────────────────
+ * Situs disajikan dari Cloudflare Pages (portfolio-victer.pages.dev),
+ * sementara endpoint /api hanya ada di Worker (portfolio-victer.victerphanjaya
+ * .workers.dev). Pages TIDAK mem-proxy /api — jadi permintaan relatif
+ * menghasilkan 404. Terukur: `GET /api/media/manifest` di pages.dev → 404,
+ * di workers.dev → 200.
+ *
+ * Solusi jangka panjang: pasang Worker Route di domain sendiri supaya
+ * endpoint relatif bekerja. Itu butuh zona DNS yang dikelola Cloudflare,
+ * dan domain saat ini (victer.is-a.dev) belum aktif — PR-nya masih menunggu
+ * maintainer. Sementara itu, endpoint absolut adalah satu-satunya cara yang
+ * bekerja tanpa mengubah infrastruktur.
+ *
+ * ── KENAPA DIBUAT OVERRIDE-ABLE ─────────────────────────────────────────────
+ * `window.__API_BASE__` diperiksa lebih dulu supaya preview deployment
+ * (yang punya URL Worker berbeda) bisa menunjuk ke backend yang benar tanpa
+ * mengubah berkas ini.
+ */
+const API_BASE = (typeof window !== 'undefined' && window.__API_BASE__)
+  ? String(window.__API_BASE__).replace(/\/$/, '')
+  : 'https://portfolio-victer.victerphanjaya.workers.dev';
+
 /** Gambar bawaan — dipakai kalau manifest tidak tersedia (Lapis 2). */
 const BAWAAN = {
   MINA: 'assets/spotlight/mina-terminal.jpg',
@@ -84,7 +109,7 @@ export async function ambilManifest({ timeoutMs = 4000 } = {}) {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    const res = await fetch('/api/media/manifest', {
+    const res = await fetch(`${API_BASE}/api/media/manifest`, {
       signal: ctrl.signal,
       cache: 'no-store',
     });
