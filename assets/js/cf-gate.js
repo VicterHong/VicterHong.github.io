@@ -385,12 +385,36 @@
     return {
       sitekey: cfg().siteKey,
       theme: 'dark',
-      // Selalu tampil: pengunjung bisa berinteraksi kapan pun Cloudflare minta.
-      appearance: 'always',
+      // ── WIDGET TIDAK TAMPIL KECUALI DIPERLUKAN ────────────────────────────
+      // Permintaan pemilik: "hilangin yang logo turnstile kan, saya verifikasi
+      // berhasil saja udah itu".
+      //
+      // `interaction-only` = widget disembunyikan selama Cloudflare yakin
+      // pengunjung manusia (kasus normal, ~99%). Widget HANYA muncul kalau
+      // Cloudflare benar-benar butuh interaksi manusia.
+      //
+      // Hasilnya: pengunjung melihat spinner → "Verifikasi berhasil" → masuk.
+      // Tidak ada kotak centang, tidak ada logo Cloudflare di tengah halaman.
+      //
+      // ── KENAPA INI AMAN SEKARANG (DULU TIDAK) ────────────────────────────
+      // Versi pertama memakai mode ini dan BERMASALAH: kalau Cloudflare tidak
+      // pernah memanggil callback, gate menggantung SELAMANYA tanpa jalan
+      // keluar — tidak ada timeout, tidak ada tombol.
+      //
+      // Sekarang sudah ada DUA jaring pengaman:
+      //   1. pantauToken() — 20 detik, lalu tampilkan peringatan + tombol
+      //   2. postVerify() — timeout 12 detik dengan AbortController
+      //
+      // Jadi kalau widget perlu interaksi tapi tidak muncul, pengunjung
+      // mendapat peringatan jelas dan tombol muat ulang. Tidak terjebak.
+      appearance: 'interaction-only',
       language: 'auto',
-      // Ukuran tetap 300×65 — selalu bekerja, tidak bergantung container.
+      // Ukuran normal 300×65 — dipakai HANYA kalau widget muncul karena
+      // Cloudflare minta interaksi. Ukuran tetap selalu bekerja, tidak
+      // bergantung lebar container.
       size: 'normal',
-      // Coba ulang otomatis saat gagal jaringan.
+      // Coba ulang otomatis saat gagal jaringan — paling menolong di
+      // koneksi seluler yang tidak stabil.
       retry: 'auto',
       'refresh-expired': 'auto',
       callback: onToken,

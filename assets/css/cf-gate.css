@@ -196,9 +196,21 @@ body.cf-gated > *:not(#cf-gate) { display: none !important; }
   border-radius: 2px;
 }
 
-/* Slot widget Turnstile — ukuran normal 300×65 (lihat widgetOptions()). */
+/* ── SLOT WIDGET TURNSTILE ─────────────────────────────────────────────────
+   Widget dirender dengan appearance:'interaction-only', jadi dalam kasus
+   normal (Cloudflare yakin pengunjung manusia) TIDAK ADA yang tampil di sini.
+
+   Ruangnya dibiarkan nol supaya tidak ada celah kosong di tengah halaman —
+   tanpa ini, ada jarak menggantung di antara spinner dan footer yang membuat
+   tata letak terasa janggal.
+
+   Kalau Cloudflare MEMANG minta interaksi, widget muncul di sini dengan
+   ukuran normal 300×65 (lihat widgetOptions()). */
 #cf-gate #cf-widget { display: grid; max-width: 320px; }
-#cf-gate #cf-widget:empty { min-height: 0; }
+#cf-gate #cf-widget:empty { min-height: 0; margin: 0; }
+/* Wadah Turnstile yang kosong (dirender tapi tidak menampilkan apa pun)
+   juga tidak boleh menyisakan ruang. */
+#cf-gate #cf-widget > div:empty { min-height: 0; }
 
 /* Footer — persis Cloudflare. */
 #cf-gate .footer {
