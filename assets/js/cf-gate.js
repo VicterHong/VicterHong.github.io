@@ -31,6 +31,95 @@
   var SESSION_KEY = 'cf_clearance_' + HOST;
   var SESSION_MS = 30 * 60 * 1000; // 30 menit, seperti clearance Cloudflare
 
+  /* ── MASA TENGGANG: KUNJUNGAN PERTAMA TIDAK DIGERBANG ─────────────────────
+     Permintaan pemilik: "kalo awal awalnya ga perlu turnstilenya, ketika
+     sudah lama baru muncul seperti pada umumnya".
+
+     Itu persis cara kerja Cloudflare managed challenge: pengunjung yang baru
+     datang langsung masuk, dan tantangan baru muncul setelah beberapa lama
+     atau saat ada aktivitas yang mencurigakan.
+
+     ── KENAPA DUA KUNCI, BUKAN SATU ────────────────────────────────────────
+     Butuh dua titik waktu yang BERBEDA:
+       MULAI_KEY  — kapan kunjungan ini dimulai (untuk mengukur tenggang)
+       AKHIR_KEY  — kapan aktivitas terakhir (untuk mendeteksi kunjungan baru)
+
+     Kalau hanya satu kunci yang diperbarui terus, selisihnya selalu ~0 dan
+     tenggang tidak pernah habis — gate tidak akan muncul selamanya.
+
+     ── KENAPA localStorage, BUKAN sessionStorage ───────────────────────────
+     Tenggang harus bertahan saat pengunjung berpindah halaman (index → home).
+     sessionStorage memang bertahan antar halaman di tab yang sama, tapi
+     localStorage juga memberi perilaku yang lebih baik: pengunjung yang
+     kembali setelah 12 jam diperlakukan sebagai kunjungan BARU dan dapat
+     tenggang lagi — bukan langsung digerbang. */
+  var MULAI_KEY = 'cf_mulai_' + HOST;
+  var AKHIR_KEY = 'cf_akhir_' + HOST;
+
+  /** Lama tenggang: pengunjung bebas menjelajah tanpa gate. */
+  var TENGGANG_MS = 3 * 60 * 1000;   // 3 menit
+
+  /** Setelah sekian lama tidak berkunjung, anggap kunjungan baru. */
+  var KUNJUNGAN_BARU_MS = 12 * 60 * 60 * 1000;   // 12 jam
+
+  /**
+   * Apakah pengunjung masih dalam masa tenggang (belum perlu digerbang)?
+   *
+   * ── KENAPA GAGAL-BUKA (fail-open) ───────────────────────────────────────
+   * Kalau localStorage diblokir (mode privat, cookie dimatikan), fungsi ini
+   * mengembalikan `true` — pengunjung TIDAK digerbang.
+   *
+   * Itu keputusan yang disengaja. Gate ini adalah lapisan UX yang meniru
+   * Cloudflare, bukan batas keamanan sesungguhnya — perlindungan sebenarnya
+   * ada di level API (token akses, batas laju, verifikasi Turnstile
+   * server-side). Mengunci pengunjung di layar verifikasi hanya karena
+   * browsernya memblokir storage adalah kerugian tanpa manfaat keamanan.
+   *
+   * ── CARA KERJA ──────────────────────────────────────────────────────────
+   *   1. Belum ada catatan, ATAU sudah pergi > 12 jam
+   *      → kunjungan baru: catat waktu, beri tenggang
+   *   2. Ada catatan, masih dalam 3 menit
+   *      → lanjutkan tenggang (perbarui waktu aktivitas)
+   *   3. Ada catatan, sudah lewat 3 menit
+   *      → tenggang habis: gate muncul
+   */
+  function dalamTenggang() {
+    try {
+      var now = Date.now();
+      var mulai = localStorage.getItem(MULAI_KEY);
+      var akhir = localStorage.getItem(AKHIR_KEY);
+
+      // Kunjungan baru: belum ada catatan, atau sudah lama pergi.
+      if (!mulai || !akhir || (now - Number(akhir)) > KUNJUNGAN_BARU_MS) {
+        localStorage.setItem(MULAI_KEY, String(now));
+        localStorage.setItem(AKHIR_KEY, String(now));
+        return true;
+      }
+
+      // Perbarui waktu aktivitas terakhir — supaya kunjungan yang masih
+      // berjalan tidak dianggap "pergi" hanya karena lama di satu halaman.
+      localStorage.setItem(AKHIR_KEY, String(now));
+
+      return (now - Number(mulai)) < TENGGANG_MS;
+    } catch (e) {
+      // Storage diblokir → jangan kunci pengunjung. Lihat catatan di atas.
+      return true;
+    }
+  }
+
+  /**
+   * Reset masa tenggang — dipanggil setelah verifikasi lolos.
+   *
+   * Supaya kunjungan berikutnya (setelah clearance 30 menit habis) mendapat
+   * tenggang baru, bukan langsung digerbang lagi.
+   */
+  function resetTenggang() {
+    try {
+      localStorage.removeItem(MULAI_KEY);
+      localStorage.removeItem(AKHIR_KEY);
+    } catch (e) { /* storage diblokir — tidak ada yang perlu direset */ }
+  }
+
   /* ── Bahasa ─────────────────────────────────────────────────────────────
      Teks gate mengikuti bahasa perangkat pengunjung, sama seperti Cloudflare.
      Sumbernya cf-gate-i18n.js (dimuat sebelum berkas ini). Kalau berkas itu
@@ -108,8 +197,37 @@
     } catch (e) { return false; }
   }
 
+  /**
+   * Tandai bahwa verifikasi sudah lolos — berlaku 30 menit.
+   *
+   * ── KENAPA MENGEMBALIKAN BOOLEAN (BUG YANG DIPERBAIKI) ───────────────────
+   * Versi lama menelan error dengan `catch (e) {}` dan tidak memberi tahu
+   * pemanggil apakah penulisan berhasil.
+   *
+   * Itu menyebabkan LOOP TAK TERBATAS: kalau sessionStorage diblokir
+   * (mode privat, cookie dimatikan, atau storage penuh), `markPassed()`
+   * gagal diam-diam → gate memanggil `location.reload()` → halaman dimuat
+   * ulang → gate muncul lagi → verifikasi lagi → gagal lagi → reload lagi.
+   * Pengunjung terjebak selamanya di layar "Berhasil!".
+   *
+   * Sekarang pemanggil tahu hasilnya dan bisa memilih jalur yang tepat:
+   *   berhasil → reload (gate tidak muncul lagi)
+   *   gagal    → tampilkan halaman tanpa reload (verifikasi sudah sah
+   *              menurut server; yang gagal hanya penyimpanan lokal)
+   */
   function markPassed() {
-    try { sessionStorage.setItem(SESSION_KEY, String(Date.now())); } catch (e) {}
+    try {
+      sessionStorage.setItem(SESSION_KEY, String(Date.now()));
+      // Baca ulang: beberapa browser menerima setItem tapi tidak menyimpannya
+      // (kuota habis, storage dinonaktifkan setelah halaman dimuat).
+      var tersimpan = sessionStorage.getItem(SESSION_KEY) !== null;
+      // Tenggang direset supaya kunjungan berikutnya — setelah clearance
+      // 30 menit habis — mendapat tenggang BARU, bukan langsung digerbang.
+      if (tersimpan) resetTenggang();
+      return tersimpan;
+    } catch (e) {
+      return false;
+    }
   }
 
   /** Gate aktif: sembunyikan konten halaman (hanya overlay gate yang tampak). */
@@ -278,8 +396,25 @@
     }
 
     function go() {
-      markPassed();
+      var tersimpan = markPassed();
       showSuccess();
+
+      // ── KENAPA ADA CABANG "PENYIMPANAN GAGAL" ────────────────────────────
+      // Verifikasi server SUDAH berhasil di titik ini — pengunjung memang
+      // manusia. Yang gagal hanya menyimpan tanda di browser.
+      //
+      // Kalau kita tetap reload, gate akan muncul lagi (tandanya tidak ada),
+      // verifikasi lagi, gagal menyimpan lagi → loop tanpa akhir. Jadi
+      // kalau penyimpanan gagal, halaman tetap dibuka TANPA reload.
+      //
+      // Trade-off yang diterima: pengunjung akan melihat gate lagi kalau
+      // membuka halaman baru. Itu jauh lebih baik daripada terjebak di
+      // halaman verifikasi selamanya.
+      if (!tersimpan) {
+        setTimeout(function () { revealPage(); }, 1200);
+        return;
+      }
+
       var target = cfg().redirect;
       if (target) {
         setTimeout(function () { location.replace(target); }, 1200);
@@ -370,6 +505,13 @@
     }
 
     function go() {
+      // Hasil penyimpanan TIDAK dipakai untuk memutuskan di sini: gate
+      // dinamis selalu bisa dibuka tanpa reload — kontennya sudah ada di
+      // halaman, kita hanya perlu membuang lapisan gate-nya.
+      //
+      // Kalau penyimpanan gagal, gate akan muncul lagi pada kunjungan
+      // berikutnya. Itu dapat diterima; yang penting pengunjung TIDAK
+      // terjebak di layar verifikasi.
       markPassed();
       showSuccess();
       setTimeout(function () {
@@ -487,8 +629,10 @@
     var root = document.getElementById('cf-gate');
     var isStatic = Boolean(root);
 
+    // ── 1. SUDAH LOLOS VERIFIKASI (< 30 MENIT) ─────────────────────────────
+    // Tidak perlu apa-apa lagi. Di index.html langsung lanjut ke halaman
+    // konten; di halaman konten cukup tampilkan isinya.
     if (passed()) {
-      // Sudah lolos verifikasi < 30 menit lalu — lanjut tanpa gate.
       if (isStatic && cfg().redirect) {
         location.replace(cfg().redirect);
         return;
@@ -497,6 +641,28 @@
       return;
     }
 
+    // ── 2. MASIH DALAM MASA TENGGANG ───────────────────────────────────────
+    // Permintaan pemilik: "kalo awal awalnya ga perlu turnstilenya, ketika
+    // sudah lama baru muncul seperti pada umumnya".
+    //
+    // Pengunjung yang baru datang TIDAK langsung digerbang — ia bisa
+    // menjelajah selama 3 menit. Gate baru muncul setelah tenggang habis.
+    //
+    // Ini persis perilaku Cloudflare managed challenge: pengunjung baru lolos
+    // tanpa hambatan, dan tantangan muncul saat sudah ada aktivitas.
+    //
+    // Di index.html, tenggang berarti langsung redirect ke halaman konten —
+    // pengunjung tidak melihat halaman "Just a moment..." sama sekali.
+    if (dalamTenggang()) {
+      if (isStatic && cfg().redirect) {
+        location.replace(cfg().redirect);
+        return;
+      }
+      revealPage();
+      return;
+    }
+
+    // ── 3. TENGGANG HABIS → GERBANG ────────────────────────────────────────
     if (isStatic) {
       fillStatics(root);
       var gate = staticGate(root);
