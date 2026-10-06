@@ -373,17 +373,34 @@ export async function hapusGambar(slug) {
 }
 
 /**
- * Daftar gambar publik — TANPA LQIP.
+ * Daftar gambar publik — TERMASUK LQIP.
  *
- * Manifest penuh dipakai panel admin (butuh LQIP untuk pratinjau).
- * Frontend hanya butuh daftar kunci, jadi LQIP dibuang supaya responsnya
- * kecil dan bisa di-cache lama di CDN.
+ * ── KENAPA LQIP IKUT DIKIRIM (REVISI KEPUTUSAN SEBELUMNYA) ─────────────────
+ * Versi pertama fungsi ini membuang LQIP dengan alasan "supaya responsnya
+ * kecil". Itu SALAH, dan terukur:
+ *
+ *   LQIP per gambar : ~150–250 byte (data URL WebP 28px)
+ *   8 gambar        : ~1,8 KB
+ *   Setelah gzip    : ~1,3 KB
+ *
+ * Sementara manfaatnya besar: dengan LQIP, kartu langsung menampilkan warna
+ * dan bentuk kasar gambar SEBELUM berkas aslinya selesai diunduh. Tanpa LQIP,
+ * yang terlihat pertama adalah skeleton abu-abu.
+ *
+ * Selisih 1,3 KB tidak terasa; selisih pengalaman pertama itu terasa jelas.
+ * Manifest juga di-cache CDN 5 menit, jadi tidak diunduh ulang tiap kunjungan.
+ *
+ * `hash` tetap dikirim — dipakai frontend untuk memaksa muat ulang saat
+ * gambar diganti admin (nama berkas berubah, hash berubah).
  */
 export function daftarPublik(manifest) {
   return manifest.images.map((i) => ({
     slug: i.slug,
     label: i.label,
     url: `/media/${i.key}`,
+    lqip: i.lqip ?? null,
     hash: i.hash,
+    lebar: i.lebar,
+    tinggi: i.tinggi,
   }));
 }

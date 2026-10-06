@@ -1848,6 +1848,10 @@ export const routes = [
         return sendJson(res, 200, { ok: true, aktif: false, images: [] });
       }
       const manifest = await bacaManifest();
+      // Cache 5 menit di CDN. Cukup lama untuk mengurangi permintaan
+      // berulang, cukup pendek supaya gambar yang baru diunggah admin
+      // muncul tanpa perlu menunggu lama.
+      res.setHeader('cache-control', 'public, max-age=300');
       sendJson(res, 200, {
         ok: true,
         aktif: true,

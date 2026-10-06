@@ -167,13 +167,19 @@ export function susunGambar(proyek, manifest) {
   for (const p of proyek) {
     const cocok = perSlug.get(normal(p.name));
     if (cocok) {
-      peta.set(p.name, { url: cocok.url, lqip: cocok.lqip ?? null });
+      peta.set(p.name, {
+        url: cocok.url, lqip: cocok.lqip ?? null,
+        lebar: cocok.lebar, tinggi: cocok.tinggi,
+      });
       continue;
     }
     // Belum punya gambar sendiri → ambil acak dari kumpulan.
     const pilihan = kumpulan[Math.floor(acak() * kumpulan.length)];
     if (pilihan) {
-      peta.set(p.name, { url: pilihan.url, lqip: pilihan.lqip ?? null });
+      peta.set(p.name, {
+        url: pilihan.url, lqip: pilihan.lqip ?? null,
+        lebar: pilihan.lebar, tinggi: pilihan.tinggi,
+      });
     } else {
       const bawaan = BAWAAN[p.name];
       if (bawaan) peta.set(p.name, { url: bawaan, lqip: null });
