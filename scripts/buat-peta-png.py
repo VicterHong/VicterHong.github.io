@@ -109,20 +109,27 @@ l.get_frame().set_linewidth(0.5)
 ax2 = fig.add_axes([0.76, 0.10, 0.22, 0.76])
 ax2.set_facecolor('#0d1117')
 top = negara.most_common(14)
+sisa_n = len(negara) - len(top)
+sisa_ip = sum(c for _, c in negara.most_common()[len(top):])
 labs = [n for n, _ in top][::-1]
 vals = [v for _, v in top][::-1]
-ax2.barh(range(len(labs)), vals, color='#eab308', alpha=0.8,
-         edgecolor='#78350f', linewidth=0.5)
+if sisa_n > 0:
+    labs = [f'lainnya ({sisa_n} negara)'] + labs
+    vals = [sisa_ip] + vals
+warna_bar = ['#4b5563'] + ['#eab308'] * (len(labs)-1)
+ax2.barh(range(len(labs)), vals, color=warna_bar, alpha=0.85,
+         edgecolor='#374151', linewidth=0.5)
 ax2.set_yticks(range(len(labs)))
 ax2.set_yticklabels(labs, fontsize=8.5, color='#d1d5db')
-ax2.set_title(f'Asal Negara ({len(negara)} total)', fontsize=11,
+ax2.set_title(f'Asal Negara — {len(negara)} negara', fontsize=11,
               fontweight='bold', color='#f3f4f6', pad=10)
 ax2.set_xlabel('Jumlah IP', fontsize=9, color='#9ca3af')
 ax2.tick_params(colors='#6b7280', labelsize=8)
 ax2.grid(True, axis='x', color='#1f2937', linewidth=0.5, alpha=0.6)
 for s in ax2.spines.values(): s.set_color('#1f2937')
 for i, v in enumerate(vals):
-    ax2.text(v + max(vals)*0.02, i, str(v), va='center', fontsize=8, color='#eab308')
+    w = '#9ca3af' if i == 0 and sisa_n > 0 else '#eab308'
+    ax2.text(v + max(vals)*0.02, i, str(v), va='center', fontsize=8, color=w)
 
 out = '/home/ubuntu/peta-serangan.png'
 fig.savefig(out, facecolor='#0d1117', bbox_inches='tight', dpi=110)
