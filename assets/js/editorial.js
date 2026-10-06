@@ -27,24 +27,24 @@
 
 const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ── 1. NOMOR SECTION ──────────────────────────────────────────────────────────
-// Setiap section diberi eyebrow bernomor (01 — Tentang, 02 — Layanan, …).
-// Bukan hiasan: di halaman 6000px, nomor memberi jangkar mental dan membuat
-// struktur terasa "direncanakan" — pola editorial Swiss.
+// ── 1. PENANDA SECTION (bukan nomor urut) ─────────────────────────────────────
+// Nomor 01/02/03 DIHAPUS: section halaman ini tidak berurutan, jadi angka
+// menyampaikan informasi yang salah (tell AI — lihat commit message).
+// Penggantinya garis aksen saja, yang menyampaikan hal benar tanpa mengklaim urutan.
 export function initSectionNumbers() {
   const sections = [...document.querySelectorAll('main > section')]
     .filter((s) => !s.classList.contains('hero'));
   if (!sections.length) return;
 
-  sections.forEach((section, i) => {
+  sections.forEach((section) => {
     const head = section.querySelector('.section-head') ?? section;
     if (head.querySelector('.section-eyebrow')) return;
 
     const eyebrow = document.createElement('p');
     eyebrow.className = 'section-eyebrow';
     eyebrow.setAttribute('aria-hidden', 'true');
-    eyebrow.innerHTML = `<span class="section-num">${String(i + 1).padStart(2, '0')}</span>`
-      + `<span class="section-rule"></span>`;
+    // Hanya garis — tanpa angka. Lihat alasan di atas.
+    eyebrow.innerHTML = '<span class="section-rule"></span>';
 
     // Sisipkan di awal section-head supaya sejajar dengan judul.
     head.prepend(eyebrow);

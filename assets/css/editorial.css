@@ -21,14 +21,9 @@
   margin: 0 0 0.9rem;
 }
 
-.section-num {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.72rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: var(--accent);
-}
-
+/* Penanda section: garis aksen saja, TANPA nomor urut.
+   Nomor 01/02/03 dihapus karena section halaman ini tidak berurutan —
+   lihat alasan lengkap di editorial.js. */
 .section-rule {
   display: block;
   width: 2.2rem;
