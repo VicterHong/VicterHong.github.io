@@ -145,7 +145,16 @@
      sama dengan kartu, margin-nya setengah dari ukuran kartu itu sendiri. */
   margin: -11.5rem 0 0 -8.75rem;
   border-radius: 14px;
-  overflow: hidden;
+  /* ── `overflow: hidden` DIHAPUS DARI SINI ────────────────────────────────
+     BUG: kartu ini punya `overflow: hidden` untuk membulatkan gambar di
+     dalamnya. Masalahnya: saat kartu di-scale (efek napas) dan diputar
+     (rotateY), `overflow: hidden` + `border-radius` + transform membuat
+     browser menghitung ulang clip di setiap frame — dan hasilnya tepi
+     bergerigi (aliasing) yang terlihat jelas saat bergerak.
+
+     Pembulatannya TIDAK hilang: `.spotlight-card-media` sudah punya
+     `overflow: hidden` sendiri, jadi gambarnya tetap terpotong rapi. Yang
+     berubah hanya: kartu tidak lagi meng-clip dirinya sendiri. */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -159,27 +168,46 @@
   border: 1px solid var(--line);
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.75);
 
-  /* ── TRANSISI BAYANGAN ───────────────────────────────────────────────────
-     Bayangan TIDAK dihitung tiap frame (itu 60 repaint/detik = berat).
-     JS hanya mengganti KELAS saat tingkat kedalaman berubah, dan transisi
-     ini yang menghaluskannya.
+  /* ── TRANSISI BAYANGAN: DIMATIKAN ────────────────────────────────────────
+     BUG: transisi box-shadow 420ms terlihat sebagai GLITCH. Saat kartu
+     bergerak cepat dan tingkat bayangannya berganti (0→1→2), transisi itu
+     membuat bayangan "mengejar" dengan jeda — dan pada kecepatan tinggi,
+     jeda itu terbaca mata sebagai kedutan/bergetar, bukan sebagai kehalusan.
 
-     Durasi 420ms sengaja lebih lambat dari gerakan kartu (~900ms):
-     bayangan "menyusul" di belakang kartu, persis seperti bayangan asli saat
-     bendanya bergerak cepat. Itu yang membuatnya terasa fisik. */
-  transition: border-color 0.35s var(--ease), box-shadow 420ms var(--ease);
+     Bayangan sekarang berpindah INSTAN antar tingkat. Karena perpindahannya
+     hanya terjadi saat kartu melewati batas (bukan tiap frame), perubahan
+     mendadak itu tidak terasa — mata sudah fokus pada kartu yang bergerak.
+
+     Prinsipnya: transisi hanya berguna untuk perubahan yang JARANG. Kalau
+     perubahan itu sendiri sudah halus, menambah transisi malah menciptakan
+     gerakan kedua yang berkelahi dengan yang pertama. */
+  transition: border-color 0.35s var(--ease);
   /* `will-change` DIPINDAH ke .spotlight-card.is-bergerak — dipasang di semua
      8 kartu memaksa browser membuat 8 layer GPU permanen, dan layer sebesar
      ini memakan memori grafis. Sekarang hanya kartu yang bergerak. */
   backface-visibility: hidden;
-  /* Isolasi render: perubahan di dalam kartu tidak memicu layout ulang di
-     luar kartu. Penghematan besar saat beberapa kartu bergerak bersamaan. */
-  contain: layout style paint;
+
+  /* ── JANGAN PAKAI `contain: paint` ────────────────────────────────────────
+     BUG: optimasi sebelumnya memakai `contain: layout style paint`. Kata
+     `paint` berarti "semua yang digambar elemen ini di-clip ke batasnya" —
+     dan box-shadow digambar DI LUAR batas. Akibatnya bayangan kartu terpotong
+     dengan garis keras yang mendadak. Terlihat jelas saat kartu bergerak.
+
+     `layout` dan `style` tetap aman: keduanya hanya mengisolasi perhitungan
+     layout, bukan menggambar. Jadi penghematannya tetap dapat, tanpa memotong
+     bayangan. */
+  contain: layout style;
 }
 
 /* Hanya kartu yang benar-benar bergerak yang dipromosikan ke layer GPU
    sendiri. Kelas ini dipasang/dilepas JS sesuai kebutuhan — biasanya 2-3
-   kartu, bukan 8. */
+   kartu, bukan 8.
+
+   CATATAN: `translateZ(0)` TIDAK ditulis di sini. JS menulis `style.transform`
+   setiap frame, dan inline style selalu menang atas CSS — jadi
+   `transform: translateZ(0)` di sini akan langsung ditimpa dan tidak berguna.
+   Anti-aliasing ditangani di JS dengan menyertakan `translateZ(0)` di dalam
+   string transform-nya. */
 .spotlight-card.is-bergerak {
   will-change: transform, opacity;
 }
@@ -196,6 +224,10 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  /* Pembulatan dipindah ke sini karena `.spotlight-card` tidak lagi punya
+     `overflow: hidden`. Media ini yang mengisi seluruh kartu, jadi dialah
+     yang perlu membulat. */
+  border-radius: 13px;
   background: #0a0a0c;
 }
 

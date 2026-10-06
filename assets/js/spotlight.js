@@ -423,7 +423,18 @@ export function createSpotlightCarousel(items) {
       //
       // Ditulis ke dataset, bukan style — supaya tidak memicu perubahan style
       // saat pembacaannya.
-      const tBaru = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) ` +
+      // `translateZ(0)` di AWAL: memaksa kartu dirender di layer GPU sendiri
+      // dengan anti-aliasing penuh. Tanpa ini, tepi rounded-corner terlihat
+      // bergerigi saat kartu di-scale dan diputar — browser merender di layer
+      // sub-pixel, dan tepi melengkung jadi "tangga".
+      //
+      // POSISINYA PENTING: harus di AWAL, sebelum scale(). Kalau ditaruh di
+      // akhir, `translateZ(0)` akan ikut dikalikan scale — hasilnya 0×scale =
+      // 0, yang artinya tidak ada dorongan ke layer GPU sama sekali.
+      //
+      // Harus ditulis DI SINI (bukan di CSS) karena inline style menang atas
+      // CSS: `transform: translateZ(0)` di CSS akan langsung ditimpa.
+      const tBaru = `translateZ(0) translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) ` +
         `rotateY(${rot.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       const tBerubah = card.dataset.t !== tBaru;
       if (tBerubah) {
