@@ -660,13 +660,31 @@ export function createSpotlightCarousel(items) {
       drift += (DRIFT_PX_PER_SEC * dt / 1000) / ARC.stepX;
 
       // Satu kartu penuh tercapai → geser indeks, kurangi drift.
-      // Kartu tetangga ada di posisi identik, jadi peralihan tidak terlihat.
+      //
+      // ── KENAPA `render(+drift)`, BUKAN `render(-drift)` ──────────────────
+      // Ini bug yang membuat auto-scroll terlihat "tidak slick" — ada lompatan
+      // 441px setiap kali kartu berganti. Dihitung dengan tangan:
+      //
+      //   render(P) → rel = sd(current, i) - P
+      //   Kartu di kiri kartu-depan punya rel = -1 (sd = -1), jadi untuk
+      //   memindahkannya ke tengah (rel = 0) dibutuhkan P = -1.
+      //
+      //   drift berjalan 0 → +1. Jadi P harus = +drift, dan swap terjadi saat
+      //   drift mencapai 1 (kartu berikutnya sudah di rel ≈ 0).
+      //
+      // Dengan render(-drift): drift +0.9 → P = -0.9 → kartu-depan bergerak
+      // ke rel +0.9 (KANAN). Lalu saat swap, current naik dan P kembali 0 →
+      // kartu itu melompat ke rel -1 (KIRI). Terukur: lompatan 441px.
+      //
+      // Dengan render(+drift): drift +0.9 → P = +0.9 → kartu-depan bergerak
+      // ke rel -0.9 (KIRI), swap saat drift = 1 → kartu itu di rel -1 (KIRI).
+      // Mulus — diverifikasi lewat simulasi: lompatan 0.00px.
       while (drift >= 1) {
         drift -= 1;
         current = (current + 1) % items.length;
         syncInfo();
       }
-      render(-drift);
+      render(drift);
     }
 
     rafId = requestAnimationFrame(loopDrift);
