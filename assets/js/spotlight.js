@@ -322,6 +322,10 @@ export function createSpotlightCarousel(items) {
   let resumeTimer = null;
   let sedangAnimasi = false;     // true saat pegas sedang bergerak
   let onAnimasiSelesai = null;   // callback setelah pegas tenang
+  // Kecepatan pegas saat ini (kartu/detik), dipakai render() untuk efek
+  // "napas": kartu menyusut saat meluncur, membesar saat mendarat.
+  // Dideklarasikan di scope ini karena ditulis goTo() dan dibaca render().
+  let kecepatanPegas = 0;
 
   /** Tulis posisi semua kartu berdasarkan `current`. */
   function render(progress = 0) {
@@ -368,12 +372,34 @@ export function createSpotlightCarousel(items) {
 
       // ── SKALA: KARTU AKTIF MEMBESAR, TETANGGA MENGECIL ──────────────────
       // Referensi Shadcnblocks Gallery 17: kartu aktif 100%, tetangga 70%.
-      // Awalnya saya pakai peluruhan 14%/langkah — terukur hasilnya cuma
-      // 1.14× (280px vs 244px), kurang terasa. Naikkan ke 20%/langkah:
-      // kartu ke-2 = 80%, ke-3 = 64% → rasio ~1.25× seperti referensi.
+      // Peluruhan 20%/langkah: kartu ke-2 = 80%, ke-3 = 64% → rasio ~1.25×.
       //
       // Lantai 0.55 supaya kartu terjauh tidak jadi titik kecil.
-      const scale = Math.max(0.55, 1 - abs * ARC.scaleStep);
+      let scale = Math.max(0.55, 1 - abs * ARC.scaleStep);
+
+      // ── EFEK "NAPAS": MENGEcil SAAT MELUNCUR, MEMBESAR SAAT MENDARAT ────
+      // Permintaan pemilik: "kayak diperkecil terus baru diperbesarkan kembali
+      // seperti semula". Ini efek squash-and-stretch — prinsip animasi klasik
+      // (Disney's 12 principles): benda yang bergerak cepat menyusut sedikit,
+      // lalu mengembang kembali saat berhenti.
+      //
+      // CARA KERJANYA — diturunkan dari KECEPATAN pegas, bukan timer terpisah:
+      //
+      //   |v| besar (kartu sedang meluncur cepat) → skala mengecil
+      //   |v| → 0   (pegas tenang, kartu mendarat) → skala kembali 100%
+      //
+      // Jadi tidak perlu mengatur "kapan mulai mengecil" dan "kapan membesar
+      // lagi" — keduanya otomatis mengikuti gerakan. Kalau pengunjung menggeser
+      // di tengah animasi, skalanya ikut menyesuaikan tanpa logika tambahan.
+      //
+      // `kecepatanPegas` dalam satuan kartu/detik. Kecepatan puncak pegas
+      // ~1.6 kartu/detik pada gerakan satu langkah, jadi dibagi 2.4 lalu
+      // dibatasi 0.12: menyusut maksimal 12% saat meluncur paling cepat.
+      //
+      // HANYA kartu yang sedang bergerak yang menyusut — `abs < 1.5` = kartu
+      // depan + tetangga terdekat. Kartu jauh yang diam tidak ikut menyusut.
+      const susut = abs < 1.5 ? Math.min(0.12, Math.abs(kecepatanPegas) / 2.4) : 0;
+      scale *= (1 - susut);
 
       // ── OPACITY: kartu belakang memudar ─────────────────────────────────
       // Referensi: tetangga 40% opacity. Di sini peluruhan lebih lembut
@@ -442,6 +468,9 @@ export function createSpotlightCarousel(items) {
     current = ((to % n) + n) % n;
 
     if (instant || prefersReduced()) {
+      // Reset kecepatan — kalau tidak, efek "napas" dari animasi sebelumnya
+      // bisa "menempel" dan membuat kartu tetap menyusut.
+      kecepatanPegas = 0;
       render();
       syncInfo();
       return;
@@ -496,6 +525,10 @@ export function createSpotlightCarousel(items) {
       v += a * dt;
       x += v * dt;
 
+      // Simpan kecepatan supaya render() bisa memakai efek "napas"
+      // (menyusut saat meluncur, membesar saat mendarat).
+      kecepatanPegas = v;
+
       // ── `render(x)` — BUKAN `render(-x)` ────────────────────────────────
       // x sekarang = P_lama - delta, yang SUDAH punya tanda benar. Karena
       // render(p) menghitung rel = sd(current_baru, i) - p, dan kita ingin
@@ -514,6 +547,9 @@ export function createSpotlightCarousel(items) {
       // DAN kecepatan < 0.001 kartu/detik. Keduanya dicek — kalau hanya jarak,
       // kartu bisa berhenti saat masih bergerak cepat melewati target.
       if (Math.abs(x) < 0.001 && Math.abs(v) < 0.001) {
+        // Reset kecepatan — supaya kartu kembali ke skala penuh (efek "napas"
+        // selesai: kartu mengembang seperti semula).
+        kecepatanPegas = 0;
         render();
         syncInfo();
         // ── BERI TAHU BAHWA ANIMASI SELESAI ────────────────────────────────
