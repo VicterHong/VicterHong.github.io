@@ -457,6 +457,78 @@ function migrate(handle) {
   } catch {
     // Sangat lama / tabel belum ada — query tetap benar, hanya kurang cepat.
   }
+
+  // ── TOTP / 2FA ────────────────────────────────────────────────────────────
+  //
+  // Kenapa tabel terpisah, bukan kolom di `tokens`:
+  //
+  //   1. Token bisa di-issue ulang tanpa kehilangan pendaftaran 2FA.
+  //      Kalau secret disimpan di baris token, mencabut token lama dan
+  //      menerbitkan yang baru akan memaksa klien mendaftar ulang
+  //      authenticator-nya — padahal perangkatnya tidak berubah.
+  //
+  //   2. Enrollment bisa ada SEBELUM token diterbitkan. Admin bisa
+  //      menyiapkan 2FA untuk klien, lalu mengirim token setelahnya.
+  //
+  //   3. Kode pemulihan punya relasi banyak-ke-satu dengan identitas,
+  //      bukan dengan token.
+  //
+  // Identitas di sini adalah `issued_to` (email/ID klien) yang sudah
+  // dipakai tabel tokens — bukan token_id.
+  handle.exec(`
+    CREATE TABLE IF NOT EXISTS totp_secrets (
+      id              TEXT PRIMARY KEY,
+      identity        TEXT NOT NULL UNIQUE,
+      secret_enc      TEXT NOT NULL,
+      -- Kolom untuk membuktikan klien benar-benar berhasil memindai QR
+      -- sebelum 2FA diaktifkan. Tanpa ini, admin bisa mengaktifkan 2FA
+      -- untuk klien yang belum pernah setup — dan klien terkunci.
+      terverifikasi   INTEGER NOT NULL DEFAULT 0,
+      terverifikasi_at INTEGER,
+      dibuat_at       INTEGER NOT NULL,
+      terakhir_dipakai INTEGER,
+      -- Deteksi replay: kode TOTP yang sama tidak boleh dipakai dua kali
+      -- dalam jendela 30 detik yang sama.
+      langkah_terakhir INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+
+  handle.exec(`
+    CREATE TABLE IF NOT EXISTS totp_recovery (
+      id          TEXT PRIMARY KEY,
+      identity    TEXT NOT NULL,
+      kode_hash   TEXT NOT NULL,
+      dipakai_at  INTEGER,
+      dibuat_at   INTEGER NOT NULL
+    )
+  `);
+
+  // Index untuk pencarian saat verifikasi (jalur panas — setiap login).
+  try {
+    handle.exec('CREATE INDEX IF NOT EXISTS idx_totp_identity ON totp_secrets(identity)');
+    handle.exec('CREATE INDEX IF NOT EXISTS idx_recovery_identity ON totp_recovery(identity, dipakai_at)');
+  } catch {
+    // Tabel belum ada di DB sangat lama — query tetap benar.
+  }
+
+  // Audit percobaan 2FA. Tanpa ini, serangan brute-force terhadap kode
+  // 6 digit tidak terlihat sama sekali di log.
+  handle.exec(`
+    CREATE TABLE IF NOT EXISTS totp_attempts (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      identity    TEXT NOT NULL,
+      berhasil    INTEGER NOT NULL,
+      alasan      TEXT NOT NULL DEFAULT '',
+      ip          TEXT NOT NULL DEFAULT '',
+      dibuat_at   INTEGER NOT NULL
+    )
+  `);
+
+  try {
+    handle.exec('CREATE INDEX IF NOT EXISTS idx_totp_attempts ON totp_attempts(identity, dibuat_at)');
+  } catch {
+    // Sama seperti di atas.
+  }
 }
 
 /** Database yang sedang terbuka, atau lempar kalau belum dibuka. */
