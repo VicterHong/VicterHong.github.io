@@ -352,8 +352,26 @@ export function selesaikanEnrollment(identity, kode, config, { ip = '' } = {}) {
  * Menerima kode 6 digit ATAU kode pemulihan (format XXXXX-XXXXX).
  * Kode pemulihan dideteksi dari panjangnya — 6 digit angka = TOTP,
  * selain itu dicoba sebagai kode pemulihan.
+ *
+ * ── PARAMETER `cekReplay` ───────────────────────────────────────────────────
+ * Deteksi replay menolak kode TOTP yang langkah waktunya sudah pernah dipakai.
+ * Itu PENTING untuk login: satu kode = satu sesi, sehingga kode yang dicuri
+ * (dilihat di layar, dicegat di jaringan) tidak bisa dipakai lagi.
+ *
+ * Tapi untuk aksi yang SUDAH memerlukan sesi — cabut 2FA, buat ulang kode
+ * pemulihan — guard ini justru merugikan:
+ *
+ *   • Pengguna yang baru login lalu langsung mengubah setelan memakai kode
+ *     dari langkah waktu yang SAMA → selalu ditolak, tanpa penjelasan jelas.
+ *   • Ia harus menunggu 30 detik hanya untuk mematikan 2FA.
+ *   • Keamanan tidak bertambah: penyerang yang punya sesi sudah punya akses,
+ *     ia tidak perlu mencuri kode.
+ *
+ * Jadi: `cekReplay: true` (bawaan) untuk login, `false` untuk aksi ber-sesi.
+ * Keduanya tetap memerlukan kode TOTP yang SAH — yang berbeda hanya apakah
+ * kode itu boleh dipakai ulang dalam jendela waktu yang sama.
  */
-export function verifikasi2fa(identity, kode, config, { ip = '' } = {}) {
+export function verifikasi2fa(identity, kode, config, { ip = '', cekReplay = true } = {}) {
   const id = String(identity ?? '').trim();
   const db = getDb();
 
@@ -458,10 +476,14 @@ export function verifikasi2fa(identity, kode, config, { ip = '' } = {}) {
   // Langkah waktu kode ini = langkah sekarang + offset yang cocok.
   // Kalau langkah itu sudah pernah dipakai, tolak — kode yang sama tidak
   // boleh berlaku dua kali.
+  //
+  // Dilewati kalau `cekReplay: false` — lihat penjelasan di docstring.
+  // Aksi ber-sesi (cabut, pulihkan) memakai mode itu: kode yang sah tetap
+  // wajib, tapi boleh dari langkah waktu yang sama dengan login sebelumnya.
   const langkahSekarang = Math.floor(Date.now() / 1000 / LANGKAH_DETIK);
   const langkahKode = langkahSekarang + hasil.offset;
 
-  if (langkahKode <= (row.langkah_terakhir ?? 0)) {
+  if (cekReplay && langkahKode <= (row.langkah_terakhir ?? 0)) {
     catatPercobaan(id, false, 'kode_dipakai_ulang', ip);
     return {
       ok: false,
@@ -471,9 +493,13 @@ export function verifikasi2fa(identity, kode, config, { ip = '' } = {}) {
   }
 
   const waktu = now();
+  // `langkah_terakhir` hanya maju, tidak pernah mundur. Kalau tidak ada
+  // guard `cekReplay`, nilainya tetap diperbarui supaya login berikutnya
+  // masih mendeteksi replay dengan benar.
+  const langkahBaru = Math.max(row.langkah_terakhir ?? 0, langkahKode);
   db.prepare(
     `UPDATE totp_secrets SET terakhir_dipakai = ?, langkah_terakhir = ? WHERE identity = ?`
-  ).run(waktu, langkahKode, id);
+  ).run(waktu, langkahBaru, id);
   catatPercobaan(id, true, 'totp', ip);
 
   return { ok: true, metode: 'totp' };

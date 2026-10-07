@@ -55,7 +55,11 @@ import {
   createExperiment, getExperiment, listExperiments, setStatus as setExpStatus,
   pickVariant, recordEvent as recordExpEvent, results as expResults,
 } from './grow.mjs';
-import { preflight, verify as verifyDeploy, recordRelease, listReleases } from './publish.mjs'
+import { preflight, verify as verifyDeploy, recordRelease, listReleases } from './publish.mjs';
+import {
+  mulaiEnrollment, selesaikanEnrollment, verifikasi2fa,
+  totpAktif, statusTotp, cabut2fa, buatUlangKodePemulihan, riwayatPercobaan,
+} from './totp-service.mjs';
 import {
   mediaAktif, unggahGambar, hapusGambar, bacaManifest, daftarPublik,
   validasiUnggahan, MAX_UPLOAD_BYTES,
@@ -468,7 +472,39 @@ function verifySession(req, { projectSlug = '', action = 'content' } = {}) {
 
   recordEvent({ tokenId: tokenRow.id, projectSlug: projectSlug || tokenRow.project_slug, action, outcome: 'ok', ip, userAgent, country });
   return { tokenRow, sessionRow };
-}
+  }
+
+  /**
+  * Ambil baris token dari sesi cookie, atau null.
+  *
+  * Dipakai endpoint 2FA yang memerlukan sesi. Mengembalikan `tokenRow`
+  * (bukan sesi) karena identitas 2FA ada di `tokenRow.issued_to`.
+  *
+  * ── KENAPA TIDAK MEMAKAI verifySession ─────────────────────────────────────
+  * `verifySession` mencatat event audit setiap kali dipanggil. Endpoint 2FA
+  * memanggilnya beberapa kali dalam satu alur (status, mulai, selesai) —
+  * itu akan membanjiri log audit dengan entri yang tidak bermakna.
+  *
+  * Fungsi ini SENGAJA tidak melempar dan tidak mengirim balasan — pemanggil
+  * yang memutuskan responsnya, supaya tiap endpoint bisa memberi pesan yang
+  * sesuai konteksnya.
+  */
+  function sesiDariRequest(req) {
+  const cookies = parseCookies(req);
+  const sessionId = cookies.portfolio_session ?? '';
+  if (!sessionId) return null;
+
+  const hasil = validateSession(sessionId, config.secret);
+  if (!hasil) return null;
+
+  // Sesi sah, tapi tokennya bisa sudah dicabut atau kedaluwarsa SETELAH
+  // sesi dibuat. Harus diperiksa ulang — kalau tidak, mencabut token
+  // tidak benar-benar mencabut akses.
+  const problem = tokenProblem(hasil.tokenRow);
+  if (problem) return null;
+
+  return hasil.tokenRow;
+  }
 
 /**
  * Verifikasi Turnstile untuk aksi sensitif (gerbang token, sesi).
@@ -668,6 +704,31 @@ export const routes = [
       const { row, error } = verifyToken(req, body, { projectSlug: slug, action: 'session_create' });
       if (error) return sendJson(res, error.status, error.body);
 
+      // ── Gerbang 2FA ──────────────────────────────────────────────────────
+      //
+      // Kalau identitas token ini punya 2FA AKTIF, JANGAN buat sesi di sini.
+      // Balas `perlu_2fa` dan biarkan klien mengirim kode ke
+      // POST /api/token/2fa — sesi baru dibuat di sana setelah kode lolos.
+      //
+      // KENAPA BUKAN menerima kode 2FA di endpoint ini juga:
+      //   Memisahkan langkah membuat alur lebih jelas di UI (halaman token
+      //   → halaman kode), dan endpoint 2FA punya rate limit sendiri untuk
+      //   menebak kode. Menggabung keduanya membuat satu endpoint dengan
+      //   dua jenis rate limit yang berbeda — rawan salah konfigurasi.
+      //
+      // PENTING: pemeriksaan ini dilakukan SETELAH token diverifikasi.
+      // Kalau dilakukan sebelum, penyerang bisa mengetahui identitas mana
+      // yang punya 2FA tanpa punya token yang sah.
+      const identitas2fa = String(row.issued_to ?? '').trim();
+      if (identitas2fa && totpAktif(identitas2fa)) {
+        return sendJson(res, 200, {
+          ok: true,
+          perlu_2fa: true,
+          project: row.project_slug,
+          pesan: 'Masukkan kode dari aplikasi authenticator Anda.',
+        });
+      }
+
       // Buat session
       const ip = clientIp(req);
       const userAgent = String(req.headers['user-agent'] ?? '').slice(0, 300);
@@ -723,6 +784,324 @@ export const routes = [
       }
       clearCookie(res, 'portfolio_session');
       sendJson(res, 200, { ok: true, message: 'Sesi dihapus.' });
+    }),
+  },
+
+  // ══ 2FA / TOTP ═════════════════════════════════════════════════════════════
+  //
+  // ── ALUR LENGKAP ──────────────────────────────────────────────────────────
+  //
+  //   Admin membuat token untuk klien (via CLI) dengan `issued_to` = email klien.
+  //
+  //   1. Klien login pakai token         → POST /api/token/session
+  //      Kalau 2FA aktif, balasan berisi { perlu_2fa: true } dan TIDAK
+  //      memberi sesi. Sesi baru dibuat setelah 2FA lolos.
+  //
+  //   2. Klien kirim kode 2FA            → POST /api/token/2fa
+  //      Berhasil → sesi dibuat, cookie di-set.
+  //
+  //   Setup 2FA (sekali, setelah punya sesi):
+  //     3. POST /api/token/2fa/mulai      → dapat QR + secret
+  //     4. POST /api/token/2fa/selesai    → verifikasi → dapat kode pemulihan
+  //
+  //   Kelola:
+  //     5. GET  /api/token/2fa/status     → apakah aktif, sisa kode pemulihan
+  //     6. POST /api/token/2fa/pulihkan   → buat ulang kode pemulihan
+  //     7. POST /api/token/2fa/cabut      → matikan 2FA (butuh kode sah)
+  //
+  // ── SIAPA YANG BOLEH ──────────────────────────────────────────────────────
+  // Semua endpoint memerlukan SESI SAH — kecuali langkah 2, yang justru
+  // dipakai untuk MENDAPATKAN sesi (dia membawa token sebagai bukti).
+  //
+  // Identitas 2FA diambil dari sesi (`issued_to` token), BUKAN dari input
+  // klien. Kalau diambil dari input, siapa pun bisa mendaftarkan 2FA untuk
+  // identitas orang lain — dan mengunci akunnya.
+  //
+  // Helper `sesiDariRequest()` didefinisikan di atas bersama helper lain
+  // (fungsi tidak boleh dideklarasikan di dalam literal array).
+
+  {
+    method: 'POST',
+    pattern: '/api/token/2fa',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const slug = String(body.project ?? '').trim();
+      if (!isValidSlug(slug)) {
+        return sendJson(res, 400, { ok: false, error: 'proyek_tidak_valid', message: 'Slug proyek tidak valid.' });
+      }
+
+      // Gerbang Turnstile — sama seperti login. Tanpa ini, endpoint 2FA
+      // menjadi jalur tak terbatas untuk menebak kode 6 digit.
+      const gate = await turnstileGate(req, body, { action: 'totp_turnstile' });
+      if (!gate.ok) return sendJson(res, gate.status, gate.body);
+
+      // Token diperiksa ULANG di sini — sesi belum ada.
+      const { row, error } = verifyToken(req, body, { projectSlug: slug, action: 'totp_verify' });
+      if (error) return sendJson(res, error.status, error.body);
+
+      const identity = String(row.issued_to ?? '').trim();
+      if (!identity) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'token_tanpa_identitas',
+          message: 'Token ini belum ditautkan ke identitas. Hubungi admin.',
+        });
+      }
+
+      if (!totpAktif(identity)) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'totp_tidak_aktif',
+          message: '2FA tidak aktif untuk token ini.',
+        });
+      }
+
+      const kode = String(body.code ?? body.kode ?? '').trim();
+      if (!kode) {
+        return sendJson(res, 400, { ok: false, error: 'kode_kosong', message: 'Kode belum diisi.' });
+      }
+
+      const hasil = verifikasi2fa(identity, kode, config, { ip: clientIp(req) });
+      if (!hasil.ok) {
+        return sendJson(res, 401, {
+          ok: false,
+          error: hasil.alasan,
+          message: hasil.pesan,
+          sisa_percobaan: hasil.sisa_percobaan,
+        });
+      }
+
+      // ── 2FA lolos: buat sesi (sama seperti login biasa) ────────────────────
+      const ip = clientIp(req);
+      const userAgent = String(req.headers['user-agent'] ?? '').slice(0, 300);
+      const country = clientCountry(req);
+      const deviceFp = String(body.device_fp ?? '').slice(0, 200);
+
+      const session = createSession({
+        tokenId: row.id,
+        secret: config.secret,
+        deviceFp,
+        ip,
+        country,
+        userAgent,
+        durationHours: config.sessionDurationHours,
+        maxDevices: row.max_devices ?? config.maxDevices,
+      });
+
+      recordFingerprint({
+        sessionId: session.id,
+        tokenId: row.id,
+        fingerprint: makeFingerprint(req),
+        ip,
+        country,
+      });
+
+      setCookie(res, 'portfolio_session', session.id, {
+        maxAgeSeconds: config.sessionDurationHours * 3600,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None',
+      });
+
+      sendJson(res, 200, {
+        ok: true,
+        project: row.project_slug,
+        tier: row.tier,
+        scopes: row.scopes,
+        session_expires: session.expiresAt,
+        metode_2fa: hasil.metode,
+        ...(hasil.kode_pemulihan_tersisa !== undefined
+          ? { kode_pemulihan_tersisa: hasil.kode_pemulihan_tersisa }
+          : {}),
+        ...(hasil.pesan ? { message: hasil.pesan } : {}),
+      });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/token/2fa/status',
+    handler: safe(async (req, res) => {
+      const sesi = sesiDariRequest(req);
+      if (!sesi) {
+        return sendJson(res, 401, { ok: false, error: 'sesi_tidak_valid', message: 'Masuk dulu.' });
+      }
+      const identity = String(sesi.issued_to ?? '').trim();
+      if (!identity) {
+        return sendJson(res, 400, { ok: false, error: 'token_tanpa_identitas', message: 'Token ini belum ditautkan ke identitas.' });
+      }
+      return sendJson(res, 200, { ok: true, identity, ...statusTotp(identity) });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/token/2fa/mulai',
+    handler: safe(async (req, res) => {
+      const sesi = sesiDariRequest(req);
+      if (!sesi) {
+        return sendJson(res, 401, { ok: false, error: 'sesi_tidak_valid', message: 'Masuk dulu.' });
+      }
+      const identity = String(sesi.issued_to ?? '').trim();
+      if (!identity) {
+        return sendJson(res, 400, { ok: false, error: 'token_tanpa_identitas', message: 'Token ini belum ditautkan ke identitas.' });
+      }
+
+      try {
+        const hasil = mulaiEnrollment(identity, config, {
+          issuer: 'Victer Portfolio',
+        });
+        // `secret` dikembalikan SEKALI di sini untuk ditampilkan sebagai QR.
+        // Setelah ini hanya tersimpan terenkripsi dan tidak bisa dibaca lagi.
+        return sendJson(res, 200, {
+          ok: true,
+          secret: hasil.secret,
+          uri: hasil.uri,
+          issuer: hasil.issuer,
+          akun: hasil.akun,
+          digit: hasil.digit,
+          periode: hasil.periode,
+          pesan: 'Pindai QR dengan aplikasi authenticator, lalu masukkan kodenya untuk mengaktifkan.',
+        });
+      } catch (e) {
+        if (e.kode === 'totp_sudah_aktif') {
+          return sendJson(res, 409, { ok: false, error: 'totp_sudah_aktif', message: e.pesan });
+        }
+        throw e;
+      }
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/token/2fa/selesai',
+    handler: safe(async (req, res) => {
+      const sesi = sesiDariRequest(req);
+      if (!sesi) {
+        return sendJson(res, 401, { ok: false, error: 'sesi_tidak_valid', message: 'Masuk dulu.' });
+      }
+      const identity = String(sesi.issued_to ?? '').trim();
+      if (!identity) {
+        return sendJson(res, 400, { ok: false, error: 'token_tanpa_identitas', message: 'Token ini belum ditautkan ke identitas.' });
+      }
+
+      const body = await readJson(req);
+      const kode = String(body.code ?? body.kode ?? '').trim();
+      if (!kode) {
+        return sendJson(res, 400, { ok: false, error: 'kode_kosong', message: 'Kode belum diisi.' });
+      }
+
+      const hasil = selesaikanEnrollment(identity, kode, config, { ip: clientIp(req) });
+      if (!hasil.ok) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: hasil.alasan,
+          message: hasil.pesan,
+          sisa_percobaan: hasil.sisa_percobaan,
+        });
+      }
+
+      return sendJson(res, 200, {
+        ok: true,
+        kode_pemulihan: hasil.kode_pemulihan,   // SEKALI — klien harus menyimpan
+        pesan: hasil.pesan,
+      });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/token/2fa/pulihkan',
+    handler: safe(async (req, res) => {
+      const sesi = sesiDariRequest(req);
+      if (!sesi) {
+        return sendJson(res, 401, { ok: false, error: 'sesi_tidak_valid', message: 'Masuk dulu.' });
+      }
+      const identity = String(sesi.issued_to ?? '').trim();
+      if (!identity) {
+        return sendJson(res, 400, { ok: false, error: 'token_tanpa_identitas', message: 'Token ini belum ditautkan ke identitas.' });
+      }
+
+      const body = await readJson(req);
+      const kode = String(body.code ?? body.kode ?? '').trim();
+      if (!kode) {
+        return sendJson(res, 400, { ok: false, error: 'kode_kosong', message: 'Masukkan kode 2FA untuk membuat ulang kode pemulihan.' });
+      }
+
+      // WAJIB verifikasi kode dulu. Tanpa ini, siapa pun yang punya sesi
+      // bisa membuat kode pemulihan baru — dan meniadakan manfaat 2FA.
+      //
+      // `cekReplay: false` — alasan sama dengan endpoint cabut: aksi ini
+      // memerlukan sesi sah, jadi replay guard hanya menghalangi pengguna
+      // yang sah tanpa menambah keamanan.
+      const verif = verifikasi2fa(identity, kode, config, { ip: clientIp(req), cekReplay: false });
+      if (!verif.ok) {
+        return sendJson(res, 401, { ok: false, error: verif.alasan, message: verif.pesan });
+      }
+
+      const hasil = buatUlangKodePemulihan(identity, config);
+      if (!hasil.ok) {
+        return sendJson(res, 400, { ok: false, error: hasil.alasan, message: hasil.pesan });
+      }
+
+      return sendJson(res, 200, {
+        ok: true,
+        kode_pemulihan: hasil.kode_pemulihan,
+        pesan: 'Kode pemulihan baru dibuat. Kode lama tidak berlaku lagi.',
+      });
+    }),
+  },
+
+  {
+    method: 'POST',
+    pattern: '/api/token/2fa/cabut',
+    handler: safe(async (req, res) => {
+      const sesi = sesiDariRequest(req);
+      if (!sesi) {
+        return sendJson(res, 401, { ok: false, error: 'sesi_tidak_valid', message: 'Masuk dulu.' });
+      }
+      const identity = String(sesi.issued_to ?? '').trim();
+      if (!identity) {
+        return sendJson(res, 400, { ok: false, error: 'token_tanpa_identitas', message: 'Token ini belum ditautkan ke identitas.' });
+      }
+
+      const body = await readJson(req);
+      const kode = String(body.code ?? body.kode ?? '').trim();
+      if (!kode) {
+        return sendJson(res, 400, { ok: false, error: 'kode_kosong', message: 'Masukkan kode 2FA untuk mematikan.' });
+      }
+
+      // WAJIB verifikasi — kalau tidak, penyerang dengan akses sesi bisa
+      // mematikan 2FA dan masuk tanpa faktor kedua.
+      //
+      // `cekReplay: false` — pengguna yang baru login lalu langsung mematikan
+      // 2FA memakai kode dari langkah waktu yang SAMA. Dengan replay guard
+      // aktif, ia selalu ditolak dan harus menunggu 30 detik tanpa alasan
+      // yang jelas. Keamanan tidak berkurang: endpoint ini tetap memerlukan
+      // sesi sah DAN kode TOTP yang sah.
+      const verif = verifikasi2fa(identity, kode, config, { ip: clientIp(req), cekReplay: false });
+      if (!verif.ok) {
+        return sendJson(res, 401, { ok: false, error: verif.alasan, message: verif.pesan });
+      }
+
+      cabut2fa(identity);
+      return sendJson(res, 200, { ok: true, pesan: '2FA dimatikan.' });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/token/2fa/riwayat',
+    handler: safe(async (req, res) => {
+      const sesi = sesiDariRequest(req);
+      if (!sesi) {
+        return sendJson(res, 401, { ok: false, error: 'sesi_tidak_valid', message: 'Masuk dulu.' });
+      }
+      const identity = String(sesi.issued_to ?? '').trim();
+      if (!identity) {
+        return sendJson(res, 400, { ok: false, error: 'token_tanpa_identitas', message: 'Token ini belum ditautkan ke identitas.' });
+      }
+      return sendJson(res, 200, { ok: true, riwayat: riwayatPercobaan(identity, 20) });
     }),
   },
 
