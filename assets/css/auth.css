@@ -1,0 +1,729 @@
+/* ══ Halaman Masuk — gaya premium ══════════════════════════════════════════
+ *
+ * PRINSIP MOTION (dari skill motion-advanced, diadaptasi ke vanilla CSS):
+ *   1. Hanya `transform` + `opacity` yang dianimasikan — keduanya jalan di
+ *      compositor, bukan main thread. Animasi `width`/`height`/`top` memicu
+ *      layout ulang tiap frame dan membuat halaman tersendat.
+ *   2. Setiap animasi tanpa henti berhenti saat tab tidak terlihat.
+ *      JS menambahkan kelas .is-tersembunyi ke <body>; CSS mematikannya.
+ *   3. `prefers-reduced-motion` dihormati penuh — bukan sekadar diperlambat.
+ *   4. Tidak ada angka durasi yang tersebar: semua lewat variabel di :root.
+ *
+ * Warna emas #f5c542 mengikuti sistem desain situs yang sudah ada.
+ */
+
+:root {
+  /* Warna — senada dengan situs utama */
+  --emas: #f5c542;
+  --emas-terang: #f7d77a;
+  --emas-redup: rgba(245, 197, 66, 0.14);
+  --emas-garis: rgba(245, 197, 66, 0.28);
+
+  --latar: #0a0a0b;
+  --permukaan: rgba(20, 20, 23, 0.72);
+  --permukaan-padat: #141417;
+  --garis: rgba(255, 255, 255, 0.09);
+  --garis-terang: rgba(255, 255, 255, 0.16);
+
+  --teks: #f4f4f5;
+  --teks-redup: #a1a1aa;
+  --teks-samar: #71717a;
+  --galat: #f87171;
+  --sukses: #4ade80;
+
+  /* Gerak — satu tempat untuk semua durasi & easing */
+  --durasi-kilat: 140ms;
+  --durasi-cepat: 220ms;
+  --durasi-sedang: 380ms;
+  --durasi-lambat: 620ms;
+  --pegas: cubic-bezier(0.22, 1, 0.36, 1);      /* ease-out kuat */
+  --pegas-mantul: cubic-bezier(0.34, 1.56, 0.64, 1); /* sedikit melewati */
+
+  /* Geometri */
+  --radius-kartu: 22px;
+  --radius-input: 12px;
+  --lebar-kartu: 428px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+.auth-body {
+  background: var(--latar);
+  color: var(--teks);
+  font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ══ Latar ═════════════════════════════════════════════════════════════════ */
+
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Blob: lingkaran besar dengan gradien radial. Bergerak sangat lambat —
+   cukup untuk terasa hidup, tidak cukup untuk mengganggu bacaan.
+   `filter: blur()` dihindari (mahal di GPU lemah); gradien radial
+   memberi efek lembut tanpa biaya filter. */
+.auth-blob {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.auth-blob-1 {
+  width: 62vmax;
+  height: 62vmax;
+  top: -24vmax;
+  left: -18vmax;
+  background: radial-gradient(circle at 50% 50%,
+              rgba(245, 197, 66, 0.16) 0%,
+              rgba(245, 197, 66, 0.05) 42%,
+              transparent 70%);
+  animation: blob-1 34s ease-in-out infinite;
+}
+
+.auth-blob-2 {
+  width: 48vmax;
+  height: 48vmax;
+  bottom: -18vmax;
+  right: -14vmax;
+  background: radial-gradient(circle at 50% 50%,
+              rgba(120, 90, 255, 0.13) 0%,
+              rgba(120, 90, 255, 0.04) 45%,
+              transparent 72%);
+  animation: blob-2 42s ease-in-out infinite;
+}
+
+.auth-blob-3 {
+  width: 34vmax;
+  height: 34vmax;
+  top: 42%;
+  left: 52%;
+  background: radial-gradient(circle at 50% 50%,
+              rgba(245, 197, 66, 0.09) 0%,
+              transparent 66%);
+  animation: blob-3 28s ease-in-out infinite;
+}
+
+@keyframes blob-1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
+}
+@keyframes blob-2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5vmax, -6vmax, 0) scale(1.16); }
+}
+@keyframes blob-3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(0.94); }
+  50%      { transform: translate3d(-4vmax, 3vmax, 0) scale(1.08); }
+}
+
+.auth-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.5;
+}
+
+/* Butiran halus: menutupi gradien yang bisa terlihat "berpita" (banding)
+   di layar 8-bit. Tekstur halus membuat gradien terasa mulus. */
+.auth-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Saat tab tidak terlihat: matikan SEMUA animasi tanpa henti.
+   Tanpa ini, browser tetap menghitung frame di latar belakang dan
+   membuang baterai pengunjung. */
+body.is-tersembunyi .auth-blob,
+body.is-tersembunyi .auth-particles { animation-play-state: paused; }
+
+/* ══ Panggung & kartu ══════════════════════════════════════════════════════ */
+
+.auth-main {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+/* Perspektif untuk efek 3D. Nilai 1100px memberi kedalaman yang terasa
+   tapi tidak membuat kartu terlihat "melengkung". */
+.auth-scene {
+  width: 100%;
+  max-width: var(--lebar-kartu);
+  perspective: 1100px;
+  perspective-origin: 50% 40%;
+}
+
+.auth-card {
+  position: relative;
+  background: var(--permukaan);
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-kartu);
+  padding: 34px 32px 26px;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 24px 60px -20px rgba(0, 0, 0, 0.7),
+    0 8px 24px -12px rgba(0, 0, 0, 0.5);
+
+  /* Transform diatur JS lewat variabel ini. Nilai awal = datar.
+     `transform-style: preserve-3d` membuat anak-anak bisa punya
+     kedalaman sendiri (efek parallax). */
+  transform:
+    rotateX(var(--rx, 0deg))
+    rotateY(var(--ry, 0deg))
+    translate3d(0, var(--ty, 0px), 0);
+  transform-style: preserve-3d;
+  transition: transform var(--durasi-sedang) var(--pegas),
+              box-shadow var(--durasi-sedang) var(--pegas);
+  will-change: transform;
+}
+
+/* Saat kursor di atas kartu: transisi transform dipercepat supaya
+   gerakan terasa menempel pada kursor, bukan tertinggal. */
+.auth-card.is-menempel {
+  transition: transform 90ms linear, box-shadow var(--durasi-sedang) var(--pegas);
+}
+
+/* Garis emas tipis di tepi atas — aksen korporat, bukan dekorasi berlebih */
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--emas), transparent);
+  opacity: 0.55;
+  border-radius: 2px;
+}
+
+/* Cahaya yang mengikuti kursor di dalam kartu */
+.auth-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-kartu);
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(245, 197, 66, 0.07),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity var(--durasi-sedang) var(--pegas);
+  pointer-events: none;
+}
+.auth-card.is-menempel::after { opacity: 1; }
+
+/* ══ Kepala ════════════════════════════════════════════════════════════════ */
+
+.auth-head {
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.auth-logo {
+  display: inline-block;
+  margin-bottom: 14px;
+  transition: transform var(--durasi-cepat) var(--pegas-mantul);
+}
+.auth-logo:hover { transform: scale(1.08) rotate(-3deg); }
+.auth-logo:active { transform: scale(0.96); }
+
+.auth-title {
+  margin: 0 0 5px;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.auth-sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--teks-redup);
+}
+
+/* ══ Panel ═════════════════════════════════════════════════════════════════ */
+
+/* Panel yang tidak aktif: disembunyikan dari tata letak DAN dari pembaca
+   layar. `display: none` mencegah input di dalamnya ikut ter-tab. */
+.auth-panel { display: none; }
+.auth-panel.is-active {
+  display: block;
+  animation: panel-masuk var(--durasi-sedang) var(--pegas) both;
+}
+
+@keyframes panel-masuk {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.auth-panel-desc {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  color: var(--teks-redup);
+  text-align: center;
+}
+
+/* ══ Formulir ══════════════════════════════════════════════════════════════ */
+
+.auth-form { display: grid; gap: 16px; }
+
+.auth-field { display: grid; gap: 7px; }
+
+.auth-field label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--teks-redup);
+  letter-spacing: 0.01em;
+}
+
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-wrap input,
+.auth-input-wrap select {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14.5px;
+  color: var(--teks);
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-input);
+  outline: none;
+  transition:
+    border-color var(--durasi-cepat) var(--pegas),
+    background var(--durasi-cepat) var(--pegas),
+    box-shadow var(--durasi-cepat) var(--pegas);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Select perlu ruang untuk panah kustom */
+.auth-input-wrap select { padding-right: 40px; cursor: pointer; }
+
+.auth-input-wrap input::placeholder {
+  color: var(--teks-samar);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+
+/* Fokus: cincin emas. `:focus-visible` supaya klik mouse tidak
+   memunculkan cincin (itu mengganggu), tapi navigasi keyboard dapat. */
+.auth-input-wrap input:focus,
+.auth-input-wrap select:focus {
+  border-color: var(--emas-garis);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 3px var(--emas-redup);
+}
+
+.auth-input-icon {
+  position: absolute;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--teks-samar);
+  pointer-events: none;
+}
+
+.auth-reveal {
+  position: absolute;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--teks-samar);
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color var(--durasi-kilat) var(--pegas),
+              background var(--durasi-kilat) var(--pegas);
+}
+.auth-reveal:hover { color: var(--emas); background: var(--emas-redup); }
+.auth-reveal[aria-pressed="true"] { color: var(--emas); }
+
+.auth-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--teks-samar);
+  line-height: 1.45;
+}
+
+/* ══ Turnstile ═════════════════════════════════════════════════════════════ */
+
+.auth-turnstile {
+  display: grid;
+  justify-items: center;
+  min-height: 0;
+  transition: min-height var(--durasi-sedang) var(--pegas);
+}
+.auth-turnstile.is-ada { min-height: 68px; }
+
+/* ══ Tombol utama ══════════════════════════════════════════════════════════ */
+
+.auth-submit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: 13px 20px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0b;
+  background: linear-gradient(180deg, var(--emas-terang), var(--emas));
+  border: 0;
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  overflow: hidden;
+  text-decoration: none;
+  transition:
+    transform var(--durasi-kilat) var(--pegas-mantul),
+    box-shadow var(--durasi-cepat) var(--pegas),
+    opacity var(--durasi-cepat) var(--pegas);
+  box-shadow: 0 6px 20px -8px rgba(245, 197, 66, 0.5);
+}
+
+.auth-submit:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 10px 28px -8px rgba(245, 197, 66, 0.6);
+}
+.auth-submit:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+
+.auth-submit:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 3px;
+}
+
+.auth-submit:disabled { opacity: 0.62; cursor: not-allowed; }
+
+/* Kilau yang menyapu tombol saat hover — halus, bukan berkedip */
+.auth-submit::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.42), transparent);
+  transform: skewX(-18deg);
+  transition: left var(--durasi-lambat) var(--pegas);
+}
+.auth-submit:hover::after { left: 130%; }
+
+/* Keadaan memuat: label disembunyikan, spinner muncul.
+   Keduanya bertumpuk (bukan saling menimpa) supaya tidak ada lompatan. */
+.auth-submit-spinner {
+  position: absolute;
+  width: 19px;
+  height: 19px;
+  border: 2.2px solid rgba(10, 10, 11, 0.28);
+  border-top-color: #0a0a0b;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity var(--durasi-cepat) var(--pegas),
+              transform var(--durasi-cepat) var(--pegas-mantul);
+}
+
+.auth-submit.is-memuat .auth-submit-label { opacity: 0; }
+.auth-submit.is-memuat .auth-submit-spinner {
+  opacity: 1;
+  transform: scale(1);
+  animation: putar 720ms linear infinite;
+}
+
+@keyframes putar { to { transform: rotate(360deg); } }
+
+/* ══ Kotak kode OTP ════════════════════════════════════════════════════════ */
+
+.auth-otp {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.auth-otp-cell {
+  width: 100%;
+  aspect-ratio: 1 / 1.18;
+  padding: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 21px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--teks);
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--garis);
+  border-radius: 11px;
+  outline: none;
+  transition:
+    border-color var(--durasi-cepat) var(--pegas),
+    background var(--durasi-cepat) var(--pegas),
+    box-shadow var(--durasi-cepat) var(--pegas),
+    transform var(--durasi-cepat) var(--pegas-mantul);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.auth-otp-cell:focus {
+  border-color: var(--emas-garis);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 3px var(--emas-redup);
+  transform: translateY(-2px);
+}
+
+/* Sel yang sudah diisi: emas, supaya mata tahu sudah berapa digit */
+.auth-otp-cell.is-terisi {
+  border-color: var(--emas-garis);
+  color: var(--emas);
+}
+
+/* ══ Pesan ═════════════════════════════════════════════════════════════════ */
+
+.auth-msg {
+  margin: 0;
+  min-height: 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--teks-redup);
+  transition: color var(--durasi-cepat) var(--pegas);
+}
+.auth-msg.is-galat { color: var(--galat); }
+.auth-msg.is-sukses { color: var(--sukses); }
+
+/* Getar halus saat galat — memberi tahu tanpa suara.
+   Amplitudo kecil (4px) supaya tidak terasa kasar. */
+.auth-msg.is-galat + .auth-submit,
+.auth-card.is-goyang {
+  animation: goyang 380ms var(--pegas);
+}
+
+@keyframes goyang {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20%      { transform: translate3d(-4px, 0, 0); }
+  40%      { transform: translate3d(4px, 0, 0); }
+  60%      { transform: translate3d(-2.5px, 0, 0); }
+  80%      { transform: translate3d(2.5px, 0, 0); }
+}
+
+.auth-link {
+  justify-self: center;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--teks-redup);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color var(--durasi-kilat) var(--pegas),
+              background var(--durasi-kilat) var(--pegas);
+}
+.auth-link:hover { color: var(--emas); background: var(--emas-redup); }
+
+/* ══ Panel selesai ═════════════════════════════════════════════════════════ */
+
+.auth-done { text-align: center; padding: 8px 0 4px; }
+
+.auth-check { width: 62px; height: 62px; margin-bottom: 14px; }
+
+/* Lingkaran digambar dengan stroke-dasharray; jalur centang menyusul.
+   Keduanya hanya menganimasikan properti yang murah. */
+.auth-check-path {
+  stroke-dasharray: 42;
+  stroke-dashoffset: 42;
+  animation: gambar-centang 520ms var(--pegas) 180ms forwards;
+}
+
+@keyframes gambar-centang { to { stroke-dashoffset: 0; } }
+
+.auth-done-title {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.auth-done-sub {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  color: var(--teks-redup);
+}
+
+.auth-submit-link { display: inline-grid; width: auto; padding-inline: 28px; }
+
+/* ══ Metode alternatif ═════════════════════════════════════════════════════ */
+
+.auth-alt { margin-top: 22px; }
+
+.auth-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  height: 1px;
+  background: var(--garis);
+}
+.auth-divider span {
+  font-size: 11.5px;
+  color: var(--teks-samar);
+  text-transform: lowercase;
+}
+
+.auth-oauth {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  margin-bottom: 9px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--teks);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  transition:
+    transform var(--durasi-kilat) var(--pegas-mantul),
+    border-color var(--durasi-cepat) var(--pegas),
+    background var(--durasi-cepat) var(--pegas);
+}
+
+.auth-oauth:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--garis-terang);
+  transform: translateY(-1px);
+}
+.auth-oauth:active:not(:disabled) { transform: translateY(0) scale(0.99); }
+
+.auth-oauth:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 2px;
+}
+
+.auth-oauth:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-soon {
+  position: absolute;
+  right: 12px;
+  padding: 2.5px 8px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--emas);
+  background: var(--emas-redup);
+  border-radius: 20px;
+}
+
+/* ══ Kaki ══════════════════════════════════════════════════════════════════ */
+
+.auth-foot {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--garis);
+  text-align: center;
+}
+.auth-foot p { margin: 0; font-size: 12.5px; color: var(--teks-samar); }
+.auth-foot a {
+  color: var(--emas);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--durasi-kilat) var(--pegas);
+}
+.auth-foot a:hover { border-bottom-color: var(--emas); }
+
+/* ══ Layar sempit ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 460px) {
+  .auth-card { padding: 28px 22px 22px; border-radius: 18px; }
+  .auth-title { font-size: 22px; }
+  .auth-otp { gap: 6px; }
+  .auth-otp-cell { font-size: 18px; border-radius: 9px; }
+  /* Efek 3D dimatikan di layar sentuh: tidak ada kursor untuk diikuti,
+     dan `perspective` membuat teks kurang tajam di layar kecil. */
+  .auth-scene { perspective: none; }
+  .auth-card { transform: none; }
+}
+
+/* ══ Hormati preferensi pengurangan gerak ══════════════════════════════════
+ *
+ * Bukan sekadar "lebih lambat" — benar-benar MATI. Pengguna yang memilih
+ * ini biasanya karena gangguan vestibular; animasi yang tetap berjalan
+ * (walau pelan) tetap membuat pusing.
+ *
+ * Yang tetap ada: transisi warna & opacity singkat. Itu membantu
+ * memahami perubahan keadaan tanpa memicu masalah vestibular. */
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-blob,
+  .auth-particles { animation: none !important; }
+
+  .auth-card {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .auth-panel.is-active { animation: none !important; }
+
+  .auth-submit,
+  .auth-oauth,
+  .auth-logo { transition: opacity var(--durasi-kilat) linear !important; }
+  .auth-submit:hover:not(:disabled),
+  .auth-oauth:hover:not(:disabled),
+  .auth-logo:hover { transform: none !important; }
+
+  .auth-submit::after { display: none; }
+
+  .auth-check-path {
+    stroke-dashoffset: 0;
+    animation: none !important;
+  }
+
+  .auth-card.is-goyang { animation: none !important; }
+
+  .auth-submit.is-memuat .auth-submit-spinner {
+    animation-duration: 1.6s;  /* putaran lambat masih OK — bukan gerak translasi */
+  }
+}

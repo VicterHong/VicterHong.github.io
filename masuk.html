@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk — Victer</title>
+<meta name="description" content="Masuk ke area klien untuk mengakses proyek privat.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Gate: halaman ini juga dilindungi verifikasi pengunjung -->
+<link rel="stylesheet" href="/assets/css/cf-gate.css">
+<link rel="stylesheet" href="/assets/css/auth.css">
+</head>
+<body class="auth-body">
+
+<!-- ══ Latar: blob gradien + partikel halus ══════════════════════════════════
+     Prinsip motion-advanced: animasi dekoratif HARUS berhenti saat tab
+     tidak terlihat (Rule 2). JS menangani visibilitychange.
+     Semua elemen dekoratif aria-hidden — pembaca layar tidak perlu tahu. -->
+<div class="auth-bg" aria-hidden="true">
+  <div class="auth-blob auth-blob-1"></div>
+  <div class="auth-blob auth-blob-2"></div>
+  <div class="auth-blob auth-blob-3"></div>
+  <canvas class="auth-particles" id="particles"></canvas>
+  <div class="auth-grain"></div>
+</div>
+
+<main class="auth-main">
+
+  <!-- ══ Kartu login: 3D tilt mengikuti kursor ══════════════════════════════
+       Referensi: 21st.dev sign-in card (mouse-tracking rotation, parallax).
+       Implementasi vanilla: pointermove → CSS custom property → transform.
+       Tidak pakai library — 0 KB tambahan. -->
+  <div class="auth-scene" id="scene">
+    <div class="auth-card" id="card">
+
+      <!-- Kepala kartu -->
+      <header class="auth-head">
+        <a href="/home" class="auth-logo" aria-label="Kembali ke beranda">
+          <svg viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
+            <rect width="36" height="36" rx="14" fill="#f5c542"/>
+            <path d="M11 12.5 L18 24 L25 12.5" stroke="#0a0a0b" stroke-width="2.6"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <h1 class="auth-title" id="authTitle">Masuk</h1>
+        <p class="auth-sub" id="authSub">Area klien — akses proyek privat</p>
+      </header>
+
+      <!-- ══ Panel: masukkan token ═══════════════════════════════════════════ -->
+      <section class="auth-panel is-active" id="panel-token" data-panel="token">
+        <form class="auth-form" id="formToken" autocomplete="off" novalidate>
+
+          <div class="auth-field">
+            <label for="inpProject">Proyek</label>
+            <div class="auth-input-wrap">
+              <select id="inpProject" name="project" required
+                      aria-describedby="hintProject">
+                <option value="">Pilih proyek…</option>
+                <option value="mina">MINA — Remote Control</option>
+                <option value="spareparts">Spareparts Inventory</option>
+              </select>
+              <svg class="auth-input-icon" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.6"
+                      fill="none" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="auth-hint" id="hintProject">Pilih proyek yang tokennya Anda miliki.</p>
+          </div>
+
+          <div class="auth-field">
+            <label for="inpToken">Token akses</label>
+            <div class="auth-input-wrap">
+              <input type="password" id="inpToken" name="token" required
+                     placeholder="XXXX-XXXX-XXXX-XXXX"
+                     autocomplete="off" spellcheck="false"
+                     aria-describedby="hintToken">
+              <button type="button" class="auth-reveal" id="btnReveal"
+                      aria-label="Tampilkan token" aria-pressed="false">
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+                  <path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor"
+                        stroke-width="1.4" fill="none"/>
+                  <circle cx="10" cy="10" r="2.6" stroke="currentColor"
+                          stroke-width="1.4" fill="none"/>
+                </svg>
+              </button>
+            </div>
+            <p class="auth-hint" id="hintToken">Token diberikan setelah permintaan disetujui.</p>
+          </div>
+
+          <!-- Turnstile: verifikasi pengunjung, dimuat hanya saat dibutuhkan -->
+          <div class="auth-turnstile" id="turnstileSlot" aria-hidden="true"></div>
+
+          <button type="submit" class="auth-submit" id="btnSubmit">
+            <span class="auth-submit-label">Masuk</span>
+            <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+
+          <p class="auth-msg" id="msgToken" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- ══ Panel: TOTP (2FA) ══════════════════════════════════════════════ -->
+      <section class="auth-panel" id="panel-totp" data-panel="totp">
+        <p class="auth-panel-desc">
+          Buka aplikasi authenticator Anda, lalu masukkan 6 digit kode.
+        </p>
+        <form class="auth-form" id="formTotp" autocomplete="off" novalidate>
+          <div class="auth-field">
+            <label for="inpTotp">Kode 6 digit</label>
+            <div class="auth-otp" id="otpRow">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp="0" aria-label="Digit 1">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp="1" aria-label="Digit 2">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp="2" aria-label="Digit 3">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp="3" aria-label="Digit 4">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp="4" aria-label="Digit 5">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp="5" aria-label="Digit 6">
+            </div>
+          </div>
+          <button type="submit" class="auth-submit" id="btnTotp">
+            <span class="auth-submit-label">Verifikasi</span>
+            <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+          <p class="auth-msg" id="msgTotp" role="status" aria-live="polite"></p>
+          <button type="button" class="auth-link" id="btnBackToken">← Kembali</button>
+        </form>
+      </section>
+
+      <!-- ══ Panel: berhasil ════════════════════════════════════════════════ -->
+      <section class="auth-panel" id="panel-done" data-panel="done">
+        <div class="auth-done">
+          <svg class="auth-check" viewBox="0 0 52 52" aria-hidden="true">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="#f5c542" stroke-width="2"/>
+            <path d="M15 27l7.5 7.5L37 20" fill="none" stroke="#f5c542"
+                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                  class="auth-check-path"/>
+          </svg>
+          <h2 class="auth-done-title">Berhasil masuk</h2>
+          <p class="auth-done-sub" id="doneSub">Mengalihkan ke area proyek…</p>
+          <a class="auth-submit auth-submit-link" id="btnGoProject" href="#">Buka proyek</a>
+        </div>
+      </section>
+
+      <!-- ══ Pemisah + metode lain ══════════════════════════════════════════ -->
+      <div class="auth-alt" id="altMethods">
+        <div class="auth-divider"><span>atau</span></div>
+
+        <!-- Passkey: tombol disembunyikan kalau browser tidak mendukung.
+             Prinsip progressive enhancement — jangan tampilkan tombol mati. -->
+        <button type="button" class="auth-oauth" id="btnPasskey" hidden>
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+            <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9zm3 4a1.5 1.5 0 0 1 .75 2.8V18h-1.5v-1.2A1.5 1.5 0 0 1 12 14z"
+                  fill="currentColor"/>
+          </svg>
+          <span>Masuk dengan passkey</span>
+        </button>
+
+        <button type="button" class="auth-oauth" id="btnGoogle" disabled>
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" fill="#EA4335"/>
+          </svg>
+          <span>Lanjut dengan Google</span>
+          <em class="auth-soon">Segera</em>
+        </button>
+
+        <button type="button" class="auth-oauth" id="btnGithub" disabled>
+          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+            <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" fill="currentColor"/>
+          </svg>
+          <span>Lanjut dengan GitHub</span>
+          <em class="auth-soon">Segera</em>
+        </button>
+      </div>
+
+      <footer class="auth-foot">
+        <p>Belum punya akses? <a href="/home#kontak">Ajukan permintaan</a></p>
+      </footer>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // Konfigurasi gate — SAMA dengan halaman lain (home/docs/404).
+  //
+  // siteKey dipakai Turnstile untuk memverifikasi pengunjung adalah manusia.
+  // verifyEndpoint RELATIF (bukan absolut) — itu wajib untuk cookie clearance:
+  // dengan jalur relatif, permintaan melewati Pages Function yang mem-proxy ke
+  // Worker, sehingga browser melihat semuanya sebagai SATU ORIGIN. Kalau
+  // absolut ke workers.dev, Set-Cookie disimpan untuk domain workers.dev dan
+  // tidak pernah terkirim saat browser meminta halaman dari pages.dev.
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    verifyEndpoint: '/api/verify-turnstile'
+  };
+  // Halaman masuk memakai sitekey yang sama untuk widget di formulir.
+  window.__TURNSTILE_SITEKEY__ = window.CF_GATE_CONFIG.siteKey;
+</script>
+<!-- Turnstile dimuat cf-gate.js hanya saat gate muncul; auth.js memuatnya
+     sendiri saat formulir dikirim. Jadi tidak perlu tag script di sini —
+     menghindari ~90 KB unduhan untuk pengunjung yang tidak pernah login. -->
+<script src="/assets/js/cf-gate-i18n.js" defer></script>
+<script src="/assets/js/cf-gate.js" defer></script>
+<script src="/assets/js/auth.js" defer></script>
+</body>
+</html>
