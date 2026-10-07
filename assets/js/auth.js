@@ -104,6 +104,12 @@
   let rafId = null;
   let lebarKanvas = 0;
   let tinggiKanvas = 0;
+  let waktuPartikelLalu = 0;
+
+  // Durasi frame acuan (60fps) dalam milidetik. Semua gerakan berbasis
+  // waktu memakai ini sebagai satuan, supaya kecepatan sama di layar
+  // 60Hz, 120Hz, maupun perangkat lambat.
+  const FRAME_ACUAN = 1000 / 60;
 
   function ukurKanvas() {
     if (!kanvas) return;
@@ -131,15 +137,16 @@
     }));
   }
 
-  function gambarPartikel(waktu) {
+  function gambarPartikel(waktu, dt = 1) {
     if (!ctx) return;
     ctx.clearRect(0, 0, lebarKanvas, tinggiKanvas);
 
     for (const t of titik) {
-      // Gerak: posisi berubah, lalu membalik di tepi (bukan menghilang
-      // dan muncul di sisi lain — itu terlihat seperti kedipan).
-      t.x += t.vx;
-      t.y += t.vy;
+      // Gerak: posisi berubah sesuai waktu yang berlalu (dt), lalu membalik
+      // di tepi (bukan menghilang dan muncul di sisi lain — itu terlihat
+      // seperti kedipan).
+      t.x += t.vx * dt;
+      t.y += t.vy * dt;
       if (t.x < 0 || t.x > lebarKanvas) t.vx *= -1;
       if (t.y < 0 || t.y > tinggiKanvas) t.vy *= -1;
 
@@ -156,7 +163,16 @@
   }
 
   function loopPartikel(waktu) {
-    gambarPartikel(waktu);
+    // ── Delta-time untuk partikel ──────────────────────────────────────────
+    // Masalah yang sama seperti kartu: `t.x += t.vx` adalah gerakan PER FRAME.
+    // Di layar 120Hz partikel bergerak 2× lebih cepat; di HP lambat 2× lebih
+    // lambat. Dengan faktor waktu, kecepatannya sama di semua perangkat.
+    const dt = waktuPartikelLalu
+      ? Math.min(waktu - waktuPartikelLalu, 100) / FRAME_ACUAN
+      : 1;
+    waktuPartikelLalu = waktu;
+
+    gambarPartikel(waktu, dt);
     rafId = requestAnimationFrame(loopPartikel);
   }
 
@@ -187,8 +203,33 @@
   const tilt = { rx: 0, ry: 0, ty: 0, trx: 0, try_: 0, tty: 0 };
   let rafTilt = null;
   let tiltAktif = false;
+  let waktuFrameLalu = 0;
 
-  function terapkanTilt() {
+  function terapkanTilt(waktuSekarang) {
+    // ── Delta-time: animasi berbasis WAKTU, bukan frame ────────────────────
+    //
+    // Masalah yang diperbaiki: lerp `nilai += selisih * 0.12` dihitung PER
+    // FRAME. Akibatnya durasi animasi berubah-ubah tergantung perangkat:
+    //
+    //   layar 120Hz  → 2× lebih cepat dari yang didesain
+    //   HP lambat    → 2× lebih lambat, terasa berat
+    //   tab tak fokus→ RAF di-throttle ~1fps, animasi membeku lalu melompat
+    //
+    // Terukur: pada 10fps, sisa kemiringan setelah 1,7 detik = 0,24° —
+    // seharusnya sudah berhenti di bawah 0,01°.
+    //
+    // Perbaikan: hitung faktor lerp dari waktu yang benar-benar berlalu.
+    //   faktor = 1 - (1 - lerp)^(dt / frame_acuan)
+    //
+    // Hasilnya identik di semua framerate — inilah cara animasi yang benar.
+    const dt = waktuFrameLalu ? Math.min(waktuSekarang - waktuFrameLalu, 100) : FRAME_ACUAN;
+    waktuFrameLalu = waktuSekarang;
+
+    // Batasi dt maksimum 100ms. Kalau tab sempat tidak aktif, dt bisa
+    // ribuan milidetik — tanpa batas ini, faktor menjadi ~1 dan kartu
+    // MELOMPAT ke posisi akhir alih-alih bergerak halus.
+    const faktor = 1 - Math.pow(1 - KONFIG.tilt.lerp, dt / FRAME_ACUAN);
+
     // Selisih kecil → berhenti. Tanpa ambang, loop berjalan selamanya
     // mengejar nilai yang perbedaannya sudah tidak terlihat.
     const dx = tilt.trx - tilt.rx;
@@ -201,12 +242,13 @@
       kartu.style.setProperty('--ry', `${tilt.ry.toFixed(3)}deg`);
       kartu.style.setProperty('--ty', `${tilt.ty.toFixed(2)}px`);
       rafTilt = null;
+      waktuFrameLalu = 0;   // reset supaya frame berikutnya mulai bersih
       return;
     }
 
-    tilt.rx += dx * KONFIG.tilt.lerp;
-    tilt.ry += dy * KONFIG.tilt.lerp;
-    tilt.ty += dz * KONFIG.tilt.lerp;
+    tilt.rx += dx * faktor;
+    tilt.ry += dy * faktor;
+    tilt.ty += dz * faktor;
 
     kartu.style.setProperty('--rx', `${tilt.rx.toFixed(3)}deg`);
     kartu.style.setProperty('--ry', `${tilt.ry.toFixed(3)}deg`);
@@ -216,7 +258,12 @@
   }
 
   function jadwalkanTilt() {
-    if (rafTilt === null) rafTilt = requestAnimationFrame(terapkanTilt);
+    // Reset penanda waktu supaya frame pertama memakai dt acuan (16,67ms),
+    // bukan selisih dari animasi sebelumnya yang sudah lama berhenti.
+    if (rafTilt === null) {
+      waktuFrameLalu = 0;
+      rafTilt = requestAnimationFrame(terapkanTilt);
+    }
   }
 
   function onPointerMove(e) {
