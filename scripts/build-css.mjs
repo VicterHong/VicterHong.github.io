@@ -110,6 +110,58 @@ function prosesHtml(isi) {
   for (const [asli, min] of peta) {
     hasil = hasil.split(asli).join(min);
   }
+  return minifyHtml(hasil);
+}
+
+/**
+ * Minifikasi HTML untuk berkas yang DIKIRIM ke pengunjung.
+ *
+ * ── KENAPA INI ADA ──────────────────────────────────────────────────────────
+ * Berkas sumber di root TIDAK diminifikasi — itu yang dibaca manusia, dan
+ * komentarnya menjelaskan keputusan desain. Yang diminifikasi hanya salinan
+ * di dist/, yaitu yang benar-benar diunduh browser.
+ *
+ * Ini menghemat ~25%: 54 KB → 40 KB. Tanpa ini, halaman baru (masuk.html)
+ * mendorong total melewati anggaran 90 KB dan preflight menolak deploy.
+ *
+ * ── YANG DILINDUNGI ─────────────────────────────────────────────────────────
+ * Isi <pre>, <textarea>, <script>, dan <style> TIDAK disentuh. Spasi di
+ * dalamnya bermakna: mengubahnya bisa merusak kode atau mengubah tampilan
+ * teks yang sengaja diformat. Blok itu ditukar dengan penanda sementara,
+ * lalu dikembalikan utuh setelah minifikasi selesai.
+ *
+ * Komentar kondisional IE (`<!--[if ...]>`) juga dibiarkan — beberapa
+ * proxy lama masih membacanya, dan menghapusnya bisa mengubah perilaku.
+ */
+function minifyHtml(isi) {
+  const simpan = new Map();
+
+  // Tukar blok yang tidak boleh diubah dengan penanda unik.
+  // \x00 tidak mungkin muncul di HTML sungguhan, jadi tidak akan bentrok.
+  let hasil = isi.replace(
+    /<(pre|textarea|script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,
+    (m) => {
+      const kunci = `\x00LINDUNG${simpan.size}\x00`;
+      simpan.set(kunci, m);
+      return kunci;
+    },
+  );
+
+  hasil = hasil
+    // Komentar HTML — kecuali kondisional IE
+    .replace(/<!--(?!\[if)[\s\S]*?-->/g, '')
+    // Spasi di antara tag
+    .replace(/>\s+</g, '><')
+    // Beberapa spasi/baris baru berturut-turut → satu spasi
+    .replace(/\s{2,}/g, ' ')
+    // Spasi di awal baris
+    .replace(/\n\s+/g, '\n')
+    .trim();
+
+  // Kembalikan blok yang dilindungi, persis seperti aslinya.
+  for (const [kunci, asli] of simpan) {
+    hasil = hasil.split(kunci).join(asli);
+  }
   return hasil;
 }
 
