@@ -14,7 +14,7 @@ export const profile = {
   role: 'Automation & self-hosted tools developer',
   tagline: 'Saya membangun alat otomasi yang membuat perangkat lama berguna kembali.',
   bio: [
-    'Saya membuat perangkat lunak yang berjalan di tempat Anda sendiri — tanpa langganan, tanpa cloud wajib, dan tetap hidup di laptop 2 GB RAM.',
+    'Saya membuat perangkat lunak yang berjalan di tempat Anda sendiri, tanpa langganan, tanpa cloud wajib, dan tetap hidup di laptop 2 GB RAM.',
     'Fokus saya: sistem yang hemat sumber daya, keamanan yang serius (bukan tempelan), dan alat yang benar-benar dipakai sehari-hari.',
   ],
   location: 'Indonesia',
@@ -31,7 +31,7 @@ export const profile = {
  */
 export const about = {
   paragraphs: [
-    'Saya Victer — pengembang yang fokus pada alat otomasi dan sistem self-hosted. Saya percaya perangkat lunak yang baik tidak harus menuntut perangkat baru atau langganan bulanan.',
+    'Saya Victer, pengembang yang fokus pada alat otomasi dan sistem self-hosted. Saya percaya perangkat lunak yang baik tidak harus menuntut perangkat baru atau langganan bulanan.',
     'Selama beberapa tahun terakhir saya membangun sistem yang berjalan di perangkat sederhana: remote control yang hidup di laptop 2 GB RAM, bot keluarga dengan kontrol anti-ban berlapis, dan sistem inventaris yang menggantikan pencatatan manual.',
     'Pendekatan saya sederhana: hemat sumber daya sejak desain, keamanan yang serius bukan tempelan, dan setiap klaim saya siap tunjukkan buktinya saat diminta.',
   ],
@@ -50,7 +50,7 @@ export const about = {
 export const services = [
   {
     title: 'Otomasi alur kerja',
-    body: 'Mengubah proses manual yang berulang menjadi alur otomatis yang bisa diaudit — dari pencatatan stok sampai laporan terjadwal.',
+    body: 'Mengubah proses manual yang berulang menjadi alur otomatis yang bisa diaudit, dari pencatatan stok sampai laporan terjadwal.',
     // Ikon dipakai untuk mengisi ruang kartu yang tadinya 65% kosong
     // (diukur: kartu 506x138px, isi teks hanya 48px = densitas 35%).
     // Nama ikon dari assets/js/icons.js — 30 ikon SVG stroke 1.5px.
@@ -63,7 +63,7 @@ export const services = [
   },
   {
     title: 'Sistem self-hosted',
-    body: 'Aplikasi yang berjalan di server atau perangkat Anda sendiri — tanpa langganan, tanpa ketergantungan cloud yang wajib.',
+    body: 'Aplikasi yang berjalan di server atau perangkat Anda sendiri, tanpa langganan, tanpa ketergantungan cloud yang wajib.',
     icon: 'server',
   },
   {
@@ -91,12 +91,12 @@ export const projects = [
     gated: true,
     name: 'MINA',
     subtitle: 'Remote Control for Your Home Machine',
-    summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun — shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
+    summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun, shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
     problem: 'Perangkat lama sering dianggap sampah karena tidak sanggup menjalankan alat modern. Padahal dengan desain yang hemat, ia masih bisa jadi server pribadi yang berguna.',
     highlights: [
       {
         title: 'Keamanan sejak desain',
-        detail: 'Token bearer + HMAC-SHA256 di setiap permintaan, proteksi replay (jendela 5 menit), allowlist perintah yang ketat, batas laju per aksi, dan shell=False di mana pun. Tidak ada eksekusi shell bebas — selamanya.',
+        detail: 'Token bearer + HMAC-SHA256 di setiap permintaan, proteksi replay (jendela 5 menit), allowlist perintah yang ketat, batas laju per aksi, dan shell=False di mana pun. Tidak ada eksekusi shell bebas, selamanya.',
       },
       {
         title: 'Hemat sumber daya',
@@ -162,7 +162,7 @@ export const projects = [
       { title: 'Reaktif, bukan berisik', detail: 'Hanya menjawab saat disebut atau dibalas. Tidak pernah menyela percakapan.' },
       { title: 'Anti-ban berlapis', detail: '14 kelas kontrol: ritme manusia, batas laju, jam tenang, dan pemantau kesehatan yang menjeda sendiri saat ada dorongan dari server.' },
       { title: 'Memori per grup', detail: 'Riwayat percakapan tersimpan per grup, tidak bocor antar grup, dengan pemulihan otomatis saat berkas rusak.' },
-      { title: 'Privasi dijaga', detail: 'Kunci sesi tidak pernah ditulis ke log — dua lapis penjaga mencegahnya bocor.' },
+      { title: 'Privasi dijaga', detail: 'Kunci sesi tidak pernah ditulis ke log, dua lapis penjaga mencegahnya bocor.' },
     ],
     metrics: [
       { label: 'tes otomatis', value: '1045' },
@@ -219,7 +219,7 @@ export const sideProjects = [
 export const principles = [
   {
     title: 'Saya ukur, bukan menebak',
-    body: 'Setiap keputusan desain diuji dengan angka sebelum diterapkan. Usulan "max-width 12ch" terlihat masuk akal — setelah diukur ternyata justru memperburuk. Saya ganti dengan solusi yang terbukti.',
+    body: 'Setiap keputusan desain diuji dengan angka sebelum diterapkan. Usulan "max-width 12ch" terlihat masuk akal, setelah diukur ternyata justru memperburuk. Saya ganti dengan solusi yang terbukti.',
   },
   {
     title: 'Anda bisa memeriksa pekerjaan saya',
@@ -227,11 +227,11 @@ export const principles = [
   },
   {
     title: 'Saya terima koreksi',
-    body: 'Audit pihak ketiga membatalkan 5 dari 8 temuan saya — semuanya benar, dan saya catat apa yang salah. Koreksi yang diterima lebih berguna daripada temuan yang dipertahankan demi gengsi.',
+    body: 'Audit pihak ketiga membatalkan 5 dari 8 temuan saya, semuanya benar, dan saya catat apa yang salah. Koreksi yang diterima lebih berguna daripada temuan yang dipertahankan demi gengsi.',
   },
   {
     title: 'Batas jelas, bukan janji',
-    body: 'Setiap sistem punya batas yang bisa diukur: anggaran halaman 120 KB, retensi data, kapasitas server. Saya sebutkan batasnya di depan — bukan baru mengakui saat sudah bermasalah.',
+    body: 'Setiap sistem punya batas yang bisa diukur: anggaran halaman 120 KB, retensi data, kapasitas server. Saya sebutkan batasnya di depan, bukan baru mengakui saat sudah bermasalah.',
   },
 ];
 

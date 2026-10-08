@@ -381,7 +381,7 @@ function gambarFaq(data, hrefKontak) {
 
       const a = el('a', null, 'Bicara dulu');
       a.href = hrefKontak;
-      jawab.append(a, document.createTextNode(' — tidak ada kewajiban setelahnya.'));
+      jawab.append(a, document.createTextNode(', tidak ada kewajiban setelahnya.'));
     }
 
     details.appendChild(jawab);
@@ -560,7 +560,7 @@ function tampilkanError(root, pesan) {
   kotak.appendChild(el('p', 'pricing-error-judul', 'Harga sedang tidak bisa dimuat'));
 
   const teks = el('p', 'pricing-error-teks',
-    `${pesan} Halaman ini butuh koneksi ke server untuk menampilkan harga terbaru — supaya angkanya selalu sama dengan yang berlaku.`);
+    `${pesan} Halaman ini butuh koneksi ke server untuk menampilkan harga terbaru, supaya angkanya selalu sama dengan yang berlaku.`);
   kotak.appendChild(teks);
 
   const aksi = el('div', 'cta-tombol');

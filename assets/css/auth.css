@@ -963,7 +963,19 @@ select.auth-input {
   font-size: 15px;
   font-weight: 600;
   color: #0a0a0b;
-  background: linear-gradient(180deg, var(--emas-terang), var(--emas));
+  /* ── SOLID, BUKAN GRADIENT ────────────────────────────────────────────────
+     Versi sebelumnya memakai linear-gradient 180deg dari emas-terang ke emas.
+     Selisihnya hanya 2 tingkat kecerahan — mata hampir tidak bisa membedakan,
+     tapi gradient pada tombol adalah salah satu pola yang dilaporkan sebagai
+     tanda 'AI-generated' oleh design-slop-cop dan sailop.com.
+
+     Riset merumuskannya: 'a gradient you chose for a reason is design; a
+     gradient the model reached for is slop.' Yang ini tidak punya alasan yang
+     cukup kuat untuk dipertahankan — efek visualnya nyaris nol, sementara
+     biayanya adalah satu pola slop yang bisa dihindari.
+
+     Kedalaman sekarang datang dari shadow, bukan gradient. */
+  background: var(--emas);
   border: 0;
   border-radius: var(--radius-input);
   cursor: pointer;
@@ -1009,8 +1021,11 @@ select.auth-input {
  */
 .auth-submit:active:not(:disabled) {
   transform: translateY(1px);
-  /* Warna lebih gelap — mengikuti pola GitHub */
-  background: linear-gradient(180deg, var(--emas), #d9a92e);
+  /* Warna lebih gelap — mengikuti pola GitHub. Solid, bukan gradient:
+     state :active hanya terlihat sepersekian detik saat ditekan, jadi
+     gradient di sini tidak pernah benar-benar terbaca sebagai gradient —
+     yang terasa hanya perubahan warnanya. */
+  background: #d9a92e;
   /* Bayangan dalam: tombol terasa masuk ke halaman */
   box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.22),
