@@ -21,14 +21,20 @@
 # Berkas ini sengaja tetap ada untuk aturan redirect internal di masa depan
 # (mis. /proyek → /home#proyek). Selama kosong, tidak ada efek samping.
 
-# ── Halaman legal — URL bersih ───────────────────────────────────────────────
-# Midtrans memeriksa halaman ini saat verifikasi merchant. URL bersih
-# (/privasi, bukan /privasi.html) terlihat lebih profesional dan lebih
-# mudah disebut di dokumen.
+# ── Halaman legal — TIDAK ADA ATURAN DI SINI ─────────────────────────────────
 #
-# ── KENAPA 200, BUKAN 301 ───────────────────────────────────────────────────
-# Status 200 berarti "sajikan berkas ini tanpa mengubah URL di address bar".
-# Dengan 301, alamatnya berubah jadi /privasi.html — dan itu terlihat kurang
-# rapi saat dibagikan atau dicetak.
-/privasi    /privasi.html    200
-/syarat     /syarat.html     200
+# Halaman /privasi dan /syarat SUDAH ditangani otomatis oleh Cloudflare
+# Pages: ia menyajikan privasi.html untuk permintaan /privasi tanpa mengubah
+# URL di address bar.
+#
+# Aturan eksplisit di sini justru MERUSAKNYA. Percobaan pertama memakai:
+#
+#     /privasi    /privasi.html    200
+#
+# Hasilnya loop tak berujung (308 → /privasi → 308 → /privasi → ...),
+# karena dua mekanisme saling menunjuk:
+#   • Cloudflare: /privasi → sajikan privasi.html
+#   • Aturan kita: /privasi → pindah ke privasi.html → yang memicu Cloudflare lagi
+#
+# Pelajaran: kalau platform sudah menangani sesuatu secara otomatis, jangan
+# menambahkan aturan yang melakukan hal yang sama.
