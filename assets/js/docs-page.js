@@ -212,6 +212,6 @@ import('./ripple.js').then(({ initRipple }) => {
 }).catch(() => { /* tombol tetap berfungsi tanpa efek */ });
 
 // Logo interaktif — sama seperti halaman utama supaya kedua halaman konsisten.
-import('./logo.js').then(({ mountInteractiveLogo }) => {
-  mountInteractiveLogo();
+import('./monogram.js').then(({ pasangMonogram }) => {
+  pasangMonogram();
 }).catch(() => { /* logo statis tetap tampil kalau modul gagal dimuat */ });

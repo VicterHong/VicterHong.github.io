@@ -27,7 +27,7 @@ import { initExperiments } from './experiment.js';
 import { initCookieConsent, consentGiven } from './cookies.js';
 import { initRipple } from './ripple.js';
 import { initCinematic } from './cinematic.js';
-import { mountInteractiveLogo } from './logo.js';
+import { pasangMonogram } from './monogram.js';
 import { techGroups, techLogos, createTechCard } from './tech-logos.js';
 import { createTiltPanel } from './tilt-panel.js';
 import { initScrollSpy } from './scroll-spy.js';
@@ -685,8 +685,9 @@ document.querySelectorAll('[data-icon]').forEach((el) => {
   }, { passive: true });
 })();
 
-// Logo interaktif — ganti brand-mark statis dengan simbol coding yang bergerak.
-mountInteractiveLogo();
+// Monogram — ganti mark statis dengan inisial VV.
+// Statis, bukan animasi: logo korporat tidak berputar atau berkedip.
+pasangMonogram();
 
 // Efek tekan tombol — gelombang dari titik sentuh (Material Design 3).
 // Satu listener terdelegasi, jadi tombol yang dibuat belakangan (banner

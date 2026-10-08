@@ -7,14 +7,14 @@
  *      (interpolasi bertahap), jadi target bisa berubah kapan saja.
  *
  *   2. HEMAT SAAT TIDAK TERLIHAT — animasi tanpa henti berhenti saat tab
- *      disembunyikan. Partikel berhenti total; blob dijeda lewat CSS.
+ *      disembunyikan. Animasi dijeda lewat CSS.
  *
- *   3. HANYA TRANSFORM + OPACITY — partikel menggambar di <canvas> dengan
+ *   3. HANYA TRANSFORM + OPACITY — kartu 3D memakai transform, tidak
  *      requestAnimationFrame, tapi hanya mengubah posisi x/y. Tidak ada
  *      pembacaan layout (offsetWidth dll) di dalam loop — itu memicu
  *      "layout thrashing" yang membuat frame drop.
  *
- *   4. HORMATI prefers-reduced-motion — partikel tidak digambar sama sekali
+ *   4. HORMATI prefers-reduced-motion — animasi dinonaktifkan sepenuhnya
  *      kalau pengguna memilih mengurangi gerak.
  *
  *   5. CLEANUP — semua listener dilepas, RAF dibatalkan saat halaman
@@ -26,13 +26,6 @@
 
   // ── Pengaturan terpusat ──────────────────────────────────────────────────
   const KONFIG = {
-    partikel: {
-      jumlah: 34,          // cukup untuk tekstur, tidak sampai memenuhi CPU
-      kecepatan: 0.16,     // px per frame — sangat lambat, sengaja
-      radiusMin: 0.6,
-      radiusMaks: 1.5,
-      warna: 'rgba(245, 197, 66, 0.5)',
-    },
     tilt: {
       maksDerajat: 5.5,    // 5.5° terasa hidup tanpa terlihat miring
       lerp: 0.12,          // faktor interpolasi — makin kecil makin "berat"
@@ -49,8 +42,7 @@
   let kurangiGerak = mediaGerak.matches;
   mediaGerak.addEventListener('change', (e) => {
     kurangiGerak = e.matches;
-    if (kurangiGerak) hentikanPartikel();
-    else mulaiPartikel();
+    // (partikel dihapus — latar sekarang grid statis)
   });
 
   // ══ Utilitas ═════════════════════════════════════════════════════════════
@@ -94,102 +86,6 @@
     document.querySelectorAll('.auth-panel').forEach((p) => {
       p.classList.toggle('is-active', p.dataset.panel === nama);
     });
-  }
-
-  // ══ Partikel latar ═══════════════════════════════════════════════════════
-
-  const kanvas = $('#particles');
-  let ctx = null;
-  let titik = [];
-  let rafId = null;
-  let lebarKanvas = 0;
-  let tinggiKanvas = 0;
-  let waktuPartikelLalu = 0;
-
-  // Durasi frame acuan (60fps) dalam milidetik. Semua gerakan berbasis
-  // waktu memakai ini sebagai satuan, supaya kecepatan sama di layar
-  // 60Hz, 120Hz, maupun perangkat lambat.
-  const FRAME_ACUAN = 1000 / 60;
-
-  function ukurKanvas() {
-    if (!kanvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);  // batasi 2 — DPR 3 boros
-    lebarKanvas = kanvas.clientWidth;
-    tinggiKanvas = kanvas.clientHeight;
-    kanvas.width = Math.round(lebarKanvas * dpr);
-    kanvas.height = Math.round(tinggiKanvas * dpr);
-    ctx = kanvas.getContext('2d');
-    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function buatTitik() {
-    const n = kurangiGerak ? 0 : KONFIG.partikel.jumlah;
-    titik = Array.from({ length: n }, () => ({
-      x: Math.random() * lebarKanvas,
-      y: Math.random() * tinggiKanvas,
-      // Kecepatan kecil & bisa negatif — arah acak, gerakan mengambang
-      vx: (Math.random() - 0.5) * KONFIG.partikel.kecepatan * 2,
-      vy: (Math.random() - 0.5) * KONFIG.partikel.kecepatan * 2,
-      r: KONFIG.partikel.radiusMin +
-         Math.random() * (KONFIG.partikel.radiusMaks - KONFIG.partikel.radiusMin),
-      // Fase untuk denyut opacity — membuat partikel tidak "berkedip serempak"
-      fase: Math.random() * Math.PI * 2,
-    }));
-  }
-
-  function gambarPartikel(waktu, dt = 1) {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, lebarKanvas, tinggiKanvas);
-
-    for (const t of titik) {
-      // Gerak: posisi berubah sesuai waktu yang berlalu (dt), lalu membalik
-      // di tepi (bukan menghilang dan muncul di sisi lain — itu terlihat
-      // seperti kedipan).
-      t.x += t.vx * dt;
-      t.y += t.vy * dt;
-      if (t.x < 0 || t.x > lebarKanvas) t.vx *= -1;
-      if (t.y < 0 || t.y > tinggiKanvas) t.vy *= -1;
-
-      // Denyut opacity: 0.35–1.0, periode ~4 detik per partikel
-      const denyut = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(waktu * 0.00042 + t.fase));
-
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-      ctx.fillStyle = KONFIG.partikel.warna;
-      ctx.globalAlpha = denyut;
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function loopPartikel(waktu) {
-    // ── Delta-time untuk partikel ──────────────────────────────────────────
-    // Masalah yang sama seperti kartu: `t.x += t.vx` adalah gerakan PER FRAME.
-    // Di layar 120Hz partikel bergerak 2× lebih cepat; di HP lambat 2× lebih
-    // lambat. Dengan faktor waktu, kecepatannya sama di semua perangkat.
-    const dt = waktuPartikelLalu
-      ? Math.min(waktu - waktuPartikelLalu, 100) / FRAME_ACUAN
-      : 1;
-    waktuPartikelLalu = waktu;
-
-    gambarPartikel(waktu, dt);
-    rafId = requestAnimationFrame(loopPartikel);
-  }
-
-  function mulaiPartikel() {
-    if (kurangiGerak || !kanvas) return;
-    if (rafId !== null) return;          // sudah jalan
-    if (document.visibilityState === 'hidden') return;  // jangan mulai saat tersembunyi
-    ukurKanvas();
-    if (!titik.length) buatTitik();
-    rafId = requestAnimationFrame(loopPartikel);
-  }
-
-  function hentikanPartikel() {
-    if (rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
   }
 
   // ══ Kartu 3D mengikuti kursor ════════════════════════════════════════════
@@ -1456,17 +1352,16 @@
   function onVisibility() {
     const tersembunyi = document.visibilityState === 'hidden';
     document.body.classList.toggle('is-tersembunyi', tersembunyi);
-    if (tersembunyi) hentikanPartikel();
-    else mulaiPartikel();
+    // (partikel dihapus — tidak ada yang perlu dijeda saat tab tersembunyi)
   }
 
   function onResize() {
-    ukurKanvas();
-    buatTitik();   // sebar ulang supaya tidak menumpuk di satu sudut
+    // Partikel sudah dihapus — tidak ada kanvas yang perlu diukur ulang.
+    // Listener ini tetap ada karena tilt kartu 3D membaca ukuran viewport.
   }
 
   function bersihkan() {
-    hentikanPartikel();
+    // (partikel dihapus)
     if (rafTilt !== null) { cancelAnimationFrame(rafTilt); rafTilt = null; }
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('resize', onResize);
@@ -1475,9 +1370,6 @@
   // ══ Mulai ════════════════════════════════════════════════════════════════
 
   function init() {
-    ukurKanvas();
-    buatTitik();
-    mulaiPartikel();
     pasangTilt();
     pasangOtp();
     pasangEnrollment2fa();

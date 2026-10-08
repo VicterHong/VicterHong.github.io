@@ -1,39 +1,34 @@
 /**
- * Pasang logo interaktif di halaman yang TIDAK memuat app.js.
+ * Pasang monogram VIVASTIC di halaman yang tidak memuat app.js.
  *
- * ── KENAPA BERKAS INI ADA ────────────────────────────────────────────────────
- * Logo animasi (kurung `{ }` yang membuka saat hover, berputar saat klik,
- * kursor berkedip) tinggal di logo.js. Selama ini hanya home.html yang
- * memakainya — karena app.js mengimpornya, dan app.js hanya dimuat di beranda.
+ * ── SEJARAH BERKAS INI ───────────────────────────────────────────────────────
+ * Versi pertama memasang logo `{ }` animasi dari logo.js. Logo itu sudah
+ * diganti monogram statis — lihat monogram.js untuk alasannya (ringkasnya:
+ * kurung kurawal adalah metafora coding yang dipakai di hampir semua template
+ * portofolio, sehingga justru terlihat seperti template, bukan identitas).
  *
- * Akibatnya halaman lain menampilkan mark statis: kotak kuning kecil tanpa
- * animasi. Dua tampilan berbeda untuk elemen yang sama membuat situs terasa
- * tidak konsisten.
+ * Berkas ini tetap ada sebagai titik pemasangan tunggal, supaya halaman hanya
+ * perlu memuat satu skrip kecil alih-alih seluruh bundel app.js (yang berisi
+ * cinematic scroll, spotlight carousel, media loader — puluhan KB yang tidak
+ * dipakai halaman harga atau halaman masuk).
  *
- * ── DUA KELAS, SATU LOGO ─────────────────────────────────────────────────────
- * Situs memakai dua nama kelas untuk mark yang sama:
+ * ── DUA KELAS, SATU MONOGRAM ─────────────────────────────────────────────────
+ * Situs memakai dua nama kelas untuk tempat yang sama:
  *
  *   .brand-mark      → header situs (home, pricing, docs, privasi, syarat)
- *   .auth-nav-mark   → header halaman auth (masuk, daftar)
+ *   .auth-nav-mark   → header halaman auth (sign-in, sign-up)
  *
- * Keduanya diganti supaya logonya benar-benar sama di seluruh situs.
- *
- * ── KENAPA TIDAK MEMUAT app.js SAJA ─────────────────────────────────────────
- * app.js adalah bundel beranda: cinematic scroll, spotlight carousel, media
- * loader, tilt panel — puluhan kilobyte yang tidak dipakai halaman harga.
- * Memuatnya berarti mengirim kode mati hanya untuk mengambil satu fungsi.
- *
- * Berkas ini mengimpor logo.js langsung — hanya kode yang benar-benar jalan.
+ * Keduanya diganti supaya identitasnya benar-benar sama di seluruh situs.
  *
  * ── KENAPA type="module" ────────────────────────────────────────────────────
- * logo.js memakai `export`. Modul juga otomatis deferred — skrip berjalan
+ * monogram.js memakai `export`. Modul juga otomatis deferred — skrip berjalan
  * setelah HTML selesai diparse, jadi mark pasti sudah ada di DOM.
  *
- * Kalau elemennya tidak ditemukan (mis. halaman tanpa header), fungsi mount
+ * Kalau elemennya tidak ditemukan (mis. halaman tanpa header), fungsi pasang
  * keluar diam-diam — tidak ada error yang bocor ke konsol pengunjung.
  */
 
-import { mountInteractiveLogo } from './logo.js';
+import { pasangMonogram } from './monogram.js';
 
-mountInteractiveLogo('.brand-mark');
-mountInteractiveLogo('.auth-nav-mark');
+pasangMonogram('.brand-mark');
+pasangMonogram('.auth-nav-mark');

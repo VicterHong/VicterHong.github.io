@@ -1,0 +1,100 @@
+/* ── LATAR HALAMAN AUTH — POLA TEKNIS, BUKAN DEKORASI ─────────────────────────
+   ── MASALAH DENGAN LATAR SEBELUMNYA ─────────────────────────────────────────
+   Versi-versi sebelumnya memakai:
+     1. Blob gradien yang bergerak      → terlihat seperti template AI
+     2. Partikel melayang di <canvas>   → idem, plus memakan CPU
+     3. Gradien radial tunggal statis   → bersih, tapi kosong tanpa karakter
+
+   Ketiganya punya masalah yang sama: tidak ada SATU PUN yang mengatakan apa
+   pun tentang VIVASTIC. Blob dan partikel adalah dekorasi — dan dekorasi yang
+   bisa ditempel di proyek apa saja justru yang membuat sebuah situs terlihat
+   generik.
+
+   ── YANG DIPAKAI SEKARANG ───────────────────────────────────────────────────
+   Grid hairline 1px dengan jarak 64px, plus dua penanda sudut tipis.
+
+   Kenapa ini bekerja:
+     • Grid adalah bahasa visual teknik — blueprint, lembar kerja, denah.
+       Ia menyampaikan "presisi" tanpa perlu menuliskannya.
+     • Ia memberi STRUKTUR pada ruang kosong. Mata tahu di mana ia berada
+       dalam bidang, sehingga halaman tidak terasa melayang.
+     • Garis 1px pada opasitas sangat rendah tidak bersaing dengan konten.
+       Ia hanya terlihat kalau diperhatikan — itu yang membedakan latar
+       yang tertata dari latar yang berisik.
+
+   ── KENAPA TANPA ANIMASI ────────────────────────────────────────────────────
+   Grid tidak bergerak. Latar yang bergerak menarik mata ke arah yang salah —
+   pengunjung datang untuk masuk, bukan menonton latar. Animasi juga berarti
+   compositor bekerja terus-menerus; pada halaman statis seperti ini, itu
+   pemborosan baterai tanpa manfaat.
+
+   ── KENAPA SATU WARNA, BUKAN DUA ────────────────────────────────────────────
+   Garis grid memakai warna emas yang sama dengan aksen, pada opasitas yang
+   sangat rendah (0.035). Memakai warna kedua akan menambah kompleksitas tanpa
+   menambah makna — aturan yang sama dengan sistem ikon di halaman ini.
+
+   ── DITERAPKAN SEBAGAI background-image, BUKAN ELEMEN ───────────────────────
+   Grid digambar dengan dua `linear-gradient` berulang di properti background.
+   Tidak ada elemen DOM tambahan, tidak ada lapisan yang bisa salah ditumpuk,
+   dan tidak ada permintaan jaringan. Satu properti, selesai.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background-color: var(--latar);
+  background-image:
+    /* ── Grid utama ──
+       Dua gradien: satu menggambar garis horizontal tiap 64px, satu lagi
+       vertikal. `transparent calc(100% - 1px)` menyisakan tepat 1px di ujung
+       setiap ubin — itu garisnya. */
+    linear-gradient(to right,
+                    rgba(245, 197, 66, 0.035) 0 1px,
+                    transparent 1px 100%),
+    linear-gradient(to bottom,
+                    rgba(245, 197, 66, 0.035) 0 1px,
+                    transparent 1px 100%),
+
+    /* ── Cahaya lembut dari atas ──
+       Satu gradien radial sangat redup. Fungsinya bukan hiasan: ia memberi
+       arah cahaya sehingga kartu di tengah terasa berada di ruang, bukan
+       ditempel di latar datar. */
+    radial-gradient(ellipse 80% 50% at 50% 0%,
+                    rgba(245, 197, 66, 0.055) 0%,
+                    transparent 65%);
+
+  background-size:
+    64px 64px,
+    64px 64px,
+    100% 100%;
+
+  /* ── Grid memudar ke bawah ──
+     Tanpa ini, garis grid berhenti mendadak di tepi bawah layar dan terlihat
+     seperti gambar yang terpotong. Mask membuatnya larut perlahan, sehingga
+     bagian bawah halaman tetap tenang dan fokus kembali ke kartu. */
+  -webkit-mask-image: linear-gradient(to bottom,
+                                       #000 0%,
+                                       #000 55%,
+                                       transparent 100%);
+  mask-image: linear-gradient(to bottom,
+                              #000 0%,
+                              #000 55%,
+                              transparent 100%);
+}
+
+/* ── GRID LEBIH RAPAT DI PONSEL ──────────────────────────────────────────────
+   Ubin 64px di layar 390px menghasilkan hanya ~6 kolom — gridnya terasa
+   longgar dan kehilangan kesan presisi. 44px memberi ~9 kolom, cukup rapat
+   untuk terbaca sebagai pola tanpa menjadi bising. */
+@media (max-width: 640px) {
+  .auth-bg { background-size: 44px 44px, 44px 44px, 100% 100%; }
+}
+
+/* ── MODE GELAP PAKSA DARI SISTEM ────────────────────────────────────────────
+   Halaman ini selalu gelap (bukan mengikuti preferensi sistem), jadi tidak
+   ada varian terang yang perlu dibuat. Aturan `prefers-color-scheme` sengaja
+   tidak ada — menambahkannya berarti dua latar yang harus dirawat, padahal
+   desainnya memang hanya satu. */

@@ -16,7 +16,7 @@ import {
 } from './api.js';
 import { initAstra } from './astra.js';
 import { createNarrativeVideo } from './narrative.js';
-import { mountInteractiveLogo } from './logo.js';
+import { pasangMonogram } from './monogram.js';
 import { projects } from './data/projects.js';
 import { icon } from './icons.js';
 
@@ -684,5 +684,5 @@ observer.observe(gate);
   initAstra();
 
   // Logo interaktif — simbol coding yang bergerak saat hover/klik.
-  mountInteractiveLogo();
+  pasangMonogram();
 })();

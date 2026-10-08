@@ -96,56 +96,10 @@ html, body {
 
 /* ══ Latar ═════════════════════════════════════════════════════════════════ */
 
-/*
- * ── LATAR KORPORASI: SOLID, STATIS, TANPA DEKORASI ──────────────────────────
- *
- * ── APA YANG DIHAPUS DAN KENAPA ─────────────────────────────────────────────
- * Versi sebelumnya punya 3 blob gradien beranimasi (28–42 detik, infinite),
- * canvas partikel dengan requestAnimationFrame, dan overlay grain SVG noise.
- * Itu pola "AI slop": dekorasi bergerak yang TIDAK PUNYA FUNGSI.
- *
- * ── BUKTI DARI RISET (diukur langsung dari DOM, bukan pendapat) ─────────────
- * Tujuh halaman login korporasi internasional diperiksa:
- *
- *   Situs        canvas  blob  partikel  grain  video  animasi∞
- *   Linear          0      0       0        0      0       —
- *   Vercel          0      0       0        0      0       —
- *   GitHub          0      0       0        0      0       —
- *   Stripe          0      0       0        0      0       0
- *   Cloudflare      0      0       0        0      0       0
- *   Notion          0      0       0        0      0       0
- *   Resend          0      0       0        0      0       0
- *
- * NOL elemen dekoratif. NOL animasi berulang. Seragam di ketujuhnya.
- *
- * Latar mereka: Vercel rgb(250,250,250) · GitHub rgb(255,255,255) ·
- * Resend rgb(0,0,0) — semua SOLID, tanpa gradien bergerak.
- *
- * ── KENAPA "DIAM" TERLIHAT MAHAL ────────────────────────────────────────────
- * Gerak ambient memindahkan perhatian dari tugas (mengisi form). Korporasi
- * memakai pengendalian diri: gerak HANYA sebagai umpan balik fungsi — fokus
- * input, hover tombol, transisi panel. Tidak ada gerak yang tidak menjawab
- * tindakan pengguna.
- *
- * ── GRADASI HALUS: SATU, STATIS, SANGAT LEMAH ───────────────────────────────
- * Bukan animasi — hanya satu gradien radial statis untuk mencegah latar
- * terasa seperti lubang hitam datar. Opasitas 0.04 (sebelumnya 0.16 pada blob
- * yang bergerak). Tidak ada frame yang dihitung GPU setelah halaman dimuat.
- */
-.auth-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
+/* .auth-bg dipindah ke assets/css/auth-bg.css — pola grid teknis.
+   Lihat berkas itu untuk alasan lengkapnya. */
 
-  /* Gradien radial tunggal, statis. Titik terang lembut di atas-tengah
-     meniru arah cahaya alami; sisanya gelap solid. */
-  background:
-    radial-gradient(ellipse 90% 55% at 50% -10%,
-                    rgba(245, 197, 66, 0.040) 0%,
-                    transparent 62%),
-    var(--latar);
-}
+
 
 /* Kelas blob/partikel/grain sudah dihapus dari CSS. Elemennya juga dihapus
    dari masuk.html — kalau hanya CSS yang dihapus, elemen kosong tetap ada di
