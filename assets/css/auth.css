@@ -680,6 +680,52 @@ select.auth-input {
 .auth-reveal:hover { color: var(--emas); background: var(--emas-redup); }
 .auth-reveal[aria-pressed="true"] { color: var(--emas); }
 
+/* ── IKON MATA DUA STATE — ANIMASI BUKA/TUTUP ───────────────────────────────
+   Satu SVG berisi DUA bentuk: mata terbuka dan mata tertutup (kelopak +
+   bulu mata). CSS menampilkan salah satunya berdasarkan aria-pressed.
+
+   ── KENAPA DUA IKON DALAM SATU SVG ─────────────────────────────────────────
+   Mengganti path lewat JavaScript berarti DOM berubah setiap klik — dan itu
+   memicu layout. Dengan dua ikon di dalam SVG yang sama, transisinya murni
+   CSS (opacity + transform), dikerjakan compositor, tanpa layout sama sekali.
+
+   ── KENAPA ANIMASI, BUKAN GANTI MENDADAK ──────────────────────────────────
+   Mata yang berkedip terbuka/tertutup memberi umpan balik bahwa aksi Anda
+   BERHASIL. Ganti mendadak terasa seperti tombol rusak yang berubah sendiri.
+
+   ── URUTAN TRANSISI (150ms) ───────────────────────────────────────────────
+   Kedua ikon tidak boleh terlihat bersamaan. Ikon lama memudar lebih dulu
+   (0-70ms), ikon baru muncul setelahnya (60-150ms). Tumpang tindih 10ms
+   membuat transisinya terasa mulus, bukan seperti dua gambar yang bertukar.
+
+   ── SKALA 0.75 → 1 ────────────────────────────────────────────────────────
+   Ikon yang muncul sedikit membesar, meniru kelopak mata yang membuka.
+   Skala dipakai, bukan ukuran (width/height) — skala tidak memicu layout. */
+.auth-reveal .mata-buka,
+.auth-reveal .mata-tutup {
+  transform-origin: 12px 12px;
+  transition:
+    opacity 80ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Keadaan awal: mata TERBUKA yang tampil, tertutup disembunyikan.
+   aria-pressed="false" = sandi masih tersembunyi = tombol menawarkan
+   "tampilkan" = ikon mata terbuka. */
+.auth-reveal .mata-buka { opacity: 1; transform: scale(1); }
+.auth-reveal .mata-tutup { opacity: 0; transform: scale(0.75); }
+
+/* Setelah diklik: mata TERTUTUP yang tampil — sandi sedang terlihat,
+   tombol menawarkan "sembunyikan". */
+.auth-reveal[aria-pressed="true"] .mata-buka { opacity: 0; transform: scale(0.75); }
+.auth-reveal[aria-pressed="true"] .mata-tutup { opacity: 1; transform: scale(1); }
+
+/* Gerakan minimal: tampilkan langsung tanpa transisi. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-reveal .mata-buka,
+  .auth-reveal .mata-tutup { transition: none; }
+}
+
 /* ── IKON DI DALAM INPUT (kiri) ─────────────────────────────────────────────
    Pola 21st.dev: ikon surat/kunci di dalam kolom, bukan di luar.
    Menghemat satu baris tinggi dan membuat jenis kolom langsung dikenali

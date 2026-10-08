@@ -970,7 +970,7 @@
         btn.addEventListener('click', () => { window.location.href = p.url; });
       } else {
         belumSiap.push(p.nama);
-        btn.title = p.nama + ' — segera hadir';
+        btn.title = p.nama + ' — akan tersedia';
       }
     }
 
@@ -985,8 +985,9 @@
         btnSso.removeAttribute('title');
         btnSso.addEventListener('click', () => { window.location.href = '/api/auth/sso'; });
       } else {
-        btnSso.title = 'SSO perusahaan — segera hadir';
-        belumSiap.push('SSO perusahaan');
+        // SSO TIDAK dimasukkan ke daftar catatan: ia punya tombolnya sendiri
+        // di bawah, jadi menyebutnya lagi di catatan sosial hanya mengulang.
+        btnSso.title = 'SSO perusahaan — akan tersedia';
       }
     }
 
@@ -1004,7 +1005,7 @@
         catatan.hidden = true;
       } else {
         catatan.hidden = false;
-        catatan.textContent = belumSiap.join(', ') + ' segera hadir.';
+        catatan.textContent = belumSiap.join(', ') + ' akan tersedia.';
       }
     }
   }

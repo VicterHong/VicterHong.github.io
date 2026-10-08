@@ -73,14 +73,10 @@
 
       <!-- Kepala kartu -->
       <header class="auth-head">
-        <!-- Logo kartu: SAMA dengan logo header — satu identitas, bukan dua.
-             Sebelumnya di sini ada chevron di kotak kuning, sementara header
-             memakai logo V dari Vic's Private HQ. Dua bentuk berbeda untuk
-             brand yang sama membuat halaman terasa tidak konsisten. -->
-        <a href="/home" class="auth-logo" aria-label="Kembali ke beranda">
-          <img src="/assets/brand-vics.png" alt="" width="44" height="44"
-               class="auth-logo-img" decoding="async">
-        </a>
+        <!-- Logo tengah kartu DIHAPUS — logo sudah ada di header halaman.
+             Menampilkannya dua kali dalam satu layar membuat kartu terasa
+             seperti halaman terpisah, bukan bagian dari situs. Halaman
+             korporat menampilkan identitas SEKALI, di header. -->
         <h1 class="auth-title" id="authTitle">Sign up</h1>
         <p class="auth-sub" id="authSub">Buat akun untuk mengakses proyek privat</p>
       </header>
@@ -146,83 +142,6 @@
                    aria-describedby="hintEmail">
             <p class="auth-hint" id="hintEmail">Email pribadi atau kantor — keduanya bisa.</p>
           </div>
-
-          <div class="auth-field">
-            <label for="inpPerusahaan">Perusahaan / organisasi <span class="auth-opsional">(opsional)</span></label>
-            <input class="auth-input" type="text" id="inpPerusahaan" name="company"
-                   autocomplete="organization"
-                   aria-describedby="hintPerusahaan">
-            <p class="auth-hint" id="hintPerusahaan">Kosongkan kalau Anda perorangan.</p>
-          </div>
-
-          <div class="auth-field">
-            <label for="inpSandiDaftar">Sandi <span class="auth-wajib" aria-hidden="true">*</span></label>
-            <div class="auth-input-wrap">
-              <input class="auth-input" type="password" id="inpSandiDaftar" name="password"
-                     required autocomplete="new-password"
-                     aria-describedby="hintSandiDaftar">
-              <button type="button" class="auth-reveal" id="btnRevealSandiDaftar"
-                      aria-label="Tampilkan sandi" aria-pressed="false">
-                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-                  <path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor"
-                        stroke-width="1.4" fill="none"/>
-                  <circle cx="10" cy="10" r="2.6" stroke="currentColor"
-                          stroke-width="1.4" fill="none"/>
-                </svg>
-              </button>
-            </div>
-            <p class="auth-hint" id="hintSandiDaftar">
-              Minimal 12 karakter. Frasa panjang lebih kuat daripada simbol acak.
-            </p>
-          </div>
-
-          <!-- Turnstile: widget yang sama dengan formulir login. Server
-               memverifikasi token ini sebelum lead disimpan. -->
-          <div class="auth-turnstile" id="turnstileSlotDaftar" aria-hidden="true"></div>
-
-          <p class="auth-legal">
-            Dengan mendaftar, Anda menyetujui
-            <a href="/syarat" target="_blank" rel="noopener">Syarat Layanan</a>
-            dan
-            <a href="/privasi" target="_blank" rel="noopener">Kebijakan Privasi</a>.
-          </p>
-
-          <button type="submit" class="auth-submit" id="btnDaftar">
-            <span class="auth-submit-label">Sign up</span>
-            <span class="auth-submit-spinner" aria-hidden="true"></span>
-          </button>
-
-          <p class="auth-msg" id="msgDaftar" role="status" aria-live="polite"></p>
-          <p class="auth-alt-bawah">Sudah punya akun? <a href="/sign-in">Sign in</a></p>
-        </form>
-      </section>
-
-      <!-- ══ Panel: permintaan terkirim ══════════════════════════════════════ -->
-      <section class="auth-panel" id="panel-daftar-selesai" data-panel="daftar-selesai">
-        <div class="auth-done">
-          <svg class="auth-check" viewBox="0 0 52 52" aria-hidden="true">
-            <circle cx="26" cy="26" r="24" fill="none" stroke="#f5c542" stroke-width="2"/>
-            <path d="M15 27l7.5 7.5L37 20" fill="none" stroke="#f5c542"
-                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                  class="auth-check-path"/>
-          </svg>
-          <h2 class="auth-done-title">Permintaan terkirim</h2>
-          <p class="auth-done-sub" id="daftarSelesaiSub">
-            Kami akan meninjau permintaan Anda dan mengirim token akses lewat email.
-          </p>
-          <button type="button" class="auth-submit" id="btnKembaliMasuk">
-            <span class="auth-submit-label">Kembali ke sign in</span>
-          </button>
-        </div>
-      </section>
-
-      <footer class="auth-foot">
-        <p>Sudah punya akun? <a href="/sign-in" class="auth-link-inline">Sign in</a></p>
-      </footer>
-
-    </div>
-  </div>
-
 </main>
 
 <script>
