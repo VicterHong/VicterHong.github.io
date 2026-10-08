@@ -182,7 +182,6 @@ export const FAQ = [
 
 /** Judul bagian di halaman pricing. */
 export const JUDUL = {
-  eyebrow: 'Harga',
   title: 'Paket yang jelas, tanpa biaya tersembunyi',
   sub: 'Tiga paket untuk kebutuhan yang berbeda — dari melihat cara kerjanya, sampai membangun produk di atasnya. Semua bisa berhenti kapan saja.',
   judulTabel: 'Bandingkan paket',

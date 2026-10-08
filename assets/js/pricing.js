@@ -606,7 +606,6 @@ async function mulai() {
       if (node && teks) node.textContent = teks;
     };
 
-    setTeks('#judulEyebrow', j.eyebrow);
     setTeks('#judulUtama', j.title);
     setTeks('#judulSub', j.sub);
     setTeks('#judulTabel', j.judulTabel);
