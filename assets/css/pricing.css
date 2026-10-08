@@ -259,11 +259,24 @@
    2. KARTU HARGA
    ════════════════════════════════════════════════════════════════════════════ */
 
+/* ── Grid: kartu rata & sama tinggi ──────────────────────────────────────────
+   ── KENAPA `stretch`, BUKAN `start` ────────────────────────────────────────
+   Dengan `start`, setiap kartu setinggi isinya sendiri — dan karena isinya
+   berbeda panjang, garis atas dan bawahnya tidak sejajar. Terlihat berantakan.
+
+   Dengan `stretch` (bawaan grid), ketiganya sama tinggi. Tombol di bawah
+   otomatis sejajar karena `.harga-fitur` mengisi ruang sisa.
+
+   ── KENAPA ADA `perspective` ───────────────────────────────────────────────
+   Perspective di induk membuat transformasi 3D di anaknya terlihat punya
+   kedalaman. Tanpa ini, `rotateX` di kartu hanya memipihkan bentuknya —
+   bukan memiringkannya ke belakang. */
 .harga-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--pr-4);
-  align-items: start;
+  align-items: stretch;
+  perspective: 1600px;
 }
 
 @media (min-width: 56rem) {
@@ -271,6 +284,26 @@
     grid-template-columns: repeat(3, 1fr);
     gap: var(--pr-5);
   }
+}
+
+/* ── Sudut putar untuk glow ──────────────────────────────────────────────────
+   `@property` mendaftarkan `--sudut` sebagai sudut yang BISA dianimasikan.
+
+   ── KENAPA INI PERLU ───────────────────────────────────────────────────────
+   Tanpa `@property`, `conic-gradient(from var(--sudut), ...)` tidak bisa
+   dianimasikan — browser menganggap nilainya berubah mendadak, bukan
+   bergerak. Hasilnya glow yang melompat, bukan berputar.
+
+   Didukung Chrome 85+, Safari 16.4+, Firefox 128+. Di browser lama, glow-nya
+   tetap muncul tapi diam — penurunan yang wajar untuk efek hiasan. */
+@property --sudut {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes harga-glow-putar {
+  to { --sudut: 360deg; }
 }
 
 .harga-kartu {
@@ -281,26 +314,106 @@
   border: 1px solid var(--pr-line);
   border-radius: 1.5rem;
   background: var(--pr-card);
-  transition: border-color 0.22s ease;
+
+  /* Posisi relatif — jangkar untuk glow ::before dan lencana */
+  position: relative;
+
+  /* Transformasi 3D terlihat punya kedalaman karena `perspective` di induk */
+  transform-style: preserve-3d;
+
+  transition:
+    border-color 0.22s ease,
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.32s ease;
 }
 
+/* ── Cincin glow berputar ────────────────────────────────────────────────────
+   Digambar sebagai lapisan tipis di tepi kartu, bukan latar penuh.
+
+   ── CARA KERJANYA ───────────────────────────────────────────────────────────
+   1. `inset: -1px` — sedikit lebih besar dari kartu, jadi tepinya tertutup
+   2. `padding: 1px` + `mask-composite: exclude` — hanya tepi 1px yang
+      tersisa; bagian tengahnya dilubangi supaya isi kartu tetap terlihat
+   3. `conic-gradient` dengan sudut yang berputar — itulah kilauannya
+
+   ── KENAPA HANYA MUNCUL SAAT AKTIF ──────────────────────────────────────────
+   Glow yang selalu berputar di ketiga kartu sekaligus jadi bising dan
+   mengalihkan perhatian dari isinya. Muncul saat dipilih, ia jadi umpan
+   balik: "yang ini sedang Anda lihat". */
+.harga-kartu::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--sudut, 0deg),
+    transparent 0deg,
+    transparent 200deg,
+    var(--pr-accent-line) 260deg,
+    var(--pr-accent) 300deg,
+    var(--pr-accent-light) 330deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── Keadaan aktif ──────────────────────────────────────────────────────────
+   Dipicu oleh klik (lewat JS) ATAU fokus keyboard di dalam kartu.
+   Yang kedua penting: pengguna keyboard harus mendapat umpan balik yang
+   sama dengan pengguna mouse. */
+.harga-kartu.is-aktif::before,
+.harga-kartu:focus-within::before {
+  opacity: 1;
+  animation: harga-glow-putar 3.2s linear infinite;
+}
+
+/* Cahaya lembut di belakang kartu aktif — memperkuat efeknya tanpa
+   menambah elemen baru. */
+.harga-kartu.is-aktif,
+.harga-kartu:focus-within {
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(245, 197, 66, 0.18),
+    0 18px 50px -18px rgba(245, 197, 66, 0.28);
+}
+
+/* ── Hover: sedikit terangkat + miring ke belakang ───────────────────────────
+   Kemiringan hanya 1,2 derajat — cukup terasa punya kedalaman, tidak sampai
+   membuat teks sulit dibaca. */
 .harga-kartu:hover {
+  transform: translateY(-4px) rotateX(1.2deg);
   border-color: var(--pr-line-strong);
 }
 
-/* Kartu unggulan — dinaikkan sedikit supaya jadi pusat perhatian.
-   Pola "highlight the plan that matches the intended audience". */
+/* ── Kartu unggulan ─────────────────────────────────────────────────────────
+   ── KENAPA TIDAK DINAIKKAN LAGI ────────────────────────────────────────────
+   Versi sebelumnya memakai `translateY(-0.5rem)` — kartu tengah naik 8px
+   dari yang lain. Terlihat menonjol, tapi merusak kesejajaran: garis atas
+   ketiga kartu tidak lurus, dan itu terbaca sebagai tata letak yang belum
+   rapi.
+
+   Sekarang dibedakan lewat warna dan cahaya saja — kartunya tetap sejajar. */
 .harga-kartu--unggulan {
   border-color: var(--pr-accent-line);
   background: var(--pr-card-soft);
-  position: relative;
+  box-shadow: 0 0 40px -24px rgba(245, 197, 66, 0.5);
 }
 
-@media (min-width: 56rem) {
-  .harga-kartu--unggulan {
-    /* Naik 8px — cukup terlihat menonjol, tidak berlebihan */
-    transform: translateY(-0.5rem);
-  }
+.harga-kartu--unggulan:hover {
+  border-color: var(--pr-accent);
+  box-shadow: 0 0 50px -20px rgba(245, 197, 66, 0.6);
 }
 
 .harga-lencana {
@@ -403,6 +516,20 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
+}
+
+
+/* ── Penyeimbang tinggi untuk kartu tanpa angka ──────────────────────────────
+   Kartu Enterprise tidak punya harga angka, jadi tidak punya baris harga
+   coret. Elemen kosongnya tingginya 0px — sedangkan di kartu lain 25px.
+
+   `min-height` di sini menyamakannya, supaya daftar fitur ketiga kartu
+   mulai dari garis yang sama.
+
+   Angkanya (1.55rem) = tinggi baris coret + jarak di kartu berbayar. */
+.harga-coret-wrap:empty {
+  min-height: 1.55rem;
+  margin-bottom: 0;
 }
 
 /* Saat ada harga coret, jarak atas harga utama dirapatkan — keduanya
@@ -541,6 +668,48 @@
 
 .tombol:hover svg {
   transform: translate(2px, -2px);
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   KESEJAJARAN ANTAR KARTU
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── MASALAH YANG DISELESAIKAN ──────────────────────────────────────────────
+   Kartu Enterprise tidak punya angka harga — ia menampilkan "Sesuai
+   kebutuhan" sebagai teks. Akibatnya tinggi blok harganya berbeda, dan
+   SEMUA yang di bawahnya ikut bergeser:
+
+     harga        : 611, 611, 567   ← beda 44px
+     daftar fitur : 747, 747, 652   ← beda 95px
+
+   Dua kartu berbayar punya baris "Ditagih Rp … per tahun" di bawah harganya;
+   Enterprise tidak. Selisih satu baris itu merembet ke seluruh kartu.
+
+   ── CARA MEMPERBAIKI ───────────────────────────────────────────────────────
+   Blok kepala diberi tinggi minimum yang sama, dan harga ditempatkan di
+   tengah blok itu. Dengan begitu, di mana pun titik awal daftar fitur,
+   ketiganya mulai di garis yang sama.
+
+   `min-height` dihitung dari kartu tertinggi: judul + deskripsi + harga +
+   2 baris keterangan. Bukan angka ajaib — kalau isinya berubah, sesuaikan.
+   ────────────────────────────────────────────────────────────────────────── */
+
+@media (min-width: 56rem) {
+  /* Daftar fitur mengisi ruang sisa, jadi tombol di ketiga kartu selalu
+     berada di garis yang sama — apa pun panjang isinya. */
+  .harga-fitur {
+    flex: 1;
+  }
+}
+
+/* ── Harga di Enterprise: sejajarkan dengan kartu lain ───────────────────────
+   Teks "Sesuai kebutuhan" lebih pendek dari angka, jadi tingginya beda.
+   `min-height` menyamakan ruang yang dipakai. */
+.harga-angka--teks {
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -726,8 +895,23 @@
     transform: none;
   }
 
-  .harga-kartu--unggulan {
-    transform: none;
+  /* ── Glow berputar dimatikan, tapi TETAP TERLIHAT ────────────────────────
+     Ini bagian yang sering salah: mematikan animasi dengan `display: none`
+     atau `opacity: 0` menghilangkan informasinya sama sekali.
+
+     Yang benar: hentikan gerakannya, biarkan warnanya. Pengguna tetap tahu
+     kartu mana yang aktif — tanpa kilauan yang bisa memicu ketidaknyamanan.
+
+     Cincinnya jadi gradien statis: tetap ada, tidak bergerak. */
+  .harga-kartu.is-aktif::before,
+  .harga-kartu:focus-within::before {
+    animation: none;
+    background: linear-gradient(
+      135deg,
+      var(--pr-accent-line),
+      var(--pr-accent),
+      var(--pr-accent-light)
+    );
   }
 }
 

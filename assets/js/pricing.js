@@ -242,6 +242,33 @@ function gambarKartu(paket, hrefKontak, periode) {
   }
 
   for (const baris of barisKaki) kepala.appendChild(baris);
+
+  // ── Penyeimbang tinggi ──────────────────────────────────────────────────
+  // Kartu Enterprise tidak punya harga angka, jadi dua baris yang ada di
+  // kartu lain tidak ada di sini:
+  //
+  //   • baris harga coret + lencana diskon   (25px)
+  //   • baris "Ditagih … per tahun"          (20px)
+  //
+  // Selisihnya 81px — dan itu membuat daftar fiturnya naik, tidak sejajar
+  // dengan dua kartu lain. Terlihat sebagai tata letak yang belum rapi.
+  //
+  // Elemen kosong ini mengisi ruang yang sama. `aria-hidden` karena tidak
+  // ada isinya — pembaca layar tidak perlu tahu ada ruang kosong.
+  //
+  // Dipilih daripada `min-height` di CSS karena tingginya mengikuti isi
+  // kartu lain: kalau nanti ditambah baris, penyeimbangnya ikut menyesuaikan.
+  if (f.teks) {
+    const kosongCoret = el('div', 'harga-coret-wrap');
+    kosongCoret.setAttribute('aria-hidden', 'true');
+    kepala.appendChild(kosongCoret);
+
+    const kosongTotal = el('p', 'harga-total');
+    kosongTotal.setAttribute('aria-hidden', 'true');
+    kosongTotal.textContent = '\u00A0';
+    kepala.appendChild(kosongTotal);
+  }
+
   kartu.appendChild(kepala);
 
   // Daftar fitur
@@ -392,6 +419,42 @@ function gambarToggle(periode, paket, saatGanti) {
   }
 
   return wrap;
+}
+
+/* ── Kartu aktif — glow berputar ────────────────────────────────────────── */
+
+/**
+ * Tandai kartu yang sedang dipilih, dan lepaskan dari yang lain.
+ *
+ * ── KENAPA KLIK, BUKAN HANYA HOVER ─────────────────────────────────────────
+ * Hover tidak ada di perangkat sentuh. Kalau efeknya hanya muncul saat
+ * hover, pengguna ponsel — yang justru mayoritas — tidak akan pernah
+ * melihatnya sama sekali.
+ *
+ * Klik berfungsi di keduanya, dan lebih disengaja: pengguna memilih untuk
+ * melihat kartu itu, bukan sekadar kebetulan melintasinya dengan kursor.
+ *
+ * ── KENAPA HANYA SATU YANG AKTIF ───────────────────────────────────────────
+ * Kalau ketiganya bisa menyala bersamaan, tidak ada yang menonjol — dan
+ * glow-nya jadi bising. Satu aktif pada satu waktu membuatnya bermakna.
+ */
+function pasangKartuAktif(grid) {
+  if (!grid) return;
+
+  // Delegasi ke grid — kartu digambar ulang saat periode berganti, jadi
+  // memasang listener di setiap kartu berarti harus dipasang ulang terus.
+  grid.addEventListener('click', (e) => {
+    const kartu = e.target.closest('.harga-kartu');
+    if (!kartu) return;
+
+    // Klik pada tautan/tombol tidak boleh mengubah pilihan — pengguna
+    // sedang menuju ke sana, bukan memilih kartunya.
+    if (e.target.closest('a, button')) return;
+
+    for (const k of grid.querySelectorAll('.harga-kartu')) {
+      k.classList.toggle('is-aktif', k === kartu);
+    }
+  });
 }
 
 /* ── Skeleton ───────────────────────────────────────────────────────────── */
@@ -548,6 +611,11 @@ async function mulai() {
     }
 
     gambarKartuSemua();
+
+    // ── Pasang penanganan klik ───────────────────────────────────────────────
+    // Delegasi ke grid, jadi tetap bekerja setelah kartu digambar ulang saat
+    // periode berganti — tidak perlu dipasang ulang setiap kali.
+    pasangKartuAktif(grid);
 
     // ── FAQ ──────────────────────────────────────────────────────────────
     const wadahFaq = root.querySelector('#wadahFaq');
