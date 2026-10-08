@@ -1,0 +1,441 @@
+/* ══ Halaman Keamanan Akun — gaya ═════════════════════════════════════════════
+ *
+ * ── KENAPA BERKAS TERPISAH ───────────────────────────────────────────────────
+ * auth.css sudah 1.000+ baris dan mengurus halaman masuk/daftar. Halaman ini
+ * punya kebutuhan sendiri (daftar cara masuk, dialog, tombol bahaya) yang
+ * tidak dipakai di halaman lain. Menaruhnya di auth.css membuat berkas itu
+ * memuat aturan yang tidak pernah dipakai halaman masuk.
+ *
+ * ── YANG DIWARISI DARI auth.css ──────────────────────────────────────────────
+ * Token warna (--emas, --permukaan, --teks), kartu (auth-card), tombol
+ * (auth-btn), pesan (auth-msg), navigasi (auth-nav), dan latar. Berkas ini
+ * HANYA menambah yang belum ada — tidak menimpa, tidak mengulang.
+ *
+ * ── PRINSIP ──────────────────────────────────────────────────────────────────
+ *   1. Satu bahasa visual dengan halaman masuk. Kartu, radius, warna, dan
+ *      jarak memakai nilai yang sama — bukan nilai baru yang "mirip".
+ *   2. Hierarki lewat bobot dan warna, bukan ukuran besar-besaran.
+ *   3. Aksi merusak (hapus) diberi warna bahaya, tapi tidak mencolok sampai
+ *      pengguna benar-benar mengarahkan kursor ke sana.
+ */
+
+/* ══ ATURAN WAJIB: `hidden` HARUS benar-benar menyembunyikan ══════════════════
+ *
+ * ── MASALAH ──
+ * Browser menyediakan `[hidden] { display: none }` di stylesheet bawaan (UA).
+ * Tapi aturan author SELALU menang atas UA — jadi setiap `display: flex` atau
+ * `display: grid` yang kita tulis pada elemen ber-atribut `hidden` membuat
+ * elemen itu TETAP TAMPIL.
+ *
+ * ── AKIBAT NYATA YANG PERNAH TERJADI DI HALAMAN INI ──
+ *   1. Dialog konfirmasi yang `hidden` menutupi seluruh halaman dengan
+ *      overlay tak terlihat (latar gelap di atas latar gelap) dan mencegat
+ *      SEMUA klik — halaman terasa "mati total" tanpa sebab yang terlihat.
+ *   2. Spinner "Memuat data akun…" tetap terlihat padahal data sudah tampil,
+ *      membuat halaman terlihat setengah jadi.
+ *
+ * ── KENAPA SATU ATURAN GLOBAL, BUKAN TAMBAL PER-KELAS ──
+ * Bug ini sudah muncul dua kali. Menambal `.kam-dialog[hidden]` lalu
+ * `.kam-memuat[hidden]` berarti bug yang sama akan kembali setiap kali ada
+ * elemen baru yang memakai `hidden`. Satu aturan di sini menutup semuanya,
+ * termasuk elemen yang belum ditulis.
+ *
+ * ── KENAPA `!important` DI SINI BENAR ──
+ * `!important` biasanya tanda kode yang berantakan. Di sini ia melindungi
+ * SEMANTIK HTML (`hidden` berarti tersembunyi) dari gaya presentasi kita
+ * sendiri — persis penggunaan yang tepat.
+ * ══════════════════════════════════════════════════════════════════════════ */
+[hidden] {
+  display: none !important;
+}
+
+/* ── Kartu lebih lebar dari halaman masuk ─────────────────────────────────────
+   Halaman masuk butuh 400px (satu kolom input). Halaman ini menampilkan
+   daftar cara masuk dengan ikon + teks + tombol — 400px membuat teks
+   terpotong dan tombol berdesakan. 520px memberi ruang tanpa terasa kosong. */
+.auth-card-lebar { width: min(520px, 100%); }
+
+/* ── Status pemuatan ─────────────────────────────────────────────────────────*/
+.kam-memuat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 4px;
+  color: var(--teks-redup);
+  font-size: 13.5px;
+}
+
+.kam-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--garis-terang);
+  border-top-color: var(--emas);
+  border-radius: 50%;
+  animation: kam-putar 700ms linear infinite;
+}
+
+@keyframes kam-putar { to { transform: rotate(360deg); } }
+
+/* Hormati preferensi pengguna: putaran berhenti, tapi tetap terlihat. */
+@media (prefers-reduced-motion: reduce) {
+  .kam-spinner { animation: none; border-top-color: var(--emas); }
+}
+
+/* ── Blok ─────────────────────────────────────────────────────────────────────*/
+.kam-blok { margin-bottom: 26px; }
+.kam-blok:last-of-type { margin-bottom: 20px; }
+
+.kam-judul {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teks-samar);
+}
+
+.kam-judul-baris {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kam-hitung {
+  font-size: 11.5px;
+  color: var(--teks-samar);
+  font-variant-numeric: tabular-nums;
+}
+
+.kam-keterangan {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--teks-redup);
+}
+
+/* ── Daftar definisi akun ────────────────────────────────────────────────────*/
+.kam-daftar { margin: 0; display: grid; gap: 1px; }
+
+.kam-baris {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--garis);
+}
+
+.kam-baris:last-child { border-bottom: 0; }
+
+.kam-baris dt {
+  font-size: 13px;
+  color: var(--teks-samar);
+  flex-shrink: 0;
+}
+
+.kam-baris dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--teks);
+  text-align: right;
+  word-break: break-word;
+}
+
+/* ── Senarai cara masuk ──────────────────────────────────────────────────────*/
+.kam-senarai {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.kam-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-input);
+  background: rgba(255, 255, 255, 0.015);
+  transition: border-color var(--durasi-cepat) var(--pegas),
+              background var(--durasi-cepat) var(--pegas);
+}
+
+.kam-item:hover {
+  border-color: var(--garis-terang);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Ikon cara masuk ─────────────────────────────────────────────────────────
+   28px kotak: cukup untuk ikon 15px bernapas, cukup kecil untuk tidak
+   mendominasi baris. Latar emas redup menandai "ini milik akun Anda",
+   tanpa membuat setiap baris terlihat seperti tombol. */
+.kam-ikon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--emas-redup);
+  color: var(--emas);
+}
+
+.kam-ikon svg { width: 15px; height: 15px; }
+
+.kam-item-isi { flex: 1; min-width: 0; }
+
+.kam-item-judul {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--teks);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.kam-item-ket {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--teks-samar);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Lencana ─────────────────────────────────────────────────────────────────
+   "Utama" menandai cara masuk yang paling sering dipakai. Hanya SATU yang
+   boleh punya lencana ini — kalau semua ditandai, tidak ada yang istimewa. */
+.kam-lencana {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--emas-redup);
+  color: var(--emas);
+  border: 1px solid var(--emas-garis);
+}
+
+/* ── Tombol hapus ────────────────────────────────────────────────────────────
+   Redup sampai kursor mendekat. Aksi merusak tidak boleh menonjol — pengguna
+   harus MEMILIH untuk menghapus, bukan tidak sengaja mengklik. */
+.kam-hapus {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--teks-samar);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--durasi-cepat) var(--pegas),
+              border-color var(--durasi-cepat) var(--pegas),
+              background var(--durasi-cepat) var(--pegas);
+}
+
+.kam-hapus:hover,
+.kam-hapus:focus-visible {
+  color: var(--galat);
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.kam-hapus:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Tambah passkey ──────────────────────────────────────────────────────────*/
+.kam-tambah {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px dashed var(--garis-terang);
+  border-radius: var(--radius-input);
+  display: grid;
+  gap: 12px;
+}
+
+.kam-tambah-isi { display: flex; gap: 12px; align-items: flex-start; }
+.kam-tambah-teks { flex: 1; min-width: 0; }
+
+.kam-tambah-judul {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--teks);
+}
+
+.kam-tambah-ket {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--teks-samar);
+}
+
+/* ── Kosong ──────────────────────────────────────────────────────────────────*/
+.kam-kosong { padding: 8px 0 4px; }
+
+.kam-kosong-judul {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--teks);
+}
+
+.kam-kosong-teks {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--teks-redup);
+}
+
+/* ── Kaki kartu ──────────────────────────────────────────────────────────────*/
+.kam-kaki {
+  /* Jarak lebih tegas sebelum garis pemisah: tanpa ini tombol keluar
+     terlihat seperti bagian dari blok di atasnya, bukan bagian terpisah. */
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--garis);
+  text-align: center;
+}
+
+.kam-keluar {
+  font-size: 12.5px;
+  color: var(--teks-samar);
+  text-decoration: none;
+  transition: color var(--durasi-cepat) var(--pegas);
+}
+
+.kam-keluar:hover { color: var(--teks-redup); text-decoration: underline; }
+
+/* ── Dialog ──────────────────────────────────────────────────────────────────*/
+.kam-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+
+.kam-dialog-latar {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.66);
+  backdrop-filter: blur(3px);
+}
+
+.kam-dialog-kotak {
+  position: relative;
+  width: min(400px, 100%);
+  padding: 22px;
+  border: 1px solid var(--garis-terang);
+  border-radius: var(--radius-kartu);
+  background: var(--permukaan-padat);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  animation: kam-muncul var(--durasi-cepat) var(--pegas);
+}
+
+@keyframes kam-muncul {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kam-dialog-kotak { animation: none; }
+}
+
+.kam-dialog-judul {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--teks);
+}
+
+.kam-dialog-teks {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--teks-redup);
+}
+
+.kam-dialog-aksi {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ── Tombol bahaya ───────────────────────────────────────────────────────────
+   Dibangun dari .auth-oauth (kelas tombol sekunder yang sudah ada), bukan
+   dari kelas baru. Dengan begitu ukuran, jarak, dan transisinya otomatis
+   sama dengan tombol lain — yang berubah hanya warnanya.
+
+   Dipakai HANYA di dalam dialog, setelah pengguna memilih untuk menghapus —
+   jadi tidak ada risiko salah klik dari tampilan normal. */
+.auth-oauth.auth-oauth-bahaya {
+  width: auto;
+  margin-bottom: 0;
+  padding: 9px 18px;
+  background: rgba(248, 113, 113, 0.14);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
+.auth-oauth.auth-oauth-bahaya:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.22);
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+/* Tombol Batal di dialog: sama ukurannya dengan tombol Hapus, tapi tanpa
+   warna bahaya. Dua tombol bersebelahan dengan ukuran berbeda terlihat
+   tidak sengaja. */
+.kam-dialog-aksi .auth-oauth {
+  width: auto;
+  margin-bottom: 0;
+  padding: 9px 18px;
+}
+
+/* ── Responsif ───────────────────────────────────────────────────────────────
+   Di layar sempit, baris item menumpuk: ikon + teks di atas, tombol di bawah.
+   Tanpa ini, tombol "Hapus" berdesakan dengan teks dan teksnya terpotong. */
+@media (max-width: 420px) {
+  /* Grid dua kolom + dua baris: ikon dan isi di baris pertama, tombol
+     hapus di baris kedua yang membentang penuh lalu rata kanan.
+
+     Grid dipilih di sini (bukan flex-wrap) karena lebar kolom
+     DIDEFINISIKAN, bukan dihitung dari sisa ruang. Tidak ada pembulatan
+     yang bisa membuat item terakhir tumpah ke baris berikutnya. */
+  .kam-item {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    grid-template-areas:
+      "ikon isi"
+      "hapus hapus";
+    row-gap: 10px;
+    align-items: start;
+  }
+
+  .kam-ikon { grid-area: ikon; }
+  .kam-item-isi { grid-area: isi; }
+
+  .kam-hapus {
+    grid-area: hapus;
+    justify-self: end;
+    /* Padding vertikal dikurangi karena barisnya sendiri sudah memberi
+       jarak — tanpa ini tombolnya terasa mengambang di ruang kosong. */
+    padding: 5px 10px;
+  }
+
+  /* Ikon + teks TETAP sebaris — sama seperti kartu Sandi dan Passkey di
+     atasnya. Yang turun ke bawah adalah TOMBOL, karena tombol full-width
+     lebih mudah ditekan di layar sempit. */
+  .kam-tambah-isi { gap: 12px; }
+}

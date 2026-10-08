@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keamanan akun | VIVASTIC</title>
+<meta name="description" content="Kelola cara masuk ke akun Anda.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/assets/css/cf-gate.css">
+<link rel="stylesheet" href="/assets/css/logo.css">
+<link rel="stylesheet" href="/assets/css/auth-bg.css">
+<link rel="stylesheet" href="/assets/css/auth.css">
+<link rel="stylesheet" href="/assets/css/keamanan.css">
+</head>
+<body class="auth-body">
+
+<div class="auth-bg" aria-hidden="true"></div>
+
+<!-- ══ Navigasi ══════════════════════════════════════════════════════════════
+     Sama dengan halaman masuk: identitas situs muncul SEKALI di header,
+     bukan diulang di dalam kartu. Konsistensi ini membuat halaman terasa
+     bagian dari situs yang sama, bukan halaman terpisah. -->
+<nav class="auth-nav">
+  <a class="auth-nav-brand" href="/" aria-label="VIVASTIC — beranda">
+    <span class="auth-nav-mark" aria-hidden="true"></span>
+    <span class="auth-nav-nama">VIVASTIC</span>
+  </a>
+  <div class="auth-nav-links">
+    <a class="auth-nav-signin" href="/">Beranda</a>
+  </div>
+</nav>
+
+<main class="auth-main">
+  <div class="auth-scene">
+    <div class="auth-card auth-card-lebar" id="card">
+
+      <header class="auth-head">
+        <h1 class="auth-title">Keamanan akun</h1>
+        <p class="auth-sub">Cara masuk ke akun Anda</p>
+      </header>
+
+      <!-- ══ Status pemuatan ═══════════════════════════════════════════════════
+           Ditampilkan sampai data datang. Tanpa ini, pengguna melihat kartu
+           kosong sekejap dan mengira halamannya rusak. -->
+      <div class="kam-memuat" id="kamMemuat">
+        <span class="kam-spinner" aria-hidden="true"></span>
+        <span>Memuat data akun…</span>
+      </div>
+
+      <!-- ══ Belum masuk ═══════════════════════════════════════════════════════
+           Halaman ini butuh sesi. Kalau tidak ada, tampilkan penjelasan dan
+           tautan ke halaman masuk — bukan galat mentah. -->
+      <section class="kam-blok" id="kamBelumMasuk" hidden>
+        <div class="kam-kosong">
+          <p class="kam-kosong-judul">Anda belum masuk</p>
+          <p class="kam-kosong-teks">
+            Halaman ini menampilkan cara masuk yang tersambung ke akun Anda.
+            Masuk dulu untuk melihatnya.
+          </p>
+          <a class="auth-submit auth-submit-link" href="/sign-in">Masuk ke akun</a>
+        </div>
+      </section>
+
+      <!-- ══ Isi utama ════════════════════════════════════════════════════════ -->
+      <div id="kamIsi" hidden>
+
+        <!-- Identitas akun -->
+        <section class="kam-blok">
+          <h2 class="kam-judul">Akun</h2>
+          <dl class="kam-daftar">
+            <div class="kam-baris">
+              <dt>Email</dt>
+              <dd id="kamEmail">—</dd>
+            </div>
+            <div class="kam-baris" id="kamBarisNama" hidden>
+              <dt>Nama</dt>
+              <dd id="kamNama">—</dd>
+            </div>
+            <div class="kam-baris" id="kamBarisPerusahaan" hidden>
+              <dt>Organisasi</dt>
+              <dd id="kamPerusahaan">—</dd>
+            </div>
+          </dl>
+        </section>
+
+        <!-- ══ Cara masuk ══════════════════════════════════════════════════════
+             Ini inti halaman. Setiap cara masuk ditampilkan sebagai satu baris
+             dengan tombol hapus. -->
+        <section class="kam-blok">
+          <div class="kam-judul-baris">
+            <h2 class="kam-judul">Cara masuk</h2>
+            <span class="kam-hitung" id="kamHitung">—</span>
+          </div>
+
+          <p class="kam-keterangan">
+            Akun Anda bisa dimasuki lewat cara-cara berikut. Menghapus salah
+            satunya tidak menghapus akun — hanya menutup jalan itu.
+          </p>
+
+          <ul class="kam-senarai" id="kamSenarai"></ul>
+
+          <!-- Tambah passkey -->
+          <div class="kam-tambah">
+            <div class="kam-tambah-isi">
+              <span class="kam-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 10a2 2 0 0 0-2 2c0 .51.19.97.5 1.32V16a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2.68c.31-.35.5-.81.5-1.32a2 2 0 0 0-2-2Z"/>
+                  <path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9Z"/>
+                </svg>
+              </span>
+              <div class="kam-tambah-teks">
+                <p class="kam-tambah-judul">Tambah passkey</p>
+                <p class="kam-tambah-ket">
+                  Masuk dengan sidik jari, wajah, atau PIN perangkat.
+                  Tidak perlu mengetik sandi.
+                </p>
+              </div>
+            </div>
+            <button class="auth-oauth" type="button" id="btnTambahPasskey">
+              Tambah passkey
+            </button>
+          </div>
+        </section>
+
+        <!-- Pesan status -->
+        <p class="auth-msg" id="kamPesan" role="status" aria-live="polite"></p>
+      </div>
+
+      <!-- ══ Keluar ════════════════════════════════════════════════════════════
+           Ditaruh paling bawah dan gaya sekunder: keluar bukan tindakan yang
+           sering dipakai, dan menaruhnya menonjol membuat pengguna tidak sengaja
+           mengkliknya. -->
+      <footer class="kam-kaki" id="kamKaki" hidden>
+        <a class="kam-keluar" href="/sign-in?keluar=1">Keluar dari akun</a>
+      </footer>
+
+    </div>
+  </div>
+</main>
+
+<!-- ══ Dialog konfirmasi hapus ═══════════════════════════════════════════════
+     Menghapus cara masuk adalah tindakan yang tidak bisa dibatalkan dengan
+     mudah, jadi butuh konfirmasi. Dialog dibuat sendiri (bukan confirm())
+     karena confirm() memblokir seluruh halaman dan tidak bisa digayakan —
+     di halaman korporat itu terlihat seperti peringatan browser, bukan
+     bagian dari produk. -->
+<div class="kam-dialog" id="kamDialog" hidden>
+  <div class="kam-dialog-latar" data-tutup="1"></div>
+  <div class="kam-dialog-kotak" role="dialog" aria-modal="true" aria-labelledby="kamDialogJudul">
+    <h3 class="kam-dialog-judul" id="kamDialogJudul">Hapus cara masuk?</h3>
+    <p class="kam-dialog-teks" id="kamDialogTeks"></p>
+    <div class="kam-dialog-aksi">
+      <button class="auth-oauth" type="button" id="kamDialogBatal">Batal</button>
+      <button class="auth-oauth auth-oauth-bahaya" type="button" id="kamDialogHapus">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="/assets/js/cf-gate-i18n.js" defer></script>
+<script src="/assets/js/cf-gate.js" defer></script>
+<script src="/assets/js/keamanan.js" defer></script>
+</body>
+</html>

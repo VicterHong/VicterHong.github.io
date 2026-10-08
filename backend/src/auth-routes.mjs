@@ -796,6 +796,41 @@ const rutePasskeyMasukSelesai = {
 
 // ── Daftar cara masuk & pencabutan ────────────────────────────────────────────
 
+/**
+ * Siapa yang sedang masuk.
+ *
+ * Halaman keamanan butuh ini untuk menampilkan email + nama pemilik akun.
+ * Tanpa endpoint ini, halaman harus menebak dari data lain — dan menebak
+ * identitas di halaman keamanan adalah hal yang buruk.
+ *
+ * Sengaja TIDAK mengembalikan: password_hash, token_id, atau id internal
+ * selain yang perlu. Yang dikirim hanya yang ditampilkan di layar.
+ */
+const ruteProfil = {
+  method: 'GET',
+  pattern: '/api/auth/profil',
+  handler: async (req, res) => {
+    const tokenRow = sesiDariRequest(req);
+    if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+    const pengguna = penggunaDariToken(tokenRow);
+    if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+    return sendJson(res, 200, {
+      ok: true,
+      email: pengguna.email,
+      nama: pengguna.nama || '',
+      perusahaan: pengguna.perusahaan || '',
+      status: pengguna.status,
+      dibuat_at: pengguna.dibuat_at,
+      masuk_terakhir: pengguna.masuk_terakhir,
+      // Apakah akun ini punya sandi? Dipakai halaman keamanan untuk
+      // memutuskan apakah cara masuk terakhir boleh dihapus.
+      punya_sandi: Boolean(pengguna.password_hash),
+    });
+  },
+};
+
 const ruteDaftarIdentitas = {
   method: 'GET',
   pattern: '/api/auth/identitas',
@@ -922,6 +957,7 @@ export function ruteAuth() {
     rutePasskeyRegistrasiSelesai,
     rutePasskeyMasukMulai,
     rutePasskeyMasukSelesai,
+    ruteProfil,
     ruteDaftarIdentitas,
     ruteHapusIdentitas,
   ];
