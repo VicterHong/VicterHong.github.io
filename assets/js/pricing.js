@@ -189,6 +189,25 @@ function gambarKartu(paket, hrefKontak, periode) {
   const kartu = el('div', `harga-kartu${paket.unggulan ? ' harga-kartu--unggulan' : ''}`);
   kartu.dataset.paket = paket.id;
 
+  // ── Cincin glow ─────────────────────────────────────────────────────────
+  // Elemen khusus, bukan ::before.
+  //
+  // ── KENAPA BUKAN ::before ───────────────────────────────────────────────
+  // Versi sebelumnya menganimasikan `--sudut` di dalam conic-gradient.
+  // Itu jalan, tapi TIDAK MULUS: Chromium harus menghitung ulang gradient-nya
+  // di setiap frame (repaint), bukan menyerahkannya ke GPU.
+  //
+  // Cara yang benar: gradient-nya DIAM, elemennya yang berputar. `transform:
+  // rotate()` dikerjakan GPU tanpa repaint — hasilnya mulus di semua
+  // perangkat, termasuk ponsel kelas bawah.
+  //
+  // Butuh dua lapis: wadah ber-mask (untuk memotong jadi tepi 1px) dan anak
+  // yang berputar di dalamnya. `::before` hanya bisa satu, jadi elemennya
+  // dibuat di sini.
+  const glow = el('span', 'harga-glow');
+  glow.setAttribute('aria-hidden', 'true');
+  kartu.appendChild(glow);
+
   if (paket.lencana) {
     kartu.appendChild(el('span', 'harga-lencana', paket.lencana));
   }
@@ -243,12 +262,23 @@ function gambarKartu(paket, hrefKontak, periode) {
   // ── Keterangan di bawah harga ────────────────────────────────────────────
   const barisKaki = [];
 
-  // Total setahun — angka yang benar-benar ditagih.
+  // ── Urutan baris: total SELALU dulu, catatan kemudian ───────────────────
   //
-  // Tanpa ini, pembeli tahunan melihat "Rp 187.500/bulan" dan bisa mengira
-  // ia ditagih bulanan. Ia berhak tahu angka yang keluar dari rekeningnya.
+  // Enterprise tidak punya baris total. Kalau barisnya dihilangkan begitu
+  // saja, catatannya naik ke posisi yang di kartu lain ditempati total —
+  // dan keterangan ketiga kartu tidak sejajar.
+  //
+  // Jadi barisnya tetap dibuat, hanya diisi spasi setinggi satu baris.
+  // Urutannya harus benar: kalau penyeimbangnya ditambahkan SETELAH
+  // catatan, hasilnya terbalik — catatan di atas, total di bawah.
   if (f.total) {
     barisKaki.push(el('p', 'harga-total', `Ditagih ${f.total} per tahun`));
+  } else if (f.teks && periode === 'tahunan') {
+    // Enterprise di periode tahunan: penyeimbang di posisi yang sama
+    const kosong = el('p', 'harga-total');
+    kosong.setAttribute('aria-hidden', 'true');
+    kosong.textContent = '\u00A0';
+    barisKaki.push(kosong);
   }
 
   if (f.catatanKaki) {
@@ -271,14 +301,6 @@ function gambarKartu(paket, hrefKontak, periode) {
   //
   // `aria-hidden` karena tidak ada isinya — pembaca layar tidak perlu tahu
   // ada ruang kosong.
-  if (f.teks && periode === 'tahunan') {
-    // Hanya di periode tahunan — di bulanan, kartu berbayar pun tidak
-    // punya baris ini, jadi menambahkannya justru membuat tidak sejajar.
-    const kosongTotal = el('p', 'harga-total');
-    kosongTotal.setAttribute('aria-hidden', 'true');
-    kosongTotal.textContent = '\u00A0';
-    kepala.appendChild(kosongTotal);
-  }
 
   kartu.appendChild(kepala);
 

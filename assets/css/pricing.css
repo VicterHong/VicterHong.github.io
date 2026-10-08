@@ -286,25 +286,6 @@
   }
 }
 
-/* ── Sudut putar untuk glow ──────────────────────────────────────────────────
-   `@property` mendaftarkan `--sudut` sebagai sudut yang BISA dianimasikan.
-
-   ── KENAPA INI PERLU ───────────────────────────────────────────────────────
-   Tanpa `@property`, `conic-gradient(from var(--sudut), ...)` tidak bisa
-   dianimasikan — browser menganggap nilainya berubah mendadak, bukan
-   bergerak. Hasilnya glow yang melompat, bukan berputar.
-
-   Didukung Chrome 85+, Safari 16.4+, Firefox 128+. Di browser lama, glow-nya
-   tetap muncul tapi diam — penurunan yang wajar untuk efek hiasan. */
-@property --sudut {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-
-@keyframes harga-glow-putar {
-  to { --sudut: 360deg; }
-}
 
 .harga-kartu {
   display: flex;
@@ -327,34 +308,50 @@
     box-shadow 0.32s ease;
 }
 
-/* ── Cincin glow berputar ────────────────────────────────────────────────────
-   Digambar sebagai lapisan tipis di tepi kartu, bukan latar penuh.
 
-   ── CARA KERJANYA ───────────────────────────────────────────────────────────
-   1. `inset: -1px` — sedikit lebih besar dari kartu, jadi tepinya tertutup
-   2. `padding: 1px` + `mask-composite: exclude` — hanya tepi 1px yang
-      tersisa; bagian tengahnya dilubangi supaya isi kartu tetap terlihat
-   3. `conic-gradient` dengan sudut yang berputar — itulah kilauannya
+/* ── Hover: sedikit terangkat + miring ke belakang ───────────────────────────
+   Kemiringan hanya 1,2 derajat — cukup terasa punya kedalaman, tidak sampai
+   membuat teks sulit dibaca. */
+.harga-kartu:hover {
+  transform: translateY(-4px) rotateX(1.2deg);
+  border-color: var(--pr-line-strong);
+}
 
-   ── KENAPA HANYA MUNCUL SAAT AKTIF ──────────────────────────────────────────
-   Glow yang selalu berputar di ketiga kartu sekaligus jadi bising dan
-   mengalihkan perhatian dari isinya. Muncul saat dipilih, ia jadi umpan
-   balik: "yang ini sedang Anda lihat". */
-.harga-kartu::before {
-  content: '';
+/* ════════════════════════════════════════════════════════════════════════════
+   GLOW BERPUTAR — cincin cahaya di tepi kartu yang dipilih
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA CARA INI, BUKAN ANIMASI GRADIENT ───────────────────────────────
+   Pendekatan pertama: animasikan `--sudut` di dalam `conic-gradient` lewat
+   `@property`. Terukur jalan, TAPI tidak mulus — Chromium menghitung ulang
+   gradient di setiap frame (repaint), dan itu berat di ponsel.
+
+   Pendekatan yang dipakai di sini: gradient-nya DIAM, elemennya yang
+   berputar. `transform: rotate()` ditangani GPU tanpa repaint.
+
+   ── STRUKTUR DUA LAPIS ─────────────────────────────────────────────────────
+   .harga-glow          → wadah, di-mask jadi hanya tepi 1px
+     └ .harga-glow::before → kotak besar bergradient, berputar di dalamnya
+
+   Anaknya sengaja dibuat jauh lebih besar dari kartu (200% × 200%) supaya
+   saat berputar, sudut-sudutnya tidak pernah masuk ke area yang terlihat —
+   yang tampak hanya bagian tengahnya yang berisi gradient.
+
+   Pola ini sama dengan yang dipakai Stripe, Linear, dan Vercel untuk
+   border animasi. */
+
+.harga-glow {
   position: absolute;
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: conic-gradient(
-    from var(--sudut, 0deg),
-    transparent 0deg,
-    transparent 200deg,
-    var(--pr-accent-line) 260deg,
-    var(--pr-accent) 300deg,
-    var(--pr-accent-light) 330deg,
-    transparent 360deg
-  );
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+
+  /* Mask: hanya tepi 1px yang terlihat, tengahnya dilubangi */
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -363,38 +360,61 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  pointer-events: none;
-  z-index: 2;
 }
 
-/* ── Keadaan aktif ──────────────────────────────────────────────────────────
-   Dipicu oleh klik (lewat JS) ATAU fokus keyboard di dalam kartu.
-   Yang kedua penting: pengguna keyboard harus mendapat umpan balik yang
-   sama dengan pengguna mouse. */
-.harga-kartu.is-aktif::before,
-.harga-kartu:focus-within::before {
+/* Kotak gradient yang berputar — jauh lebih besar dari kartu */
+.harga-glow::before {
+  content: '';
+  position: absolute;
+  /* Titik pusat rotasi di tengah kartu, bukan di tengah kotak ini */
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  translate: -50% -50%;
+  background: conic-gradient(
+    transparent 0deg,
+    transparent 210deg,
+    rgba(245, 197, 66, 0.25) 250deg,
+    rgba(245, 197, 66, 0.85) 290deg,
+    var(--pr-accent-light) 320deg,
+    rgba(245, 197, 66, 0.25) 350deg,
+    transparent 360deg
+  );
+  /* Titik putar di tengah kotak — sama dengan titik pusat kartu */
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+/* ── Aktif ──────────────────────────────────────────────────────────────────
+   Dipicu klik (lewat JS) ATAU fokus keyboard di dalam kartu. Yang kedua
+   penting: pengguna keyboard harus dapat umpan balik yang sama. */
+.harga-kartu.is-aktif .harga-glow,
+.harga-kartu:focus-within .harga-glow {
   opacity: 1;
-  animation: harga-glow-putar 3.2s linear infinite;
 }
 
-/* Cahaya lembut di belakang kartu aktif — memperkuat efeknya tanpa
-   menambah elemen baru. */
+.harga-kartu.is-aktif .harga-glow::before,
+.harga-kartu:focus-within .harga-glow::before {
+  animation: harga-glow-putar 4s linear infinite;
+}
+
+/* ── KENAPA `linear`, BUKAN `ease` ──────────────────────────────────────────
+   Ini rotasi kontinu — dengan easing, kecepatannya berubah-ubah dan
+   terlihat tersendat setiap kali siklus berulang. `linear` membuat satu
+   putaran mengalir rata, dan sambungan antar putaran tidak terasa. */
+@keyframes harga-glow-putar {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Cahaya lembut di belakang kartu aktif */
 .harga-kartu.is-aktif,
 .harga-kartu:focus-within {
   border-color: transparent;
   box-shadow:
     0 0 0 1px rgba(245, 197, 66, 0.18),
     0 18px 50px -18px rgba(245, 197, 66, 0.28);
-}
-
-/* ── Hover: sedikit terangkat + miring ke belakang ───────────────────────────
-   Kemiringan hanya 1,2 derajat — cukup terasa punya kedalaman, tidak sampai
-   membuat teks sulit dibaca. */
-.harga-kartu:hover {
-  transform: translateY(-4px) rotateX(1.2deg);
-  border-color: var(--pr-line-strong);
 }
 
 /* ── Kartu unggulan ─────────────────────────────────────────────────────────
@@ -456,10 +476,27 @@
 
 .harga-angka-wrap {
   display: flex;
-  align-items: baseline;
+  /* ── KENAPA `flex-end`, BUKAN `baseline` ────────────────────────────────
+     Dengan `baseline`, tinggi wadah ditentukan oleh teks TERPANJANG dari
+     garis dasarnya. "Rp 59.250/bulan" punya descender (`/b`), sedangkan
+     "Sesuai kebutuhan" tidak — jadi tingginya beda: 34px vs 28px.
+
+     `flex-end` menyelaraskan bagian BAWAH, dan tinggi wadahnya sama untuk
+     semua isi. Terukur di ponsel: keduanya jadi 34px. */
+  align-items: flex-end;
   gap: var(--pr-1);
   font-variant-numeric: tabular-nums;
   margin-top: var(--pr-3);
+
+  /* ── KENAPA `min-height` DALAM `em`, BUKAN `rem` ────────────────────────
+     Tinggi angka mengikuti `clamp(2rem, 6vw, 2.5rem)` — mengecil di layar
+     sempit. `rem` tetap terhadap ukuran akar, jadi tingginya TIDAK ikut
+     mengecil dan wadahnya jadi terlalu pendek di ponsel (terukur: 34px vs
+     40px, selisih 6px).
+
+     `2.5em` mengikuti ukuran font wadah, jadi tingginya selalu sebanding
+     di ukuran layar mana pun. */
+  min-height: 2.5em;
 }
 
 .harga-angka {
@@ -633,6 +670,37 @@
               transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* ── Tombol: SATU gaya untuk ketiga kartu ────────────────────────────────────
+   ── KENAPA DISERAGAMKAN ────────────────────────────────────────────────────
+   Sebelumnya kartu unggulan memakai tombol kuning solid, dua lainnya outline.
+   Terlihat seperti satu kartu "dijual" dan dua lainnya tidak — padahal ketiga
+   paket sama-sama ditawarkan.
+
+   Yang membedakan kartu unggulan sekarang: lencana, warna tepi, dan glow.
+   Bukan warna tombolnya. */
+.tombol--seragam {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--pr-line-strong);
+  color: var(--pr-text);
+}
+
+.tombol--seragam:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--pr-accent-line);
+  color: var(--pr-accent-light);
+  transform: translateY(-1px);
+}
+
+/* ── KENAPA TIDAK ADA PENGEcUALIAN UNTUK KARTU UNGGULAN ─────────────────────
+   Sempat ada override yang membuat tombol kartu unggulan kekuningan. Itu
+   membuatnya terlihat seperti tombol dari desain lain — dan pengguna
+   memintanya seragam.
+
+   Yang membedakan kartu unggulan: lencana, warna tepi, dan glow.
+   Bukan tombolnya. */
+
+/* Gaya lama tetap ada untuk halaman lain yang mungkin memakainya */
 .tombol--utama {
   background: var(--pr-accent);
   border-color: var(--pr-accent);
@@ -706,20 +774,32 @@
   }
 }
 
+
+/* ── Tinggi baris seragam untuk keterangan harga ─────────────────────────────
+   "Ditagih Rp 711.000 per tahun" dan "Bisa berhenti kapan saja" harus
+   menempati tinggi yang sama di ketiga kartu — kalau tidak, baris berikutnya
+   bergeser dan tidak sejajar.
+
+   `min-height` dalam `em` supaya ikut mengecil di layar sempit. */
+.harga-total,
+.harga-catatan {
+  min-height: 1.15em;
+  line-height: 1.45;
+}
+
 /* ── Harga di Enterprise: sejajarkan dengan kartu lain ───────────────────────
    Teks "Sesuai kebutuhan" lebih pendek dari angka, jadi tingginya beda.
    `min-height` menyamakan ruang yang dipakai. */
 .harga-angka--teks {
-  /* ── KENAPA ADA min-height ──────────────────────────────────────────────
-     Teks "Sesuai kebutuhan" lebih pendek dari angka harga, jadi tingginya
-     beda — dan itu membuat blok harga Enterprise tidak sejajar dengan dua
-     kartu lain.
+  /* ── KENAPA TIDAK ADA min-height DI SINI ────────────────────────────────
+     Tinggi disamakan oleh `.harga-angka-wrap` (induknya) lewat
+     `align-items: flex-end` + `min-height`. Mengatur tinggi di sini juga
+     berarti dua tempat mengatur hal yang sama — dan keduanya bisa bentrok.
 
-     2.6rem = tinggi `.harga-angka` yang berisi angka (41px pada 1280px).
-     Dengan angka yang sama, keduanya menempati ruang identik. */
-  min-height: 2.6rem;
+     Satu pengatur, satu tempat. */
+  line-height: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -913,8 +993,8 @@
      kartu mana yang aktif — tanpa kilauan yang bisa memicu ketidaknyamanan.
 
      Cincinnya jadi gradien statis: tetap ada, tidak bergerak. */
-  .harga-kartu.is-aktif::before,
-  .harga-kartu:focus-within::before {
+  .harga-kartu.is-aktif .harga-glow::before,
+  .harga-kartu:focus-within .harga-glow::before {
     animation: none;
     background: linear-gradient(
       135deg,

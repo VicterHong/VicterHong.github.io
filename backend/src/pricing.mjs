@@ -49,7 +49,14 @@ export const PAKET = [
     catatan: 'Bisa berhenti kapan saja',
     unggulan: false,
     lencana: null,
-    cta: { teks: 'Mulai dari sini', gaya: 'sekunder' },
+    // ── GAYA TOMBOL: SERAGAM ─────────────────────────────────────────────
+    // Ketiga kartu memakai gaya yang sama. Sebelumnya kartu unggulan
+    // memakai tombol kuning solid sementara yang lain outline — terlihat
+    // seperti satu kartu "dijual" dan dua lainnya tidak.
+    //
+    // Yang membedakan kartu unggulan sekarang: lencana, warna tepi, dan
+    // glow, bukan warna tombolnya.
+    cta: { teks: 'Mulai dari sini', gaya: 'seragam' },
     urutan: 1,
     fitur: [
       { teks: 'Pratinjau isi repo — struktur & daftar berkas', termasuk: true },
@@ -69,7 +76,7 @@ export const PAKET = [
     catatan: 'Bisa berhenti kapan saja',
     unggulan: true,
     lencana: 'Paling sering dipilih',
-    cta: { teks: 'Mulai dari sini', gaya: 'utama' },
+    cta: { teks: 'Mulai dari sini', gaya: 'seragam' },
     urutan: 2,
     fitur: [
       { teks: 'Baca kode sumber penuh', termasuk: true, tebal: true },
@@ -91,7 +98,7 @@ export const PAKET = [
     catatan: 'Dibicarakan lewat percakapan singkat',
     unggulan: false,
     lencana: null,
-    cta: { teks: 'Bicara dulu', gaya: 'sekunder' },
+    cta: { teks: 'Bicara dulu', gaya: 'seragam' },
     urutan: 3,
     fitur: [
       { teks: 'Akses penuh repositori privat', termasuk: true, tebal: true },
