@@ -529,7 +529,10 @@
    Angkanya (1.55rem) = tinggi baris coret + jarak di kartu berbayar. */
 .harga-coret-wrap:empty {
   min-height: 1.55rem;
-  margin-bottom: 0;
+  /* margin-bottom SENGAJA tidak dinolkan — kartu berbayar punya margin
+     0.25rem di bawah baris coretnya, dan menghilangkannya di sini membuat
+     blok harga Enterprise naik 4px. Perbedaan sekecil itu tetap terlihat
+     sebagai ketidaksejajaran. */
 }
 
 /* Saat ada harga coret, jarak atas harga utama dirapatkan — keduanya
@@ -707,7 +710,14 @@
    Teks "Sesuai kebutuhan" lebih pendek dari angka, jadi tingginya beda.
    `min-height` menyamakan ruang yang dipakai. */
 .harga-angka--teks {
-  min-height: 2.5rem;
+  /* ── KENAPA ADA min-height ──────────────────────────────────────────────
+     Teks "Sesuai kebutuhan" lebih pendek dari angka harga, jadi tingginya
+     beda — dan itu membuat blok harga Enterprise tidak sejajar dengan dua
+     kartu lain.
+
+     2.6rem = tinggi `.harga-angka` yang berisi angka (41px pada 1280px).
+     Dengan angka yang sama, keduanya menempati ruang identik. */
+  min-height: 2.6rem;
   display: flex;
   align-items: center;
 }

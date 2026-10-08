@@ -220,6 +220,20 @@ function gambarKartu(paket, hrefKontak, periode) {
     kepala.appendChild(barisCoret);
   }
 
+  // ── Penyeimbang: baris harga coret yang kosong ──────────────────────────
+  // Kartu berbayar punya baris harga coret (25px) DI ATAS harganya. Kartu
+  // Enterprise tidak — jadi harganya naik 44px, dan posisinya tidak sejajar
+  // dengan dua kartu lain.
+  //
+  // Elemen kosong ini harus ditaruh DI SINI — sebelum harga, bukan sesudah.
+  // Menaruhnya di akhir blok membuat harganya tetap naik, dan hanya
+  // daftar fiturnya yang sejajar. Itu kesalahan yang sudah pernah terjadi.
+  if (f.teks) {
+    const kosongCoret = el('div', 'harga-coret-wrap');
+    kosongCoret.setAttribute('aria-hidden', 'true');
+    kepala.appendChild(kosongCoret);
+  }
+
   const wrap = el('div', 'harga-angka-wrap');
   const spanAngka = el('span', `harga-angka${f.teks ? ' harga-angka--teks' : ''}`, f.angka);
   wrap.appendChild(spanAngka);
@@ -244,25 +258,22 @@ function gambarKartu(paket, hrefKontak, periode) {
   for (const baris of barisKaki) kepala.appendChild(baris);
 
   // ── Penyeimbang tinggi ──────────────────────────────────────────────────
-  // Kartu Enterprise tidak punya harga angka, jadi dua baris yang ada di
-  // kartu lain tidak ada di sini:
+  // Kartu Enterprise tidak punya harga angka, jadi baris-baris yang ada di
+  // kartu berbayar tidak ada di sini. Jumlahnya BERGANTUNG PERIODE:
   //
-  //   • baris harga coret + lencana diskon   (25px)
-  //   • baris "Ditagih … per tahun"          (20px)
+  //   Tahunan  : harga coret (25px) + "Ditagih … per tahun" (20px)
+  //   Bulanan  : harga coret (25px) saja — tidak ada tagihan tahunan
   //
-  // Selisihnya 81px — dan itu membuat daftar fiturnya naik, tidak sejajar
-  // dengan dua kartu lain. Terlihat sebagai tata letak yang belum rapi.
+  // Penyeimbangnya harus mengikuti jumlah yang sama, kalau tidak justru
+  // jadi sumber ketidaksejajaran baru. Ini sudah pernah terjadi: penyeimbang
+  // ditulis untuk periode tahunan saja, dan di mode bulanan kartu Enterprise
+  // jadi 34px lebih tinggi dari yang lain.
   //
-  // Elemen kosong ini mengisi ruang yang sama. `aria-hidden` karena tidak
-  // ada isinya — pembaca layar tidak perlu tahu ada ruang kosong.
-  //
-  // Dipilih daripada `min-height` di CSS karena tingginya mengikuti isi
-  // kartu lain: kalau nanti ditambah baris, penyeimbangnya ikut menyesuaikan.
-  if (f.teks) {
-    const kosongCoret = el('div', 'harga-coret-wrap');
-    kosongCoret.setAttribute('aria-hidden', 'true');
-    kepala.appendChild(kosongCoret);
-
+  // `aria-hidden` karena tidak ada isinya — pembaca layar tidak perlu tahu
+  // ada ruang kosong.
+  if (f.teks && periode === 'tahunan') {
+    // Hanya di periode tahunan — di bulanan, kartu berbayar pun tidak
+    // punya baris ini, jadi menambahkannya justru membuat tidak sejajar.
     const kosongTotal = el('p', 'harga-total');
     kosongTotal.setAttribute('aria-hidden', 'true');
     kosongTotal.textContent = '\u00A0';
