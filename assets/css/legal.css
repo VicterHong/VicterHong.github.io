@@ -1,0 +1,502 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   LEGAL — Kebijakan Privasi & Syarat Ketentuan
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA HALAMAN INI ADA ────────────────────────────────────────────────
+   Dua alasan, dan keduanya nyata:
+
+   1. HUKUM. Setiap layanan yang menerima data pribadi dan pembayaran wajib
+      memberi tahu pengguna: data apa yang dikumpulkan, untuk apa, dan apa
+      hak mereka. UU PDP No. 27/2022 mengatur ini di Indonesia.
+
+   2. VERIFIKASI MIDTRANS. Mereka membuka halaman ini saat menilai kelayakan
+      merchant. Tanpa halaman ini, pendaftaran bisa ditolak.
+
+   ── PRINSIP PENULISAN ─────────────────────────────────────────────────────
+   Ditulis dalam bahasa Indonesia yang bisa dibaca manusia — bukan salinan
+   template hukum berbahasa Inggris yang tidak ada hubungannya dengan
+   sistem ini.
+
+   Yang penting: SETIAP PERNYATAAN DI SINI HARUS BENAR. Menyebut "kami tidak
+   menyimpan data" padahal menyimpan berarti dokumen ini tidak berguna —
+   dan lebih buruk daripada tidak punya sama sekali.
+
+   Isi dokumen ini disusun dari pembacaan langsung:
+     • backend/src/db.mjs     → tabel apa saja yang ada
+     • backend/src/routes.mjs → data apa yang benar-benar disimpan
+     • assets/js/cookies.js   → cookie apa yang dipasang
+
+   ── STRUKTUR ──────────────────────────────────────────────────────────────
+   Memakai pola dokumen yang sama dengan halaman panduan: daftar isi lengket
+   di kiri, konten di kanan. Bagian yang sedang dibaca ditandai otomatis
+   lewat IntersectionObserver.
+
+   Berkas ini dipakai dua halaman:
+     privasi.html — Kebijakan Privasi
+     syarat.html  — Syarat & Ketentuan */
+
+.legal-page {
+  --lg-bg: var(--bg, #0a0a0b);
+  --lg-card: var(--bg-card, #16161a);
+  --lg-line: rgba(255, 255, 255, 0.08);
+  --lg-line-kuat: rgba(255, 255, 255, 0.14);
+  --lg-text: var(--text, #f4f4f6);
+  --lg-redup: var(--text-dim, #a1a1aa);
+  --lg-samar: var(--text-faint, #8a8a94);
+  --lg-aksen: var(--accent, #f5c542);
+  --lg-aksen-terang: var(--accent-light, #f7d77a);
+  --lg-1: 0.25rem;
+  --lg-2: 0.5rem;
+  --lg-3: 0.75rem;
+  --lg-4: 1rem;
+  --lg-5: 1.5rem;
+  --lg-6: 2rem;
+  --lg-7: 3rem;
+
+  min-height: 100dvh;
+  padding: clamp(var(--lg-6), 6vw, var(--lg-7)) var(--lg-4);
+  background: var(--lg-bg);
+  color: var(--lg-text);
+  scroll-padding-top: 5rem;
+}
+
+.legal-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--lg-6);
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 60rem) {
+  .legal-wrap {
+    grid-template-columns: 15rem 1fr;
+    gap: var(--lg-7);
+    align-items: start;
+  }
+}
+
+/* ── Kepala ──────────────────────────────────────────────────────────────── */
+
+.legal-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-3);
+  padding-bottom: var(--lg-5);
+  border-bottom: 1px solid var(--lg-line);
+}
+
+.legal-title {
+  font-size: clamp(1.6rem, 4.5vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.legal-sub {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--lg-redup);
+  margin: 0;
+  max-width: 42rem;
+}
+
+.legal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lg-4);
+  font-size: 0.75rem;
+  color: var(--lg-samar);
+  font-family: var(--mono, monospace);
+}
+
+/* ── Daftar isi ──────────────────────────────────────────────────────────── */
+
+.legal-toc {
+  display: none;
+}
+
+@media (min-width: 60rem) {
+  .legal-toc {
+    display: block;
+    position: sticky;
+    top: 5rem;
+    max-height: calc(100dvh - 7rem);
+    overflow-y: auto;
+    padding-right: var(--lg-2);
+  }
+}
+
+.legal-toc-judul {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lg-samar);
+  margin: 0 0 var(--lg-3);
+}
+
+.legal-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legal-toc-list a {
+  display: block;
+  padding: var(--lg-2) var(--lg-3);
+  border-left: 2px solid transparent;
+  border-radius: 0 0.4rem 0.4rem 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--lg-redup);
+  text-decoration: none;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.legal-toc-list a:hover {
+  color: var(--lg-text);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.legal-toc-list a:focus-visible {
+  outline: 2px solid var(--lg-aksen);
+  outline-offset: 2px;
+}
+
+/* Bagian yang sedang dibaca — ditandai garis aksen */
+.legal-toc-list a.aktif {
+  color: var(--lg-aksen-terang);
+  border-left-color: var(--lg-aksen);
+  background: rgba(245, 197, 66, 0.06);
+}
+
+/* ── Isi ─────────────────────────────────────────────────────────────────── */
+
+.legal-isi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-6);
+  min-width: 0;
+}
+
+.legal-bagian {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-3);
+  scroll-margin-top: 5rem;
+}
+
+.legal-bagian h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--lg-text);
+  margin: 0;
+  padding-top: var(--lg-2);
+}
+
+.legal-bagian h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--lg-text);
+  margin: var(--lg-3) 0 0;
+}
+
+.legal-bagian p {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--lg-redup);
+  margin: 0;
+}
+
+.legal-bagian ul,
+.legal-bagian ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-2);
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--lg-redup);
+}
+
+.legal-bagian li::marker {
+  color: var(--lg-samar);
+}
+
+.legal-bagian strong {
+  color: var(--lg-text);
+  font-weight: 600;
+}
+
+.legal-bagian a {
+  color: var(--lg-aksen);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-bagian a:hover {
+  color: var(--lg-aksen-terang);
+}
+
+/* ── Kotak sorotan ───────────────────────────────────────────────────────────
+   Untuk hal yang perlu dibaca, bukan dilewati — misalnya "kami tidak
+   menyimpan nomor kartu Anda". */
+.legal-sorot {
+  padding: var(--lg-4) var(--lg-5);
+  border: 1px solid var(--lg-line-kuat);
+  border-left: 3px solid var(--lg-aksen);
+  border-radius: 0.6rem;
+  background: var(--lg-card);
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--lg-redup);
+}
+
+.legal-sorot strong {
+  color: var(--lg-text);
+}
+
+/* ── Tabel data ──────────────────────────────────────────────────────────── */
+
+.legal-tabel-wrap {
+  overflow-x: auto;
+  contain: paint;
+  border: 1px solid var(--lg-line);
+  border-radius: 0.75rem;
+  background: var(--lg-card);
+}
+
+.legal-tabel {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.legal-tabel th,
+.legal-tabel td {
+  padding: var(--lg-3) var(--lg-4);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--lg-line);
+  line-height: 1.55;
+}
+
+.legal-tabel thead th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lg-samar);
+  border-bottom-color: var(--lg-line-kuat);
+  white-space: nowrap;
+}
+
+.legal-tabel td:first-child {
+  color: var(--lg-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.legal-tabel tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Navigasi bawah ──────────────────────────────────────────────────────── */
+
+.legal-nav {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lg-3);
+  padding-top: var(--lg-5);
+  border-top: 1px solid var(--lg-line);
+}
+
+.legal-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lg-2);
+  min-height: 2.75rem;
+  padding: 0.65rem 1.25rem;
+  border: 1px solid var(--lg-line-kuat);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--lg-text);
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.legal-nav a:hover {
+  border-color: var(--lg-aksen);
+  background: rgba(245, 197, 66, 0.1);
+  color: var(--lg-aksen-terang);
+}
+
+.legal-nav a:focus-visible {
+  outline: 2px solid var(--lg-aksen);
+  outline-offset: 3px;
+}
+
+.legal-nav a.utama {
+  background: rgba(245, 197, 66, 0.12);
+  border-color: rgba(245, 197, 66, 0.35);
+  color: var(--lg-aksen-terang);
+}
+
+/* ── Cetak ───────────────────────────────────────────────────────────────── */
+
+@media print {
+  .legal-toc,
+  .legal-nav,
+  .site-header,
+  .site-footer {
+    display: none;
+  }
+
+  .legal-page {
+    padding: 1rem;
+    background: #fff;
+    color: #000;
+  }
+
+  .legal-wrap {
+    display: block;
+  }
+
+  .legal-title,
+  .legal-bagian h2,
+  .legal-bagian h3,
+  .legal-bagian strong,
+  .legal-tabel td:first-child {
+    color: #000;
+  }
+
+  .legal-bagian p,
+  .legal-bagian li,
+  .legal-tabel td,
+  .legal-sorot {
+    color: #333;
+  }
+
+  .legal-sorot {
+    border-color: #999;
+    background: #f5f5f5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legal-toc-list a,
+  .legal-nav a {
+    transition: none;
+  }
+}
+
+/* ── Footer dengan tautan legal ──────────────────────────────────────────────
+   Tautan Privasi dan Syarat HARUS mudah ditemukan — bukan hanya karena
+   Midtrans memeriksanya, tapi karena pengguna berhak tahu sebelum membeli.
+
+   Ditaruh di footer setiap halaman, bukan tersembunyi di menu. */
+.site-footer a {
+  color: var(--text-dim, #a1a1aa);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.site-footer a:hover {
+  color: var(--accent, #f5c542);
+  border-bottom-color: currentColor;
+}
+
+.site-footer a:focus-visible {
+  outline: 2px solid var(--accent, #f5c542);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-footer a {
+    transition: none;
+  }
+}
+
+/* ── Ringkasan terstruktur ───────────────────────────────────────────────────
+   ── KENAPA BUKAN PARAGRAF ──────────────────────────────────────────────────
+   Kebijakan privasi yang hanya berisi teks panjang tidak dibaca — dan
+   dokumen yang tidak dibaca tidak melindungi siapa pun.
+
+   Bentuk berlabel memungkinkan pemindaian cepat: mata menemukan "Data apa"
+   dalam sekejap, tanpa membaca seluruh paragraf.
+
+   Empat baris — bukan daftar panjang. Kalau lebih dari itu, ia berubah jadi
+   dokumen baru yang juga tidak dibaca. */
+.legal-ringkas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg-1);
+  padding: var(--lg-5);
+  border: 1px solid var(--lg-line-kuat);
+  border-radius: 0.75rem;
+  background: var(--lg-card);
+}
+
+.legal-ringkas-baris {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--lg-1);
+  padding: var(--lg-3) 0;
+  border-bottom: 1px solid var(--lg-line);
+}
+
+.legal-ringkas-baris:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.legal-ringkas-baris:first-child {
+  padding-top: 0;
+}
+
+@media (min-width: 40rem) {
+  .legal-ringkas-baris {
+    grid-template-columns: 7.5rem 1fr;
+    gap: var(--lg-4);
+    align-items: baseline;
+  }
+}
+
+.legal-ringkas-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lg-aksen);
+  white-space: nowrap;
+}
+
+.legal-ringkas-isi {
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--lg-redup);
+}
+
+.legal-ringkas-isi a {
+  color: var(--lg-aksen);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal-ringkas-isi a:hover {
+  color: var(--lg-aksen-terang);
+}

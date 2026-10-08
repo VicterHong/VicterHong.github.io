@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masuk — Victer</title>
+<title>Masuk — Vivastic</title>
 <meta name="description" content="Masuk ke area klien untuk mengakses proyek privat.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0a0a0b">
@@ -22,17 +22,41 @@
 </head>
 <body class="auth-body">
 
-<!-- ══ Latar: blob gradien + partikel halus ══════════════════════════════════
-     Prinsip motion-advanced: animasi dekoratif HARUS berhenti saat tab
-     tidak terlihat (Rule 2). JS menangani visibilitychange.
-     Semua elemen dekoratif aria-hidden — pembaca layar tidak perlu tahu. -->
-<div class="auth-bg" aria-hidden="true">
-  <div class="auth-blob auth-blob-1"></div>
-  <div class="auth-blob auth-blob-2"></div>
-  <div class="auth-blob auth-blob-3"></div>
-  <canvas class="auth-particles" id="particles"></canvas>
-  <div class="auth-grain"></div>
-</div>
+<!-- ══ Latar ══════════════════════════════════════════════════════════════════
+     Hanya satu gradien radial statis (opasitas 0.04) — tanpa blob beranimasi,
+     tanpa canvas partikel, tanpa overlay grain.
+
+     Ketiganya DIHAPUS setelah riset tujuh halaman login korporasi
+     internasional (Linear, Vercel, GitHub, Stripe, Cloudflare, Notion, Resend):
+     ketujuhnya punya NOL canvas, NOL blob, NOL partikel, NOL grain, dan NOL
+     animasi berulang. Latar mereka solid.
+
+     Rincian lengkap + alasan ada di assets/css/auth.css bagian "Latar". -->
+<div class="auth-bg" aria-hidden="true"></div>
+
+<!-- ══ Navigasi ══════════════════════════════════════════════════════════════
+     Halaman login sebelumnya hanya punya logo kecil DI DALAM kartu — tidak
+     ada jalan kembali yang jelas bagi pengunjung yang salah masuk.
+
+     Prinsip:
+       • Senada dengan header situs utama (brand + mark emas, tautan redup
+         yang menyala saat hover) — supaya tidak terasa seperti halaman lain.
+       • Bukan sticky: halaman login pendek dan tidak menggulir, jadi
+         menempelkan header hanya menambah lapisan yang tidak perlu.
+       • Disembunyikan otomatis saat gate aktif — `body.cf-gated > *:not(#cf-gate)`
+         di cf-gate.css menyembunyikan semua anak body. Itu memang benar:
+         gate harus full-screen tanpa gangguan navigasi. -->
+<header class="auth-nav">
+  <a class="auth-nav-brand" href="/home" aria-label="Kembali ke beranda">
+    <span class="auth-nav-mark" aria-hidden="true"></span>
+    <span>Vivastic</span>
+  </a>
+  <nav class="auth-nav-links" aria-label="Navigasi halaman masuk">
+    <a href="/home">Beranda</a>
+    <a href="/docs">Panduan</a>
+    <a href="/home#kontak">Kontak</a>
+  </nav>
+</header>
 
 <main class="auth-main">
 
@@ -56,36 +80,39 @@
         <p class="auth-sub" id="authSub">Area klien — akses proyek privat</p>
       </header>
 
-      <!-- ══ Panel: masukkan token ═══════════════════════════════════════════ -->
-      <section class="auth-panel is-active" id="panel-token" data-panel="token">
-        <form class="auth-form" id="formToken" autocomplete="off" novalidate>
+      <!-- ══ Panel: MASUK (SIGN IN) ═════════════════════════════════════════
+           ── KENAPA EMAIL + SANDI, BUKAN "TOKEN AKSES" ───────────────────────
+           Sebelumnya pengguna harus menyalin token acak 19 karakter
+           (VP-XXXX-XXXX-XXXX-XXXX). Itu buruk:
+             • Bukan pola korporasi — tujuh halaman login besar (Linear,
+               Vercel, GitHub, Stripe, Cloudflare, Notion, Resend) memakai
+               email + sandi atau SSO; tidak ada yang meminta token tempel.
+             • Gesekan tinggi: menyalin 19 karakter acak rawan salah.
+             • Tidak ada pemulihan mandiri: lupa token = hubungi admin.
+             • Karena sulit diingat, pengguna menyimpannya di catatan/chat —
+               itu justru MELEMAHKAN keamanan.
+
+           Token akses TETAP didukung di backend (dipakai admin & integrasi
+           otomatis), tapi bukan lagi cara utama pengguna masuk. -->
+      <section class="auth-panel is-active" id="panel-masuk" data-panel="masuk">
+        <form class="auth-form" id="formMasuk" autocomplete="on" novalidate>
 
           <div class="auth-field">
-            <label for="inpProject">Proyek</label>
-            <div class="auth-input-wrap">
-              <select id="inpProject" name="project" required
-                      aria-describedby="hintProject">
-                <option value="">Pilih proyek…</option>
-                <option value="mina">MINA — Remote Control</option>
-                <option value="spareparts">Spareparts Inventory</option>
-              </select>
-              <svg class="auth-input-icon" viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.6"
-                      fill="none" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <p class="auth-hint" id="hintProject">Pilih proyek yang tokennya Anda miliki.</p>
+            <label for="inpEmailMasuk">Email</label>
+            <input class="auth-input" type="email" id="inpEmailMasuk" name="email"
+                   required autocomplete="username" placeholder="nama@perusahaan.com"
+                   aria-describedby="hintEmailMasuk">
+            <p class="auth-hint" id="hintEmailMasuk">Email yang Anda daftarkan.</p>
           </div>
 
           <div class="auth-field">
-            <label for="inpToken">Token akses</label>
+            <label for="inpSandi">Sandi</label>
             <div class="auth-input-wrap">
-              <input type="password" id="inpToken" name="token" required
-                     placeholder="XXXX-XXXX-XXXX-XXXX"
-                     autocomplete="off" spellcheck="false"
-                     aria-describedby="hintToken">
-              <button type="button" class="auth-reveal" id="btnReveal"
-                      aria-label="Tampilkan token" aria-pressed="false">
+              <input class="auth-input" type="password" id="inpSandi" name="password"
+                     required autocomplete="current-password" placeholder="••••••••••••"
+                     aria-describedby="hintSandi">
+              <button type="button" class="auth-reveal" id="btnRevealSandi"
+                      aria-label="Tampilkan sandi" aria-pressed="false">
                 <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
                   <path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z" stroke="currentColor"
                         stroke-width="1.4" fill="none"/>
@@ -94,10 +121,14 @@
                 </svg>
               </button>
             </div>
-            <p class="auth-hint" id="hintToken">Token diberikan setelah permintaan disetujui.</p>
           </div>
 
-          <!-- Turnstile: verifikasi pengunjung, dimuat hanya saat dibutuhkan -->
+          <!-- Lupa sandi: tautan teks, bukan tombol — ini tindakan sekunder
+               dan tidak boleh bersaing visual dengan tombol Masuk. -->
+          <div class="auth-row-lupa">
+            <button type="button" class="auth-link-inline" id="btnLupaSandi">Lupa sandi?</button>
+          </div>
+
           <div class="auth-turnstile" id="turnstileSlot" aria-hidden="true"></div>
 
           <button type="submit" class="auth-submit" id="btnSubmit">
@@ -109,8 +140,13 @@
         </form>
       </section>
 
-      <!-- ══ Panel: TOTP (2FA) ══════════════════════════════════════════════ -->
+      <!-- ══ Panel: TOTP (2FA) ══════════════════════════════════════════════
+           Muncul hanya kalau akun ini punya 2FA aktif. Server memutuskan
+           setelah email+sandi terbukti benar — jadi panel ini TIDAK pernah
+           muncul untuk kredensial yang salah (itu akan membocorkan akun mana
+           yang punya 2FA). -->
       <section class="auth-panel" id="panel-totp" data-panel="totp">
+        <h2 class="auth-panel-title">Verifikasi dua langkah</h2>
         <p class="auth-panel-desc">
           Buka aplikasi authenticator Anda, lalu masukkan 6 digit kode.
         </p>
@@ -137,8 +173,169 @@
             <span class="auth-submit-spinner" aria-hidden="true"></span>
           </button>
           <p class="auth-msg" id="msgTotp" role="status" aria-live="polite"></p>
-          <button type="button" class="auth-link" id="btnBackToken">← Kembali</button>
+          <button type="button" class="auth-link" id="btnBackToken">← Kembali ke masuk</button>
         </form>
+      </section>
+
+      <!-- ══ Panel: LUPA SANDI ══════════════════════════════════════════════
+           Meminta tautan reset. Server SELALU membalas sukses apa pun status
+           emailnya (mencegah orang memeriksa email mana yang terdaftar), jadi
+           panel ini tidak pernah menampilkan "email tidak ditemukan". -->
+      <section class="auth-panel" id="panel-lupa" data-panel="lupa">
+        <h2 class="auth-panel-title">Lupa sandi</h2>
+        <p class="auth-panel-desc">
+          Masukkan email Anda. Kami kirimkan tautan untuk membuat sandi baru.
+        </p>
+        <form class="auth-form" id="formLupa" autocomplete="on" novalidate>
+          <div class="auth-field">
+            <label for="inpEmailLupa">Email</label>
+            <input class="auth-input" type="email" id="inpEmailLupa" name="email"
+                   required autocomplete="email" placeholder="nama@perusahaan.com">
+          </div>
+          <div class="auth-turnstile" id="turnstileSlotLupa" aria-hidden="true"></div>
+          <button type="submit" class="auth-submit" id="btnLupa">
+            <span class="auth-submit-label">Kirim tautan</span>
+            <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+          <p class="auth-msg" id="msgLupa" role="status" aria-live="polite"></p>
+          <button type="button" class="auth-link" id="btnBatalLupa">← Kembali ke masuk</button>
+        </form>
+      </section>
+
+      <!-- ══ Panel: tautan terkirim ═════════════════════════════════════════ -->
+      <section class="auth-panel" id="panel-lupa-selesai" data-panel="lupa-selesai">
+        <div class="auth-done">
+          <svg class="auth-check" viewBox="0 0 52 52" aria-hidden="true">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="#f5c542" stroke-width="2"/>
+            <path d="M15 27l7.5 7.5L37 20" fill="none" stroke="#f5c542"
+                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                  class="auth-check-path"/>
+          </svg>
+          <h2 class="auth-done-title">Periksa email Anda</h2>
+          <p class="auth-done-sub">
+            Kalau email itu terdaftar, kami sudah mengirim tautan untuk membuat
+            sandi baru. Tautan berlaku 1 jam.
+          </p>
+          <button type="button" class="auth-submit" id="btnKembaliDariLupa">
+            <span class="auth-submit-label">Kembali ke masuk</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ══ Panel: setup 2FA (QR + verifikasi) ═════════════════════════════ -->
+      <section class="auth-panel" id="panel-setup2fa" data-panel="setup2fa">
+        <p class="auth-panel-desc">
+          Pindai QR dengan aplikasi authenticator (Google Authenticator, Authy,
+          1Password), lalu masukkan 6 digit yang muncul.
+        </p>
+
+        <div class="auth-qr-wrap" id="qrWrap">
+          <!-- Skeleton ditampilkan saat QR sedang dibuat server.
+               Prinsip dari motion-advanced: skeleton harus menyerupai bentuk
+               akhirnya, supaya tidak ada lompatan tata letak saat data tiba. -->
+          <div class="auth-qr-skeleton" id="qrSkeleton" aria-hidden="true">
+            <div class="auth-qr-shimmer"></div>
+          </div>
+          <img class="auth-qr" id="qrImage" alt="QR code untuk aplikasi authenticator" hidden>
+        </div>
+
+        <!-- Fallback: secret manual kalau QR tidak bisa dipindai
+             (kamera rusak, aplikasi tidak mendukung, QR gagal dibuat).
+             Selalu tersedia — jangan pernah mengunci pengguna. -->
+        <details class="auth-secret-detail" id="secretDetail">
+          <summary>Masukkan kode secara manual</summary>
+          <div class="auth-secret-box">
+            <code class="auth-secret" id="secretText" aria-label="Kode rahasia">—</code>
+            <button type="button" class="auth-copy" id="btnCopySecret"
+                    aria-label="Salin kode rahasia">
+              <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+                <rect x="7" y="7" width="9" height="9" rx="1.6" stroke="currentColor"
+                      stroke-width="1.4" fill="none"/>
+                <path d="M13 7V5.6A1.6 1.6 0 0 0 11.4 4H5.6A1.6 1.6 0 0 0 4 5.6v5.8A1.6 1.6 0 0 0 5.6 13H7"
+                      stroke="currentColor" stroke-width="1.4" fill="none"/>
+              </svg>
+            </button>
+          </div>
+          <p class="auth-hint">
+            Ketik kode ini di aplikasi authenticator sebagai "kunci setup" atau
+            "kode rahasia".
+          </p>
+        </details>
+
+        <form class="auth-form" id="formSetup2fa" autocomplete="off" novalidate>
+          <div class="auth-field">
+            <label for="inpSetupCode">Kode dari aplikasi</label>
+            <div class="auth-otp" id="otpSetupRow">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp-setup="0" aria-label="Digit 1">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp-setup="1" aria-label="Digit 2">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp-setup="2" aria-label="Digit 3">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp-setup="3" aria-label="Digit 4">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp-setup="4" aria-label="Digit 5">
+              <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                     data-otp-setup="5" aria-label="Digit 6">
+            </div>
+          </div>
+          <button type="submit" class="auth-submit" id="btnSetup2fa">
+            <span class="auth-submit-label">Aktifkan 2FA</span>
+            <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+          <p class="auth-msg" id="msgSetup2fa" role="status" aria-live="polite"></p>
+          <button type="button" class="auth-link" id="btnBatalSetup">Batal</button>
+        </form>
+      </section>
+
+      <!-- ══ Panel: kode pemulihan (ditampilkan SEKALI) ══════════════════════ -->
+      <section class="auth-panel" id="panel-pemulihan" data-panel="pemulihan">
+        <div class="auth-recovery">
+          <svg class="auth-recovery-icon" viewBox="0 0 44 44" aria-hidden="true">
+            <path d="M22 5l4.6 9.3 10.3 1.5-7.4 7.3 1.7 10.2L22 28.5l-9.2 4.8 1.7-10.2-7.4-7.3 10.3-1.5z"
+                  fill="none" stroke="#f5c542" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          <h2 class="auth-recovery-title">Simpan kode pemulihan</h2>
+          <p class="auth-recovery-sub">
+            Kode ini adalah satu-satunya cara masuk kalau Anda kehilangan
+            ponsel. Ditampilkan <strong>sekali saja</strong> — tidak bisa
+            dilihat lagi.
+          </p>
+
+          <ul class="auth-recovery-list" id="recoveryList" aria-label="Kode pemulihan"></ul>
+
+          <div class="auth-recovery-actions">
+            <button type="button" class="auth-oauth" id="btnCopyRecovery">
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+                <rect x="7" y="7" width="9" height="9" rx="1.6" stroke="currentColor"
+                      stroke-width="1.4" fill="none"/>
+                <path d="M13 7V5.6A1.6 1.6 0 0 0 11.4 4H5.6A1.6 1.6 0 0 0 4 5.6v5.8A1.6 1.6 0 0 0 5.6 13H7"
+                      stroke="currentColor" stroke-width="1.4" fill="none"/>
+              </svg>
+              <span>Salin semua</span>
+            </button>
+            <button type="button" class="auth-oauth" id="btnUnduhRecovery">
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+                <path d="M10 3v9m0 0l-3.5-3.5M10 12l3.5-3.5M4 15h12" stroke="currentColor"
+                      stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              </svg>
+              <span>Unduh .txt</span>
+            </button>
+          </div>
+
+          <!-- Konfirmasi wajib: klien harus menyatakan sudah menyimpan.
+               Tanpa ini, banyak yang menutup halaman tanpa menyimpan —
+               lalu terkunci saat kehilangan ponsel. -->
+          <label class="auth-recovery-confirm">
+            <input type="checkbox" id="chkSimpan">
+            <span>Saya sudah menyimpan kode ini di tempat aman</span>
+          </label>
+
+          <button type="button" class="auth-submit" id="btnLanjut" disabled>
+            <span class="auth-submit-label">Lanjut ke proyek</span>
+          </button>
+        </div>
       </section>
 
       <!-- ══ Panel: berhasil ════════════════════════════════════════════════ -->
@@ -153,6 +350,23 @@
           <h2 class="auth-done-title">Berhasil masuk</h2>
           <p class="auth-done-sub" id="doneSub">Mengalihkan ke area proyek…</p>
           <a class="auth-submit auth-submit-link" id="btnGoProject" href="#">Buka proyek</a>
+
+          <!-- Tawaran setup 2FA — muncul SETELAH login berhasil, bukan
+               sebagai langkah wajib. Pengguna yang baru pertama masuk
+               belum tentu siap membuka aplikasi authenticator; memaksa
+               setup di depan pintu membuat banyak yang batal masuk.
+
+               Keamanan tetap terjaga: 2FA bisa diaktifkan kapan saja
+               dari panel status. -->
+          <button type="button" class="auth-oauth auth-setup-2fa" id="btnSetup2faMulai">
+            <svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true">
+              <path d="M10 2.5l5.5 2.6v4.3c0 3.4-2.3 6.5-5.5 7.6-3.2-1.1-5.5-4.2-5.5-7.6V5.1L10 2.5z"
+                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M7.6 9.9l1.7 1.7 3.2-3.4" fill="none" stroke="currentColor"
+                    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Aktifkan 2FA (disarankan)</span>
+          </button>
         </div>
       </section>
 
@@ -191,7 +405,7 @@
       </div>
 
       <footer class="auth-foot">
-        <p>Belum punya akses? <a href="/home#kontak">Ajukan permintaan</a></p>
+        <p>Belum punya akun? <a href="/daftar" class="auth-link-inline">Daftar sekarang</a></p>
       </footer>
 
     </div>
@@ -215,9 +429,27 @@
   // Halaman masuk memakai sitekey yang sama untuk widget di formulir.
   window.__TURNSTILE_SITEKEY__ = window.CF_GATE_CONFIG.siteKey;
 </script>
-<!-- Turnstile dimuat cf-gate.js hanya saat gate muncul; auth.js memuatnya
-     sendiri saat formulir dikirim. Jadi tidak perlu tag script di sini —
-     menghindari ~90 KB unduhan untuk pengunjung yang tidak pernah login. -->
+<!-- ── TURNSTILE HARUS DIMUAT DI SINI ──────────────────────────────────────
+     Sebelumnya baris ini TIDAK ADA, dengan komentar yang mengklaim
+     "Turnstile dimuat cf-gate.js". Klaim itu SALAH — cf-gate.js hanya
+     MENUNGGU `window.turnstile` lewat waitTurnstile(), tidak pernah
+     memuat skripnya.
+
+     Akibatnya (bug nyata, terukur di uji stabilitas 0/5):
+       • Gate muncul setelah tenggang habis
+       • waitTurnstile() menunggu 12 detik → tidak pernah ada
+       • onTimeout → showLoadHint() → hanya pesan "lama memuat"
+       • Pengunjung TERKUNCI — tidak ada widget, tidak ada cara verifikasi
+       • Login gagal: 403 token_kosong ("Selesaikan verifikasi keamanan")
+
+     Semua halaman bergate lain (home, docs, 404, index) sudah memuat
+     skrip ini. masuk.html satu-satunya yang terlewat.
+
+     `async defer` — tidak memblokir render; cf-gate.js menunggu
+     keberadaannya lewat polling, jadi urutan aman. -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<!-- Kamus bahasa gate. Dimuat SEBELUM cf-gate.js karena berkas itu membaca
+     window.CF_GATE_I18N saat dijalankan. -->
 <script src="/assets/js/cf-gate-i18n.js" defer></script>
 <script src="/assets/js/cf-gate.js" defer></script>
 <script src="/assets/js/auth.js" defer></script>
