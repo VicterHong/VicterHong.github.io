@@ -114,11 +114,44 @@ export const config = {
   googleClientId: pick('GOOGLE_CLIENT_ID', ''),
   googleClientSecret: pick('GOOGLE_CLIENT_SECRET', ''),
   githubClientId: pick('GITHUB_CLIENT_ID', ''),
+  githubClientSecret: pick('GITHUB_CLIENT_SECRET', ''),
   microsoftClientId: pick('MICROSOFT_CLIENT_ID', ''),
+  microsoftClientSecret: pick('MICROSOFT_CLIENT_SECRET', ''),
+
+  // ── APPLE: TIGA NILAI + SATU KUNCI ──────────────────────────────────────────
+  // Apple tidak memberi client secret berupa string. Yang dipakai adalah JWT
+  // yang ditandatangani private key .p8 milik developer, jadi butuh:
+  //   APPLE_CLIENT_ID   — Services ID (mis. 'id.vivastic.signin'), BUKAN App ID
+  //   APPLE_TEAM_ID     — 10 karakter, dari halaman Membership
+  //   APPLE_KEY_ID      — 10 karakter, dari kunci .p8 yang diunduh
+  //   APPLE_PRIVATE_KEY — isi berkas .p8 (PEM). Baris baru ditulis \n
+  //                       karena env tidak bisa memuat baris baru asli.
+  //
+  // Kenapa Services ID, bukan App ID: hanya Services ID yang bisa dipakai
+  // untuk alur web (redirect_uri). App ID untuk aplikasi native.
   appleClientId: pick('APPLE_CLIENT_ID', ''),
+  appleTeamId: pick('APPLE_TEAM_ID', ''),
+  appleKeyId: pick('APPLE_KEY_ID', ''),
+  applePrivateKey: pick('APPLE_PRIVATE_KEY', ''),
+
   // SSO perusahaan (SAML/OIDC) — satu entry point untuk IdP organisasi.
   ssoEntryPoint: pick('SSO_ENTRY_POINT', ''),
-  githubClientSecret: pick('GITHUB_CLIENT_SECRET', ''),
+
+  /**
+   * ── ORIGIN WEBAUTHN (PASSKEY) ─────────────────────────────────────────────
+   *
+   * WebAuthn mengikat kredensial ke domain. Daftar ini harus memuat SEMUA
+   * host yang melayani halaman masuk — kalau tidak, pendaftaran passkey
+   * gagal dengan pesan yang membingungkan pengguna.
+   *
+   * Dipisah koma. SITE_URL selalu ikut otomatis, jadi biasanya cukup
+   * menambahkan domain preview:
+   *   WEBAUTHN_ORIGINS=https://staging.vivastic.id,https://abc.pages.dev
+   */
+  webauthnOrigins: pick('WEBAUTHN_ORIGINS', ''),
+
+  /** Proyek default untuk akun yang dibuat lewat OAuth/passkey. */
+  defaultProject: pick('DEFAULT_PROJECT', 'mina'),
 
   /** URL webhook untuk notifikasi lead baru (Discord/Slack/generik). Kosong = nonaktif. */
   leadWebhookUrl: pick('LEAD_WEBHOOK_URL', ''),

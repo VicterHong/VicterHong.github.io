@@ -905,10 +905,144 @@
     }
   }
 
-  $('#btnPasskey')?.addEventListener('click', () => {
-    // Backend endpoint belum dibangun. Tampilkan pesan jujur, bukan
-    // tombol yang diam-diam tidak melakukan apa-apa.
-    pesan(msgToken, 'Passkey belum aktif. Gunakan email dan sandi.', 'galat');
+  /**
+   * MASUK DENGAN PASSKEY (WebAuthn).
+   *
+   * ── DUA LANGKAH, BUKAN SATU ────────────────────────────────────────────────
+   * Server harus menerbitkan `challenge` lebih dulu, lalu memverifikasi
+   * jawaban authenticator. Challenge itu sekali pakai dan hanya berlaku
+   * beberapa menit — inilah yang membuat respons lama tidak bisa diputar
+   * ulang.
+   *
+   * ── KENAPA allowCredentials KOSONG DARI SERVER ─────────────────────────────
+   * Server tidak tahu siapa yang akan masuk sampai authenticator menjawab.
+   * Inilah yang membuat passkey terasa mulus: pengguna cukup sidik jari,
+   * tanpa mengetik email. Browser yang memilih akun yang cocok.
+   */
+  $('#btnPasskey')?.addEventListener('click', async () => {
+    const tombol = $('#btnPasskey');
+    const teksAsli = tombol?.textContent ?? '';
+
+    if (!window.PublicKeyCredential) {
+      pesan(msgToken, 'Peramban ini tidak mendukung passkey.', 'galat');
+      return;
+    }
+
+    if (tombol) {
+      tombol.disabled = true;
+      tombol.textContent = 'Menunggu passkey…';
+    }
+
+    /** Kembalikan tombol ke keadaan semula, apa pun yang terjadi. */
+    const pulihkan = () => {
+      if (tombol) {
+        tombol.disabled = false;
+        tombol.textContent = teksAsli;
+      }
+    };
+
+    try {
+      // ── Langkah 1: minta challenge ─────────────────────────────────────────
+      const resMulai = await fetch('/api/auth/passkey/masuk/mulai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const opsi = await resMulai.json().catch(() => ({}));
+
+      if (!resMulai.ok || !opsi.ok) {
+        pulihkan();
+        pesan(msgToken, opsi.message || 'Passkey tidak bisa dimulai. Coba lagi.', 'galat');
+        return;
+      }
+
+      // ── Langkah 2: minta authenticator menandatangani challenge ────────────
+      //
+      // base64url HARUS dikembalikan ke bentuk byte sebelum diberikan ke
+      // browser — WebAuthn tidak menerima string. Ini kesalahan paling
+      // sering: tanpa konversi, browser melempar TypeError yang tidak
+      // menjelaskan apa pun.
+      const b64keByte = (nilai) => {
+        const s = String(nilai).replace(/-/g, '+').replace(/_/g, '/');
+        const padding = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+        const biner = atob(s + padding);
+        const byte = new Uint8Array(biner.length);
+        for (let i = 0; i < biner.length; i += 1) byte[i] = biner.charCodeAt(i);
+        return byte;
+      };
+
+      const byteKeB64 = (buf) => {
+        let biner = '';
+        const byte = new Uint8Array(buf);
+        for (let i = 0; i < byte.length; i += 1) biner += String.fromCharCode(byte[i]);
+        return btoa(biner).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      };
+
+      const kredensial = await navigator.credentials.get({
+        publicKey: {
+          challenge: b64keByte(opsi.challenge),
+          rpId: opsi.rpId,
+          timeout: opsi.timeout ?? 120000,
+          userVerification: opsi.userVerification ?? 'preferred',
+          allowCredentials: (opsi.allowCredentials ?? []).map((c) => ({
+            ...c,
+            id: b64keByte(c.id),
+          })),
+        },
+      });
+
+      if (!kredensial) {
+        pulihkan();
+        pesan(msgToken, 'Tidak ada passkey yang dipilih.', 'galat');
+        return;
+      }
+
+      // ── Langkah 3: kirim jawaban untuk diverifikasi ────────────────────────
+      const jawaban = kredensial.response;
+      const resSelesai = await fetch('/api/auth/passkey/masuk/selesai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: kredensial.id,          // sudah base64url dari browser
+          challenge: opsi.challenge,
+          response: {
+            authenticatorData: byteKeB64(jawaban.authenticatorData),
+            clientDataJSON: byteKeB64(jawaban.clientDataJSON),
+            signature: byteKeB64(jawaban.signature),
+            userHandle: jawaban.userHandle ? byteKeB64(jawaban.userHandle) : null,
+          },
+        }),
+      });
+      const hasil = await resSelesai.json().catch(() => ({}));
+
+      if (!resSelesai.ok || !hasil.ok) {
+        pulihkan();
+        pesan(msgToken, hasil.message || 'Passkey tidak dikenali. Gunakan cara lain.', 'galat');
+        return;
+      }
+
+      // Peringatan penghitung tanda tangan tidak naik — bukan galat, tapi
+      // pantas diketahui pengguna.
+      if (hasil.peringatan) {
+        pesan(msgToken, hasil.peringatan, '');
+      }
+
+      pesan(msgToken, 'Berhasil. Mengalihkan…', 'sukses');
+      window.location.href = hasil.redirect || '/';
+
+    } catch (err) {
+      pulihkan();
+
+      // NotAllowedError = pengguna membatalkan atau waktu habis. Itu bukan
+      // kegagalan sistem, jadi pesannya tidak boleh terdengar seperti rusak.
+      if (err?.name === 'NotAllowedError') {
+        pesan(msgToken, 'Dibatalkan atau waktu habis. Coba lagi kalau perlu.', '');
+      } else if (err?.name === 'SecurityError') {
+        pesan(msgToken, 'Passkey tidak bisa dipakai di alamat ini.', 'galat');
+      } else {
+        pesan(msgToken, 'Passkey gagal: ' + (err?.message || 'penyebab tidak diketahui'), 'galat');
+      }
+    }
   });
 
   // ══ SSO (Google / Microsoft / Apple / GitHub) ════════════════════════════

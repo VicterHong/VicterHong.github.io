@@ -82,6 +82,9 @@ import {
   readJson, readBody, sendJson, parseCookies, setCookie, clearCookie,
 } from './http-util.mjs';
 import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
+import { ruteAuth } from './auth-routes.mjs';
+import { providerSiap } from './oauth.mjs';
+import { siapkanTabelIdentitas, bersihkanStateOauth, bersihkanChallenge } from './auth-identities.mjs';
 
 /** Jenis event analytics yang diterima — mencegah polusi database. */
 const ALLOWED_EVENTS = new Set([
@@ -200,6 +203,20 @@ export function initRoutes() {
   // level modul users.mjs, ia berjalan saat import — sebelum openDb() —
   // dan melempar "database belum dibuka".
   siapkanTabelPengguna();
+
+  // ── Tabel identitas (OAuth/passkey) + state sementara ──────────────────────
+  // Dibuat di sini dengan alasan yang sama: openDb() harus jalan lebih dulu.
+  // Ketiga tabel ini menyimpan cara masuk alternatif (auth_identities),
+  // state OAuth sementara (oauth_states), dan challenge WebAuthn
+  // (webauthn_challenges).
+  siapkanTabelIdentitas();
+
+  // Buang state OAuth dan challenge WebAuthn yang sudah kedaluwarsa.
+  // Tanpa ini, kedua tabel itu tumbuh selamanya: setiap percobaan login
+  // menulis satu baris, dan percobaan yang gagal tidak pernah dihapus
+  // oleh callback mana pun.
+  bersihkanStateOauth();
+  bersihkanChallenge();
 }
 
 /**
@@ -682,12 +699,24 @@ export const routes = [
         // endpoint /api/auth/google ditambahkan, tombol muncul sendiri
         // tanpa perlu menyentuh HTML.
         sso: {
-          google: Boolean(config.googleClientId),
-          github: Boolean(config.githubClientId),
-          microsoft: Boolean(config.microsoftClientId),
-          apple: Boolean(config.appleClientId),
+          // providerSiap() memeriksa SEMUA yang dibutuhkan provider, bukan
+          // hanya client id. Google tanpa client secret tidak bisa menukar
+          // code; Apple tanpa private key tidak bisa menyusun client_secret.
+          // Memakai Boolean(clientId) saja akan menyalakan tombol yang
+          // pasti gagal — persis yang ingin dihindari.
+          google: providerSiap('google', config),
+          github: providerSiap('github', config),
+          microsoft: providerSiap('microsoft', config),
+          apple: providerSiap('apple', config),
           sso: Boolean(config.ssoEntryPoint),
         },
+
+        // ── PASSKEY ──────────────────────────────────────────────────────────
+        // WebAuthn tidak butuh kredensial pihak ketiga — yang dibutuhkan
+        // hanya rpId dan origin, dan keduanya sudah ada. Jadi passkey
+        // SELALU siap; frontend yang memutuskan menampilkan tombolnya
+        // atau tidak berdasarkan dukungan browser.
+        passkey: true,
 
         // Daftar proyek — satu sumber kebenaran dari assets/js/data/projects.js.
         // Dipakai panel admin & form agar tidak ada daftar hardcoded.
@@ -3093,6 +3122,26 @@ export const routes = [
       sendJson(res, 200, { ok: true, dihapus: hasil.dihapus.slug, totalGambar: hasil.manifest.images.length });
     }),
   },
+
+  // ══ AUTH: OAUTH / SSO / PASSKEY ══════════════════════════════════════════════
+  //
+  // Didaftarkan di akhir karena semua polanya lebih spesifik daripada rute
+  // yang sudah ada — tidak ada yang bertabrakan. resolveRoute() memakai
+  // pencocokan pertama yang berhasil, jadi urutan ini aman.
+  //
+  // Yang ada di sini:
+  //   GET  /api/auth/:provider           → mulai alur (Google/MS/Apple/GitHub)
+  //   GET  /api/auth/:provider/callback  → selesai alur
+  //   POST /api/auth/:provider/callback  → varian form_post (Apple)
+  //   GET  /api/auth/sso                 → SSO perusahaan
+  //   GET  /api/auth/sso/callback        → callback SSO
+  //   POST /api/auth/passkey/registrasi/mulai   → mulai daftar passkey
+  //   POST /api/auth/passkey/registrasi/selesai → selesai daftar passkey
+  //   POST /api/auth/passkey/masuk/mulai        → mulai masuk passkey
+  //   POST /api/auth/passkey/masuk/selesai      → selesai masuk passkey
+  //   GET  /api/auth/identitas                  → daftar cara masuk
+  //   POST /api/auth/identitas/hapus            → cabut satu cara masuk
+  ...ruteAuth(),
 ];
 
 /** Cari rute yang cocok untuk satu permintaan. */
