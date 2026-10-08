@@ -89,8 +89,23 @@ export function auditAssets(rootDir) {
   walk(rootDir);
 
   // ── Ukuran nyata per halaman ────────────────────────────────────────────────
-  // Halaman yang diaudit: yang benar-benar dikunjungi orang.
-  const PAGES = ['home.html', 'docs.html', 'index.html', '404.html'];
+  //
+  // ── KENAPA DIDAFTAR OTOMATIS ────────────────────────────────────────────────
+  // Daftar hardcoded berarti halaman baru TIDAK PERNAH diperiksa sampai ada
+  // yang ingat menambahkannya. Itu sudah terjadi: pricing.html dibuat, dan
+  // audit tetap melaporkan angka lama — seolah halaman itu tidak ada.
+  //
+  // Dengan deteksi otomatis, setiap halaman baru langsung masuk audit.
+  //
+  // Yang dikecualikan: 404.html (halaman error, tidak pernah jadi tujuan),
+  // dan halaman di dalam folder berkode (/s/<kode>/) karena itu halaman
+  // akses sementara, bukan bagian tetap situs.
+  const PAGES = files
+    .filter((f) => f.ext === '.html')
+    .map((f) => f.path)
+    .filter((p) => !p.includes('/') && p !== '404.html')
+    .sort();
+
   const sizeByPath = new Map(files.map((f) => [f.path, f.bytes]));
   const perPage = [];
 
@@ -153,8 +168,25 @@ export function auditAssets(rootDir) {
       });
     }
   }
-  if (htmlBytes > BUDGETS.maxHtmlBytes) {
-    violations.push({ rule: 'maxHtmlBytes', actual: htmlBytes, budget: BUDGETS.maxHtmlBytes });
+  // ── KENAPA HALAMAN TERBERAT, BUKAN TOTAL ───────────────────────────────────
+  // Anggaran lain (CSS, JS) diukur per halaman — karena pengunjung hanya
+  // mengunduh SATU halaman, bukan seluruh situs.
+  //
+  // HTML dulu diukur sebagai total semua halaman, dan itu tidak sebanding:
+  // menambah halaman baru selalu "melanggar" anggaran, walaupun tidak ada
+  // pengunjung yang mengunduh halaman itu bersamaan.
+  //
+  // Sekarang konsisten: yang dijaga adalah pengalaman terburuk SATU
+  // kunjungan — halaman terberat.
+  const heaviestHtml = perPage.reduce((max, p) => Math.max(max, p.html), 0);
+
+  if (heaviestHtml > BUDGETS.maxHtmlBytes) {
+    violations.push({
+      rule: 'maxHtmlBytes',
+      actual: heaviestHtml,
+      budget: BUDGETS.maxHtmlBytes,
+      page: heaviestPage?.page,
+    });
   }
 
   // Berkas terbesar — untuk tahu apa yang harus dioptimalkan lebih dulu.

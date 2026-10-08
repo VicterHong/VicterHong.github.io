@@ -20,7 +20,7 @@
  */
 
 import { config } from './config.mjs';
-import { openDb } from './db.mjs';
+import { openDb, getDb } from './db.mjs';
 import { timingSafeEqual, createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import {
@@ -40,6 +40,7 @@ import { slaSummary, slaReport } from './sla.mjs';
 import { liveness, readiness } from './health.mjs';
 import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
 import { listProjects, isKnownProject } from './projects.mjs';
+import { buildPricing } from './pricing.mjs';
 import {
   createCollection, getCollection, listCollections,
   saveItem, getItem, listItems, setItemStatus, deleteItem,
@@ -60,11 +61,18 @@ import {
   mulaiEnrollment, selesaikanEnrollment, verifikasi2fa,
   totpAktif, statusTotp, cabut2fa, buatUlangKodePemulihan, riwayatPercobaan,
 } from './totp-service.mjs';
+import { buatQrDataUrl } from './qr.mjs';
 import {
   mediaAktif, unggahGambar, hapusGambar, bacaManifest, daftarPublik,
   validasiUnggahan, MAX_UPLOAD_BYTES,
 } from './media.mjs'
 import { bacaBodyBiner } from './http-util.mjs'
+import {
+  siapkanTabelPengguna, cariPengguna, penggunaById, buatPengguna,
+  verifyPassword, periksaSandi, emailValid, normalEmail,
+  catatGagalMasuk, catatMasukBerhasil, sisaKunci,
+  buatTokenReset, pakaiTokenReset,
+} from './users.mjs';
 import {
   buatClearance, verifikasiClearance, setCookieClearance,
   hapusCookieClearance, bacaCookieClearance, GATE_TTL_SECONDS,
@@ -184,6 +192,13 @@ export function rateLimited(req, res, pathname) {
 /** Dipanggil sekali saat server mulai. */
 export function initRoutes() {
   openDb(config.dbPath);
+
+  // ── Siapkan tabel auth email+sandi ─────────────────────────────────────────
+  // Dijalankan di sini, bukan di users.mjs saat import, supaya urutannya
+  // jelas: database dibuka dulu, baru tabel dibuat. Kalau diletakkan di
+  // level modul users.mjs, ia berjalan saat import — sebelum openDb() —
+  // dan melempar "database belum dibuka".
+  siapkanTabelPengguna();
 }
 
 /**
@@ -652,10 +667,46 @@ export const routes = [
           enabled: Boolean(config.turnstileSiteKey),
           site_key: config.turnstileSiteKey,
         },
+
+        // ── SSO: apakah tombol Google/GitHub boleh ditampilkan? ──────────────
+        //
+        // Frontend menyembunyikan tombol SSO secara default dan hanya
+        // menampilkannya kalau server melaporkan provider aktif di sini.
+        //
+        // Alasannya: tombol yang mengarah ke endpoint yang tidak ada
+        // menghasilkan 404, dan pengguna mengira situsnya rusak. Lebih baik
+        // tidak menampilkan apa pun sampai benar-benar siap.
+        //
+        // Nilainya berasal dari config — begitu kredensial OAuth diisi dan
+        // endpoint /api/auth/google ditambahkan, tombol muncul sendiri
+        // tanpa perlu menyentuh HTML.
+        sso: {
+          google: Boolean(config.googleClientId),
+          github: Boolean(config.githubClientId),
+        },
+
         // Daftar proyek — satu sumber kebenaran dari assets/js/data/projects.js.
         // Dipakai panel admin & form agar tidak ada daftar hardcoded.
         projects: listProjects(),
       });
+    }),
+  },
+
+  {
+    // ── Data harga ──────────────────────────────────────────────────────────
+    // Publik — harga memang untuk dilihat calon pembeli.
+    //
+    // Harga sengaja TIDAK ditulis di HTML. Frontend memuatnya dari sini,
+    // jadi mengubah harga cukup di satu tempat: src/pricing.mjs.
+    //
+    // SENGAJA TIDAK DI-CACHE. sendJson() mengirim `cache-control: no-store`,
+    // dan itu memang yang diinginkan di sini: harga harus selalu yang
+    // berlaku. Satu permintaan kecil saat halaman dibuka jauh lebih murah
+    // daripada risiko menampilkan harga lama.
+    method: 'GET',
+    pattern: '/api/pricing',
+    handler: safe(async (req, res) => {
+      sendJson(res, 200, buildPricing());
     }),
   },
 
@@ -918,6 +969,423 @@ export const routes = [
     }),
   },
 
+  // ══ AUTH: DAFTAR (SIGN UP) ════════════════════════════════════════════════
+  //
+  // ── KENAPA ALUR INI DIPISAH DARI LOGIN ─────────────────────────────────────
+  // Korporasi memisahkan "Masuk" (sudah punya akun) dari "Daftar" (belum).
+  // Menggabung keduanya membingungkan: pengguna yang salah masuk ke form
+  // daftar akan membuat akun DUPLIKAT, lalu bingung kenapa datanya kosong.
+  //
+  // ── TOKEN IDENTITAS DIBUAT DI SINI ─────────────────────────────────────────
+  // Sistem sesi, 2FA, dan audit semuanya mengacu ke tabel `tokens`
+  // (sessions.token_id → tokens.id). Jadi pendaftaran membuat DUA hal:
+  //   1. baris `tokens` — identitas yang dipakai sistem lama
+  //   2. baris `users`  — kredensial email + sandi
+  // Keduanya ditautkan lewat users.token_id.
+  //
+  // Ini menjaga semua yang sudah dibangun tetap bekerja tanpa perubahan:
+  // sesi, batas perangkat, TOTP, pencabutan oleh admin.
+  {
+    method: 'POST',
+    pattern: '/api/auth/daftar',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+
+      const email = normalEmail(body.email);
+      const nama = String(body.nama ?? '').trim();
+      const perusahaan = String(body.perusahaan ?? '').trim();
+      const sandi = String(body.sandi ?? '');
+
+      // ── Validasi lapis server ──────────────────────────────────────────────
+      // Klien memvalidasi juga, tapi klien bisa dilewati (request langsung,
+      // JS dimatikan). Server TIDAK PERNAH mempercayai klien.
+      const masalah = [];
+      if (!emailValid(email)) masalah.push({ field: 'email', pesan: 'Email tidak valid.' });
+      if (nama.length < 3 || /\d/.test(nama)) masalah.push({ field: 'nama', pesan: 'Nama minimal 3 huruf, tanpa angka.' });
+
+      // ── PERUSAHAAN OPSIONAL ────────────────────────────────────────────────
+      // Email pribadi dan email kantor sama-sama boleh. Memaksa nama
+      // perusahaan membuat pengguna perorangan mengisi asal-asalan — data
+      // sampah lebih buruk daripada kolom yang jujur kosong.
+      //
+      // Kalau DIISI, tetap divalidasi: minimal 3 huruf, dan tidak boleh
+      // hanya angka.
+      if (perusahaan && (perusahaan.length < 3 || /^\d+$/.test(perusahaan))) {
+        masalah.push({ field: 'perusahaan', pesan: 'Nama perusahaan minimal 3 huruf.' });
+      }
+
+      const cekSandi = periksaSandi(sandi);
+      if (!cekSandi.ok) masalah.push({ field: 'sandi', pesan: cekSandi.pesan });
+
+      if (masalah.length) {
+        return sendJson(res, 400, { ok: false, error: 'validasi_gagal', fields: masalah, message: masalah[0].pesan });
+      }
+
+      // ── Gerbang Turnstile ──────────────────────────────────────────────────
+      // Dijalankan SEBELUM menyentuh database: bot tidak boleh bisa memakai
+      // endpoint ini untuk memetakan email mana yang sudah terdaftar.
+      const gate = await turnstileGate(req, body, { action: 'daftar_turnstile' });
+      if (!gate.ok) return sendJson(res, gate.status, gate.body);
+
+      // ── Email sudah terdaftar? ─────────────────────────────────────────────
+      if (cariPengguna(email)) {
+        // PESAN SENGAJA TIDAK menyebut "email sudah terdaftar".
+        //
+        // Kalau kita katakan itu, endpoint ini menjadi alat untuk memeriksa
+        // email mana yang punya akun (user enumeration). Pesan ini memaksa
+        // penyerang menebak, sementara pengguna asli yang lupa akan tetap
+        // menemukan jawabannya lewat alur "lupa sandi".
+        return sendJson(res, 409, {
+          ok: false,
+          error: 'sudah_terdaftar',
+          message: 'Email ini sudah terdaftar. Coba masuk, atau gunakan "Lupa sandi".',
+        });
+      }
+
+      // ── Buat identitas (token) + kredensial (user) ─────────────────────────
+      //
+      // ── BENTUK KEMBALIAN issueToken (penting) ───────────────────────────────
+      // Fungsi itu mengembalikan objek DATAR: { id, token, project_slug, ... }
+      // — BUKAN { row: {...} }. Kesalahan pertama saya memakai `.row.id`
+      // sehingga endpoint melempar "Cannot read properties of undefined
+      // (reading 'id')" dan membalas 500. Pelajaran: baca bentuk kembalian
+      // fungsi dari sumbernya, jangan berasumsi dari namanya.
+      const { issueToken } = await import('./tokens.mjs');
+      const diterbitkan = issueToken({
+        secret: config.secret,
+        projectSlug: String(body.project ?? 'mina'),
+        label: nama,
+        issuedTo: email,
+        company: perusahaan,
+        issuedBy: 'pendaftaran',
+        tier: 'standard',
+        notes: 'Dibuat otomatis dari pendaftaran mandiri.',
+      });
+
+      await buatPengguna({
+        email, nama, perusahaan, sandi,
+        tokenId: diterbitkan.id,
+      });
+
+      recordEvent({
+        projectSlug: diterbitkan.project_slug,
+        action: 'auth_daftar',
+        outcome: 'ok',
+        ip: clientIp(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+      });
+
+      // Tidak langsung membuat sesi — pengguna diarahkan ke halaman masuk.
+      // Alasannya: mendaftar dan masuk adalah dua tindakan berbeda, dan
+      // memaksa pengguna melewati layar "berhasil daftar" membuat mereka
+      // sadar akunnya sudah aktif (banyak yang mengira harus menunggu email).
+      return sendJson(res, 201, {
+        ok: true,
+        message: 'Akun dibuat. Silakan masuk dengan email dan sandi Anda.',
+      });
+    }),
+  },
+
+  // ══ AUTH: MASUK (SIGN IN) ═════════════════════════════════════════════════
+  {
+    method: 'POST',
+    pattern: '/api/auth/masuk',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const email = normalEmail(body.email);
+      const sandi = String(body.sandi ?? '');
+
+      if (!emailValid(email) || !sandi) {
+        return sendJson(res, 400, {
+          ok: false, error: 'kredensial_kosong',
+          message: 'Email dan sandi wajib diisi.',
+        });
+      }
+
+      const gate = await turnstileGate(req, body, { action: 'masuk_turnstile' });
+      if (!gate.ok) return sendJson(res, gate.status, gate.body);
+
+      // ── PESAN GALAT SERAGAM ────────────────────────────────────────────────
+      // Baik email tidak ada maupun sandi salah, pesannya SAMA:
+      // "Email atau sandi salah."
+      //
+      // Kalau dibedakan, penyerang bisa memetakan email mana yang terdaftar
+      // hanya dengan mencoba masuk — lalu memusatkan serangan tebak sandi ke
+      // akun yang benar-benar ada.
+      const PESAN_SALAH = 'Email atau sandi salah.';
+
+      const user = cariPengguna(email);
+      if (!user) {
+        // Tetap jalankan scrypt dummy supaya WAKTU responsnya sama dengan
+        // kasus sandi salah. Tanpa ini, respons "email tidak ada" kembali
+        // jauh lebih cepat — dan perbedaan waktu itu sendiri membocorkan
+        // informasi yang sama.
+        await verifyPassword(sandi, 'scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==');
+        return sendJson(res, 401, { ok: false, error: 'kredensial_salah', message: PESAN_SALAH });
+      }
+
+      if (user.status !== 'aktif') {
+        return sendJson(res, 403, {
+          ok: false, error: 'akun_nonaktif',
+          message: 'Akun ini tidak aktif. Hubungi admin.',
+        });
+      }
+
+      // ── Terkunci karena terlalu banyak kegagalan? ──────────────────────────
+      const sisa = sisaKunci(user.id);
+      if (sisa > 0) {
+        const menit = Math.ceil(sisa / 60);
+        return sendJson(res, 429, {
+          ok: false, error: 'akun_terkunci',
+          message: `Terlalu banyak percobaan. Coba lagi dalam ${menit} menit.`,
+          sisa_detik: sisa,
+        });
+      }
+
+      const cocok = await verifyPassword(sandi, user.password_hash);
+      if (!cocok) {
+        const jumlah = catatGagalMasuk(user.id);
+        recordEvent({
+          action: 'auth_masuk', outcome: 'gagal',
+          ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+          detail: `gagal ke-${jumlah}`,
+        });
+        return sendJson(res, 401, {
+          ok: false, error: 'kredensial_salah', message: PESAN_SALAH,
+          sisa_percobaan: Math.max(0, 10 - jumlah),
+        });
+      }
+
+      // ── Berhasil ───────────────────────────────────────────────────────────
+      catatMasukBerhasil(user.id);
+
+      // ── Gerbang 2FA ────────────────────────────────────────────────────────
+      // Sama seperti alur token: kalau identitas ini punya 2FA aktif, JANGAN
+      // buat sesi di sini. Balas `perlu_2fa` dan biarkan klien mengirim kode.
+      //
+      // Pemeriksaan dilakukan SETELAH sandi terbukti benar — kalau sebelum,
+      // penyerang bisa mengetahui akun mana yang punya 2FA tanpa punya sandi.
+      if (totpAktif(email)) {
+        recordEvent({
+          action: 'auth_masuk', outcome: 'perlu_2fa',
+          ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        });
+        return sendJson(res, 200, {
+          ok: true, perlu_2fa: true,
+          pesan: 'Masukkan kode dari aplikasi authenticator Anda.',
+        });
+      }
+
+      const tokenRow = getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(user.token_id);
+      if (!tokenRow) {
+        return sendJson(res, 500, { ok: false, error: 'identitas_hilang', message: 'Identitas akun tidak ditemukan. Hubungi admin.' });
+      }
+
+      const session = createSession({
+        tokenId: tokenRow.id,
+        secret: config.secret,
+        deviceFp: String(body.device_fp ?? '').slice(0, 200),
+        ip: clientIp(req),
+        country: clientCountry(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        durationHours: config.sessionDurationHours,
+        maxDevices: tokenRow.max_devices ?? config.maxDevices,
+      });
+
+      setCookie(res, 'portfolio_session', session.id, {
+        maxAgeSeconds: config.sessionDurationHours * 3600,
+        httpOnly: true, secure: true, sameSite: 'Lax',
+      });
+
+      recordEvent({
+        projectSlug: tokenRow.project_slug, action: 'auth_masuk', outcome: 'ok',
+        ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+      });
+
+      return sendJson(res, 200, {
+        ok: true,
+        project: tokenRow.project_slug,
+        tier: tokenRow.tier,
+        // ── scopes DISIMPAN SEBAGAI JSON STRING, BUKAN CSV ───────────────────
+        // Di database kolomnya berisi '["mina"]' (hasil JSON.stringify di
+        // issueToken), bukan 'mina'. Memakai split(',') menghasilkan
+        // ["[\"mina\"]"] — array dengan satu elemen string JSON mentah.
+        //
+        // Alur token lama tidak terkena masalah ini karena verifyToken()
+        // sudah mem-parse row.scopes lebih dulu (lihat tokens.mjs baris 85).
+        // Di sini kita membaca baris langsung dari database, jadi parsing
+        // harus dilakukan sendiri — dengan fallback ke project_slug kalau
+        // isinya rusak.
+        scopes: (() => {
+          try {
+            const p = JSON.parse(tokenRow.scopes);
+            return Array.isArray(p) ? p : [tokenRow.project_slug];
+          } catch {
+            return [tokenRow.project_slug];
+          }
+        })(),
+        redirect: `/${tokenRow.project_slug}`,
+      });
+    }),
+  },
+
+  // ══ AUTH: 2FA SETELAH MASUK EMAIL+SANDI ═══════════════════════════════════
+  {
+    method: 'POST',
+    pattern: '/api/auth/2fa',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const email = normalEmail(body.email);
+      const sandi = String(body.sandi ?? '');
+      const kode = String(body.code ?? '').replace(/\D/g, '');
+
+      if (!emailValid(email) || !sandi || kode.length !== 6) {
+        return sendJson(res, 400, { ok: false, error: 'input_tidak_lengkap', message: 'Email, sandi, dan 6 digit kode wajib diisi.' });
+      }
+
+      const gate = await turnstileGate(req, body, { action: 'masuk_turnstile' });
+      if (!gate.ok) return sendJson(res, gate.status, gate.body);
+
+      const PESAN_SALAH = 'Email atau sandi salah.';
+      const user = cariPengguna(email);
+      if (!user) return sendJson(res, 401, { ok: false, error: 'kredensial_salah', message: PESAN_SALAH });
+
+      const sisa = sisaKunci(user.id);
+      if (sisa > 0) {
+        return sendJson(res, 429, { ok: false, error: 'akun_terkunci', message: `Terlalu banyak percobaan. Coba lagi dalam ${Math.ceil(sisa / 60)} menit.`, sisa_detik: sisa });
+      }
+
+      const cocok = await verifyPassword(sandi, user.password_hash);
+      if (!cocok) {
+        catatGagalMasuk(user.id);
+        return sendJson(res, 401, { ok: false, error: 'kredensial_salah', message: PESAN_SALAH });
+      }
+
+      // Nama fungsi sebenarnya `verifikasi2fa(identity, kode, config, opts)`.
+      // config WAJIB diteruskan — fungsi itu memakainya untuk kunci
+      // enkripsi/verifikasi secret TOTP.
+      const verifikasi = verifikasi2fa(email, kode, config, { ip: clientIp(req) });
+      if (!verifikasi.ok) {
+        return sendJson(res, 401, {
+          ok: false, error: 'kode_salah',
+          message: verifikasi.pesan ?? 'Kode tidak cocok.',
+          sisa_percobaan: verifikasi.sisaPercobaan,
+        });
+      }
+
+      catatMasukBerhasil(user.id);
+      const tokenRow = getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(user.token_id);
+      if (!tokenRow) return sendJson(res, 500, { ok: false, error: 'identitas_hilang', message: 'Identitas akun tidak ditemukan.' });
+
+      const session = createSession({
+        tokenId: tokenRow.id, secret: config.secret,
+        deviceFp: String(body.device_fp ?? '').slice(0, 200),
+        ip: clientIp(req), country: clientCountry(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        durationHours: config.sessionDurationHours,
+        maxDevices: tokenRow.max_devices ?? config.maxDevices,
+      });
+
+      setCookie(res, 'portfolio_session', session.id, {
+        maxAgeSeconds: config.sessionDurationHours * 3600,
+        httpOnly: true, secure: true, sameSite: 'Lax',
+      });
+
+      recordEvent({ projectSlug: tokenRow.project_slug, action: 'auth_masuk_2fa', outcome: 'ok', ip: clientIp(req) });
+
+      return sendJson(res, 200, {
+        ok: true, project: tokenRow.project_slug, tier: tokenRow.tier,
+        // ── scopes DISIMPAN SEBAGAI JSON STRING, BUKAN CSV ───────────────────
+        // Di database kolomnya berisi '["mina"]' (hasil JSON.stringify di
+        // issueToken), bukan 'mina'. Memakai split(',') menghasilkan
+        // ["[\"mina\"]"] — array dengan satu elemen string JSON mentah.
+        //
+        // Alur token lama tidak terkena masalah ini karena verifyToken()
+        // sudah mem-parse row.scopes lebih dulu (lihat tokens.mjs baris 85).
+        // Di sini kita membaca baris langsung dari database, jadi parsing
+        // harus dilakukan sendiri — dengan fallback ke project_slug kalau
+        // isinya rusak.
+        scopes: (() => {
+          try {
+            const p = JSON.parse(tokenRow.scopes);
+            return Array.isArray(p) ? p : [tokenRow.project_slug];
+          } catch {
+            return [tokenRow.project_slug];
+          }
+        })(),
+        redirect: `/${tokenRow.project_slug}`,
+      });
+    }),
+  },
+
+  // ══ AUTH: LUPA SANDI — minta tautan reset ═════════════════════════════════
+  {
+    method: 'POST',
+    pattern: '/api/auth/lupa-sandi',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const email = normalEmail(body.email);
+
+      if (!emailValid(email)) {
+        return sendJson(res, 400, { ok: false, error: 'email_tidak_valid', message: 'Email tidak valid.' });
+      }
+
+      const gate = await turnstileGate(req, body, { action: 'lupa_sandi_turnstile' });
+      if (!gate.ok) return sendJson(res, gate.status, gate.body);
+
+      const user = cariPengguna(email);
+
+      // ── SELALU BALAS SUKSES ────────────────────────────────────────────────
+      // Baik email terdaftar maupun tidak, responsnya sama. Kalau dibedakan,
+      // endpoint ini menjadi alat untuk memeriksa email mana yang punya akun.
+      //
+      // Pesan sukses yang seragam juga mencegah pengguna panik: mereka tidak
+      // tahu apakah emailnya terdaftar atau tidak, dan itu memang bukan
+      // informasi yang perlu mereka ketahui.
+      if (user && user.status === 'aktif') {
+        const token = buatTokenReset(user.id);
+        const { kirimEmailResetSandi } = await import('./email.mjs');
+        // Kirim tanpa menunggu — kegagalan email TIDAK boleh membuat endpoint
+        // ini membocorkan keberadaan akun lewat perbedaan waktu respons.
+        kirimEmailResetSandi({ ke: email, nama: user.nama, token }).catch(() => {});
+      }
+
+      recordEvent({ action: 'auth_lupa_sandi', outcome: user ? 'dikirim' : 'email_tidak_ada', ip: clientIp(req) });
+
+      return sendJson(res, 200, {
+        ok: true,
+        message: 'Kalau email itu terdaftar, tautan reset sudah dikirim. Periksa kotak masuk Anda.',
+      });
+    }),
+  },
+
+  // ══ AUTH: RESET SANDI — pakai token dari email ════════════════════════════
+  {
+    method: 'POST',
+    pattern: '/api/auth/reset-sandi',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+      const token = String(body.token ?? '').trim();
+      const sandi = String(body.sandi ?? '');
+
+      if (!token) {
+        return sendJson(res, 400, { ok: false, error: 'token_kosong', message: 'Tautan tidak valid.' });
+      }
+
+      const hasil = await pakaiTokenReset(token, sandi);
+      if (!hasil.ok) {
+        return sendJson(res, 400, { ok: false, error: 'reset_gagal', message: hasil.pesan });
+      }
+
+      recordEvent({ action: 'auth_reset_sandi', outcome: 'ok', ip: clientIp(req) });
+
+      return sendJson(res, 200, {
+        ok: true,
+        message: 'Sandi berhasil diganti. Silakan masuk dengan sandi baru Anda.',
+      });
+    }),
+  },
+
   {
     method: 'GET',
     pattern: '/api/token/2fa/status',
@@ -951,17 +1419,38 @@ export const routes = [
         const hasil = mulaiEnrollment(identity, config, {
           issuer: 'Victer Portfolio',
         });
+
+        // QR dibuat di server, dikirim sebagai data URL PNG.
+        //
+        // KENAPA DI SERVER, BUKAN DI BROWSER:
+        //   Library QR di browser menambah ~15-30 KB JavaScript yang harus
+        //   diunduh setiap pengunjung — untuk fitur yang dipakai sekali
+        //   seumur akun. Di server, biayanya satu proses ~50ms.
+        //
+        // KENAPA DATA URL, BUKAN FILE:
+        //   Tidak ada berkas di disk, tidak ada URL yang bisa ditebak, tidak
+        //   ada pembersihan yang perlu dijadwalkan. Secret hanya ada di
+        //   memori selama satu permintaan.
+        const qr = await buatQrDataUrl(hasil.uri);
+
         // `secret` dikembalikan SEKALI di sini untuk ditampilkan sebagai QR.
         // Setelah ini hanya tersimpan terenkripsi dan tidak bisa dibaca lagi.
         return sendJson(res, 200, {
           ok: true,
           secret: hasil.secret,
           uri: hasil.uri,
+          // QR tersedia = bisa dipindai langsung. Kalau gagal, klien masih
+          // bisa memasukkan secret manual — jadi bukan kegagalan total.
+          qr_data_url: qr.ok ? qr.dataUrl : null,
+          qr_tersedia: qr.ok,
+          ...(qr.ok ? {} : { qr_catatan: qr.pesan }),
           issuer: hasil.issuer,
           akun: hasil.akun,
           digit: hasil.digit,
           periode: hasil.periode,
-          pesan: 'Pindai QR dengan aplikasi authenticator, lalu masukkan kodenya untuk mengaktifkan.',
+          pesan: qr.ok
+            ? 'Pindai QR dengan aplikasi authenticator, lalu masukkan kodenya untuk mengaktifkan.'
+            : 'Masukkan kode secara manual di aplikasi authenticator (QR tidak tersedia).',
         });
       } catch (e) {
         if (e.kode === 'totp_sudah_aktif') {

@@ -1,0 +1,921 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   PRICING — halaman harga
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── STRUKTUR ─────────────────────────────────────────────────────────────────
+   Mengikuti pola "Pricing Page + CTA":
+
+     1. Hero          — judul + penjelasan
+     2. Kartu harga   — 3 tier berdampingan
+     3. Tabel fitur   — perbandingan rinci
+     4. FAQ           — menjawab keraguan sebelum memutuskan
+     5. CTA akhir     — satu ajakan setelah semua informasi
+
+   ── KEPUTUSAN DESAIN ─────────────────────────────────────────────────────────
+   Gaya     : Minimalism / Swiss — bersih, lapang, fungsional, grid-based
+   Density  : standar — jarak 16–64px, tidak padat, tidak terlalu lapang
+   Variance : rendah — terpusat, bukan asimetris
+   Motion   : halus — hanya transisi 200–250ms
+
+   Warna memakai token situs yang sudah ada (--bg, --accent, --text) supaya
+   halaman ini menyatu dengan halaman lain, bukan terlihat ditempel.
+
+   ── PRINSIP ──────────────────────────────────────────────────────────────────
+   1. Tidak ada emoji sebagai ikon — semua SVG inline
+   2. Kontras teks ≥ 4.5:1
+   3. Fokus keyboard selalu terlihat, tidak tertutup header sticky
+   4. `prefers-reduced-motion` dihormati
+   5. Target sentuh ≥ 44px
+   6. Responsif di 375 / 768 / 1024 / 1440px
+
+   ── KENAPA TIDAK ADA KALKULATOR ──────────────────────────────────────────────
+   Versi sebelumnya punya kalkulator modul: pengguna mencentang fitur, harga
+   total berubah. Itu **dihapus** karena:
+
+     • Menambah JavaScript yang harus dijaga
+     • Membuat halaman tidak bisa dipahami tanpa JavaScript
+     • Untuk jasa, harga tidak benar-benar dijumlahkan seperti itu —
+       kebutuhannya berbeda-beda dan dibicarakan langsung
+     • Halaman harga yang jelas lebih berguna daripada kalkulator yang
+       menghasilkan angka yang belum tentu berlaku
+
+   Yang tersisa: informasi harga yang bisa dibaca, dibandingkan, dan dipahami.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Token lokal ──────────────────────────────────────────────────────────────
+   Hanya berlaku di halaman ini. Ditulis di sini supaya perubahan halaman
+   pricing tidak memengaruhi halaman lain. */
+.pricing-page {
+  --pr-bg: var(--bg, #0a0a0b);
+  --pr-card: var(--bg-card, #16161a);
+  --pr-card-soft: var(--bg-soft, #121214);
+  --pr-line: rgba(255, 255, 255, 0.08);
+  --pr-line-strong: rgba(255, 255, 255, 0.14);
+  --pr-text: var(--text, #f4f4f6);
+  --pr-text-dim: var(--text-dim, #a1a1aa);
+  --pr-text-faint: var(--text-faint, #8a8a94);
+  --pr-accent: var(--accent, #f5c542);
+  --pr-accent-soft: var(--accent-soft, rgba(245, 197, 66, 0.12));
+  --pr-accent-line: var(--accent-line, rgba(245, 197, 66, 0.35));
+  --pr-accent-light: var(--accent-light, #f7d77a);
+
+  /* Skala jarak — kelipatan 4px supaya konsisten */
+  --pr-1: 0.25rem;
+  --pr-2: 0.5rem;
+  --pr-3: 0.75rem;
+  --pr-4: 1rem;
+  --pr-5: 1.5rem;
+  --pr-6: 2rem;
+  --pr-7: 3rem;
+  --pr-8: 4rem;
+
+  min-height: 100dvh;
+  padding: clamp(var(--pr-6), 6vw, var(--pr-8)) var(--pr-4);
+  background: var(--pr-bg);
+  /* WCAG 2.2 — fokus keyboard tidak boleh tertutup header sticky */
+  scroll-padding-top: 5rem;
+}
+
+.pricing-wrap {
+  max-width: 68rem;
+  margin-inline: auto;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   1. HERO
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.pricing-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pr-4);
+  text-align: center;
+  margin-bottom: clamp(var(--pr-6), 5vw, var(--pr-7));
+  padding-top: var(--pr-4);
+}
+
+.pricing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pr-2);
+  padding: var(--pr-1) var(--pr-3);
+  border: 1px solid var(--pr-accent-line);
+  border-radius: 999px;
+  background: var(--pr-accent-soft);
+  color: var(--pr-accent-light);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.pricing-title {
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pr-text);
+  margin: 0;
+  /* Hindari baris terakhir hanya berisi satu kata */
+  text-wrap: balance;
+}
+
+.pricing-sub {
+  max-width: 34rem;
+  font-size: clamp(0.9rem, 2.2vw, 1.05rem);
+  line-height: 1.6;
+  color: var(--pr-text-dim);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   2. KARTU HARGA
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.harga-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--pr-4);
+  align-items: start;
+}
+
+@media (min-width: 56rem) {
+  .harga-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--pr-5);
+  }
+}
+
+.harga-kartu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pr-5);
+  padding: clamp(var(--pr-5), 3vw, var(--pr-6));
+  border: 1px solid var(--pr-line);
+  border-radius: 1.5rem;
+  background: var(--pr-card);
+  transition: border-color 0.22s ease;
+}
+
+.harga-kartu:hover {
+  border-color: var(--pr-line-strong);
+}
+
+/* Kartu unggulan — dinaikkan sedikit supaya jadi pusat perhatian.
+   Pola "highlight the plan that matches the intended audience". */
+.harga-kartu--unggulan {
+  border-color: var(--pr-accent-line);
+  background: var(--pr-card-soft);
+  position: relative;
+}
+
+@media (min-width: 56rem) {
+  .harga-kartu--unggulan {
+    /* Naik 8px — cukup terlihat menonjol, tidak berlebihan */
+    transform: translateY(-0.5rem);
+  }
+}
+
+.harga-lencana {
+  position: absolute;
+  top: calc(var(--pr-4) * -1);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: var(--pr-accent);
+  color: #0a0a0b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.harga-kepala {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pr-2);
+}
+
+.harga-nama {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--pr-text);
+  margin: 0;
+}
+
+.harga-desc {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--pr-text-dim);
+  margin: 0;
+  /* Tinggi minimum supaya kartu tetap sejajar walau deskripsi beda panjang */
+  min-height: 2.5rem;
+}
+
+.harga-angka-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pr-1);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--pr-3);
+}
+
+.harga-angka {
+  font-size: clamp(2rem, 6vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--pr-text);
+}
+
+/* Harga teks — untuk tier tanpa angka (Enterprise).
+   Ukurannya lebih kecil dari angka supaya tidak terlihat seperti angka
+   yang hilang, dan tidak ada `tabular-nums` karena bukan deret angka. */
+.harga-angka--teks {
+  font-size: clamp(1.35rem, 4vw, 1.65rem);
+  font-variant-numeric: normal;
+  letter-spacing: -0.01em;
+}
+
+
+.harga-periode {
+  font-size: 0.85rem;
+  color: var(--pr-text-faint);
+}
+
+.harga-catatan {
+  font-size: 0.72rem;
+  color: var(--pr-text-faint);
+  margin: var(--pr-2) 0 0;
+}
+
+/* ── Daftar fitur dalam kartu ─────────────────────────────────────────────── */
+
+.harga-fitur {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pr-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Dorong tombol ke bawah supaya sejajar antar kartu */
+  flex: 1;
+}
+
+.harga-fitur li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pr-3);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--pr-text-dim);
+}
+
+.harga-ikon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  border-radius: 999px;
+}
+
+.harga-ikon--cek {
+  background: var(--pr-accent);
+  color: #0a0a0b;
+}
+
+.harga-ikon--strip {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--pr-text-faint);
+}
+
+/* Fitur yang tidak termasuk — diredupkan, bukan diberi warna merah.
+   Ini keterangan batas, bukan peringatan. */
+.harga-fitur li.tidak-dapat {
+  opacity: 0.6;
+}
+
+/* ── Tombol ───────────────────────────────────────────────────────────────── */
+
+.tombol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pr-2);
+  /* Target sentuh 44px minimum */
+  min-height: 2.75rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+              transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tombol--utama {
+  background: var(--pr-accent);
+  border-color: var(--pr-accent);
+  color: #0a0a0b;
+  width: 100%;
+}
+
+.tombol--utama:hover {
+  background: var(--pr-accent-light);
+  border-color: var(--pr-accent-light);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(245, 197, 66, 0.2);
+}
+
+.tombol--sekunder {
+  background: transparent;
+  border-color: var(--pr-line-strong);
+  color: var(--pr-text);
+  width: 100%;
+}
+
+.tombol--sekunder:hover {
+  border-color: var(--pr-accent-line);
+  background: var(--pr-accent-soft);
+  color: var(--pr-accent-light);
+}
+
+.tombol:focus-visible {
+  outline: 2px solid var(--pr-accent);
+  outline-offset: 3px;
+}
+
+.tombol svg {
+  transition: transform 0.2s ease;
+}
+
+.tombol:hover svg {
+  transform: translate(2px, -2px);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BAGIAN UMUM
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.bagian {
+  margin-top: clamp(var(--pr-7), 7vw, 5rem);
+}
+
+.bagian-judul {
+  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pr-text);
+  text-align: center;
+  margin: 0 0 var(--pr-2);
+}
+
+.bagian-sub {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--pr-text-dim);
+  text-align: center;
+  margin: 0 0 var(--pr-5);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   3. TABEL PERBANDINGAN
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.tabel-wrap {
+  /* ── PEDOMAN UX ─────────────────────────────────────────────────────────
+     Tabel lebar harus bisa digulir horizontal, bukan merusak tata letak
+     halaman. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* ── KENAPA `contain: paint` ────────────────────────────────────────────
+     Tanpa ini, Chromium melaporkan `documentElement.scrollWidth` sebesar
+     LEBAR TABEL (545px) — bukan lebar layar (375px) — walaupun wadahnya
+     sudah `overflow-x: auto`.
+
+     Yang penting: halaman sebenarnya TIDAK bisa digulir (window.scrollX
+     tetap 0 setelah scrollTo). Jadi ini bukan bug yang terlihat di
+     Chromium. Tapi angka itu dipakai browser lain untuk memutuskan apakah
+     halaman perlu ruang gulir — dan Safari iOS bisa benar-benar
+     menggeser seluruh halaman.
+
+     `contain: paint` memberitahu browser bahwa isi elemen ini di-clip
+     di batasnya. Hasilnya terukur: scrollWidth turun dari 545px ke 375px,
+     dan gulir di dalam tabel tetap bekerja.
+
+     Didukung Chrome 52+, Firefox 69+, Safari 15.4+ — lebih dari 97%
+     pengguna. */
+  contain: paint;
+
+  border: 1px solid var(--pr-line);
+  border-radius: 1.25rem;
+  background: var(--pr-card);
+}
+
+/* ── Petunjuk gulir tabel ────────────────────────────────────────────────────
+   Muncul HANYA di layar sempit, di mana tabelnya memang tidak muat.
+
+   Di desktop tabelnya muat penuh — dan petunjuk "geser" di sana hanya
+   membingungkan, karena tidak ada yang perlu digeser. */
+.tabel-petunjuk {
+  display: none;
+}
+
+@media (max-width: 55.99rem) {
+  .tabel-petunjuk {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--pr-2);
+    padding: var(--pr-3);
+    font-size: 0.75rem;
+    color: var(--pr-text-faint);
+    text-align: center;
+  }
+}
+
+
+.tabel-banding {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.tabel-banding caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tabel-banding th,
+.tabel-banding td {
+  padding: var(--pr-3) var(--pr-4);
+  text-align: center;
+  border-bottom: 1px solid var(--pr-line);
+  vertical-align: middle;
+}
+
+/* Kolom pertama — nama fitur. Sticky supaya tetap terlihat saat digulir
+   ke kanan di ponsel; tanpa itu pengguna lupa baris ini fitur apa. */
+.tabel-banding th:first-child,
+.tabel-banding td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--pr-card);
+  border-right: 1px solid var(--pr-line);
+  z-index: 1;
+  min-width: 12rem;
+  color: var(--pr-text-dim);
+  font-weight: 400;
+}
+
+.tabel-banding thead th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--pr-text);
+  border-bottom-color: var(--pr-line-strong);
+  white-space: nowrap;
+}
+
+.tabel-banding thead th:first-child {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pr-text-faint);
+}
+
+/* Kolom unggulan — ditandai dengan latar lembut */
+.tabel-banding .kolom-unggulan {
+  background: rgba(245, 197, 66, 0.04);
+}
+
+.tabel-banding thead .kolom-unggulan {
+  color: var(--pr-accent-light);
+  background: rgba(245, 197, 66, 0.07);
+}
+
+/* Baris pemisah bagian */
+.tabel-banding tr.baris-bagian td {
+  padding-top: var(--pr-5);
+  padding-bottom: var(--pr-2);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--pr-text-faint);
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom-color: var(--pr-line-strong);
+}
+
+.tabel-banding tr.baris-bagian td:first-child {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tabel-banding tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Ikon dalam tabel ─────────────────────────────────────────────────────── */
+
+.tabel-cek,
+.tabel-strip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.tabel-cek {
+  background: var(--pr-accent);
+  color: #0a0a0b;
+}
+
+.tabel-strip {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--pr-text-faint);
+}
+
+.tabel-teks {
+  font-size: 0.75rem;
+  color: var(--pr-text-dim);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   4. FAQ
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pr-3);
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+.faq-item {
+  border: 1px solid var(--pr-line);
+  border-radius: 1rem;
+  background: var(--pr-card);
+  overflow: clip;
+}
+
+.faq-item[open] {
+  border-color: var(--pr-line-strong);
+}
+
+.faq-tanya {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pr-4);
+  /* Target sentuh 44px */
+  min-height: 2.75rem;
+  padding: var(--pr-4) var(--pr-5);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--pr-text);
+  cursor: pointer;
+  list-style: none;
+  transition: color 0.18s ease;
+}
+
+/* Sembunyikan panah bawaan browser */
+.faq-tanya::-webkit-details-marker {
+  display: none;
+}
+
+.faq-tanya:hover {
+  color: var(--pr-accent-light);
+}
+
+.faq-tanya:focus-visible {
+  outline: 2px solid var(--pr-accent);
+  outline-offset: -2px;
+}
+
+.faq-penanda {
+  flex-shrink: 0;
+  color: var(--pr-text-faint);
+  transition: transform 0.22s ease;
+}
+
+.faq-item[open] .faq-penanda {
+  transform: rotate(180deg);
+}
+
+.faq-jawab {
+  padding: 0 var(--pr-5) var(--pr-5);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--pr-text-dim);
+  margin: 0;
+}
+
+.faq-jawab a {
+  color: var(--pr-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   5. CTA AKHIR
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.cta-akhir {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pr-4);
+  margin-top: clamp(var(--pr-7), 7vw, 5rem);
+  padding: clamp(var(--pr-5), 4vw, var(--pr-7));
+  border: 1px solid var(--pr-line);
+  border-radius: 1.5rem;
+  background: var(--pr-card);
+  text-align: center;
+}
+
+.cta-judul {
+  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pr-text);
+  margin: 0;
+}
+
+.cta-sub {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--pr-text-dim);
+  margin: 0;
+  max-width: 30rem;
+}
+
+.cta-tombol {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pr-3);
+}
+
+.cta-tombol .tombol {
+  width: auto;
+  min-width: 12rem;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UTILITAS
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Teks hanya untuk pembaca layar. Bukan `display:none` — itu akan
+   menghilangkannya dari accessibility tree, kebalikan dari yang dibutuhkan. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   HORMATI PREFERENSI GERAKAN
+   ════════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .harga-kartu,
+  .tombol,
+  .tombol svg,
+  .faq-tanya,
+  .faq-penanda {
+    transition: none;
+  }
+
+  .harga-kartu:hover,
+  .tombol:hover {
+    transform: none;
+  }
+
+  .harga-kartu--unggulan {
+    transform: none;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   CETAK — untuk disimpan sebagai PDF atau dibawa ke percakapan
+   ════════════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  .pricing-page {
+    padding: 1rem;
+    background: #fff;
+    color: #000;
+  }
+
+  .site-header,
+  .site-footer,
+  .cta-tombol {
+    display: none;
+  }
+
+  .harga-kartu,
+  .tabel-wrap,
+  .faq-item,
+  .cta-akhir {
+    border-color: #ccc;
+    background: #fff;
+    /* Jangan potong kartu di tengah halaman */
+    break-inside: avoid;
+  }
+
+  .harga-kartu--unggulan {
+    transform: none;
+    border-color: #000;
+  }
+
+  .harga-nama,
+  .harga-angka,
+  .bagian-judul,
+  .cta-judul {
+    color: #000;
+  }
+
+  .harga-desc,
+  .harga-fitur li,
+  .faq-jawab,
+  .cta-sub,
+  .tabel-banding td {
+    color: #333;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   SKELETON — placeholder saat data harga sedang dimuat
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA SKELETON, BUKAN SPINNER ────────────────────────────────────────
+   Spinner hanya bilang "sedang memuat" — pengguna tidak tahu APA yang
+   sedang dimuat, dan tata letak halaman melompat saat isinya muncul.
+
+   Skeleton menggambarkan BENTUK isinya. Halaman tidak melompat karena
+   ruangnya sudah disediakan, dan pengguna sudah tahu akan melihat tiga
+   kartu harga sebelum datanya tiba.
+
+   Ini juga menghilangkan Cumulative Layout Shift (CLS) — metrik yang
+   dihitung Google dan terasa langsung oleh pengguna di koneksi lambat.
+
+   ── KENAPA SHIMMER, BUKAN DENYUT ──────────────────────────────────────────
+   Denyut opacity terasa seperti kedipan. Kilau yang bergerak terasa
+   seperti "sedang bekerja" — dan itu yang memang terjadi.
+
+   ── KENAPA DIHORMATI prefers-reduced-motion ───────────────────────────────
+   Kilau yang bergerak bisa memicu ketidaknyamanan bagi sebagian orang.
+   Saat preferensi itu aktif, kilaunya berhenti — skeleton tetap terlihat
+   sebagai blok abu-abu, jadi fungsinya tidak hilang. */
+
+.skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-kilau 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-kilau {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Blok teks — tinggi mengikuti baris teks aslinya */
+.sk-teks    { height: 0.8rem; }
+.sk-teks-sm { height: 0.65rem; }
+.sk-judul   { height: 1.1rem; }
+.sk-angka   { height: 2.2rem; border-radius: 0.6rem; }
+.sk-ikon    { width: 1.1rem; height: 1.1rem; border-radius: 999px; flex-shrink: 0; }
+
+/* Lebar bervariasi supaya terlihat seperti teks nyata, bukan balok seragam */
+.sk-w-90 { width: 90%; }
+.sk-w-75 { width: 75%; }
+.sk-w-60 { width: 60%; }
+.sk-w-45 { width: 45%; }
+.sk-w-30 { width: 30%; }
+
+/* Kartu skeleton memakai kerangka yang sama dengan kartu asli, jadi
+   peralihannya tidak menggeser apa pun. */
+.sk-kartu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pr-4);
+  padding: clamp(var(--pr-5), 3vw, var(--pr-6));
+  border: 1px solid var(--pr-line);
+  border-radius: 1.5rem;
+  background: var(--pr-card);
+}
+
+.sk-baris {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pr-3);
+}
+
+.sk-baris > .skeleton:last-child {
+  flex: 1;
+}
+
+/* Baris tabel skeleton */
+.sk-tabel-baris {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: var(--pr-4);
+  align-items: center;
+  padding: var(--pr-3) var(--pr-4);
+  border-bottom: 1px solid var(--pr-line);
+}
+
+.sk-tabel-baris:last-child {
+  border-bottom: none;
+}
+
+/* Kartu FAQ skeleton */
+.sk-faq {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pr-4);
+  padding: var(--pr-4) var(--pr-5);
+  border: 1px solid var(--pr-line);
+  border-radius: 1rem;
+  background: var(--pr-card);
+}
+
+.sk-faq .skeleton:first-child {
+  flex: 1;
+  max-width: 60%;
+}
+
+/* ── Pesan error ────────────────────────────────────────────────────────────
+   Kalau data harga gagal dimuat, jangan tampilkan halaman kosong.
+   Beri tahu apa yang terjadi, dan sediakan jalan keluar. */
+.pricing-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pr-4);
+  padding: clamp(var(--pr-6), 6vw, var(--pr-7)) var(--pr-5);
+  border: 1px solid var(--pr-line-strong);
+  border-radius: 1.5rem;
+  background: var(--pr-card);
+  text-align: center;
+}
+
+.pricing-error-judul {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--pr-text);
+  margin: 0;
+}
+
+.pricing-error-teks {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--pr-text-dim);
+  margin: 0;
+  max-width: 28rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: rgba(255, 255, 255, 0.07);
+  }
+}
+

@@ -92,8 +92,16 @@ check('js-bytes', heaviest.js <= BUDGETS.maxJsBytes,
   `${kb(heaviest.js)} di ${heaviest.page} (anggaran ${kb(BUDGETS.maxJsBytes)})`);
 check('css-bytes', heaviest.css <= BUDGETS.maxCssBytes,
   `${kb(heaviest.css)} di ${heaviest.page} (anggaran ${kb(BUDGETS.maxCssBytes)})`);
-check('html-bytes', bytes.html <= BUDGETS.maxHtmlBytes,
-  `${kb(bytes.html)} (anggaran ${kb(BUDGETS.maxHtmlBytes)})`);
+// ── HTML: HALAMAN TERBERAT, BUKAN TOTAL ──────────────────────────────────────
+//
+// Anggaran lain diukur per halaman — karena pengunjung mengunduh SATU halaman,
+// bukan seluruh situs. HTML dulu diukur sebagai total semua halaman, dan itu
+// tidak sebanding: setiap halaman baru selalu "melanggar" anggaran, walaupun
+// tidak ada pengunjung yang mengunduh semuanya bersamaan.
+//
+// Sekarang konsisten: yang dijaga adalah pengalaman terburuk SATU kunjungan.
+check('html-bytes', heaviest.html <= BUDGETS.maxHtmlBytes,
+  `${kb(heaviest.html)} di ${heaviest.page} (anggaran ${kb(BUDGETS.maxHtmlBytes)})`);
 
 // ── 3. Tidak ada rahasia di berkas statis ────────────────────────────────────
 // Dua lapis supaya tidak ada false positive:

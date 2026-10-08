@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paket &amp; Harga — Victer</title>
+<meta name="description" content="Tiga paket untuk kebutuhan berbeda: Standar, Profesional, dan Enterprise. Harga jelas, tanpa biaya tersembunyi.">
+<meta name="author" content="Victer">
+<meta name="theme-color" content="#f5c542">
+<link rel="canonical" href="https://portfolio-victer.pages.dev/pricing">
+
+<!-- Ikon -->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Paket &amp; Harga — Victer">
+<meta property="og:description" content="Tiga paket untuk kebutuhan berbeda. Harga jelas, tanpa biaya tersembunyi.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://portfolio-victer.pages.dev/pricing">
+
+<!--
+  ── KENAPA noindex ────────────────────────────────────────────────────────
+  Halaman ini masih dalam penilaian. Membiarkan mesin pencari mengindeksnya
+  berarti orang bisa menemukan halaman setengah jadi.
+
+  Hapus baris ini setelah halaman diputuskan dipakai.
+-->
+<meta name="robots" content="noindex, nofollow">
+
+<!-- Font — sama dengan halaman lain supaya konsisten -->
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!--
+  ── CSS: HANYA 3 BERKAS ───────────────────────────────────────────────────
+  main.css    → token warna, tipografi, header/footer
+  logo.css    → brand mark
+  pricing.css → halaman ini
+
+  home.html memuat 22 berkas CSS karena punya banyak bagian bergerak.
+  Halaman ini tidak butuh itu semua — memuatnya berarti mengirim byte yang
+  tidak terpakai dan memperlambat halaman.
+-->
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/logo.css">
+<link rel="stylesheet" href="assets/css/pricing.css">
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════
+     Disalin dari home.html supaya navigasi terasa sama di seluruh situs. -->
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">Victer</span>
+    </a>
+    <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
+      <a href="/#s6ahns">Tentang</a>
+      <a href="/#utqvwf">Proyek</a>
+      <a href="/#cckxsk">Layanan</a>
+      <a href="/pricing" aria-current="page">Harga</a>
+      <a href="/docs">Panduan</a>
+      <a href="/#89fk39">Kontak</a>
+    </nav>
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="siteNav">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 6h18M3 12h18M3 18h18"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
+
+<main id="konten-utama" class="pricing-page">
+  <div class="pricing-wrap">
+
+    <!--
+      ══ ISI HALAMAN DIISI OLEH assets/js/pricing.js ══════════════════════════
+
+      ── KENAPA HTML-NYA KOSONG ───────────────────────────────────────────────
+      Harga TIDAK ditulis di sini. Halaman ini memuatnya dari /api/pricing,
+      lalu menggambar kartu, tabel, dan FAQ-nya.
+
+      Alasannya: harga yang ditulis di HTML berarti harus diubah di setiap
+      tempat ia muncul — dan satu yang terlewat sudah cukup untuk membuat
+      halaman menampilkan angka yang salah.
+
+      Dengan data dari server, mengubah harga cukup di satu tempat:
+      backend/src/pricing.mjs
+
+      ── KENAPA TETAP ADA KERANGKA DI SINI ────────────────────────────────────
+      Judul, wadah, dan bagian-bagiannya sudah ada sebagai elemen kosong.
+      Skrip hanya MENGISI, bukan membuat seluruh halaman dari nol.
+
+      Ini penting untuk dua hal:
+        1. Kalau JavaScript mati, halamannya tidak benar-benar kosong —
+           header, footer, dan judulnya tetap terbaca.
+        2. Struktur halaman bisa dilihat di HTML, tanpa harus membaca JS.
+    -->
+
+    <!--
+      ── KALAU JAVASCRIPT MATI ────────────────────────────────────────────────
+      Harga dimuat dari server, jadi tanpa JavaScript halaman ini tidak bisa
+      menampilkan angka apa pun. Lebih baik menjelaskannya daripada
+      menampilkan halaman yang tampak rusak.
+    -->
+    <noscript>
+      <div class="pricing-error" role="alert">
+        <p class="pricing-error-judul">Halaman ini memerlukan JavaScript</p>
+        <p class="pricing-error-teks">
+          Harga dimuat langsung dari server supaya angkanya selalu yang berlaku —
+          dan itu memerlukan JavaScript. Nyalakan JavaScript, atau
+          <a href="/#89fk39">hubungi saya</a> untuk penawaran.
+        </p>
+      </div>
+    </noscript>
+
+    <!-- ══ 1. HERO ══════════════════════════════════════════════════════════ -->
+    <div class="pricing-head">
+      <span class="pricing-eyebrow">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18M5 8h9a3 3 0 0 1 0 6H5"/>
+        </svg>
+        <span id="judulEyebrow">Harga</span>
+      </span>
+
+      <h1 class="pricing-title" id="judulUtama">Paket yang jelas, tanpa biaya tersembunyi</h1>
+
+      <p class="pricing-sub" id="judulSub">
+        Tiga paket untuk kebutuhan yang berbeda — dari melihat cara kerjanya,
+        sampai membangun produk di atasnya. Semua bisa berhenti kapan saja.
+      </p>
+    </div>
+
+    <!-- ══ 2. KARTU HARGA ═══════════════════════════════════════════════════
+         Diisi oleh skrip. Sebelum data tiba, berisi skeleton — blok abu-abu
+         yang menggambarkan bentuk kartunya. -->
+    <div class="harga-grid" id="wadahKartu" aria-busy="true"></div>
+
+    <!-- ══ 3. TABEL PERBANDINGAN ════════════════════════════════════════════ -->
+    <section class="bagian" aria-labelledby="judulTabel">
+      <h2 class="bagian-judul" id="judulTabel">Bandingkan paket</h2>
+      <p class="bagian-sub" id="subTabel">Semua yang Anda dapatkan di setiap paket, berdampingan.</p>
+      <div id="wadahTabel" aria-busy="true"></div>
+    </section>
+
+    <!-- ══ 4. FAQ ═══════════════════════════════════════════════════════════
+         Pengguna yang sudah membaca semua informasi biasanya punya satu-dua
+         keraguan terakhir sebelum memutuskan. FAQ menjawabnya DI HALAMAN YANG
+         SAMA — tanpa perlu menghubungi atau mencari di tempat lain. -->
+    <section class="bagian" aria-labelledby="judulFaq">
+      <h2 class="bagian-judul" id="judulFaq">Pertanyaan yang sering muncul</h2>
+      <p class="bagian-sub" id="subFaq">Hal-hal yang biasanya ditanyakan sebelum memutuskan.</p>
+      <div id="wadahFaq" aria-busy="true"></div>
+    </section>
+
+    <!-- ══ 5. CTA AKHIR ═════════════════════════════════════════════════════
+         Satu ajakan setelah semua informasi terbaca — bukan tombol yang
+         muncul sebelum pengguna sempat menilai. -->
+    <section class="cta-akhir">
+      <h2 class="cta-judul" id="judulCta">Masih ragu mana yang cocok?</h2>
+      <p class="cta-sub" id="subCta">
+        Ceritakan kebutuhan Anda — saya bantu pilihkan paket yang paling sesuai,
+        atau buat penyesuaian kalau memang perlu.
+      </p>
+      <div class="cta-tombol">
+        <a class="tombol tombol--utama" href="/#89fk39">
+          Bicara dulu
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+        </a>
+        <a class="tombol tombol--sekunder" href="/docs">
+          Lihat dokumentasi
+        </a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>Dibangun sendiri, dijalankan sendiri. <span class="mono" id="year"></span></p>
+</footer>
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════
+   SKRIP — HANYA DUA HAL
+  ══════════════════════════════════════════════════════════════════════════
+
+   1. Toggle menu mobile (dibutuhkan header)
+   2. Tahun di footer
+
+   ── KENAPA TIDAK ADA KALKULATOR ──────────────────────────────────────────
+   Versi sebelumnya punya kalkulator harga. Itu dihapus karena menambah
+   JavaScript yang harus dijaga, dan membuat halaman tidak bisa dipahami
+   tanpa JavaScript — padahal isinya hanya informasi harga.
+
+   Halaman harga yang jelas lebih berguna daripada kalkulator yang
+   menghasilkan angka yang belum tentu berlaku.
+  ══════════════════════════════════════════════════════════════════════════
+-->
+<!--
+  ══════════════════════════════════════════════════════════════════════════
+   SKRIP
+  ══════════════════════════════════════════════════════════════════════════
+
+   Dua hal:
+     1. Navigasi header (toggle menu, tahun footer) — kecil, inline
+     2. assets/js/pricing.js — memuat data harga & menggambar halaman
+
+   ── KENAPA pricing.js BERKAS TERPISAH ────────────────────────────────────
+   Isinya ~400 baris: memuat data, menangani error, menggambar kartu, tabel,
+   dan FAQ, plus skeleton. Menaruh itu semua inline berarti HTML-nya harus
+   diunduh ulang setiap kali ada perubahan skrip — dan tidak bisa di-cache
+   browser secara terpisah.
+
+   Navigasi header tetap inline karena hanya ~25 baris dan dipakai di
+   setiap halaman.
+  ══════════════════════════════════════════════════════════════════════════
+-->
+<script>
+(function () {
+  'use strict';
+
+  // Tahun di footer
+  var elTahun = document.getElementById('year');
+  if (elTahun) elTahun.textContent = String(new Date().getFullYear());
+
+  // Toggle menu mobile
+  var tombolNav = document.getElementById('navToggle');
+  var nav = document.getElementById('siteNav');
+  var scrim = document.getElementById('navScrim');
+
+  if (tombolNav && nav) {
+    tombolNav.addEventListener('click', function () {
+      var terbuka = nav.classList.toggle('is-open');
+      tombolNav.setAttribute('aria-expanded', terbuka ? 'true' : 'false');
+      if (scrim) scrim.classList.toggle('is-open', terbuka);
+    });
+
+    if (scrim) {
+      scrim.addEventListener('click', function () {
+        nav.classList.remove('is-open');
+        tombolNav.setAttribute('aria-expanded', 'false');
+        scrim.classList.remove('is-open');
+      });
+    }
+  }
+})();
+</script>
+
+<!-- Data harga dari server, lalu gambarkan. `defer` supaya tidak
+     memblokir parsing HTML — halaman tampil dulu, skrip menyusul. -->
+<script src="assets/js/pricing.js" defer></script>
+
+</body>
+</html>
