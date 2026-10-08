@@ -130,6 +130,131 @@
   text-wrap: pretty;
 }
 
+
+/* ════════════════════════════════════════════════════════════════════════════
+   TOGGLE PERIODE — Bulanan / Tahunan
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA DUA PILIHAN, BUKAN SATU HARGA ──────────────────────────────────
+   Pembeli punya dua cara membayar, dan keduanya menguntungkan dengan cara
+   berbeda:
+     • Bulanan — tanpa komitmen, diskon lebih kecil (20%)
+     • Tahunan — komitmen setahun, diskon lebih besar (25%)
+
+   Menampilkan satu harga saja menyembunyikan pilihan yang lebih murah dari
+   pembeli yang bersedia berkomitmen. Menampilkan keduanya sekaligus membuat
+   kartu penuh angka yang bersaing.
+
+   Toggle menyelesaikannya: satu harga terlihat pada satu waktu, dan
+   pembeli memilih mana yang sesuai. */
+
+.periode-wadah {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--pr-6);
+}
+
+.periode-wadah:empty {
+  display: none;
+}
+
+.periode-toggle {
+  display: inline-flex;
+  gap: var(--pr-1);
+  padding: 0.25rem;
+  border: 1px solid var(--pr-line);
+  border-radius: 999px;
+  background: var(--pr-card);
+}
+
+.periode-opsi {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* ── Input radio: disembunyikan dari mata, TETAP ada untuk keyboard ────────
+   Bukan `display: none` — itu akan menghilangkannya dari urutan fokus dan
+   navigasi panah tidak akan bekerja. Dengan opacity 0, ia tetap bisa
+   difokus dan dibaca pembaca layar. */
+.periode-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.periode-teks {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pr-2);
+  /* Target sentuh 44px */
+  min-height: 2.5rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--pr-text-dim);
+  white-space: nowrap;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.periode-opsi:hover .periode-teks {
+  color: var(--pr-text);
+}
+
+/* Terpilih — hanya radio yang checked, bukan :focus, supaya tidak
+   membingungkan saat keyboard berhenti di pilihan yang tidak aktif. */
+.periode-input:checked + .periode-teks {
+  background: var(--pr-accent);
+  color: #0a0a0b;
+}
+
+/* Fokus keyboard harus terlihat jelas di kedua keadaan */
+.periode-input:focus-visible + .periode-teks {
+  outline: 2px solid var(--pr-accent);
+  outline-offset: 3px;
+}
+
+.periode-catatan {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  /* Saat belum terpilih: aksen di atas latar gelap */
+  background: var(--pr-accent-soft);
+  color: var(--pr-accent-light);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Saat terpilih, lencananya ikut membalik supaya tetap kontras di atas
+   latar kuning — tanpa ini, teks kuning di atas kuning jadi tak terbaca. */
+.periode-input:checked + .periode-teks .periode-catatan {
+  background: rgba(10, 10, 11, 0.16);
+  color: #0a0a0b;
+}
+
+/* ── Keterangan di bawah harga ─────────────────────────────────────────── */
+
+.harga-total {
+  margin: var(--pr-2) 0 0;
+  font-size: 0.74rem;
+  color: var(--pr-text-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .periode-teks,
+  .periode-catatan {
+    transition: none;
+  }
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    2. KARTU HARGA
    ════════════════════════════════════════════════════════════════════════════ */
@@ -240,6 +365,61 @@
   font-variant-numeric: normal;
   letter-spacing: -0.01em;
 }
+
+/* ── Harga coret + lencana diskon ────────────────────────────────────────────
+   Pola "ala korporasi": harga lama dicoret, persen hemat, lalu harga bayar.
+
+   ── KENAPA BERTUMPUK, BUKAN SEJAJAR ────────────────────────────────────────
+   Kalau "Rp 79.000" dan "Rp 63.200" sejajar, mata membaca dua angka
+   sekaligus dan harus memutuskan mana yang berlaku. Dengan bertumpuk,
+   urutannya jelas: lama → hemat → bayar. */
+.harga-coret-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pr-2);
+  margin-top: var(--pr-3);
+  margin-bottom: var(--pr-1);
+}
+
+.harga-coret {
+  font-size: 0.9rem;
+  color: var(--pr-text-faint);
+  /* Coretan tipis, bukan tebal — harga lama bukan hal yang perlu ditonjolkan */
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+.harga-diskon {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--pr-accent-soft);
+  border: 1px solid var(--pr-accent-line);
+  color: var(--pr-accent-light);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Saat ada harga coret, jarak atas harga utama dirapatkan — keduanya
+   satu kesatuan, bukan dua blok terpisah. */
+.harga-coret-wrap + .harga-angka-wrap {
+  margin-top: var(--pr-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Tidak ada animasi di sini — aturan ini hanya pengingat kalau nanti
+     ditambahkan, supaya tetap dihormati. */
+  .harga-coret,
+  .harga-diskon {
+    transition: none;
+  }
+}
+
 
 
 .harga-periode {
@@ -386,181 +566,6 @@
   color: var(--pr-text-dim);
   text-align: center;
   margin: 0 0 var(--pr-5);
-}
-
-/* ════════════════════════════════════════════════════════════════════════════
-   3. TABEL PERBANDINGAN
-   ════════════════════════════════════════════════════════════════════════════ */
-
-.tabel-wrap {
-  /* ── PEDOMAN UX ─────────────────────────────────────────────────────────
-     Tabel lebar harus bisa digulir horizontal, bukan merusak tata letak
-     halaman. */
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-
-  /* ── KENAPA `contain: paint` ────────────────────────────────────────────
-     Tanpa ini, Chromium melaporkan `documentElement.scrollWidth` sebesar
-     LEBAR TABEL (545px) — bukan lebar layar (375px) — walaupun wadahnya
-     sudah `overflow-x: auto`.
-
-     Yang penting: halaman sebenarnya TIDAK bisa digulir (window.scrollX
-     tetap 0 setelah scrollTo). Jadi ini bukan bug yang terlihat di
-     Chromium. Tapi angka itu dipakai browser lain untuk memutuskan apakah
-     halaman perlu ruang gulir — dan Safari iOS bisa benar-benar
-     menggeser seluruh halaman.
-
-     `contain: paint` memberitahu browser bahwa isi elemen ini di-clip
-     di batasnya. Hasilnya terukur: scrollWidth turun dari 545px ke 375px,
-     dan gulir di dalam tabel tetap bekerja.
-
-     Didukung Chrome 52+, Firefox 69+, Safari 15.4+ — lebih dari 97%
-     pengguna. */
-  contain: paint;
-
-  border: 1px solid var(--pr-line);
-  border-radius: 1.25rem;
-  background: var(--pr-card);
-}
-
-/* ── Petunjuk gulir tabel ────────────────────────────────────────────────────
-   Muncul HANYA di layar sempit, di mana tabelnya memang tidak muat.
-
-   Di desktop tabelnya muat penuh — dan petunjuk "geser" di sana hanya
-   membingungkan, karena tidak ada yang perlu digeser. */
-.tabel-petunjuk {
-  display: none;
-}
-
-@media (max-width: 55.99rem) {
-  .tabel-petunjuk {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--pr-2);
-    padding: var(--pr-3);
-    font-size: 0.75rem;
-    color: var(--pr-text-faint);
-    text-align: center;
-  }
-}
-
-
-.tabel-banding {
-  width: 100%;
-  min-width: 36rem;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-}
-
-.tabel-banding caption {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.tabel-banding th,
-.tabel-banding td {
-  padding: var(--pr-3) var(--pr-4);
-  text-align: center;
-  border-bottom: 1px solid var(--pr-line);
-  vertical-align: middle;
-}
-
-/* Kolom pertama — nama fitur. Sticky supaya tetap terlihat saat digulir
-   ke kanan di ponsel; tanpa itu pengguna lupa baris ini fitur apa. */
-.tabel-banding th:first-child,
-.tabel-banding td:first-child {
-  text-align: left;
-  position: sticky;
-  left: 0;
-  background: var(--pr-card);
-  border-right: 1px solid var(--pr-line);
-  z-index: 1;
-  min-width: 12rem;
-  color: var(--pr-text-dim);
-  font-weight: 400;
-}
-
-.tabel-banding thead th {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--pr-text);
-  border-bottom-color: var(--pr-line-strong);
-  white-space: nowrap;
-}
-
-.tabel-banding thead th:first-child {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--pr-text-faint);
-}
-
-/* Kolom unggulan — ditandai dengan latar lembut */
-.tabel-banding .kolom-unggulan {
-  background: rgba(245, 197, 66, 0.04);
-}
-
-.tabel-banding thead .kolom-unggulan {
-  color: var(--pr-accent-light);
-  background: rgba(245, 197, 66, 0.07);
-}
-
-/* Baris pemisah bagian */
-.tabel-banding tr.baris-bagian td {
-  padding-top: var(--pr-5);
-  padding-bottom: var(--pr-2);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--pr-text-faint);
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom-color: var(--pr-line-strong);
-}
-
-.tabel-banding tr.baris-bagian td:first-child {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.tabel-banding tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* ── Ikon dalam tabel ─────────────────────────────────────────────────────── */
-
-.tabel-cek,
-.tabel-strip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 999px;
-  vertical-align: middle;
-}
-
-.tabel-cek {
-  background: var(--pr-accent);
-  color: #0a0a0b;
-}
-
-.tabel-strip {
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--pr-text-faint);
-}
-
-.tabel-teks {
-  font-size: 0.75rem;
-  color: var(--pr-text-dim);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -744,7 +749,6 @@
   }
 
   .harga-kartu,
-  .tabel-wrap,
   .faq-item,
   .cta-akhir {
     border-color: #ccc;
@@ -768,8 +772,7 @@
   .harga-desc,
   .harga-fitur li,
   .faq-jawab,
-  .cta-sub,
-  .tabel-banding td {
+  .cta-sub {
     color: #333;
   }
 }
@@ -851,19 +854,6 @@
   flex: 1;
 }
 
-/* Baris tabel skeleton */
-.sk-tabel-baris {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: var(--pr-4);
-  align-items: center;
-  padding: var(--pr-3) var(--pr-4);
-  border-bottom: 1px solid var(--pr-line);
-}
-
-.sk-tabel-baris:last-child {
-  border-bottom: none;
-}
 
 /* Kartu FAQ skeleton */
 .sk-faq {

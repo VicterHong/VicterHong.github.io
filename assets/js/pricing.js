@@ -130,15 +130,64 @@ function tombol(teks, gaya, href) {
 /* ── Penggambar ─────────────────────────────────────────────────────────── */
 
 /** Format harga: 149 → "Rp 149". null → teks pengganti. */
-function formatHarga(paket) {
-  if (paket.harga == null) {
-    return { angka: paket.teksHarga ?? 'Sesuai kebutuhan', teks: true };
+/**
+ * Format harga untuk periode yang dipilih.
+ *
+ * ── KENAPA HARGA DIHITUNG DI SERVER ────────────────────────────────────────
+ * Server mengirim `paket.harga` yang sudah berisi: normal, bulanan, tahunan,
+ * dan persen diskonnya. Frontend hanya MEMILIH mana yang ditampilkan.
+ *
+ * Kalau frontend yang menghitung, rumusnya ada di dua tempat — dan begitu
+ * salah satu diubah, keduanya berbeda tanpa ada yang tahu.
+ *
+ * ── KENAPA HARGA NORMAL SELALU DITAMPILKAN DICORET ─────────────────────────
+ * Karena diskonnya nyata: harga normal adalah harga yang benar-benar
+ * berlaku tanpa komitmen. Menampilkannya membuat potongannya bisa dinilai —
+ * bukan sekadar klaim "hemat" tanpa pembanding.
+ */
+function formatHarga(paket, periode) {
+  const rupiah = new Intl.NumberFormat('id-ID');
+
+  // Paket tanpa angka (Enterprise)
+  if (paket.harga?.normal == null) {
+    return {
+      angka: paket.teksHarga ?? 'Sesuai kebutuhan',
+      teks: true,
+      satuan: null,
+      coret: null,
+      diskon: null,
+      total: null,
+      catatanKaki: paket.catatan,
+    };
   }
-  return { angka: `Rp ${paket.harga}`, teks: false };
+
+  const tahunan = periode === 'tahunan';
+  const angka = tahunan ? paket.harga.tahunan : paket.harga.bulanan;
+  const persen = tahunan
+    ? paket.harga.diskonTahunanPersen
+    : paket.harga.diskonBulananPersen;
+
+  // ── Total setahun ────────────────────────────────────────────────────────
+  // Hanya untuk periode tahunan: pembeli perlu tahu angka yang benar-benar
+  // ditagih, bukan hanya harga per bulan.
+  const total = tahunan ? angka * 12 : null;
+
+  return {
+    angka: `Rp ${rupiah.format(angka)}`,
+    teks: false,
+    satuan: '/bulan',
+    // Harga normal dicoret — hanya kalau memang ada diskon
+    coret: persen ? `Rp ${rupiah.format(paket.harga.normal)}` : null,
+    diskon: persen ? `Hemat ${persen}%` : null,
+    total: total ? `Rp ${rupiah.format(total)}` : null,
+    rupiah,
+    catatanKaki: paket.catatan,
+  };
 }
 
-function gambarKartu(paket, hrefKontak) {
+function gambarKartu(paket, hrefKontak, periode) {
   const kartu = el('div', `harga-kartu${paket.unggulan ? ' harga-kartu--unggulan' : ''}`);
+  kartu.dataset.paket = paket.id;
 
   if (paket.lencana) {
     kartu.appendChild(el('span', 'harga-lencana', paket.lencana));
@@ -148,14 +197,51 @@ function gambarKartu(paket, hrefKontak) {
   kepala.appendChild(el('h2', 'harga-nama', paket.nama));
   kepala.appendChild(el('p', 'harga-desc', paket.deskripsi));
 
-  const { angka, teks } = formatHarga(paket);
+  const f = formatHarga(paket, periode);
+
+  // ── Harga normal (dicoret) + lencana diskon ─────────────────────────────
+  // Ditaruh DI ATAS harga bayar, bukan di sampingnya.
+  //
+  // Kalau sejajar, mata membaca dua angka sekaligus dan harus memutuskan
+  // mana yang berlaku. Dengan bertumpuk, urutannya jelas: harga normal
+  // → hemat berapa → harga yang dibayar.
+  if (f.coret) {
+    const barisCoret = el('div', 'harga-coret-wrap');
+
+    const spanCoret = el('span', 'harga-coret', f.coret);
+    // Pembaca layar tidak bisa "melihat" coretan — beri tahu lewat teks.
+    spanCoret.setAttribute('aria-label', `Harga normal ${f.coret}`);
+    barisCoret.appendChild(spanCoret);
+
+    if (f.diskon) {
+      barisCoret.appendChild(el('span', 'harga-diskon', f.diskon));
+    }
+
+    kepala.appendChild(barisCoret);
+  }
+
   const wrap = el('div', 'harga-angka-wrap');
-  const spanAngka = el('span', `harga-angka${teks ? ' harga-angka--teks' : ''}`, angka);
+  const spanAngka = el('span', `harga-angka${f.teks ? ' harga-angka--teks' : ''}`, f.angka);
   wrap.appendChild(spanAngka);
-  if (paket.satuan) wrap.appendChild(el('span', 'harga-periode', paket.satuan));
+  if (f.satuan) wrap.appendChild(el('span', 'harga-periode', f.satuan));
   kepala.appendChild(wrap);
 
-  if (paket.catatan) kepala.appendChild(el('p', 'harga-catatan', paket.catatan));
+  // ── Keterangan di bawah harga ────────────────────────────────────────────
+  const barisKaki = [];
+
+  // Total setahun — angka yang benar-benar ditagih.
+  //
+  // Tanpa ini, pembeli tahunan melihat "Rp 187.500/bulan" dan bisa mengira
+  // ia ditagih bulanan. Ia berhak tahu angka yang keluar dari rekeningnya.
+  if (f.total) {
+    barisKaki.push(el('p', 'harga-total', `Ditagih ${f.total} per tahun`));
+  }
+
+  if (f.catatanKaki) {
+    barisKaki.push(el('p', 'harga-catatan', f.catatanKaki));
+  }
+
+  for (const baris of barisKaki) kepala.appendChild(baris);
   kartu.appendChild(kepala);
 
   // Daftar fitur
@@ -189,103 +275,6 @@ function gambarKartu(paket, hrefKontak) {
   return kartu;
 }
 
-function gambarTabel(data) {
-  const wrap = el('div', 'tabel-wrap');
-  const table = el('table', 'tabel-banding');
-
-  // ── PETUNJUK GULIR ────────────────────────────────────────────────────────
-  // Di ponsel, tabel 4 kolom tidak muat — pengguna hanya melihat kolom
-  // pertama dan satu kolom paket. Tanpa petunjuk, mereka mengira datanya
-  // memang cuma itu, dan tidak pernah mencoba menggeser.
-  //
-  // Petunjuknya hanya muncul kalau tabel MEMANG bisa digulir. Di desktop,
-  // tabelnya muat penuh — dan petunjuk "geser" di sana hanya membingungkan.
-  //
-  // `aria-hidden` karena ini petunjuk visual. Pembaca layar sudah bisa
-  // menelusuri seluruh sel tabel tanpa perlu digulir.
-  const petunjuk = el('p', 'tabel-petunjuk');
-  petunjuk.setAttribute('aria-hidden', 'true');
-
-  const svgPetunjuk = document.createElementNS(NS, 'svg');
-  svgPetunjuk.setAttribute('width', '14');
-  svgPetunjuk.setAttribute('height', '14');
-  svgPetunjuk.setAttribute('viewBox', '0 0 24 24');
-  svgPetunjuk.setAttribute('fill', 'none');
-  svgPetunjuk.setAttribute('stroke', 'currentColor');
-  svgPetunjuk.setAttribute('stroke-width', '2');
-  svgPetunjuk.setAttribute('stroke-linecap', 'round');
-  svgPetunjuk.setAttribute('stroke-linejoin', 'round');
-  const pp1 = document.createElementNS(NS, 'path');
-  pp1.setAttribute('d', 'M5 12h14');
-  const pp2 = document.createElementNS(NS, 'path');
-  pp2.setAttribute('d', 'm13 6 6 6-6 6');
-  svgPetunjuk.append(pp1, pp2);
-
-  petunjuk.append(svgPetunjuk, document.createTextNode(' Geser tabel untuk melihat paket lain'));
-
-  const caption = el('caption', null, `Perbandingan fitur paket ${data.kolom.map((k) => k.nama).join(', ')}`);
-  table.appendChild(caption);
-
-  // Kepala
-  const thead = el('thead');
-  const trHead = el('tr');
-  trHead.appendChild(el('th', null, 'Fitur')).setAttribute('scope', 'col');
-
-  for (const k of data.kolom) {
-    const th = el('th', k.unggulan ? 'kolom-unggulan' : null, k.nama);
-    th.setAttribute('scope', 'col');
-    trHead.appendChild(th);
-  }
-  thead.appendChild(trHead);
-  table.appendChild(thead);
-
-  // Isi
-  const tbody = el('tbody');
-  for (const baris of data.tabel ?? []) {
-    // Baris pemisah bagian
-    if (baris.bagian) {
-      const tr = el('tr', 'baris-bagian');
-      const td = el('td', null, baris.bagian);
-      td.colSpan = data.kolom.length + 1;
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-      continue;
-    }
-
-    const tr = el('tr');
-    tr.appendChild(el('td', null, baris.fitur));
-
-    for (let i = 0; i < data.kolom.length; i++) {
-      const k = data.kolom[i];
-      const nilai = baris.nilai?.[i];
-      const td = el('td', k.unggulan ? 'kolom-unggulan' : null);
-
-      if (nilai === true || nilai === false) {
-        const span = el('span', nilai ? 'tabel-cek' : 'tabel-strip');
-        span.setAttribute('aria-hidden', 'true');
-        span.appendChild(nilai ? ikon(JALUR_CEK, 11, 4) : ikon(JALUR_STRIP, 11, 4, false));
-
-        // Pembaca layar tidak bisa membaca ikon — beri teksnya.
-        // Bukan `display:none`, itu akan menghilangkannya dari
-        // accessibility tree — kebalikan dari yang dibutuhkan.
-        const sr = el('span', 'sr-only', nilai ? 'Termasuk' : 'Tidak termasuk');
-
-        td.append(span, sr);
-      } else {
-        td.appendChild(el('span', 'tabel-teks', String(nilai ?? '—')));
-      }
-
-      tr.appendChild(td);
-    }
-
-    tbody.appendChild(tr);
-  }
-  table.appendChild(tbody);
-
-  wrap.appendChild(petunjuk);
-  wrap.appendChild(table);
-  return wrap;
-}
 
 function gambarFaq(data, hrefKontak) {
   const list = el('div', 'faq-list');
@@ -342,6 +331,69 @@ function gambarFaq(data, hrefKontak) {
   return list;
 }
 
+/* ── Toggle periode ─────────────────────────────────────────────────────── */
+
+/**
+ * Gambar tombol pilihan periode.
+ *
+ * ── KENAPA RADIO, BUKAN TOMBOL BIASA ──────────────────────────────────────
+ * Ini pilihan tunggal (satu dari dua), dan radio memang untuk itu. Dengan
+ * radio, navigasi panah keyboard bekerja sendiri dan pembaca layar
+ * mengumumkan "1 dari 2" — tanpa JavaScript tambahan.
+ *
+ * Tombol biasa akan terlihat sama, tapi kehilangan semuanya itu.
+ */
+function gambarToggle(periode, paket, saatGanti) {
+  const wrap = el('div', 'periode-toggle');
+  wrap.setAttribute('role', 'radiogroup');
+  wrap.setAttribute('aria-label', 'Periode pembayaran');
+
+  // ── Persen diskon diambil dari PAKET, bukan ditulis di label ──────────────
+  //
+  // Kalau labelnya berisi teks tetap ("Hemat 20%"), ia bisa berbeda dari
+  // diskon yang sebenarnya berlaku — dan itu sudah pernah terjadi: label
+  // bilang 20% padahal tahunannya 25%.
+  //
+  // Dengan membaca dari data paket, angkanya tidak mungkin tidak sinkron.
+  // Diambil dari paket PERTAMA yang punya diskon — semua paket berbayar
+  // memakai persen yang sama per periode.
+  const persenUntuk = (id) => {
+    const p = paket.find((x) => x.harga?.normal != null);
+    if (!p) return null;
+    return id === 'tahunan'
+      ? p.harga.diskonTahunanPersen
+      : p.harga.diskonBulananPersen;
+  };
+
+  for (const opsi of periode.opsi) {
+    const label = el('label', 'periode-opsi');
+
+    const input = el('input', 'periode-input');
+    input.type = 'radio';
+    input.name = 'periode';
+    input.value = opsi.id;
+    input.checked = opsi.id === periode.default;
+
+    const teks = el('span', 'periode-teks');
+    teks.appendChild(document.createTextNode(opsi.label));
+
+    // Lencana hanya muncul kalau memang ada diskon untuk periode itu
+    const persen = persenUntuk(opsi.id);
+    if (persen) {
+      teks.appendChild(el('span', 'periode-catatan', `Hemat ${persen}%`));
+    }
+
+    input.addEventListener('change', () => {
+      if (input.checked) saatGanti(opsi.id);
+    });
+
+    label.append(input, teks);
+    wrap.appendChild(label);
+  }
+
+  return wrap;
+}
+
 /* ── Skeleton ───────────────────────────────────────────────────────────── */
 
 function skeletonKartu() {
@@ -372,23 +424,6 @@ function skeletonKartu() {
   return kartu;
 }
 
-function skeletonTabel() {
-  const wrap = el('div', 'tabel-wrap');
-  wrap.setAttribute('aria-hidden', 'true');
-  wrap.style.cssText = 'padding:0.5rem 0;';
-
-  for (let i = 0; i < 8; i++) {
-    const baris = el('div', 'sk-tabel-baris');
-    for (let j = 0; j < 4; j++) {
-      const d = el('div', `skeleton ${j === 0 ? 'sk-teks' : 'sk-teks-sm'}`);
-      d.style.width = j === 0 ? '80%' : '40%';
-      if (j > 0) d.style.marginInline = 'auto';
-      baris.appendChild(d);
-    }
-    wrap.appendChild(baris);
-  }
-  return wrap;
-}
 
 function skeletonFaq() {
   const list = el('div', 'faq-list');
@@ -407,14 +442,17 @@ function skeletonFaq() {
 /** Tampilkan skeleton di semua wadah. */
 function tampilkanSkeleton(root) {
   const grid = root.querySelector('#wadahKartu');
-  const tabel = root.querySelector('#wadahTabel');
   const faq = root.querySelector('#wadahFaq');
+  const toggle = root.querySelector('#wadahPeriode');
+
+  // Toggle periode disembunyikan selama memuat — pilihan periode belum
+  // bermakna sebelum harga tiba, dan menampilkannya kosong terlihat rusak.
+  if (toggle) toggle.replaceChildren();
 
   if (grid) {
     grid.className = 'harga-grid';
     grid.replaceChildren(skeletonKartu(), skeletonKartu(), skeletonKartu());
   }
-  if (tabel) tabel.replaceChildren(skeletonTabel());
   if (faq) faq.replaceChildren(skeletonFaq());
 }
 
@@ -445,8 +483,6 @@ function tampilkanError(root, pesan) {
     grid.replaceChildren(kotak);
   }
 
-  const tabel = root.querySelector('#wadahTabel');
-  if (tabel) tabel.replaceChildren();
   const faq = root.querySelector('#wadahFaq');
   if (faq) faq.replaceChildren();
 }
@@ -484,16 +520,34 @@ async function mulai() {
     setTeks('#judulCta', j.ctaJudul);
     setTeks('#subCta', j.ctaSub);
 
-    // ── Kartu ────────────────────────────────────────────────────────────
+    // ── Kartu + toggle periode ───────────────────────────────────────────
+    //
+    // Saat periode diganti, hanya KARTU yang digambar ulang — judul, FAQ,
+    // dan bagian lain tidak disentuh. Menggambar ulang seluruh halaman akan
+    // membuat fokus keyboard hilang dan pembaca layar kehilangan posisinya.
     const grid = root.querySelector('#wadahKartu');
-    if (grid) {
+    const wadahToggle = root.querySelector('#wadahPeriode');
+
+    let periodeAktif = data.periode?.default ?? 'bulanan';
+
+    const gambarKartuSemua = () => {
+      if (!grid) return;
       grid.className = 'harga-grid';
-      grid.replaceChildren(...data.paket.map((p) => gambarKartu(p, hrefKontak)));
+      grid.replaceChildren(
+        ...data.paket.map((p) => gambarKartu(p, hrefKontak, periodeAktif)),
+      );
+    };
+
+    if (wadahToggle && data.periode?.opsi?.length) {
+      wadahToggle.replaceChildren(
+        gambarToggle(data.periode, data.paket, (id) => {
+          periodeAktif = id;
+          gambarKartuSemua();
+        }),
+      );
     }
 
-    // ── Tabel ────────────────────────────────────────────────────────────
-    const wadahTabel = root.querySelector('#wadahTabel');
-    if (wadahTabel) wadahTabel.replaceChildren(gambarTabel(data));
+    gambarKartuSemua();
 
     // ── FAQ ──────────────────────────────────────────────────────────────
     const wadahFaq = root.querySelector('#wadahFaq');
@@ -505,7 +559,7 @@ async function mulai() {
     // tahu kapan berhenti menunggu. Tanpa ini, mereka bisa terus mengumumkan
     // "sedang memuat" walaupun isinya sudah tampil.
     root.dataset.siap = 'true';
-    for (const sel of ['#wadahKartu', '#wadahTabel', '#wadahFaq']) {
+    for (const sel of ['#wadahKartu', '#wadahFaq']) {
       root.querySelector(sel)?.setAttribute('aria-busy', 'false');
     }
   } catch (err) {
@@ -514,7 +568,7 @@ async function mulai() {
       : (err?.message ?? 'Terjadi kesalahan yang tidak diketahui.');
     tampilkanError(root, pesan);
     root.dataset.gagal = 'true';
-    for (const sel of ['#wadahKartu', '#wadahTabel', '#wadahFaq']) {
+    for (const sel of ['#wadahKartu', '#wadahFaq']) {
       root.querySelector(sel)?.setAttribute('aria-busy', 'false');
     }
   }

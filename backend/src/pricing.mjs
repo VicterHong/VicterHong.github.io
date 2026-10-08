@@ -35,8 +35,17 @@ export const PAKET = [
     id: 'standar',
     nama: 'Standar',
     deskripsi: 'Untuk yang ingin melihat cara kerjanya dulu sebelum memutuskan.',
-    harga: 149,
-    satuan: 'ribu/bulan',
+    // ── HARGA ────────────────────────────────────────────────────────────
+      // `hargaNormal` — harga patokan, selalu ditampilkan dicoret.
+      // `diskon`     — potongan per periode, dalam persen.
+      //
+      // Harga akhir TIDAK ditulis di sini — dihitung dari hargaNormal ×
+      // (100 − diskon). Satu tempat, tidak mungkin tidak sinkron.
+      //
+      // Angka penuh (79000), bukan dalam ribu — supaya frontend bisa
+      // memformat sendiri dan tidak ada kesalahan satuan.
+      hargaNormal: 79000,
+      diskon: { bulanan: 20, tahunan: 25 },
     catatan: 'Bisa berhenti kapan saja',
     unggulan: false,
     lencana: null,
@@ -55,8 +64,8 @@ export const PAKET = [
     id: 'profesional',
     nama: 'Profesional',
     deskripsi: 'Untuk developer yang belajar dari implementasi nyata.',
-    harga: 399,
-    satuan: 'ribu/bulan',
+    hargaNormal: 250000,
+      diskon: { bulanan: 20, tahunan: 25 },
     catatan: 'Bisa berhenti kapan saja',
     unggulan: true,
     lencana: 'Paling sering dipilih',
@@ -76,9 +85,9 @@ export const PAKET = [
     nama: 'Enterprise',
     deskripsi: 'Untuk tim yang membangun produk di atasnya.',
     // null = tidak ada angka. Frontend menampilkan `teksHarga`.
-    harga: null,
+    hargaNormal: null,
+      diskon: null,
     teksHarga: 'Sesuai kebutuhan',
-    satuan: null,
     catatan: 'Dibicarakan lewat percakapan singkat',
     unggulan: false,
     lencana: null,
@@ -186,12 +195,74 @@ export const JUDUL = {
  * urutan penulisan — kalau nanti ada yang menyisipkan paket di tengah
  * daftar, tampilannya tetap benar.
  */
+/**
+ * Pilihan periode pembayaran.
+ *
+ * ── KENAPA DI BACKEND ─────────────────────────────────────────────────────
+ * Label dan urutannya ditentukan di sini supaya frontend tidak menyimpan
+ * daftar kedua yang harus dijaga sinkron. Kalau nanti ada periode lain
+ * (mis. 2 tahun), cukup ditambah di sini.
+ *
+ * `default` menentukan mana yang terpilih saat halaman dibuka. Tahunan
+ * dipilih karena itu yang menguntungkan kedua pihak — pembeli dapat lebih
+ * murah, pemilik dapat kepastian.
+ */
+export const PERIODE = {
+  opsi: [
+    { id: 'bulanan', label: 'Bulanan', catatan: null },
+    // Catatan diskon di sini SENGAJA tidak diisi teks.
+    //
+    // Diskonnya berbeda per paket (Standar dan Profesional sama, tapi bisa
+    // berubah nanti), dan label toggle tidak boleh mengklaim angka yang
+    // mungkin tidak berlaku untuk semua paket.
+    //
+    // Frontend mengambil persennya dari paket itu sendiri — lihat
+    // `gambarToggle()` di assets/js/pricing.js.
+    { id: 'tahunan', label: 'Tahunan', catatan: null, tampilkanDiskon: true },
+  ],
+  default: 'tahunan',
+};
+
+/**
+ * Hitung harga akhir dari harga normal dikurangi diskon.
+ *
+ * ── KENAPA DIHITUNG, BUKAN DITULIS ────────────────────────────────────────
+ * Kalau harga akhir ditulis manual di samping persennya, keduanya bisa
+ * berbeda — dan tidak ada yang tahu mana yang benar. Menghitung dari satu
+ * sumber berarti perubahan harga normal otomatis ikut ke semua periode.
+ *
+ * `Math.round` karena harga dalam rupiah selalu bilangan bulat — tidak ada
+ * harga seperti "Rp 63.200,5".
+ */
+function hargaSetelahDiskon(hargaNormal, persen) {
+  if (hargaNormal == null) return null;
+  if (!persen) return hargaNormal;
+  return Math.round(hargaNormal * (100 - persen) / 100);
+}
+
 export function buildPricing() {
-  const paket = [...PAKET].sort((a, b) => a.urutan - b.urutan);
+  const paket = [...PAKET].sort((a, b) => a.urutan - b.urutan).map((p) => {
+    // Sisipkan harga akhir per periode — frontend tidak perlu menghitung.
+    // Perhitungan di server berarti satu rumus, satu tempat.
+    const bulanan = p.diskon?.bulanan ?? 0;
+    const tahunan = p.diskon?.tahunan ?? 0;
+
+    return {
+      ...p,
+      harga: {
+        normal: p.hargaNormal,
+        bulanan: hargaSetelahDiskon(p.hargaNormal, bulanan),
+        tahunan: hargaSetelahDiskon(p.hargaNormal, tahunan),
+        diskonBulananPersen: p.hargaNormal == null ? null : bulanan,
+        diskonTahunanPersen: p.hargaNormal == null ? null : tahunan,
+      },
+    };
+  });
 
   return {
     ok: true,
     judul: JUDUL,
+    periode: PERIODE,
     paket,
     // Nama kolom tabel diambil dari paket — supaya tidak ada daftar kedua
     // yang harus dijaga sinkron.

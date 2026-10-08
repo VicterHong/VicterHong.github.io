@@ -1,0 +1,376 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   TABEL PERBANDINGAN PAKET
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA BERKAS TERPISAH ────────────────────────────────────────────────
+   Tabel ini dipakai di halaman PANDUAN, bukan halaman Harga.
+
+   Halaman Harga menjawab "berapa harganya dan apa isinya" — informasi.
+   Halaman Panduan menjawab "apa bedanya" — perbandingan rinci.
+
+   Dua pertanyaan berbeda, dua tempat berbeda. Kalau keduanya ditumpuk di
+   satu halaman, pengunjung harus menggulir melewati tabel panjang sebelum
+   sampai ke pertanyaan yang sebenarnya ingin dijawab.
+
+   Karena tabelnya sekarang di halaman lain, CSS-nya juga dipisah — supaya
+   halaman Harga tidak mengunduh gaya tabel yang tidak dipakainya.
+
+   ── TOKEN SENDIRI, DENGAN CADANGAN ────────────────────────────────────────
+   Berkas ini memakai token `--tbl-*` yang didefinisikan di sini, dengan
+   cadangan ke token situs (`--bg-card`, `--accent`, `--text`).
+
+   Alasannya: berkas ini dipakai di dua halaman yang tokennya berbeda.
+   Dengan cadangan, tabelnya tetap benar di halaman mana pun — tanpa
+   bergantung pada token yang mungkin tidak ada.
+
+   ── YANG DIPAKAI ──────────────────────────────────────────────────────────
+   Markup: <div class="tabel-wrap"> … <table class="tabel-banding"> …
+   Struktur sel: .tabel-cek / .tabel-strip / .tabel-teks / .baris-bagian
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.tabel-wrap {
+  --tbl-bg: var(--bg-card, #16161a);
+  --tbl-line: rgba(255, 255, 255, 0.08);
+  --tbl-line-kuat: rgba(255, 255, 255, 0.14);
+  --tbl-teks: var(--text, #f4f4f6);
+  --tbl-teks-redup: var(--text-dim, #a1a1aa);
+  --tbl-teks-samar: var(--text-faint, #8a8a94);
+  --tbl-aksen: var(--accent, #f5c542);
+  --tbl-aksen-terang: var(--accent-light, #f7d77a);
+  --tbl-jarak-2: 0.5rem;
+  --tbl-jarak-3: 0.75rem;
+  --tbl-jarak-4: 1rem;
+  --tbl-jarak-5: 1.5rem;
+
+  /* ── PEDOMAN UX ─────────────────────────────────────────────────────────
+     Tabel lebar harus bisa digulir horizontal, bukan merusak tata letak
+     halaman. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* ── KENAPA `contain: paint` ────────────────────────────────────────────
+     Tanpa ini, Chromium melaporkan `documentElement.scrollWidth` sebesar
+     LEBAR TABEL (545px) — bukan lebar layar (375px) — walaupun wadahnya
+     sudah `overflow-x: auto`.
+
+     Yang penting: halaman sebenarnya TIDAK bisa digulir (window.scrollX
+     tetap 0 setelah scrollTo). Jadi ini bukan bug yang terlihat di
+     Chromium. Tapi angka itu dipakai browser lain untuk memutuskan apakah
+     halaman perlu ruang gulir — dan Safari iOS bisa benar-benar
+     menggeser seluruh halaman.
+
+     `contain: paint` memberitahu browser bahwa isi elemen ini di-clip
+     di batasnya. Hasilnya terukur: scrollWidth turun dari 545px ke 375px,
+     dan gulir di dalam tabel tetap bekerja.
+
+     Didukung Chrome 52+, Firefox 69+, Safari 15.4+ — lebih dari 97%
+     pengguna. */
+  contain: paint;
+
+  border: 1px solid var(--tbl-line);
+  border-radius: 1.25rem;
+  background: var(--tbl-bg);
+}
+
+/* ── Petunjuk gulir ──────────────────────────────────────────────────────────
+   Muncul HANYA di layar sempit, di mana tabelnya memang tidak muat.
+
+   Di desktop tabelnya muat penuh — dan petunjuk "geser" di sana hanya
+   membingungkan, karena tidak ada yang perlu digeser. */
+.tabel-petunjuk {
+  display: none;
+}
+
+@media (max-width: 55.99rem) {
+  .tabel-petunjuk {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--tbl-jarak-2);
+    padding: var(--tbl-jarak-3);
+    font-size: 0.75rem;
+    color: var(--tbl-teks-samar);
+    text-align: center;
+  }
+}
+
+.tabel-banding {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+/* Judul tabel — untuk pembaca layar, tidak terlihat di layar */
+.tabel-banding caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tabel-banding th,
+.tabel-banding td {
+  padding: var(--tbl-jarak-3) var(--tbl-jarak-4);
+  text-align: center;
+  border-bottom: 1px solid var(--tbl-line);
+  vertical-align: middle;
+}
+
+/* ── Kolom pertama sticky ────────────────────────────────────────────────────
+   Nama fitur tetap terlihat saat tabel digulir ke kanan di ponsel.
+   Tanpa ini, pengguna menggulir lalu lupa baris itu fitur apa. */
+.tabel-banding th:first-child,
+.tabel-banding td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--tbl-bg);
+  border-right: 1px solid var(--tbl-line);
+  z-index: 1;
+  min-width: 12rem;
+  color: var(--tbl-teks-redup);
+  font-weight: 400;
+}
+
+.tabel-banding thead th {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tbl-teks);
+  border-bottom-color: var(--tbl-line-kuat);
+  white-space: nowrap;
+}
+
+.tabel-banding thead th:first-child {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tbl-teks-samar);
+}
+
+/* ── Kolom unggulan ──────────────────────────────────────────────────────────
+   Ditandai dengan latar lembut — sesuai kartu yang ditandai di halaman Harga,
+   jadi pengunjung mengenalinya sebagai paket yang sama. */
+.tabel-banding .kolom-unggulan {
+  background: rgba(245, 197, 66, 0.04);
+}
+
+.tabel-banding thead .kolom-unggulan {
+  color: var(--tbl-aksen-terang);
+  background: rgba(245, 197, 66, 0.07);
+}
+
+/* ── Baris pemisah bagian ────────────────────────────────────────────────────
+   Mengelompokkan fitur: Dokumentasi / Kode sumber / Penggunaan.
+   Tanpa pemisah, 15 baris jadi satu dinding teks yang sulit dibaca. */
+.tabel-banding tr.baris-bagian td {
+  padding-top: var(--tbl-jarak-5);
+  padding-bottom: var(--tbl-jarak-2);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--tbl-teks-samar);
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom-color: var(--tbl-line-kuat);
+}
+
+.tabel-banding tr.baris-bagian td:first-child {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tabel-banding tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Ikon dalam tabel ────────────────────────────────────────────────────── */
+
+.tabel-cek,
+.tabel-strip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.tabel-cek {
+  background: var(--tbl-aksen);
+  color: #0a0a0b;
+}
+
+.tabel-strip {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--tbl-teks-samar);
+}
+
+.tabel-teks {
+  font-size: 0.75rem;
+  color: var(--tbl-teks-redup);
+}
+
+/* ── Teks hanya untuk pembaca layar ──────────────────────────────────────────
+   Sel tabel berisi ikon centang/strip. Pengguna yang melihat langsung paham.
+   Tapi pembaca layar tidak bisa membaca ikon — ia hanya bilang "sel kosong".
+
+   Bukan `display: none` — itu akan menghilangkannya dari accessibility
+   tree, kebalikan dari yang dibutuhkan. */
+.tabel-wrap .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ── Keterangan di bawah tabel ───────────────────────────────────────────── */
+.tabel-catatan {
+  margin: var(--tbl-jarak-4) 0 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--tbl-teks-redup);
+  text-align: center;
+}
+
+.tabel-catatan a {
+  color: var(--tbl-aksen);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Tombol aksi di bawah tabel ──────────────────────────────────────────── */
+.tabel-aksi {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--tbl-jarak-3);
+  margin-top: var(--tbl-jarak-5);
+}
+
+.tabel-aksi .tombol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tbl-jarak-2);
+  min-height: 2.75rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+              transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tabel-aksi .tombol--utama {
+  background: var(--tbl-aksen);
+  border-color: var(--tbl-aksen);
+  color: #0a0a0b;
+}
+
+.tabel-aksi .tombol--utama:hover {
+  background: var(--tbl-aksen-terang);
+  border-color: var(--tbl-aksen-terang);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(245, 197, 66, 0.2);
+}
+
+.tabel-aksi .tombol--sekunder {
+  background: transparent;
+  border-color: var(--tbl-line-kuat);
+  color: var(--tbl-teks);
+}
+
+.tabel-aksi .tombol--sekunder:hover {
+  border-color: rgba(245, 197, 66, 0.35);
+  background: rgba(245, 197, 66, 0.12);
+  color: var(--tbl-aksen-terang);
+}
+
+.tabel-aksi .tombol:focus-visible {
+  outline: 2px solid var(--tbl-aksen);
+  outline-offset: 3px;
+}
+
+/* ── Skeleton ────────────────────────────────────────────────────────────────
+   Tabel dimuat dari server. Skeleton menggambar BENTUK barisnya lebih dulu,
+   jadi tata letak tidak melompat saat data tiba. */
+.sk-tabel-baris {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: var(--tbl-jarak-4);
+  align-items: center;
+  padding: var(--tbl-jarak-3) var(--tbl-jarak-4);
+  border-bottom: 1px solid var(--tbl-line);
+}
+
+.sk-tabel-baris:last-child {
+  border-bottom: none;
+}
+
+.skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.09) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-kilau 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-kilau {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.sk-teks    { height: 0.8rem; }
+.sk-teks-sm { height: 0.65rem; }
+
+/* ── Gagal memuat ────────────────────────────────────────────────────────── */
+.tabel-gagal {
+  padding: var(--tbl-jarak-5);
+  border: 1px solid var(--tbl-line-kuat);
+  border-radius: 1rem;
+  background: var(--tbl-bg);
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--tbl-teks-redup);
+}
+
+.tabel-gagal a {
+  color: var(--tbl-aksen);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Hormati preferensi gerakan ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .tabel-aksi .tombol,
+  .tabel-aksi .tombol:hover {
+    transition: none;
+    transform: none;
+  }
+}

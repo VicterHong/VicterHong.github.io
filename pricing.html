@@ -86,7 +86,7 @@
 
       ── KENAPA HTML-NYA KOSONG ───────────────────────────────────────────────
       Harga TIDAK ditulis di sini. Halaman ini memuatnya dari /api/pricing,
-      lalu menggambar kartu, tabel, dan FAQ-nya.
+      lalu menggambar kartu dan FAQ-nya.
 
       Alasannya: harga yang ditulis di HTML berarti harus diubah di setiap
       tempat ia muncul — dan satu yang terlewat sudah cukup untuk membuat
@@ -142,14 +142,37 @@
     <!-- ══ 2. KARTU HARGA ═══════════════════════════════════════════════════
          Diisi oleh skrip. Sebelum data tiba, berisi skeleton — blok abu-abu
          yang menggambarkan bentuk kartunya. -->
+    <!-- ── PILIHAN PERIODE ──────────────────────────────────────────────────
+         Bulanan (diskon 20%) atau Tahunan (diskon 25%).
+
+         ── KENAPA DI ATAS KARTU ────────────────────────────────────────────
+         Harga yang tampil berbeda per periode. Kalau toggle-nya di bawah,
+         pengunjung membaca harga lebih dulu lalu baru sadar ada pilihan
+         lain — dan harus membaca ulang.
+
+         Ditaruh di atas, pilihannya terlihat sebelum angkanya. -->
+    <div id="wadahPeriode" class="periode-wadah"></div>
+
     <div class="harga-grid" id="wadahKartu" aria-busy="true"></div>
 
-    <!-- ══ 3. TABEL PERBANDINGAN ════════════════════════════════════════════ -->
-    <section class="bagian" aria-labelledby="judulTabel">
-      <h2 class="bagian-judul" id="judulTabel">Bandingkan paket</h2>
-      <p class="bagian-sub" id="subTabel">Semua yang Anda dapatkan di setiap paket, berdampingan.</p>
-      <div id="wadahTabel" aria-busy="true"></div>
-    </section>
+    <!-- ── TAUTAN KE PERBANDINGAN ────────────────────────────────────────────
+         Tabel perbandingan rinci ada di halaman Panduan, bukan di sini.
+
+         Halaman ini menjawab "berapa harganya dan apa isinya" — informasi.
+         Halaman Panduan menjawab "apa bedanya" — perbandingan rinci.
+
+         Kalau tabelnya ditaruh di sini, pengunjung harus menggulir melewati
+         15 baris tabel dulu sebelum sampai ke angka yang ingin dilihat.
+
+         Tautan ini memastikan yang MEMANG ingin membandingkan tetap bisa
+         menemukannya — satu ketukan, bukan tersembunyi. -->
+    <p class="harga-tautan">
+      Ingin membandingkan fitur tiap paket?
+      <a href="/docs#paket">
+        Lihat perbandingan lengkap
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+      </a>
+    </p>
 
     <!-- ══ 4. FAQ ═══════════════════════════════════════════════════════════
          Pengguna yang sudah membaca semua informasi biasanya punya satu-dua
@@ -215,8 +238,8 @@
      2. assets/js/pricing.js — memuat data harga & menggambar halaman
 
    ── KENAPA pricing.js BERKAS TERPISAH ────────────────────────────────────
-   Isinya ~400 baris: memuat data, menangani error, menggambar kartu, tabel,
-   dan FAQ, plus skeleton. Menaruh itu semua inline berarti HTML-nya harus
+   Isinya ~350 baris: memuat data, menangani error, menggambar kartu dan
+   FAQ, plus skeleton. Menaruh itu semua inline berarti HTML-nya harus
    diunduh ulang setiap kali ada perubahan skrip — dan tidak bisa di-cache
    browser secara terpisah.
 

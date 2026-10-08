@@ -44,6 +44,7 @@
 <link rel="stylesheet" href="assets/css/docs.css">
 <link rel="stylesheet" href="assets/css/cookies.css">
 <link rel="stylesheet" href="assets/css/interactions.css">
+<link rel="stylesheet" href="assets/css/tabel-banding.css">
 </head>
 <body>
 
@@ -449,9 +450,86 @@ curl https://&lt;alamat-backend&gt;/api/ready</code>
         </p>
       </section>
 
-      <!-- ── 6. KONTAK ────────────────────────────────────────────────────── -->
+      <!-- ── 6. PERBANDINGAN PAKET ──────────────────────────────────────────
+           ── KENAPA DI SINI, BUKAN DI HALAMAN HARGA ──────────────────────────
+           Halaman Harga menjawab "berapa harganya dan apa isinya" — informasi.
+           Halaman Panduan menjawab "apa bedanya" — perbandingan rinci.
+
+           Dua pertanyaan berbeda. Kalau tabel panjang ini ditaruh di halaman
+           Harga, pengunjung harus menggulir melewatinya dulu sebelum sampai
+           ke angka yang sebenarnya ingin dilihat.
+
+           Datanya tetap SATU sumber: /api/pricing. Kalau harga berubah di
+           backend, tabel di sini ikut berubah — tanpa ada angka yang perlu
+           disunting dua kali. -->
       <section class="doc-section">
-        <h2 id="kontak"><span class="sec-num">06</span> Butuh Bantuan?</h2>
+        <h2 id="paket"><span class="sec-num">06</span> Perbandingan Paket</h2>
+
+        <p>
+          Tiga paket untuk kebutuhan yang berbeda. Tabel di bawah menunjukkan
+          apa yang Anda dapatkan di masing-masing paket, berdampingan.
+        </p>
+
+        <p>
+          Harga dan ringkasan paket ada di
+          <a href="/pricing">halaman harga</a>.
+        </p>
+
+        <div id="wadahTabel" aria-busy="true"></div>
+
+        <h3 id="beda-paket">Apa bedanya tiap paket?</h3>
+        <p>
+          Perbedaannya bukan sekadar jumlah fitur, tapi <strong>hak pakai</strong>:
+        </p>
+        <ul>
+          <li>
+            <strong>Standar</strong> — melihat pratinjau isi repo (struktur &amp;
+            daftar berkas), dokumentasi publik, dan hasil uji. Belum bisa
+            membaca kode sumbernya.
+          </li>
+          <li>
+            <strong>Profesional</strong> — membaca <em>seluruh kode sumber</em>
+            dan berdiskusi teknis langsung. Boleh dipelajari, belum boleh
+            dipakai ulang di produk Anda.
+          </li>
+          <li>
+            <strong>Enterprise</strong> — hak memakai ulang kodenya di proyek
+            Anda sendiri, tanpa batas jumlah proyek, plus jaminan layanan dan
+            pendampingan langsung.
+          </li>
+        </ul>
+
+        <h3 id="pilih-paket">Bagaimana memilih paket yang tepat?</h3>
+        <div class="steps">
+          <div class="step">
+            <div class="step-body">
+              <strong>Ingin menilai kualitasnya dulu?</strong>
+              <p>Mulai dari Standar — dokumentasi dan hasil uji bisa dilihat langsung.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Ingin belajar dari implementasi nyata?</strong>
+              <p>Profesional memberi akses baca penuh dan ruang diskusi teknis.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Akan membangun produk di atasnya?</strong>
+              <p>Enterprise — hak pakai ulang, tanpa batas proyek, dengan pendampingan.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          Masih ragu? <a href="/#89fk39">Bicara dulu</a> — ceritakan kebutuhan
+          Anda, saya bantu pilihkan. Tidak ada kewajiban setelahnya.
+        </p>
+      </section>
+
+      <!-- ── 7. KONTAK ────────────────────────────────────────────────────── -->
+      <section class="doc-section">
+        <h2 id="kontak"><span class="sec-num">07</span> Butuh Bantuan?</h2>
 
         <p>
           Kalau panduan ini tidak menjawab pertanyaan Anda, hubungi saya langsung.
@@ -497,6 +575,8 @@ GitHub:         https://github.com/VicterHong</code>
 </script>
 <script type="module" src="assets/js/docs-page.js"></script>
 <script type="module" src="assets/js/docs.js"></script>
+<!-- Tabel perbandingan paket — data dari /api/pricing -->
+<script type="module" src="assets/js/tabel-banding.js"></script>
 
 <!-- Gerbang verifikasi (mode dinamis — cf-gate.js membangun overlay sendiri).
      cf-gate-i18n.js HARUS lebih dulu: cf-gate.js membacanya saat dijalankan. -->
