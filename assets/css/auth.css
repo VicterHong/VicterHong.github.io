@@ -844,7 +844,20 @@ select.auth-input {
   cursor: not-allowed;
 }
 
-.auth-oauth-passkey { margin-bottom: 9px; }
+/* ── TOMBOL ALTERNATIF DI DALAM FORM ─────────────────────────────────────────
+   Passkey dan SSO berada di dalam <form> yang punya `gap: 16px`. Itu berarti
+   jarak sebenarnya = gap 16px + margin 9px = 25px — lebih lebar dari jarak
+   antar elemen lain (16px), dan membuat keduanya terlihat seperti blok
+   terpisah, bukan bagian dari form yang sama.
+
+   Margin dihilangkan. Jarak antar tombol alternatif diatur oleh gap form
+   (16px) — konsisten dengan jarak antar field. Jarak ke tombol utama juga
+   ikut mengecil, yang benar: passkey/SSO adalah lanjutan dari aksi utama,
+   bukan bagian terpisah. */
+/* Spesifisitas 0,2,0 — mengalahkan .auth-oauth (0,1,0) yang muncul
+   SETELAH blok ini di file. Tanpa ini, margin dari .auth-oauth menang
+   karena urutan sumber, bukan karena kekhususan. */
+.auth-oauth.auth-oauth-passkey { margin-bottom: 0; }
 
 /* ── TOMBOL SSO PERUSAHAAN ──────────────────────────────────────────────────
    Jalur terpisah di bawah penyedia sosial. Gaya sengaja dibuat sejajar
@@ -853,8 +866,12 @@ select.auth-input {
    Ikon gedung dengan jendela — bukan kunci. Kunci sudah dipakai ikon sandi di
    form, dan memakai kunci lagi di sini membuat dua hal berbeda terlihat sama.
    Gedung perusahaan menyampaikan "identitas organisasi" tanpa ambigu. */
-.auth-oauth-enterprise {
-  margin-bottom: 9px;
+/* Spesifisitas 0,2,0 — sama alasannya dengan passkey. */
+.auth-oauth.auth-oauth-enterprise {
+  /* Margin dihapus: jarak diatur gap form (16px), konsisten dengan jarak
+     antar field. Jarak ke footer juga jadi wajar, tidak menyisakan ruang
+     kosong besar di bawah tombol terakhir. */
+  margin-bottom: 0;
   font-size: 13.5px;
 }
 
@@ -1125,14 +1142,24 @@ select.auth-input {
 /* ══ Pesan ═════════════════════════════════════════════════════════════════ */
 
 .auth-msg {
+  /* ── PESAN STATUS: TIDAK MAKAN RUANG SAAT KOSONG ────────────────────────
+     Elemen ini selalu ada di DOM (untuk aria-live), tapi biasanya kosong.
+     Versi sebelumnya memakai min-height sehingga menyisakan 18px ruang
+     kosong antara tombol terakhir dan footer — terukur sebagai penyebab
+     jarak 50px yang terlihat janggal.
+
+     Dengan `display: none` saat kosong (via :empty), ruangnya hilang
+     sepenuhnya. Begitu ada pesan, ia muncul dan mendorong footer turun —
+     perilaku yang benar: pesan status memang harus terlihat. */
   margin: 0;
-  min-height: 18px;
   font-size: 12.5px;
   line-height: 1.5;
   text-align: center;
-  color: var(--teks-redup);
-  transition: color var(--durasi-cepat) var(--pegas);
+  color: var(--teks-samar);
 }
+
+/* Kosong → tidak ada ruang. */
+.auth-msg:empty { display: none; }
 .auth-msg.is-galat { color: var(--galat); }
 .auth-msg.is-sukses { color: var(--sukses); }
 
@@ -1275,9 +1302,19 @@ select.auth-input {
 
 /* ══ Kaki ══════════════════════════════════════════════════════════════════ */
 
+/* ── FOOTER: JARAK DISESUAIKAN RITME FORM ───────────────────────────────────
+   Sebelumnya margin-top 20px + padding-top 16px = 36px jarak dari tombol
+   terakhir ke garis footer. Terlalu jauh: mata membaca jarak sebesar itu
+   sebagai PEMISAH BAGIAN, padahal footer masih bagian dari kartu yang sama.
+
+   Sekarang 16px + 12px = 28px total. Masih memberi ruang napas sebelum
+   garis, tapi tidak lagi terasa seperti bagian terpisah.
+
+   Ritme yang dipakai konsisten: 16px (antar elemen form), 28px (sebelum
+   garis footer). Dua nilai saja, tidak ada angka acak. */
 .auth-foot {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--garis);
   text-align: center;
 }
