@@ -587,6 +587,7 @@ GitHub:         https://github.com/VicterHong</code>
 
 <!-- Gerbang verifikasi (mode dinamis — cf-gate.js membangun overlay sendiri).
      cf-gate-i18n.js HARUS lebih dulu: cf-gate.js membacanya saat dijalankan. -->
+<link rel="stylesheet" href="assets/css/logo.css">
 <link rel="stylesheet" href="assets/css/cf-gate.css">
 <script>
   window.CF_GATE_CONFIG = {
@@ -597,5 +598,8 @@ GitHub:         https://github.com/VicterHong</code>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="assets/js/cf-gate-i18n.js"></script>
 <script src="assets/js/cf-gate.js"></script>
+
+<!-- Logo interaktif — kurung bergerak saat hover, berputar saat klik. -->
+<script type="module" src="assets/js/logo-mount.js"></script>
 </body>
 </html>

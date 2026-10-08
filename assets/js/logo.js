@@ -132,9 +132,22 @@ export function createInteractiveLogo() {
 
 /** Ganti brand-mark lama dengan logo interaktif. */
 export function mountInteractiveLogo(selector = '.brand-mark') {
-  const old = document.querySelector(selector);
-  if (!old) return;
-  const logo = createInteractiveLogo();
-  logo.classList.add('brand-mark-live');
-  old.replaceWith(logo);
+  // Beberapa halaman punya lebih dari satu mark (header + kartu login).
+  // Ganti SEMUANYA — kalau hanya yang pertama, sisa mark tetap statis dan
+  // tampilannya jadi tidak konsisten dalam satu layar.
+  const lama = document.querySelectorAll(selector);
+  if (!lama.length) return;
+
+  const pertama = createInteractiveLogo();
+  pertama.classList.add('brand-mark-live');
+  lama[0].replaceWith(pertama);
+
+  // Salinan berikutnya: instance terpisah supaya masing-masing punya state
+  // animasi sendiri. Kalau node yang sama dipindah, browser hanya merender
+  // satu tempat — mark kedua akan hilang.
+  for (let i = 1; i < lama.length; i++) {
+    const salinan = createInteractiveLogo();
+    salinan.classList.add('brand-mark-live');
+    lama[i].replaceWith(salinan);
+  }
 }

@@ -18,6 +18,7 @@
 
 <!-- Gate: halaman ini juga dilindungi verifikasi pengunjung -->
 <link rel="stylesheet" href="/assets/css/cf-gate.css">
+<link rel="stylesheet" href="/assets/css/logo.css">
 <link rel="stylesheet" href="/assets/css/auth.css">
 </head>
 <body class="auth-body">
@@ -454,5 +455,10 @@
 <script src="/assets/js/cf-gate-i18n.js" defer></script>
 <script src="/assets/js/cf-gate.js" defer></script>
 <script src="/assets/js/auth.js" defer></script>
+
+<!-- Logo interaktif — kurung bergerak saat hover, berputar saat klik.
+     Halaman ini memakai .auth-nav-mark (bukan .brand-mark);
+     logo-mount.js menangani kedua kelas. -->
+<script type="module" src="/assets/js/logo-mount.js"></script>
 </body>
 </html>

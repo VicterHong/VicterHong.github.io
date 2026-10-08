@@ -1,6 +1,23 @@
 /* ── LOGO INTERAKTIF ───────────────────────────────────────────────────────────
    Simbol coding yang bergerak: kurung membuka saat hover, berputar saat klik,
    kursor berkedip. Semua transform/opacity — tidak memicu layout.
+
+   ── KENAPA ADA FALLBACK DI SETIAP VARIABEL ─────────────────────────────────
+   Berkas ini dipakai DUA kelompok halaman dengan sistem variabel berbeda:
+
+     Halaman utama (home, pricing, docs, privasi, syarat)
+       memuat main.css  → --accent, --accent-line, --ease
+
+     Halaman auth (masuk, daftar)
+       memuat auth.css  → --emas, --emas-garis   (TIDAK memuat main.css)
+
+   Tanpa fallback, `stroke: var(--accent)` di halaman auth menjadi tidak valid
+   dan logo kehilangan warnanya — kurungnya hilang, hanya menyisakan teks.
+
+   Rantai `var(--accent, var(--emas, #f5c542))` menyelesaikannya:
+   pakai --accent kalau ada, jatuh ke --emas, dan terakhir ke nilai literal.
+   Ketiganya warna yang sama (#f5c542), jadi hasilnya konsisten di mana pun —
+   tanpa perlu memuat main.css di halaman auth hanya untuk satu warna.
    ───────────────────────────────────────────────────────────────────────────── */
 
 .brand-mark-live {
@@ -9,15 +26,15 @@
   cursor: pointer;
   overflow: visible;
   will-change: transform;
-  transition: filter 0.3s var(--ease);
+  transition: filter 0.3s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-.brand-mark-live:hover { filter: drop-shadow(0 0 8px var(--accent-line)); }
+.brand-mark-live:hover { filter: drop-shadow(0 0 8px var(--accent-line, var(--emas-garis, rgba(245, 197, 66, 0.35)))); }
 
 /* Kurung */
 .logo-bracket {
   fill: none;
-  stroke: var(--accent);
+  stroke: var(--accent, var(--emas, #f5c542));
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -26,22 +43,75 @@
 
 /* Titik tengah */
 .logo-dot {
-  fill: var(--accent);
+  fill: var(--accent, var(--emas, #f5c542));
   will-change: opacity;
 }
 
 /* Garis kursor */
 .logo-bar {
-  fill: var(--accent);
+  fill: var(--accent, var(--emas, #f5c542));
   will-change: opacity;
 }
+
+/* ── KEDIPAN KURSOR SAAT IDLE ────────────────────────────────────────────────
+   ── MASALAH YANG DIPERBAIKI ────────────────────────────────────────────────
+   Kedipan ini dulu dijalankan JavaScript di dalam loop rAF. Tapi loop itu
+   berhenti begitu state kembali ke 'idle':
+
+       if (state !== 'idle' || ...) raf = requestAnimationFrame(animate);
+       else raf = null;
+
+   Saat idle, syaratnya langsung false — loop berhenti di frame pertama, dan
+   bar.style.opacity tidak pernah diperbarui lagi. Akibatnya kursor tampak
+   beku, padahal komentar di logo.js menyebut "Idle blink tetap jalan".
+
+   ── KENAPA CSS, BUKAN MEMPERBAIKI LOOP-NYA ────────────────────────────────
+   Membuat loop rAF berjalan terus saat idle berarti browser menggambar ulang
+   setiap frame selamanya — membakar baterai di ponsel demi satu kedipan.
+
+   CSS animation dikerjakan compositor: berjalan tanpa JavaScript, tanpa
+   memicu layout, dan berhenti sendiri saat tab tidak terlihat.
+
+   ── NILAI DISAMAKAN DENGAN JS ─────────────────────────────────────────────
+   JS memakai: bar 1 ↔ 0.15 (kedip tegas, seperti kursor teks)
+               dot 0.9 ↔ 0.4 (pulsa halus)
+   Durasi 2 detik mengikuti sin() yang dipakai JS: periode 2π / 0.05 per frame
+   ≈ 125 frame ≈ 2 detik.
+
+   ── SAAT HOVER/KLIK: KEDIPAN BERHENTI ─────────────────────────────────────
+   JS mengambil alih opacity (solid) selama interaksi. CSS animation menang
+   atas inline style di cascade, jadi kedipannya harus dimatikan eksplisit —
+   kalau tidak, kursor tetap berkedip saat kurung sedang membuka.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes logo-kedip-kursor {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.15; }
+  100% { opacity: 1; }
+}
+
+@keyframes logo-kedip-titik {
+  0%   { opacity: 0.9; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 0.9; }
+}
+
+.logo-bar { animation: logo-kedip-kursor 2s ease-in-out infinite; }
+.logo-dot { animation: logo-kedip-titik 2s ease-in-out infinite; }
+
+/* Interaksi aktif → JS yang mengatur opacity; kedipan berhenti. */
+.brand-mark-live:hover .logo-bar,
+.brand-mark-live:hover .logo-dot,
+.brand-mark-live:focus-visible .logo-bar,
+.brand-mark-live:focus-visible .logo-dot { animation: none; }
 
 /* Mode gerakan minimal: tampil statis */
 .logo-static .logo-bracket { transform: none; }
 .logo-static .logo-dot,
-.logo-static .logo-bar { opacity: 1; }
+.logo-static .logo-bar { opacity: 1; animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .brand-mark-live { transition: none; }
   .brand-mark-live:hover { filter: none; }
+  .logo-bar, .logo-dot { animation: none; }
 }
