@@ -245,12 +245,24 @@
               <button type="button" class="auth-link-inline auth-link-kecil" id="btnLupaSandi">Lupa sandi?</button>
             </div>
             <div class="auth-input-wrap auth-input-ikon">
+              <!-- ── IKON KIRI: GEMBOK ────────────────────────────────────
+                   Mengikuti design system korporat (SAP Fiori, ServiceNow
+                   Horizon, Dynatrace, Clarity): kolom sandi memakai GEMBOK
+                   (padlock), bukan kunci.
+
+                   Alasannya: kunci adalah metafora "akses" yang juga dipakai
+                   ikon lain (kunci API, kunci lisensi). Gembok tidak punya
+                   tafsir ganda — ia HANYA berarti "ini data rahasia".
+
+                   Bentuknya: badan persegi membulat + sangkutan melengkung
+                   di atas. Dua bagian saja, terbaca jelas di 16px. -->
               <span class="auth-ikon-kiri" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
                      stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
                      stroke-linejoin="round">
-                  <circle cx="7.5" cy="15.5" r="4.5"/>
-                  <path d="m10.7 12.3 8.8-8.8M17 6l2 2M14.5 8.5l2 2"/>
+                  <rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/>
+                  <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>
+                  <circle cx="12" cy="15.5" r="1.2"/>
                 </svg>
               </span>
               <input class="auth-input" type="password" id="inpSandi" name="password"
