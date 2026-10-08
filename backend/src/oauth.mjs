@@ -319,6 +319,48 @@ function rahasiaApple(config) {
 // ── Langkah 3: mengambil identitas ────────────────────────────────────────────
 
 /**
+ * Tentukan email pengguna dari klaim provider.
+ *
+ * ── KENAPA FUNGSI TERPISAH ──
+ * Ini fungsi MURNI: masukannya klaim, keluarannya email. Tidak ada jaringan,
+ * tidak ada database. Karena itu bisa diuji langsung — dan uji pertama
+ * menemukan dua kasus yang tidak teruji waktu logikanya masih terkubur di
+ * dalam ambilIdentitas() yang memanggil fetch.
+ *
+ * ── URUTAN PRIORITAS (penting, diuji) ──
+ *   1. klaim.email          — akun pribadi Microsoft, Google, Apple
+ *   2. info.email           — dari endpoint userinfo
+ *   3. preferred_username   — KHUSUS Microsoft, hanya kalau bentuknya email
+ *
+ * ── KENAPA preferred_username PERLU DIPERIKSA BENTUKNYA ──
+ * Dokumen Microsoft: klaim ini "could be an email address, phone number, or
+ * a generic username without a specified format". Kalau isinya nomor telepon
+ * lalu kita pakai sebagai email, akunnya jadi aneh dan tidak bisa dipakai
+ * masuk lewat provider lain dengan email yang sama.
+ *
+ * Jadi dipakai hanya kalau: ada '@', ada '.' SETELAH '@', dan tidak ada spasi.
+ *
+ * ── KENAPA KHUSUS MICROSOFT ──
+ * Provider lain tidak memakai klaim ini. Google dan Apple selalu mengirim
+ * `email` langsung. Membacanya untuk semua provider berarti menerima nilai
+ * yang tidak dimaksudkan sebagai email.
+ */
+export function emailDariKlaim({ provider, klaim = {}, info = {} }) {
+  const langsung = klaim?.email || info.email;
+  if (langsung) return String(langsung);
+
+  if (provider !== 'microsoft') return '';
+
+  const kandidat = String(klaim?.preferred_username || info.preferred_username || '');
+  const posisiAt = kandidat.indexOf('@');
+  if (posisiAt <= 0) return '';
+  if (kandidat.indexOf('.', posisiAt) <= posisiAt + 1) return '';
+  if (kandidat.includes(' ')) return '';
+
+  return kandidat;
+}
+
+/**
  * Ambil identitas pengguna dari provider.
  *
  * Mengembalikan bentuk SERAGAM untuk semua provider:
@@ -428,7 +470,7 @@ export async function ambilIdentitas({
 
   return {
     providerUserId: sub,
-    email: klaim?.email || info.email || '',
+    email: emailDariKlaim({ provider, klaim, info }),
     emailTerverifikasi:
       klaim?.email_verified === true || info.email_verified === true ||
       // Microsoft mengirim email di klaim 'preferred_username' atau 'email'

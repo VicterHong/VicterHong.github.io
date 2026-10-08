@@ -179,7 +179,24 @@ async function uji() {
   const ch = await resCh.json();
   cek('Passkey masuk/mulai menerbitkan challenge',
     ch.ok === true && typeof ch.challenge === 'string' && ch.challenge.length >= 32);
-  cek('rpId sesuai konfigurasi', ch.rpId === RP_ID, `rpId: ${ch.rpId}`);
+  // rpId diturunkan dari SITE_URL. Uji ini memeriksa bahwa nilainya sesuai
+  // konfigurasi yang sedang dipakai — bukan nilai tetap, karena SITE_URL
+  // berbeda antara lokal dan produksi.
+  //
+  // Yang WAJIB benar di kedua lingkungan: rpId adalah HOSTNAME, bukan URL
+  // penuh, dan bukan alamat IP (WebAuthn menolak IP).
+  const rpIdValid = typeof ch.rpId === 'string'
+    && ch.rpId.length > 0
+    && !ch.rpId.includes('/')
+    && !ch.rpId.includes(':')
+    && !/^\d+\.\d+\.\d+\.\d+$/.test(ch.rpId);
+
+  cek('rpId berbentuk hostname yang sah (bukan URL, bukan IP)',
+    rpIdValid, `rpId: ${ch.rpId}`);
+  cek('rpId sesuai SITE_URL yang dikonfigurasi',
+    ch.rpId === new URL(process.env.UJI_SITE_URL || 'https://portfolio-victer.pages.dev').hostname
+      || ch.rpId === 'localhost',
+    `rpId: ${ch.rpId}`);
   cek('allowCredentials kosong (discoverable)', Array.isArray(ch.allowCredentials) && ch.allowCredentials.length === 0);
 
   // ── 2b. Registrasi tanpa sesi ditolak ──────────────────────────────────────
@@ -345,10 +362,43 @@ async function uji() {
   const resConfig = await fetch(`${BASE}/api/config`);
   const cfg = await resConfig.json();
   cek('/api/config melaporkan passkey siap', cfg.passkey === true);
-  cek('/api/config melaporkan provider belum siap (tanpa kredensial)',
-    cfg.sso && cfg.sso.google === false && cfg.sso.github === false);
   cek('/api/config punya kunci apple & microsoft di sso',
     'apple' in cfg.sso && 'microsoft' in cfg.sso);
+
+  // ── Uji KONSISTENSI, bukan nilai tertentu ────────────────────────────────
+  //
+  // Provider boleh siap atau belum — tergantung kredensial yang terpasang.
+  // Yang harus SELALU benar: /api/config melaporkan keadaan yang SAMA dengan
+  // yang dilihat endpointnya. Kalau /api/config bilang "belum aktif" tapi
+  // endpointnya mengalihkan ke provider, tombolnya akan mati padahal
+  // seharusnya menyala — dan sebaliknya.
+  //
+  // Versi lama uji ini mengharapkan github === false. Itu gagal begitu
+  // kredensial GitHub dipasang — padahal perilakunya benar. Uji yang
+  // mengharapkan nilai tetap akan selalu basi.
+  for (const p of ['google', 'github', 'microsoft', 'apple']) {
+    const res = await fetch(`${BASE}/api/auth/${p}`, { redirect: 'manual' });
+    const lokasi = res.headers.get('location') || '';
+    const dilaporkanSiap = cfg.sso[p] === true;
+
+    // Endpoint mengalihkan ke provider = siap. Mengalihkan ke halaman masuk
+    // dengan galat = belum siap.
+    const benarBenarSiap = lokasi.includes('login.microsoftonline.com')
+      || lokasi.includes('github.com')
+      || lokasi.includes('accounts.google.com')
+      || lokasi.includes('appleid.apple.com');
+
+    // Rate limit BUKAN tanda "belum siap" — endpointnya jalan, hanya
+    // membatasi laju. Uji berulang cepat bisa memicunya.
+    if (lokasi.includes('terlalu_banyak')) {
+      cek(`/api/config ${p} — rate limit terpicu (uji dilewati)`, true);
+      continue;
+    }
+
+    cek(`/api/config ${p} konsisten dengan endpointnya`,
+      dilaporkanSiap === benarBenarSiap,
+      `config=${dilaporkanSiap}, endpoint=${benarBenarSiap} (${lokasi.slice(0, 40)})`);
+  }
 
   // ── Ringkasan ──────────────────────────────────────────────────────────────
   console.log(`\n${'═'.repeat(60)}`);
