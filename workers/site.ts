@@ -1,10 +1,11 @@
 /**
  * Cloudflare Worker — Portfolio Edge Router
  *
- * Tiga tanggung jawab, dalam urutan prioritas:
+ * Empat tanggung jawab, dalam urutan prioritas:
  *   1. /media/*   → sajikan gambar galeri dari R2 (cache 1 tahun)
- *   2. /api/*     → teruskan ke backend Node lewat tunnel
- *   3. sisanya    → redirect ke Cloudflare Pages
+ *   2. /avatar/*  → buat avatar pengguna dari nama (SVG, tanpa penyimpanan)
+ *   3. /api/*     → teruskan ke backend Node lewat tunnel
+ *   4. sisanya    → redirect ke Cloudflare Pages
  *
  * ── KENAPA GAMBAR LEWAT WORKER, BUKAN R2 PUBLIC URL ─────────────────────────
  * R2 public bucket URL (pub-xxxx.r2.dev) itu:
@@ -23,6 +24,143 @@
  * berubah. Jadi cache lama tidak pernah menyajikan gambar yang salah.
  * Ini pola "content-addressed asset" yang dipakai semua CDN besar.
  */
+
+/**
+ * Avatar pengguna — dibuat di edge, tanpa backend dan tanpa penyimpanan.
+ *
+ * ── KENAPA DIBUAT, BUKAN DISIMPAN ────────────────────────────────────────────
+ * Menyimpan avatar berarti: satu berkas per pengguna, satu unggahan, satu
+ * pembersihan saat akun dihapus. Untuk pengguna yang TIDAK punya foto dari
+ * provider OAuth, semua itu tidak perlu — avatarnya bisa DIHITUNG dari nama.
+ *
+ * Hasilnya: nol byte penyimpanan, nol operasi tulis, nol berkas yatim.
+ * Satu-satunya biaya adalah CPU saat pertama diminta — dan itu di-cache
+ * selamanya oleh browser dan Cloudflare.
+ *
+ * ── GAYA: SAMA DENGAN LOGO ───────────────────────────────────────────────────
+ * Logo VIVASTIC adalah huruf emas (#f5c542) di atas latar gelap (#0e1116).
+ * Avatar memakai bahasa yang sama — inisial emas di kotak gelap — sehingga
+ * foto profil terlihat seperti bagian dari produk, bukan gambar tempelan.
+ *
+ * ── KENAPA WARNA LATAR DIPILIH DARI NAMA ─────────────────────────────────────
+ * Dua pengguna bernama "Budi" dan "Budi Santoso" harus terlihat BERBEDA.
+ * Warna diturunkan dari hash nama, jadi:
+ *   - nama sama → warna sama (stabil, tidak berubah tiap muat)
+ *   - nama beda → kemungkinan besar warna beda
+ *
+ * Hue dibatasi 20-60 (emas sampai kuning-hijau) supaya SELALU selaras dengan
+ * identitas emas situs. Hue acak penuh akan menghasilkan avatar biru dan ungu
+ * yang terlihat seperti dari aplikasi lain.
+ *
+ * ── SVG, BUKAN PNG ───────────────────────────────────────────────────────────
+ * SVG tajam di semua ukuran (16px di daftar sampai 256px di halaman profil)
+ * dengan ukuran berkas ~1 KB. PNG butuh beberapa ukuran berbeda, dan masing-
+ * masing harus dibuat dan disimpan.
+ */
+
+/**
+ * Latar avatar — SATU keluarga warna.
+ *
+ * ── DUA KALI SALAH ──
+ * Versi pertama: empat hex yang "terlihat mirip di layar gelap"
+ *   #0e1116  #131316  #0f1418  #141118
+ *   → ada yang kebiruan, ada yang keunguan. Terlihat seperti dari aplikasi
+ *     berbeda saat berdampingan.
+ *
+ * Versi kedua: dua hex, tapi tetap beda keluarga
+ *   #0e1116 (R14 G17 B22 — biru dominan)
+ *   #12100e (R18 G16 B14 — merah dominan)
+ *   → perbedaan R 14→18 dan B 22→14 masih terlihat di layar gelap besar.
+ *
+ * ── YANG BENAR ──
+ * Dua warna, KEDUANYA dari keluarga biru-gelap yang sama. Yang berubah hanya
+ * tingkat kecerahan (hue dipertahankan), bukan hue-nya.
+ *
+ *   #0e1116  R14 G17 B22  → selisih B-R = 8
+ *   #11151b  R17 G21 B27  → selisih B-R = 10  (hue sama, +3 tingkat terang)
+ *
+ * Bedanya cukup untuk membedakan dua avatar berdampingan, tapi tidak cukup
+ * untuk terlihat seperti dua keluarga warna.
+ *
+ * ── KENAPA TIDAK SATU WARNA SAJA ──
+ * Bisa, tapi dua avatar berdampingan dengan latar identik terlihat seperti
+ * satu blok, bukan dua entitas. Variasi tipis ini memisahkannya secara visual
+ * tanpa menarik perhatian.
+ */
+const AVATAR_LATAR = ["#0e1116", "#11151b"];
+
+/** Warna aksen diturunkan dari nama — stabil dan selalu dalam keluarga emas. */
+function warnaDari(nama: string): string {
+  let h = 0;
+  for (let i = 0; i < nama.length; i += 1) {
+    h = (h * 31 + nama.charCodeAt(i)) >>> 0;
+  }
+  // Hue 38-52 = emas. Dibatasi sempit supaya semua avatar terlihat satu
+  // keluarga, bukan warna acak.
+  const hue = 38 + (h % 15);
+  // Saturasi dan lightness sedikit bervariasi supaya dua avatar berbeda
+  // tetap terbedakan meski hue-nya berdekatan.
+  const sat = 62 + ((h >> 4) % 20);
+  const lig = 52 + ((h >> 8) % 12);
+  return `hsl(${hue} ${sat}% ${lig}%)`;
+}
+
+/** Inisial dari nama. Maksimal 2 huruf — lebih dari itu tidak terbaca. */
+function inisialDari(nama: string): string {
+  const bersih = String(nama || "").trim();
+  if (!bersih) return "?";
+
+  // Pisahkan pada spasi, tanda hubung, titik, dan garis bawah — supaya
+  // "budi-santoso" dan "budi.santoso" juga menghasilkan "BS".
+  const bagian = bersih.split(/[\s._-]+/).filter(Boolean);
+
+  if (bagian.length === 0) return "?";
+  if (bagian.length === 1) {
+    // Satu kata: ambil satu huruf, atau dua kalau katanya panjang.
+    // "Victer" → "V" lebih bersih daripada "VI".
+    return bagian[0].slice(0, 1).toUpperCase();
+  }
+
+  return (bagian[0][0] + bagian[bagian.length - 1][0]).toUpperCase();
+}
+
+/**
+ * Escape XML. WAJIB — nama pengguna bisa berisi `<`, `&`, `"`.
+ *
+ * Tanpa ini, pengguna bernama `<script>` menghasilkan SVG rusak — dan kalau
+ * disajikan sebagai image/svg+xml, itu bisa menjadi jalur XSS di beberapa
+ * browser lama. Escaping menutupnya di sumbernya.
+ */
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buatAvatarSvg(nama: string, ukuran: number): string {
+  const inisial = escapeXml(inisialDari(nama));
+  const warna = warnaDari(nama || "?");
+
+  // Latar dipilih dari hash juga, supaya dua pengguna dengan warna aksen
+  // mirip tetap punya latar berbeda.
+  let h = 0;
+  for (let i = 0; i < (nama || "?").length; i += 1) {
+    h = (h * 31 + (nama || "?").charCodeAt(i)) >>> 0;
+  }
+  const latar = AVATAR_LATAR[h % AVATAR_LATAR.length];
+
+  // Ukuran font relatif terhadap kanvas: 42% memberi ruang napas yang cukup
+  // dan tetap terbaca di 16px.
+  const font = Math.round(ukuran * 0.42);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${ukuran}" height="${ukuran}" viewBox="0 0 ${ukuran} ${ukuran}" role="img" aria-label="${inisial}">
+<rect width="${ukuran}" height="${ukuran}" rx="${Math.round(ukuran * 0.18)}" fill="${latar}"/>
+<text x="50%" y="50%" dy="0.35em" text-anchor="middle" font-family="Satoshi,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="${font}" font-weight="600" fill="${warna}">${inisial}</text>
+</svg>`;
+}
 
 export interface Env {
   ENVIRONMENT: string;
@@ -140,6 +278,61 @@ export default {
         time: new Date().toISOString(),
       }), {
         headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
+      });
+    }
+
+    // ── 2. AVATAR PENGGUNA ──────────────────────────────────────────────────
+    //
+    // Dibuat di edge, bukan disimpan. Lihat buatAvatarSvg() untuk alasannya.
+    //
+    // Ditaruh SEBELUM /api/ supaya tidak pernah menyentuh backend: membuat
+    // gambar 1 KB tidak perlu membangunkan layanan Node, dan itu berarti
+    // avatar tetap tampil meski backend sedang mati.
+    //
+    // Bentuk URL:  /avatar/<nama>?s=<ukuran>
+    //   /avatar/Victer          → 128px (bawaan)
+    //   /avatar/Victer? s=32    → 32px
+    if (pathname.startsWith("/avatar")) {
+      // Hanya GET dan HEAD — endpoint ini murni baca.
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return new Response("Metode tidak diizinkan", {
+          status: 405,
+          headers: { Allow: "GET, HEAD", ...SECURITY_HEADERS },
+        });
+      }
+
+      // Nama diambil dari path, didekode supaya nama dengan spasi/aksen benar.
+      // Dibatasi 100 karakter: nama panjang tidak berguna (hanya 1-2 huruf
+      // yang dipakai) dan mencegah pembuatan SVG raksasa.
+      let nama = "";
+      try {
+        nama = decodeURIComponent(pathname.slice("/avatar".length).replace(/^\//, "")).slice(0, 100);
+      } catch {
+        nama = "";
+      }
+
+      // Ukuran dibatasi 16-512. Tanpa batas, ?s=99999 menghasilkan SVG
+      // besar yang bisa dipakai menghabiskan CPU dan bandwidth.
+      const ukuranMinta = Number(url.searchParams.get("s") || 128);
+      const ukuran = Number.isFinite(ukuranMinta)
+        ? Math.min(512, Math.max(16, Math.round(ukuranMinta)))
+        : 128;
+
+      const svg = buatAvatarSvg(nama, ukuran);
+
+      return new Response(svg, {
+        headers: {
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          // Cache 1 tahun. Aman karena avatar murni fungsi dari nama —
+          // nama berubah berarti URL berubah, jadi cache lama tidak pernah
+          // menyajikan avatar yang salah.
+          "Cache-Control": "public, max-age=31536000, immutable",
+          // CSP ketat untuk SVG: tidak ada script, tidak ada resource luar.
+          // Ini lapisan kedua setelah escapeXml — kalau ada jalur lolos yang
+          // belum terpikirkan, CSP menutupnya.
+          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+          ...SECURITY_HEADERS,
+        },
       });
     }
 

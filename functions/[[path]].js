@@ -38,8 +38,15 @@
 
 const WORKER = 'https://portfolio-victer.victerphanjaya.workers.dev';
 
-/** Prefix yang diteruskan ke Worker. Selain ini, dilayani sebagai aset statis. */
-const PREFIX = ['/api/', '/media/'];
+/**
+ * Prefix yang diteruskan ke Worker. Selain ini, dilayani sebagai aset statis.
+ *
+ * /avatar TIDAK memakai garis miring di akhir karena endpoint-nya menerima
+ * dua bentuk: '/avatar/Victer' (dengan nama) dan '/avatar' (tanpa nama,
+ * menghasilkan inisial '?'). Memakai '/avatar/' akan membuat bentuk kedua
+ * jatuh ke aset statis dan menghasilkan 404.
+ */
+const PREFIX = ['/api/', '/media/', '/avatar'];
 
 export async function onRequest(context) {
   const url = new URL(context.request.url);
