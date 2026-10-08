@@ -59,7 +59,7 @@ export const PAKET = [
     cta: { teks: 'Mulai dari sini', gaya: 'seragam' },
     urutan: 1,
     fitur: [
-      { teks: 'Pratinjau isi repo — struktur & daftar berkas', termasuk: true },
+      { teks: 'Pratinjau isi repo, struktur & daftar berkas', termasuk: true },
       { teks: 'Dokumentasi publik', termasuk: true },
       { teks: 'Lihat hasil uji & metrik proyek', termasuk: true },
       { teks: 'Dukungan lewat email', termasuk: true },
@@ -160,36 +160,36 @@ export const TABEL = [
 export const FAQ = [
   {
     tanya: 'Apa bedanya Profesional dan Enterprise?',
-    jawab: 'Profesional memberi akses membaca seluruh kode sumber — untuk belajar, memahami arsitektur, dan berdiskusi teknis. Anda tidak boleh memakai ulang kodenya di produk Anda. Enterprise menambahkan hak untuk memakai ulang kodenya di proyek Anda sendiri, tanpa batas jumlah proyek, plus jaminan layanan dan pendampingan langsung.',
+    jawab: 'Profesional memberi akses membaca seluruh kode sumber, untuk belajar, memahami arsitektur, dan berdiskusi teknis. Anda tidak boleh memakai ulang kodenya di produk Anda. Enterprise menambahkan hak untuk memakai ulang kodenya di proyek Anda sendiri, tanpa batas jumlah proyek, plus jaminan layanan dan pendampingan langsung.',
   },
   {
     tanya: 'Kenapa Enterprise tidak ada harganya?',
-    jawab: 'Karena kebutuhannya berbeda-beda — jumlah proyek, lama dukungan, seberapa jauh kode perlu disesuaikan. Menaruh satu angka akan salah untuk hampir semua orang. Percakapan singkat biasanya cukup untuk menentukan angkanya. Hubungi saya — tidak ada kewajiban setelahnya.',
+    jawab: 'Karena kebutuhannya berbeda-beda, jumlah proyek, lama dukungan, seberapa jauh kode perlu disesuaikan. Menaruh satu angka akan salah untuk hampir semua orang. Percakapan singkat biasanya cukup untuk menentukan angkanya. Hubungi saya, tidak ada kewajiban setelahnya.',
   },
   {
     tanya: 'Bisakah saya berhenti kapan saja?',
-    jawab: 'Bisa. Paket Standar dan Profesional ditagih bulanan, dan Anda bisa berhenti kapan saja tanpa penalti. Untuk Enterprise, jangka waktunya dibicarakan saat menentukan kebutuhan — karena biasanya melibatkan komitmen dukungan.',
+    jawab: 'Bisa. Paket Standar dan Profesional ditagih bulanan, dan Anda bisa berhenti kapan saja tanpa penalti. Untuk Enterprise, jangka waktunya dibicarakan saat menentukan kebutuhan, karena biasanya melibatkan komitmen dukungan.',
   },
   {
     tanya: 'Apakah ada uji coba gratis?',
-    jawab: 'Untuk Standar, dokumentasi publik dan hasil uji proyek bisa dilihat gratis — jadi Anda bisa menilai kualitasnya sebelum berlangganan. Kalau setelah berlangganan ternyata tidak sesuai harapan, hubungi saya dalam 7 hari dan pembayaran bulan itu dikembalikan.',
+    jawab: 'Untuk Standar, dokumentasi publik dan hasil uji proyek bisa dilihat gratis, jadi Anda bisa menilai kualitasnya sebelum berlangganan. Kalau setelah berlangganan ternyata tidak sesuai harapan, hubungi saya dalam 7 hari dan pembayaran bulan itu dikembalikan.',
   },
   {
     tanya: 'Kode yang saya lihat, apakah boleh saya pakai di proyek saya?',
-    jawab: 'Tergantung paketnya. Standar — hanya pratinjau (struktur & daftar berkas). Profesional — boleh dibaca dan dipelajari, tapi tidak boleh dipakai ulang di produk Anda. Enterprise — boleh dipakai ulang, tanpa batas proyek.',
+    jawab: 'Tergantung paketnya. Standar, hanya pratinjau (struktur & daftar berkas). Profesional, boleh dibaca dan dipelajari, tapi tidak boleh dipakai ulang di produk Anda. Enterprise, boleh dipakai ulang, tanpa batas proyek.',
   },
 ];
 
 /** Judul bagian di halaman pricing. */
 export const JUDUL = {
   title: 'Paket yang jelas, tanpa biaya tersembunyi',
-  sub: 'Tiga paket untuk kebutuhan yang berbeda — dari melihat cara kerjanya, sampai membangun produk di atasnya. Semua bisa berhenti kapan saja.',
+  sub: 'Tiga paket untuk kebutuhan yang berbeda, dari melihat cara kerjanya, sampai membangun produk di atasnya. Semua bisa berhenti kapan saja.',
   judulTabel: 'Bandingkan paket',
   subTabel: 'Semua yang Anda dapatkan di setiap paket, berdampingan.',
   judulFaq: 'Pertanyaan yang sering muncul',
   subFaq: 'Hal-hal yang biasanya ditanyakan sebelum memutuskan.',
   ctaJudul: 'Masih ragu mana yang cocok?',
-  ctaSub: 'Ceritakan kebutuhan Anda — saya bantu pilihkan paket yang paling sesuai, atau buat penyesuaian kalau memang perlu.',
+  ctaSub: 'Ceritakan kebutuhan Anda, saya bantu pilihkan paket yang paling sesuai, atau buat penyesuaian kalau memang perlu.',
 };
 
 /**
