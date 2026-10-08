@@ -669,7 +669,18 @@ select.auth-input {
   place-items: center;
   width: 34px;
   height: 34px;
-  color: var(--teks-samar);
+  /* ── WARNA: --teks-redup, BUKAN --teks-samar ────────────────────────────────
+     Ikon ini adalah KONTROL INTERAKTIF (tombol), bukan dekorasi. Standar WCAG
+     untuk kontrol non-teks lebih ketat daripada untuk hiasan.
+
+     Diukur: --teks-samar (#71717a) memberi kontras 4.09:1 — lulus ambang 3:1,
+     tapi tipis. --teks-redup (#a1a1aa) memberi 7.72:1 — hampir dua kali lipat,
+     dan terbaca jelas bahkan di layar ponsel dengan pantulan cahaya matahari.
+
+     Naik satu tingkat dari 'samar' ke 'redup' tidak membuat ikon ini menonjol
+     berlebihan: ukurannya 19px di dalam tombol 34px, jadi ia tetap terbaca
+     sebagai kontrol sekunder, bukan aksi utama. */
+  color: var(--teks-redup);
   background: transparent;
   border: 0;
   border-radius: 9px;
