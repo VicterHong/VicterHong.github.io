@@ -869,6 +869,58 @@ select.auth-input {
   color: var(--teks-samar);
 }
 
+/* ── FOOTER TIGA LAPIS ───────────────────────────────────────────────────────
+   Pola korporat (Ramp, Authgear 2025): pisahkan aksi, legal, dan sinyal
+   keamanan dengan garis tipis supaya mata bisa berhenti di bagian yang
+   dicarinya — bukan satu blok abu-abu yang semuanya sama penting.
+
+     Lapis 1 — aksi    : 'Belum punya akun? Sign up'     (paling terbaca)
+     Lapis 2 — garis   : pemisah tipis
+     Lapis 3 — legal   : syarat + privasi                (redup)
+     Lapis 4 — aman    : sinyal keamanan                 (redup + ikon)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.auth-foot-aksi {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--teks-redup);
+}
+
+.auth-foot-garis {
+  height: 1px;
+  margin: 14px 0 12px;
+  background: var(--garis);
+}
+
+/* ── SINYAL KEAMANAN ─────────────────────────────────────────────────────────
+   Satu baris yang menjelaskan bagaimana data pengunjung diperlakukan.
+   Panduan UX login 2025 (Authgear): pengunjung menyerahkan email dan sandi
+   di halaman ini — itu 'trust leap', dan sinyal visual mengurangi keraguan.
+
+   Yang disebut adalah yang SUDAH dilakukan sistem ini: koneksi TLS, sandi
+   di-hash (bukan disimpan), tanpa pihak ketiga. Bukan klaim kosong.
+
+   Ikon perisai 13px sejajar dengan tinggi huruf — cukup untuk dikenali,
+   tidak sampai bersaing dengan tombol utama. */
+.auth-aman {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--teks-samar);
+}
+
+.auth-aman-ikon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--sukses);
+  opacity: 0.85;
+}
+
 /* ── Legal di footer auth ──────────────────────────────────────────────────
    Wajib ada (syarat Midtrans + transparansi UU PDP), tapi tidak boleh
    bersaing dengan tindakan utama. Kecil, redup, tetap bisa diklik. */

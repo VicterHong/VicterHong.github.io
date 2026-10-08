@@ -130,14 +130,34 @@
 
           <div class="auth-field">
             <label for="inpNama">Nama lengkap <span class="auth-wajib" aria-hidden="true">*</span></label>
-            <input class="auth-input" type="text" id="inpNama" name="name"
-                   required autocomplete="name">
+            <div class="auth-input-wrap auth-input-ikon">
+              <span class="auth-ikon-kiri" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="4"/>
+                  <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>
+                </svg>
+              </span>
+              <input class="auth-input" type="text" id="inpNama" name="name"
+                     required autocomplete="name">
+            </div>
           </div>
 
           <div class="auth-field">
             <label for="inpEmail">Email <span class="auth-wajib" aria-hidden="true">*</span></label>
-            <input class="auth-input" type="email" id="inpEmail" name="email"
-                   required autocomplete="email">
+            <div class="auth-input-wrap auth-input-ikon">
+              <span class="auth-ikon-kiri" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m2 7 10 6 10-6"/>
+                </svg>
+              </span>
+              <input class="auth-input" type="email" id="inpEmail" name="email"
+                     required autocomplete="email">
+            </div>
           </div>
 
           <div class="auth-field">
@@ -205,12 +225,29 @@
         </div>
       </section>
 
+      <!-- Footer tiga lapis — pola yang sama dengan halaman sign-in.
+           Lihat komentar di sign-in.html untuk alasan lengkapnya. -->
       <footer class="auth-foot">
-        <p>Sudah punya akun? <a href="/sign-in" class="auth-link-inline">Sign in</a></p>
+        <p class="auth-foot-aksi">Sudah punya akun? <a href="/sign-in" class="auth-link-inline">Sign in</a></p>
+
+        <div class="auth-foot-garis" aria-hidden="true"></div>
+
         <p class="auth-legal">
           Dengan mendaftar, Anda menyetujui
           <a href="/syarat" class="auth-link-inline">Syarat Ketentuan</a> dan
           <a href="/privasi" class="auth-link-inline">Kebijakan Privasi</a>.
+        </p>
+
+        <p class="auth-aman">
+          <span class="auth-aman-ikon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path d="M12 3 4.5 6.5v5.2c0 4.4 3.1 8.4 7.5 9.6 4.4-1.2 7.5-5.2 7.5-9.6V6.5Z"/>
+              <path d="m9 12 2.2 2.2L15.5 10"/>
+            </svg>
+          </span>
+          Terenkripsi · Sandi tidak disimpan sebagai teks
         </p>
       </footer>
 

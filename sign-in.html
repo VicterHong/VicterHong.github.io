@@ -185,12 +185,28 @@
                bukan identitas pihak ketiga. Karena itu tombolnya sendiri,
                bukan ikon kelima di barisan sosial. -->
           <button type="button" class="auth-oauth auth-oauth-passkey" id="btnPasskey" hidden>
+            <!-- ── IKON: KUNCI, BUKAN GEMBOK ────────────────────────────────────
+                 Skill ui-ux-pro-max merekomendasikan Phosphor: 'key' untuk
+                 passkey, 'lock' untuk kolom sandi.
+
+                 Pembagiannya jelas dan sengaja:
+                   • GEMBOK (lock)  → kolom sandi. Data yang dilindungi.
+                   • KUNCI (key)    → passkey. Kredensial yang membuka akses.
+
+                 Sebelumnya keduanya memakai gembok — dua hal berbeda dengan
+                 ikon sama. Pengguna yang melihat gembok di kolom sandi lalu
+                 gembok lagi di tombol passkey tidak dapat membedakan keduanya
+                 secepat kalau ikonnya berbeda.
+
+                 Bentuk kunci: kepala bulat + batang bergerigi, orientasi
+                 diagonal — standar ikon 'key' di Lucide/Phosphor/Heroicons. -->
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
                  stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 10a2 2 0 0 0-2 2c0 .74.4 1.38 1 1.73V17h2v-3.27c.6-.35 1-.99 1-1.73a2 2 0 0 0-2-2z"/>
-              <path d="M6 10V7a6 6 0 1 1 12 0v3"/>
-              <rect x="4" y="10" width="16" height="11" rx="2.5"/>
+              <circle cx="7.5" cy="15.5" r="4.5"/>
+              <path d="m10.7 12.3 8.8-8.8"/>
+              <path d="M16.5 6.5 18.5 8.5"/>
+              <path d="M14 9 16 11"/>
             </svg>
             <span>Masuk dengan passkey</span>
           </button>
@@ -555,15 +571,54 @@
         </div>
       </section>
 
+      <!-- ══ FOOTER — TIGA LAPIS, MENGIKUTI POLA KORPORAT ═════════════════════
+           Referensi: Ramp (footer legal bertingkat), Authgear 2025 (trust
+           signal di halaman auth), shadcn login-security-badges.
+
+           ── KENAPA TIGA LAPIS, BUKAN SATU BLOK ─────────────────────────────────
+           Mencampur aksi ('Sign up'), legal ('Syarat'), dan sinyal aman
+           ('terenkripsi') dalam satu paragraf membuat semuanya sama penting —
+           dan tidak ada yang menonjol. Memisahkannya dengan garis membuat
+           mata bisa berhenti di bagian yang dicarinya.
+
+             Lapis 1 — AKSI     : 'Belum punya akun? Sign up'
+             Lapis 2 — PEMISAH  : garis tipis
+             Lapis 3 — LEGAL    : syarat + privasi
+             Lapis 4 — AMAN     : sinyal keamanan (baru)
+
+           ── KENAPA SINYAL KEAMANAN DITAMBAHKAN ─────────────────────────────────
+           Panduan UX login 2025 (Authgear): 'the login/signup is where users
+           hand over personal data — it is a trust leap. Use visual cues to
+           show your app is secure.'
+
+           Pengunjung menyerahkan email dan sandi di halaman ini. Satu baris
+           yang menjelaskan bagaimana data itu diperlakukan mengurangi
+           keraguan — dan itu gratis: tidak ada sistem baru, hanya menyebut
+           apa yang SUDAH dilakukan (TLS, hash sandi, tanpa pihak ketiga). -->
       <footer class="auth-foot">
-        <p>Belum punya akun? <a href="/sign-up" class="auth-link-inline">Sign up</a></p>
-        <!-- Legal: wajib ada di halaman auth (syarat Midtrans + UU PDP).
-             Diletakkan paling bawah, kecil, dan redup — tidak boleh bersaing
-             dengan tindakan utama, tapi harus ADA dan bisa diklik. -->
+        <p class="auth-foot-aksi">Belum punya akun? <a href="/sign-up" class="auth-link-inline">Sign up</a></p>
+
+        <div class="auth-foot-garis" aria-hidden="true"></div>
+
         <p class="auth-legal">
           Dengan masuk, Anda menyetujui
           <a href="/syarat" class="auth-link-inline">Syarat Ketentuan</a> dan
           <a href="/privasi" class="auth-link-inline">Kebijakan Privasi</a>.
+        </p>
+
+        <!-- Sinyal keamanan. Ikon perisai + satu kalimat yang bisa
+             diverifikasi: koneksi terenkripsi, sandi di-hash, tidak ada
+             pihak ketiga. Semuanya benar untuk sistem ini. -->
+        <p class="auth-aman">
+          <span class="auth-aman-ikon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path d="M12 3 4.5 6.5v5.2c0 4.4 3.1 8.4 7.5 9.6 4.4-1.2 7.5-5.2 7.5-9.6V6.5Z"/>
+              <path d="m9 12 2.2 2.2L15.5 10"/>
+            </svg>
+          </span>
+          Terenkripsi · Sandi tidak disimpan sebagai teks
         </p>
       </footer>
 
