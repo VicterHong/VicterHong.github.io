@@ -1062,6 +1062,10 @@
   // perlu mengubah HTML — cukup set flag di config server.
   async function siapkanSso() {
     let aktif = { google: false, github: false, microsoft: false, apple: false, sso: false };
+    // Label tombol SSO disimpan di scope FUNGSI, bukan di dalam blok try —
+    // supaya bisa dipakai setelah blok itu selesai. Menyimpannya di dalam
+    // `d` membuat nilainya hilang begitu try selesai.
+    let labelSso = '';
     try {
       const r = await fetch('/api/config', { cache: 'no-store', credentials: 'same-origin' });
       if (r.ok) {
@@ -1073,6 +1077,7 @@
           apple: Boolean(d?.sso?.apple),
           sso: Boolean(d?.sso?.sso),
         };
+        labelSso = String(d?.sso_label || '').slice(0, 40);
       }
     } catch {
       // Server tidak terjangkau → biarkan semua tombol dalam keadaan awal
@@ -1117,7 +1122,29 @@
       if (aktif.sso) {
         btnSso.disabled = false;
         btnSso.removeAttribute('title');
-        btnSso.addEventListener('click', () => { window.location.href = '/api/auth/sso'; });
+
+        // ── Label dari server, bukan hardcoded ───────────────────────────────
+        //
+        // Kalau organisasi memakai IdP yang dikenali pengguna (Okta, Azure AD),
+        // menyebut namanya lebih jelas daripada "SSO perusahaan". Label
+        // berasal dari /api/config (SSO_LABEL di env), jadi mengubahnya tidak
+        // perlu menyentuh HTML.
+        if (labelSso) {
+          const span = btnSso.querySelector('span');
+          if (span) span.textContent = 'Masuk dengan ' + labelSso;
+        }
+
+        // ── Kirim email kalau sudah diisi ────────────────────────────────────
+        //
+        // login_hint membantu IdP memilih akun yang benar, dan dipakai server
+        // untuk memeriksa domain (kalau SSO dibatasi ke organisasi tertentu).
+        // Tanpa ini, pengguna dari domain lain akan diarahkan ke IdP yang
+        // pasti menolaknya.
+        btnSso.addEventListener('click', () => {
+          const email = ($('#inpEmailMasuk')?.value ?? '').trim();
+          const tujuan = email ? `/api/auth/sso?email=${encodeURIComponent(email)}` : '/api/auth/sso';
+          window.location.href = tujuan;
+        });
       } else {
         // SSO TIDAK dimasukkan ke daftar catatan: ia punya tombolnya sendiri
         // di bawah, jadi menyebutnya lagi di catatan sosial hanya mengulang.

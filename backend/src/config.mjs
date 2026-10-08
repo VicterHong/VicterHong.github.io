@@ -134,7 +134,44 @@ export const config = {
   appleKeyId: pick('APPLE_KEY_ID', ''),
   applePrivateKey: pick('APPLE_PRIVATE_KEY', ''),
 
-  // SSO perusahaan (SAML/OIDC) — satu entry point untuk IdP organisasi.
+  /**
+   * ── SSO PERUSAHAAN (OIDC) ──────────────────────────────────────────────────
+   *
+   * Empat nilai. Semuanya bisa didapat dari dokumen discovery IdP, yang
+   * URL-nya biasanya: https://<domain-IdP>/.well-known/openid-configuration
+   *
+   * Kenapa OIDC, bukan SAML: OIDC memakai JWT dan endpoint yang ditemukan
+   * otomatis (discovery), sehingga SATU implementasi bekerja untuk Okta,
+   * Azure AD, Google Workspace, Keycloak, Auth0, dan Cloudflare Access.
+   * SAML butuh parsing XML dan konfigurasi per vendor.
+   *
+   * Cara mengisi:
+   *   1. Buat aplikasi OIDC di IdP organisasi
+   *   2. Redirect URI: https://<situs>/api/auth/sso/callback
+   *   3. Salin issuer, client id, client secret ke bawah ini
+   */
+  ssoIssuer: pick('SSO_ISSUER', ''),
+  ssoClientId: pick('SSO_CLIENT_ID', ''),
+  ssoClientSecret: pick('SSO_CLIENT_SECRET', ''),
+
+  /**
+   * Label yang dilihat pengguna di tombol, mis. "Masuk dengan Okta".
+   * Kosong = tombol memakai teks bawaan "Masuk dengan SSO perusahaan".
+   */
+  ssoLabel: pick('SSO_LABEL', ''),
+
+  /**
+   * Domain email yang boleh memakai SSO ini, dipisah koma.
+   *
+   * Kosong = semua domain boleh (cocok untuk broker yang menangani
+   * banyak organisasi).
+   *
+   * Diisi = hanya email dari domain itu yang diarahkan ke SSO. Berguna
+   * kalau SSO hanya untuk organisasi tertentu — mis. 'vivastic.id'.
+   */
+  ssoDomains: pick('SSO_DOMAINS', ''),
+
+  /** @deprecated Diganti ssoIssuer. Dipertahankan agar env lama tidak rusak. */
   ssoEntryPoint: pick('SSO_ENTRY_POINT', ''),
 
   /**

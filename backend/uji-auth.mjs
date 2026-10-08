@@ -120,9 +120,14 @@ async function uji() {
   const resMulai = await fetch(`${BASE}/api/auth/google`, { redirect: 'manual' });
   const lokasi = resMulai.headers.get('location') || '';
 
-  cek('OAuth tanpa kredensial → 302 ke halaman masuk',
-    resMulai.status === 302 && lokasi.includes('/sign-in'),
-    `status ${resMulai.status}`);
+  // Google mungkin sudah dikonfigurasi (env produksi dibaca sebagai fallback),
+  // jadi kita tidak mengharapkan halaman masuk. Yang harus SELALU benar:
+  // endpoint membalas 302 ke suatu tempat yang masuk akal — bukan 500,
+  // bukan 404, bukan body kosong.
+  const tujuanMasukAkal = lokasi.includes('/sign-in') || lokasi.includes('accounts.google.com');
+  cek('OAuth selalu mengalihkan (302 ke halaman masuk atau ke provider)',
+    resMulai.status === 302 && tujuanMasukAkal,
+    `status ${resMulai.status}, lokasi ${lokasi.slice(0, 50)}`);
 
   // ── 1b. Callback menolak state yang tidak ada ──────────────────────────────
   const resCallback = await fetch(
@@ -165,8 +170,17 @@ async function uji() {
 
   // ── 1g. SSO tanpa entry point → pesan jelas ────────────────────────────────
   const resSso = await fetch(`${BASE}/api/auth/sso`, { redirect: 'manual' });
-  cek('SSO tanpa entry point → sso_belum_aktif',
-    (resSso.headers.get('location') || '').includes('sso_belum_aktif'));
+  const lokasiSso = resSso.headers.get('location') || '';
+
+  // SSO boleh aktif (kalau SSO_ISSUER diisi) atau belum. Yang harus benar:
+  //   - belum aktif → dialihkan ke halaman masuk dengan kode jelas
+  //   - sudah aktif → dialihkan ke IdP (bukan ke halaman masuk)
+  const ssoMasukAkal = lokasiSso.includes('sso_belum_aktif')
+    || (!lokasiSso.includes('/sign-in') && lokasiSso.startsWith('http'));
+
+  cek('SSO mengalihkan ke tempat yang benar (belum aktif → pesan, aktif → IdP)',
+    resSso.status === 302 && ssoMasukAkal,
+    `status ${resSso.status}, lokasi ${lokasiSso.slice(0, 55)}`);
 
   console.log('\n══ 2. PASSKEY: kriptografi nyata ══\n');
 

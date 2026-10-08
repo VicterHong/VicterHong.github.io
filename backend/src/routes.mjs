@@ -708,8 +708,21 @@ export const routes = [
           github: providerSiap('github', config),
           microsoft: providerSiap('microsoft', config),
           apple: providerSiap('apple', config),
-          sso: Boolean(config.ssoEntryPoint),
+
+          // ── SSO: butuh issuer + client id ──────────────────────────────────
+          // clientSecret opsional (beberapa IdP memakai PKCE saja), tapi
+          // issuer dan clientId WAJIB — tanpa keduanya alur tidak bisa mulai.
+          sso: Boolean(config.ssoIssuer && config.ssoClientId),
         },
+
+        /**
+         * Label tombol SSO yang dilihat pengguna.
+         *
+         * Kosong = frontend memakai teks bawaan "Masuk dengan SSO perusahaan".
+         * Diisi = mis. "Masuk dengan Okta" — lebih jelas bagi pengguna yang
+         * mengenali nama IdP organisasinya.
+         */
+        sso_label: config.ssoLabel || '',
 
         // ── PASSKEY ──────────────────────────────────────────────────────────
         // WebAuthn tidak butuh kredensial pihak ketiga — yang dibutuhkan

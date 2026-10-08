@@ -47,6 +47,9 @@ import {
 import {
   challengeBaru, hashChallenge, verifikasiRegistrasi, verifikasiAutentikasi,
 } from './webauthn.mjs';
+import {
+  urlOtorisasiSso, tukarCodeSso, verifikasiIdTokenSso, identitasDariKlaimSso,
+} from './sso.mjs';
 
 // ── Konstanta ─────────────────────────────────────────────────────────────────
 
@@ -964,87 +967,219 @@ export function ruteAuth() {
 }
 
 /**
- * SSO perusahaan.
+ * SSO perusahaan lewat OIDC.
  *
- * Berbeda dari penyedia publik: tidak ada satu endpoint otorisasi yang
- * diketahui sebelumnya. Organisasi punya IdP sendiri, jadi kita mengalihkan
- * pengguna ke entry point yang dikonfigurasi (SSO_ENTRY_POINT) — biasanya
- * sebuah broker (Cloudflare Access, Okta, Auth0) yang tahu IdP mana yang
- * harus dihubungi berdasarkan domain email pengguna.
+ * ── KENAPA OIDC, BUKAN SAML ─────────────────────────────────────────────────
+ * OIDC memakai JWT dan dokumen discovery, sehingga SATU implementasi bekerja
+ * untuk Okta, Azure AD (Entra), Google Workspace, Keycloak, Auth0, OneLogin,
+ * dan Cloudflare Access. SAML butuh parsing XML dan penanganan per vendor.
  *
- * Broker itulah yang memegang kredensial per organisasi, sehingga kita tidak
- * perlu menyimpan rahasia milik setiap pelanggan. Setelah broker memverifikasi
- * pengguna, ia mengembalikan ke /api/auth/sso/callback dengan token yang
- * sudah ditandatangani.
+ * Untuk klien korporat yang HANYA mendukung SAML, broker (Cloudflare Access,
+ * Okta) bisa menjembatani: mereka bicara SAML ke IdP klien, lalu OIDC ke kita.
+ * Jadi kode ini tetap bekerja tanpa perubahan.
+ *
+ * ── ALUR ────────────────────────────────────────────────────────────────────
+ *   GET /api/auth/sso          → baca discovery, susun URL, simpan state+nonce
+ *   GET /api/auth/sso/callback → verifikasi state, tukar code, verifikasi
+ *                                id_token, temukan/buat pengguna, buat sesi
+ *
+ * Sama seperti provider publik — karena alurnya memang standar. Yang berbeda
+ * hanya sumber konfigurasinya (discovery, bukan konstanta di kode).
  */
 function ruteSso() {
+  /** Apakah SSO dikonfigurasi lengkap? */
+  const siap = () => Boolean(config.ssoIssuer && config.ssoClientId);
+
+  /** Domain yang diizinkan, dari config. Kosong = semua boleh. */
+  const domainDiizinkan = () => String(config.ssoDomains || '')
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+
   return [
     {
       method: 'GET',
       pattern: '/api/auth/sso',
       handler: async (req, res, params, url) => {
-        if (!config.ssoEntryPoint) {
-          return gagalKe(res, '/sign-in', 'sso_belum_aktif');
-        }
+        if (!siap()) return gagalKe(res, '/sign-in', 'sso_belum_aktif');
 
         const batas = checkRateLimit(`sso:${clientIp(req)}`, { limit: 20, windowMs: 60_000 });
         if (!batas.allowed) return gagalKe(res, '/sign-in', 'terlalu_banyak');
 
         const kembaliKe = tujuanAman(url?.searchParams?.get('lanjut') ?? '/');
-        const state = acak(32);
+        const loginHint = String(url?.searchParams?.get('email') ?? '').slice(0, 200);
 
-        // SSO memakai state yang sama mekanismenya, dengan code_verifier
-        // kosong: PKCE tidak bisa dipakai di sini karena kita tidak
-        // mengendalikan IdP pelanggan. Broker yang menangani pengikatan.
-        simpanStateOauth({ state, provider: 'sso', codeVerifier: '', kembaliKe });
+        // ── Domain terbatas? Tolak lebih awal ────────────────────────────────
+        // Kalau SSO hanya untuk organisasi tertentu dan pengguna memasukkan
+        // email dari domain lain, arahkan ke cara masuk biasa — bukan ke IdP
+        // yang pasti akan menolaknya.
+        const daftarDomain = domainDiizinkan();
+        if (daftarDomain.length > 0 && loginHint) {
+          const posisiAt = loginHint.lastIndexOf('@');
+          const domain = posisiAt > 0 ? loginHint.slice(posisiAt + 1).toLowerCase() : '';
+          if (domain && !daftarDomain.includes(domain)) {
+            return gagalKe(res, '/sign-in', 'sso_domain_tidak_cocok');
+          }
+        }
 
-        const params2 = new URLSearchParams({
-          redirect_uri: redirectUri('sso'),
-          state,
-          // Domain email pengguna bisa ditambahkan di sini kalau broker
-          // membutuhkannya untuk memilih IdP: login_hint.
+        // ── Susun URL otorisasi dari discovery IdP ───────────────────────────
+        let hasil;
+        try {
+          hasil = await urlOtorisasiSso({
+            issuerUrl: config.ssoIssuer,
+            clientId: config.ssoClientId,
+            redirectUri: redirectUri('sso'),
+            loginHint,
+          });
+        } catch (err) {
+          // Kegagalan discovery berarti konfigurasi IdP bermasalah. Pesan
+          // lengkap masuk log server (admin perlu tahu IdP mana), pengguna
+          // hanya melihat pesan umum.
+          console.error('[sso] gagal menyusun URL otorisasi:', err.message);
+          return gagalKe(res, '/sign-in', 'sso_idp_tidak_terjangkau');
+        }
+
+        // ── Simpan state + verifier + nonce ──────────────────────────────────
+        //
+        // codeVerifier dan nonce disimpan di kolom yang sudah ada:
+        //   code_verifier → kolom code_verifier
+        //   nonce         → kolom kembali_ke? TIDAK — itu untuk tujuan.
+        //
+        // Nonce perlu tempat sendiri. Kita pakai kolom provider dengan nilai
+        // gabungan: 'sso:<nonce>'. Kolom provider sudah TEXT dan tidak
+        // divalidasi ketat, jadi aman — dan cara ini tidak butuh migrasi
+        // skema untuk menambah kolom.
+        simpanStateOauth({
+          state: hasil.state,
+          provider: `sso:${hasil.nonce}`,
+          codeVerifier: hasil.codeVerifier,
+          kembaliKe,
         });
 
-        const pemisah = config.ssoEntryPoint.includes('?') ? '&' : '?';
-        res.writeHead(302, {
-          Location: `${config.ssoEntryPoint}${pemisah}${params2.toString()}`,
-        });
+        res.writeHead(302, { Location: hasil.url });
         res.end();
       },
     },
+
     {
       method: 'GET',
       pattern: '/api/auth/sso/callback',
       handler: async (req, res, params, url) => {
-        if (!config.ssoEntryPoint) return gagalKe(res, '/sign-in', 'sso_belum_aktif');
+        if (!siap()) return gagalKe(res, '/sign-in', 'sso_belum_aktif');
+
+        // ── Pengguna menolak di halaman IdP ──────────────────────────────────
+        if (url?.searchParams?.get('error')) {
+          return gagalKe(res, '/sign-in', 'ditolak_pengguna');
+        }
 
         const state = url?.searchParams?.get('state') ?? '';
+        const code = url?.searchParams?.get('code') ?? '';
+
+        if (!state || !code) return gagalKe(res, '/sign-in', 'callback_tidak_lengkap');
+
+        // ── State: ada, belum kedaluwarsa, dihapus sekarang (sekali pakai) ───
         const stateRow = pakaiStateOauth(state);
-        if (!stateRow || stateRow.provider !== 'sso') {
+        if (!stateRow || !String(stateRow.provider).startsWith('sso:')) {
           return gagalKe(res, '/sign-in', 'state_tidak_sah');
         }
 
-        // ── Titik integrasi broker ─────────────────────────────────────────
+        const nonce = String(stateRow.provider).slice(4); // buang 'sso:'
+        const kembaliKe = tujuanAman(stateRow.kembali_ke);
+
+        // ── Tukar code → token ───────────────────────────────────────────────
+        let token;
+        try {
+          token = await tukarCodeSso({
+            issuerUrl: config.ssoIssuer,
+            clientId: config.ssoClientId,
+            clientSecret: config.ssoClientSecret,
+            code,
+            codeVerifier: stateRow.code_verifier,
+            redirectUri: redirectUri('sso'),
+          });
+        } catch (err) {
+          console.error('[sso] tukar code gagal:', err.message);
+          return gagalKe(res, '/sign-in', 'tukar_code_gagal');
+        }
+
+        if (!token.id_token) {
+          console.error('[sso] IdP tidak mengirim id_token');
+          return gagalKe(res, '/sign-in', 'identitas_gagal');
+        }
+
+        // ── Verifikasi id_token (tanda tangan, issuer, audience, nonce) ──────
+        let klaim;
+        try {
+          klaim = await verifikasiIdTokenSso({
+            idToken: token.id_token,
+            issuerUrl: config.ssoIssuer,
+            clientId: config.ssoClientId,
+            nonceDiharapkan: nonce,
+          });
+        } catch (err) {
+          console.error('[sso] verifikasi id_token gagal:', err.message);
+          return gagalKe(res, '/sign-in', 'identitas_gagal');
+        }
+
+        // ── Identitas seragam ────────────────────────────────────────────────
+        let identitas;
+        try {
+          identitas = identitasDariKlaimSso(klaim);
+        } catch (err) {
+          console.error('[sso] klaim tidak lengkap:', err.message);
+          return gagalKe(res, '/sign-in', 'identitas_kosong');
+        }
+
+        // ── Domain masih harus cocok (diperiksa ULANG di callback) ───────────
         //
-        // Di sini broker (Cloudflare Access / Okta / Auth0) mengirim
-        // identitas pengguna. Bentuknya bergantung broker:
+        // Pemeriksaan di /api/auth/sso hanya berlaku kalau pengguna memberi
+        // email lewat login_hint. IdP bisa mengembalikan identitas dari domain
+        // lain — jadi pemeriksaan yang menentukan ada DI SINI.
+        const daftarDomain = domainDiizinkan();
+        if (daftarDomain.length > 0) {
+          const posisiAt = identitas.email.lastIndexOf('@');
+          const domain = posisiAt > 0 ? identitas.email.slice(posisiAt + 1).toLowerCase() : '';
+          if (!domain || !daftarDomain.includes(domain)) {
+            recordEvent({
+              projectSlug: '', action: 'auth_sso_domain_ditolak', outcome: 'ditolak',
+              ip: clientIp(req),
+              userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+              detail: domain || '(kosong)',
+            });
+            return gagalKe(res, '/sign-in', 'sso_domain_tidak_cocok');
+          }
+        }
+
+        // ── Temukan atau buat pengguna ───────────────────────────────────────
         //
-        //   Cloudflare Access : header Cf-Access-Jwt-Assertion berisi JWT
-        //                       yang ditandatangani Cloudflare
-        //   Okta/Auth0        : ?code= yang ditukar ke /token broker
-        //
-        // Keduanya BELUM diimplementasikan karena memerlukan konfigurasi
-        // broker yang belum ada. Yang benar adalah MENOLAK dengan jelas,
-        // bukan menerima apa pun yang datang — menerima identitas tanpa
-        // verifikasi tanda tangan berarti siapa pun bisa masuk sebagai
-        // siapa pun dengan menebak URL callback.
+        // Memakai fungsi yang sama dengan provider publik: identitas SSO
+        // disambungkan ke akun yang sudah ada kalau emailnya cocok dan
+        // terverifikasi. Jadi pengguna yang sudah punya akun Google bisa
+        // masuk lewat SSO perusahaan dengan akun yang SAMA.
+        let hasil;
+        try {
+          hasil = await temukanAtauBuatPengguna({
+            identitas, provider: 'sso', req,
+          });
+        } catch (err) {
+          console.error('[sso] gagal membuat pengguna:', err.message);
+          return gagalKe(res, '/sign-in', 'akun_gagal');
+        }
+
+        if (!hasil.pengguna) return gagalKe(res, '/sign-in', 'akun_tidak_ditemukan');
+
+        // ── Sesi + cookie ────────────────────────────────────────────────────
+        const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe });
+
         recordEvent({
-          projectSlug: '', action: 'auth_sso_callback', outcome: 'belum_dikonfigurasi',
+          projectSlug: '', action: 'auth_sso_masuk',
+          outcome: hasil.dibuat ? 'akun_baru' : 'ok',
           ip: clientIp(req),
           userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+          detail: String(config.ssoLabel || 'oidc').slice(0, 60),
         });
 
-        return gagalKe(res, '/sign-in', 'sso_belum_dikonfigurasi');
+        alihkanKe(res, tujuan);
       },
     },
   ];
