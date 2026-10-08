@@ -127,21 +127,96 @@
         <div class="auth-divider" hidden><span>atau dengan email</span></div>
 
         <form class="auth-form" id="formDaftar" autocomplete="on" novalidate>
+
           <div class="auth-field">
             <label for="inpNama">Nama lengkap <span class="auth-wajib" aria-hidden="true">*</span></label>
             <input class="auth-input" type="text" id="inpNama" name="name"
-                   required autocomplete="name"
-                   aria-describedby="hintNama">
-            <p class="auth-hint" id="hintNama">Minimal 3 huruf, tanpa angka.</p>
+                   required autocomplete="name">
           </div>
 
           <div class="auth-field">
             <label for="inpEmail">Email <span class="auth-wajib" aria-hidden="true">*</span></label>
             <input class="auth-input" type="email" id="inpEmail" name="email"
-                   required autocomplete="email"
-                   aria-describedby="hintEmail">
-            <p class="auth-hint" id="hintEmail">Email pribadi atau kantor — keduanya bisa.</p>
+                   required autocomplete="email">
           </div>
+
+          <div class="auth-field">
+            <label for="inpSandiDaftar">Sandi <span class="auth-wajib" aria-hidden="true">*</span></label>
+            <div class="auth-input-wrap auth-input-ikon">
+              <span class="auth-ikon-kiri" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/>
+                  <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>
+                  <circle cx="12" cy="15.5" r="1.2"/>
+                </svg>
+              </span>
+              <input class="auth-input" type="password" id="inpSandiDaftar" name="password"
+                     required autocomplete="new-password">
+              <button type="button" class="auth-reveal" id="btnRevealSandiDaftar"
+                      aria-label="Tampilkan sandi" aria-pressed="false">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none"
+                     stroke="currentColor" stroke-width="1.75"
+                     stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                  <g class="mata-buka">
+                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </g>
+                  <g class="mata-tutup">
+                    <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/>
+                    <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/>
+                    <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/>
+                    <path d="m2 2 20 20"/>
+                  </g>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="auth-turnstile" id="turnstileSlotDaftar" aria-hidden="true"></div>
+
+          <button type="submit" class="auth-submit" id="btnDaftar">
+            <span class="auth-submit-label">Sign up</span>
+            <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+
+          <p class="auth-msg" id="msgDaftar" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- ══ Panel: permintaan terkirim ══════════════════════════════════════ -->
+      <section class="auth-panel" id="panel-daftar-selesai" data-panel="daftar-selesai">
+        <div class="auth-done">
+          <svg class="auth-check" viewBox="0 0 52 52" aria-hidden="true">
+            <circle cx="26" cy="26" r="24" fill="none" stroke="#f5c542" stroke-width="2"/>
+            <path d="M15 27l7.5 7.5L37 20" fill="none" stroke="#f5c542"
+                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                  class="auth-check-path"/>
+          </svg>
+          <h2 class="auth-done-title">Permintaan terkirim</h2>
+          <p class="auth-done-sub" id="daftarSelesaiSub">
+            Kami akan meninjau permintaan Anda dan mengirim token akses lewat email.
+          </p>
+          <button type="button" class="auth-submit" id="btnKembaliMasuk">
+            <span class="auth-submit-label">Kembali ke halaman masuk</span>
+          </button>
+        </div>
+      </section>
+
+      <footer class="auth-foot">
+        <p>Sudah punya akun? <a href="/sign-in" class="auth-link-inline">Sign in</a></p>
+        <p class="auth-legal">
+          Dengan mendaftar, Anda menyetujui
+          <a href="/syarat" class="auth-link-inline">Syarat Ketentuan</a> dan
+          <a href="/privasi" class="auth-link-inline">Kebijakan Privasi</a>.
+        </p>
+      </footer>
+
+    </div>
+  </div>
+
 </main>
 
 <script>
