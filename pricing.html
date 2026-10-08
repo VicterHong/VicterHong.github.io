@@ -49,6 +49,33 @@
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/logo.css">
 <link rel="stylesheet" href="assets/css/pricing.css">
+
+<!--
+  ── GERBANG VERIFIKASI ────────────────────────────────────────────────────
+  Halaman ini ikut digerbang seperti home/docs/masuk/daftar, supaya perlakuan
+  sama di seluruh situs — halaman yang ditautkan di navigasi selalu punya
+  gate yang sama.
+
+  ── KENAPA CSS DI HEAD, BUKAN AKHIR BODY ─────────────────────────────────
+  Aturan anti-FOUC di cf-gate.css (`html.cf-gating body { visibility: hidden }`)
+  harus sudah aktif SEBELUM konten pertama digambar. Kalau CSS-nya dimuat di
+  akhir body, konten sempat berkedip tampil lalu tertutup overlay — persis
+  kedipan yang ingin dihindari.
+-->
+<link rel="stylesheet" href="assets/css/cf-gate.css">
+<script>
+  // Anti-FOUC: sembunyikan konten sampai gate memutuskan.
+  // Jaring pengaman 8 detik: kalau skrip gate gagal dimuat, halaman tetap
+  // tampil — pengunjung tidak pernah terjebak di layar kosong.
+  try {
+    if (!sessionStorage.getItem('cf_clearance_' + location.hostname)) {
+      document.documentElement.classList.add('cf-gating');
+      setTimeout(function () {
+        document.documentElement.classList.remove('cf-gating');
+      }, 8000);
+    }
+  } catch (e) { /* mode privasi ketat: tampilkan halaman apa adanya */ }
+</script>
 </head>
 <body>
 
@@ -280,6 +307,24 @@
 <!-- Data harga dari server, lalu gambarkan. `defer` supaya tidak
      memblokir parsing HTML — halaman tampil dulu, skrip menyusul. -->
 <script src="assets/js/pricing.js" defer></script>
+
+<!-- Gerbang verifikasi (mode dinamis — cf-gate.js membangun overlay sendiri).
+     cf-gate-i18n.js HARUS lebih dulu: cf-gate.js membacanya saat dijalankan. -->
+<script>
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    // RELATIF, bukan absolut — ini WAJIB untuk cookie clearance.
+    //
+    // Dengan endpoint relatif, permintaan melewati Pages Function
+    // (functions/[[path]].js) yang mem-proxy ke Worker. Hasilnya SEMUA SAMA
+    // ORIGIN dari sudut browser, sehingga Set-Cookie dari backend disimpan
+    // untuk domain halaman ini.
+    verifyEndpoint: '/api/verify-turnstile'
+  };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="assets/js/cf-gate-i18n.js"></script>
+<script src="assets/js/cf-gate.js"></script>
 
 </body>
 </html>
