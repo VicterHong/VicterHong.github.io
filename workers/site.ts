@@ -178,10 +178,28 @@ export default {
         if (langsung) headers.set("X-Client-IP", langsung);
       }
 
+      // ── redirect: 'manual' — WAJIB, JANGAN DIHAPUS ───────────────────────
+      //
+      // `fetch()` mengikuti redirect secara BAWAAN. Tanpa 'manual', Worker
+      // menelan 302 dari backend lalu mengambil halaman tujuan itu sendiri.
+      //
+      // Untuk OAuth itu FATAL: backend mengalihkan ke
+      // github.com/login/oauth/authorize, dan Worker malah mengambil halaman
+      // login GitHub lalu menyajikannya ke browser dengan status 200.
+      // Browser tidak pernah dialihkan — URL-nya tetap domain kita, dan
+      // pengguna melihat halaman GitHub yang "tersangkut" di dalam situs.
+      //
+      // Gejalanya tidak kentara: respons 200 dengan header milik GitHub
+      // (x-github-request-id, set-cookie _gh_sess). Endpoint kita sendiri
+      // tidak pernah mengirim header itu.
+      //
+      // 'manual' membuat 302 diteruskan APA ADANYA ke browser — browser
+      // yang mengikutinya, dan itu memang yang diinginkan.
       return fetch(`${BACKEND_URL}${pathname}${url.search}`, {
         method: request.method,
         headers,
         body: request.body,
+        redirect: 'manual',
       });
     }
 

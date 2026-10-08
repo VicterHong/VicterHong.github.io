@@ -412,6 +412,20 @@ async function uji(id) {
       process.exit(1);
     }
 
+    // ── GitHub: bad_verification_code = kredensial BENAR ─────────────────────
+    //
+    // GitHub memeriksa kredensial LEBIH DULU, baru code-nya. Kalau
+    // kredensialnya salah, ia bilang 'incorrect_client_credentials'. Kalau
+    // kredensialnya benar dan hanya code yang salah, ia bilang
+    // 'bad_verification_code' — dan itulah yang kita harapkan di sini.
+    if (id === 'github' && galat === 'bad_verification_code') {
+      console.log(warna.hijau('\n  ✅ Kredensial BENAR'));
+      console.log(`     GitHub menerima client id + secret Anda.`);
+      console.log(`     Ia hanya menolak code palsu — itu memang yang diharapkan.`);
+      console.log(`     ${warna.redup('Login sungguhan akan berhasil.')}\n`);
+      process.exit(0);
+    }
+
     // ── invalid_grant murni (bukan Microsoft) = kredensial benar ─────────────
     if (galat === 'invalid_grant') {
       console.log(warna.hijau('\n  ✅ Kredensial BENAR'));
