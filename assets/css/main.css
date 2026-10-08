@@ -89,10 +89,35 @@ body {
    Sans untuk badan teks, serif untuk judul — pasangan yang dipakai template.
    Satoshi (Fontshare) untuk badan, Playfair untuk display. Mono tetap
    JetBrains untuk angka/kode supaya kolom metrik tetap rata. */
-h1, h2, h3, .hero-title, .section-title, .project-name, .brand-text {
+h1, h2, h3, .hero-title, .section-title, .project-name {
   font-family: 'Playfair Display', Georgia, serif;
   font-weight: 500;
   letter-spacing: -0.01em;
+}
+
+/* ── Brand: huruf kapital semua ──────────────────────────────────────────────
+   ── KENAPA LETTER-SPACING POSITIF ──────────────────────────────────────────
+   Grup di atas memakai -0.01em — itu BENAR untuk huruf kecil, karena bentuk
+   huruf kecil punya ruang alami di antara mereka.
+
+   Huruf KAPITAL tidak. Bentuknya lebih lebar dan hampir persegi, jadi tanpa
+   jarak tambahan mereka saling menempel dan terbaca sebagai satu blok.
+
+   +0.08em memberi ruang napas yang membuat setiap huruf terbaca — dan itu
+   yang membuat all-caps terlihat disengaja, bukan seperti teks yang
+   kebetulan ditulis dengan Caps Lock.
+
+   ── KENAPA BOBOT 500, BUKAN 700 ────────────────────────────────────────────
+   Playfair Display sudah tebal secara alami (serif kontras tinggi). 700
+   membuat huruf kapitalnya terlihat berat dan padat. 500 cukup untuk
+   menonjol tanpa menumpuk tinta. */
+.brand-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  /* Jarak huruf menambah lebar di kanan — dikurangi sedikit supaya
+     posisinya tetap seimbang dengan ikon di sebelahnya */
+  margin-right: -0.08em;
 }
 
 .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
