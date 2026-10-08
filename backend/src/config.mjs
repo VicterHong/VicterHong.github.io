@@ -196,38 +196,52 @@ export const config = {
   r2Bucket: pick('R2_BUCKET', 'portfolio-assets'),
 
   /**
-   * ── XENDIT (pembayaran langganan) ──────────────────────────────────────
+   * ── MIDTRANS (pembayaran langganan) ────────────────────────────────────
    *
-   * ── KENAPA XENDIT, BUKAN STRIPE ────────────────────────────────────────
-   * Stripe tidak mendukung Indonesia secara penuh — statusnya *preview*
-   * (undangan saja). Kebanyakan bisnis Indonesia tidak bisa mendaftar
-   * sendiri, dan yang di-approve hanya settle IDR lewat metode lokal.
+   * ── KENAPA MIDTRANS ────────────────────────────────────────────────────
+   * Pilihan ini muncul dari kebutuhan nyata:
    *
-   * Jalan "pakai rekening Payoneer" juga tidak sah: Stripe mensyaratkan
-   * badan hukum, tax ID, DAN rekening bank FISIK di negara yang sama.
-   * Virtual account tidak memenuhi itu.
+   *   Xendit   → butuh badan hukum (PT/CV), tidak menerima individu
+   *   Midtrans → menerima INDIVIDU dengan KTP saja
    *
-   * Xendit berlisensi Bank Indonesia, settle IDR langsung ke rekening
-   * Indonesia, dan mendukung QRIS, VA, GoPay, OVO, DANA, ShopeePay, kartu.
+   * Dengan KTP saja, Midtrans sudah memberi QRIS, GoPay, dan Virtual
+   * Account — tiga metode yang paling banyak dipakai pembeli Indonesia.
+   * NPWP baru diperlukan kalau mau kartu kredit.
    *
-   * ── KENAPA DUA NILAI, BUKAN SATU ───────────────────────────────────────
-   *   secretKey     — untuk memanggil API Xendit
-   *   callbackToken — untuk MEMVERIFIKASI bahwa webhook benar dari Xendit
+   * Midtrans berlisensi Bank Indonesia (bagian dari GoTo Financial), jadi
+   * uang pembeli terlindungi dan ada jalur sengketa resmi.
    *
-   * Callback token terpisah karena tanpa itu siapa pun bisa mengirim
-   * request "pembayaran berhasil" ke server ini dan mendapat token gratis.
+   * ── TANDA TANGAN DARI ISI TRANSAKSI ────────────────────────────────────
+   * Webhook Midtrans ditandatangani dengan:
+   *   sha512(order_id + status_code + gross_amount + ServerKey)
    *
-   * ── KENAPA HARGA DARI XENDIT, BUKAN DIHITUNG SENDIRI ───────────────────
-   * `pricing.mjs` punya angka untuk DITAMPILKAN. Yang benar-benar ditagih
-   * adalah `amount` yang dikirim ke Xendit — dan keduanya harus cocok.
+   * Ini lebih aman daripada token statis: tanda tangannya terikat pada ISI
+   * transaksi, jadi webhook palsu untuk transaksi berbeda tidak bisa dibuat
+   * walaupun penyerang tahu satu signature yang valid.
    *
-   * Kalau tidak cocok, sesi TIDAK dibuat. Lebih baik menolak pembayaran
-   * daripada menagih angka yang berbeda dari yang dilihat pembeli.
+   * Karena itu TIDAK ADA webhook secret terpisah — ServerKey sendiri yang
+   * jadi kunci tanda tangannya.
    *
-   * Kalau kosong, fitur pembayaran NONAKTIF tapi situs tetap jalan normal.
+   * ── KALAU KOSONG ───────────────────────────────────────────────────────
+   * Fitur pembayaran NONAKTIF tapi situs tetap jalan normal — tombol
+   * berubah jadi ajakan menghubungi, bukan checkout yang rusak.
    */
-  xenditSecretKey: pick('XENDIT_SECRET_KEY', ''),
-  xenditCallbackToken: pick('XENDIT_CALLBACK_TOKEN', ''),
+  midtransServerKey: pick('MIDTRANS_SERVER_KEY', ''),
+  midtransClientKey: pick('MIDTRANS_CLIENT_KEY', ''),
+
+  /**
+   * Sandbox atau production?
+   *
+   * ── KENAPA EKSPLISIT, BUKAN DITEBAK DARI KUNCI ─────────────────────────
+   * Kunci sandbox Midtrans tidak punya awalan khusus seperti Xendit
+   * (`xnd_development_`). Menebak dari bentuk kunci tidak bisa diandalkan —
+   * dan salah tebak berarti memakai URL production dengan kunci sandbox,
+   * yang menghasilkan error membingungkan.
+   *
+   * Default `false` (sandbox) supaya aman: lupa menyetel berarti tidak ada
+   * uang sungguhan yang bergerak.
+   */
+  midtransProduction: pick('MIDTRANS_PRODUCTION', 'false').toLowerCase() === 'true',
 
   /** Alamat halaman setelah bayar berhasil / gagal. */
   checkoutSuksesUrl: pick('CHECKOUT_SUKSES_URL', 'https://portfolio-victer.pages.dev/pesanan'),
@@ -270,28 +284,24 @@ export function validateConfig() {
     }
   }
 
-  // ── Xendit: konsistensi konfigurasi ─────────────────────────────────────
+  // ── Midtrans: konsistensi konfigurasi ───────────────────────────────────
   //
-  // Pola yang sama dengan Turnstile di atas: kunci sebagai penanda. Kalau
-  // secret key diisi, artinya pembayaran memang diaktifkan — dan kalau
-  // diaktifkan, callback token HARUS ada.
+  // Pola yang sama dengan Turnstile: kunci sebagai penanda. Kalau ServerKey
+  // diisi, artinya pembayaran memang diaktifkan.
   //
-  // ── INI LEBIH PENTING DI XENDIT DARIPADA DI STRIPE ──────────────────────
-  // Stripe menandatangani setiap webhook dengan HMAC — jadi body-nya
-  // terlindungi secara kriptografis.
+  // ── KENAPA TIDAK ADA CEK WEBHOOK SECRET ────────────────────────────────
+  // Xendit butuh token webhook terpisah karena tanda tangannya tidak ada —
+  // hanya token statis. Midtrans TIDAK butuh itu: webhook-nya ditandatangani
+  // dengan ServerKey sendiri lewat sha512(order_id + status_code +
+  // gross_amount + ServerKey).
   //
-  // Xendit hanya mengirim TOKEN STATIS di header. Tanpa token itu, endpoint
-  // webhook kita terbuka: siapa pun yang tahu URL-nya bisa mengirim
-  // "pembayaran berhasil" palsu dan mendapat token akses gratis.
-  //
-  // Lebih baik menolak start daripada menjalankan pembayaran yang bisa
-  // dipalsukan.
-  if (config.xenditSecretKey) {
-    if (!config.xenditCallbackToken) {
-      problems.push('XENDIT_SECRET_KEY diisi tapi XENDIT_CALLBACK_TOKEN kosong — '
-        + 'webhook tidak bisa diverifikasi, siapa pun bisa memalsukan pembayaran. '
-        + 'Isi keduanya di ' + ENV_FILE);
-    }
+  // Jadi ServerKey yang kosong berarti dua masalah sekaligus: tidak bisa
+  // memanggil API, DAN tidak bisa memverifikasi webhook. Satu pemeriksaan
+  // menutup keduanya.
+  if (config.midtransServerKey && config.midtransServerKey.length < 20) {
+    problems.push('MIDTRANS_SERVER_KEY terlalu pendek — '
+      + 'periksa apakah kuncinya tersalin lengkap dari dashboard Midtrans. '
+      + 'Isi di ' + ENV_FILE);
   }
 
   return problems;

@@ -359,15 +359,15 @@ CREATE TABLE IF NOT EXISTS releases (
 
 CREATE INDEX IF NOT EXISTS idx_releases_created ON releases(created_at);
 -- ════════════════════════════════════════════════════════════════════════════
--- PEMBAYARAN — langganan lewat Xendit
+-- PEMBAYARAN — langganan lewat Midtrans
 -- ════════════════════════════════════════════════════════════════════════════
 --
 -- ── KENAPA TABEL SENDIRI, BUKAN LANGSUNG DARI STRIPE ────────────────────────
--- Xendit adalah sumber kebenaran untuk UANG. Tapi token akses adalah milik
+-- Midtrans adalah sumber kebenaran untuk UANG. Tapi token akses adalah milik
 -- sistem ini — dan hubungan antara keduanya perlu dicatat.
 --
 -- Tanpa tabel ini, setiap kali ada pertanyaan "token ini dari pembayaran
--- mana?" harus bertanya ke Xendit. Itu lambat, dan bergantung pada layanan
+-- mana?" harus bertanya ke Midtrans. Itu lambat, dan bergantung pada layanan
 -- luar untuk pertanyaan internal.
 --
 -- ── KENAPA idempotency_key UNIK ─────────────────────────────────────────────
@@ -381,7 +381,7 @@ CREATE INDEX IF NOT EXISTS idx_releases_created ON releases(created_at);
 -- Dengan UNIQUE, percobaan kedua ditolak di tingkat database. Tidak ada
 -- balapan yang bisa lolos.
 --
--- ── KENAPA xendit_invoice_id JUGA UNIK ─────────────────────────────────────
+-- ── KENAPA midtrans_order_id JUGA UNIK ─────────────────────────────────────
 -- Xendit mengirim webhook berkali-kali untuk satu invoice (PENDING → PAID).
 -- Kolom unik memastikan invoice yang sama tidak diterbitkan tokennya dua kali.
 CREATE TABLE IF NOT EXISTS payments (
@@ -390,10 +390,10 @@ CREATE TABLE IF NOT EXISTS payments (
   -- Kunci anti-dobel dari klien. UNIK = percobaan kedua ditolak.
   idempotency_key    TEXT NOT NULL UNIQUE,
 
-  -- ID dari Xendit
-  xendit_invoice_id  TEXT UNIQUE,
-  xendit_customer_id TEXT,
-  xendit_recurring_id TEXT,
+  -- ID dari Midtrans
+  midtrans_order_id  TEXT UNIQUE,
+  midtrans_customer_id TEXT,
+  midtrans_subscription_id TEXT,
   
 
   -- Apa yang dibeli
@@ -423,7 +423,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_status  ON payments(status, dibuat_pada DESC);
 CREATE INDEX IF NOT EXISTS idx_payments_email   ON payments(email);
-CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(xendit_invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(midtrans_order_id);
 
 -- ── Log webhook mentah ───────────────────────────────────────────────────────
 --

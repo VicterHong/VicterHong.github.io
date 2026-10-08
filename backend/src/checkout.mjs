@@ -1,21 +1,23 @@
 /**
- * Pembayaran — logika bisnis langganan lewat Xendit.
+ * Pembayaran — logika bisnis langganan lewat Midtrans.
  *
  * ── PEMBAGIAN TANGGUNG JAWAB ───────────────────────────────────────────────
- *   xendit.mjs   — bicara ke API Xendit (HTTP, token webhook, terjemahan error)
+ *   midtrans.mjs — bicara ke API Midtrans (HTTP, tanda tangan, terjemahan error)
  *   checkout.mjs — logika bisnis (harga mana, token apa, siapa dapat apa)
  *
- * Pemisahan ini penting: `xendit.mjs` tidak tahu apa itu "paket Profesional",
- * dan `checkout.mjs` tidak tahu bagaimana cara memanggil API Xendit. Kalau
- * nanti Xendit diganti penyedia lain, hanya `xendit.mjs` yang berubah.
+ * Pemisahan ini penting: `midtrans.mjs` tidak tahu apa itu "paket
+ * Profesional", dan `checkout.mjs` tidak tahu bagaimana cara memanggil API
+ * Midtrans. Modul ini sudah dua kali berganti penyedia (Stripe → Xendit →
+ * Midtrans) dan hanya lapisan penyedianya yang berubah — logika di sini
+ * tetap sama.
  *
  * ── SATU SUMBER HARGA ──────────────────────────────────────────────────────
  * Angka yang ditagih TIDAK dihitung di sini. Ia datang dari `pricing.mjs` —
  * satu sumber yang sama dengan yang ditampilkan di halaman harga.
  *
- * Yang dikirim ke Xendit adalah angka itu, dan Xendit mengembalikannya di
- * webhook. Kalau berbeda, ada yang tidak sinkron dan itu dicatat sebagai
- * peringatan — bukan diabaikan.
+ * Yang dikirim ke Midtrans adalah angka itu, dan Midtrans mengembalikannya
+ * di webhook. Kalau berbeda, ada yang tidak sinkron dan token TIDAK
+ * diterbitkan — bukan diabaikan.
  */
 
 import { randomUUID, randomBytes } from 'node:crypto';
@@ -23,9 +25,9 @@ import { config } from './config.mjs';
 import { getDb, transaction } from './db.mjs';
 import { PAKET } from './pricing.mjs';
 import {
-  xenditAktif, buatInvoice, ambilInvoice,
-  verifikasiWebhookXendit, statusInternal, pesanGalatXendit,
-} from './xendit.mjs';
+  midtransAktif, buatTransaksiSnap, ambilStatusTransaksi,
+  verifikasiTandaTanganMidtrans, statusInternalMidtrans, pesanGalatMidtrans,
+} from './midtrans.mjs';
 import { issueToken } from './tokens.mjs';
 
 const MS_SEHARI = 86_400_000;
@@ -63,7 +65,7 @@ export function cariHarga(tier, periode) {
   const perBulan = Math.round(paket.hargaNormal * (100 - diskonPersen) / 100);
 
   // ── YANG DITAGIH: total periode, bukan harga per bulan ───────────────────
-  // Untuk tahunan, Xendit menagih SEKALI untuk 12 bulan. Kalau yang dikirim
+  // Untuk tahunan, Midtrans menagih SEKALI untuk 12 bulan. Kalau yang dikirim
   // `perBulan`, pembeli ditagih 1/12 dari yang seharusnya — dan itu kerugian
   // nyata yang tidak bisa ditarik kembali.
   const total = tahunan ? perBulan * 12 : perBulan;
@@ -99,7 +101,7 @@ function kunciHarga(tier, periode) {
  * ulang.
  */
 export async function mulaiPembayaran({ tier, periode, email, nama = '', idempotencyKey }) {
-  if (!xenditAktif()) {
+  if (!midtransAktif()) {
     throw Object.assign(new Error('Pembayaran belum aktif'), {
       kode: 'pembayaran_nonaktif', statusCode: 503,
     });
@@ -144,16 +146,20 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
       };
     }
 
-    // Masih pending & invoice masih ada → kembalikan URL yang sama
-    if (lama.status === STATUS.PENDING && lama.xendit_invoice_id) {
+    // Masih pending & transaksi masih ada → kembalikan URL yang sama
+    if (lama.status === STATUS.PENDING && lama.midtrans_order_id) {
       try {
-        const inv = await ambilInvoice(lama.xendit_invoice_id);
-        // Xendit: status PENDING + masih ada invoice_url = masih bisa dibayar
-        if (inv?.invoice_url && String(inv.status).toUpperCase() === 'PENDING') {
+        const trx = await ambilStatusTransaksi(lama.midtrans_order_id);
+        const st = String(trx?.transaction_status ?? '').toLowerCase();
+
+        // Midtrans: `pending` berarti masih bisa dibayar. `capture` dengan
+        // fraud accept juga belum tentu ada URL — jadi hanya `pending` yang
+        // dikembalikan URL-nya.
+        if (st === 'pending' && trx?.redirect_url) {
           return {
             pembayaranId: lama.id,
-            url: inv.invoice_url,
-            sesiId: inv.id,
+            url: trx.redirect_url,
+            sesiId: trx.transaction_id ?? lama.midtrans_order_id,
             tier: lama.tier,
             periode: lama.periode,
             jumlah: lama.jumlah,
@@ -161,7 +167,7 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
           };
         }
       } catch {
-        // Invoice tidak bisa diambil — lanjut buat yang baru di bawah
+        // Transaksi tidak bisa diambil — lanjut buat yang baru di bawah
       }
     }
   }
@@ -169,9 +175,9 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
   const id = `pay_${randomBytes(12).toString('hex')}`;
   const sekarang = Date.now();
 
-  // ── Catat SEBELUM memanggil Xendit ───────────────────────────────────────
-  // Kalau urutannya dibalik (panggil Xendit dulu, catat kemudian) dan
-  // pencatatan gagal, akan ada invoice yang tidak diketahui sistem —
+  // ── Catat SEBELUM memanggil Midtrans ─────────────────────────────────────
+  // Kalau urutannya dibalik (panggil Midtrans dulu, catat kemudian) dan
+  // pencatatan gagal, akan ada transaksi yang tidak diketahui sistem —
   // dan pembayaran bisa masuk tanpa jejak.
   transaction(() => {
     db.prepare(`
@@ -183,15 +189,12 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
   });
 
   try {
-    // ── `externalId` = ID PEMBAYARAN KITA ──────────────────────────────────
-    // Ini kunci idempotensi Xendit. Kalau `external_id` yang sama dikirim
-    // dua kali, Xendit mengembalikan invoice yang SAMA — bukan membuat
-    // yang baru. Jadi dobel-klik tidak menghasilkan dobel tagih.
-    //
-    // Bedanya dengan Stripe: Stripe pakai header `Idempotency-Key`, Xendit
-    // pakai field di body. Efeknya sama.
-    const inv = await buatInvoice({
-      externalId: id,
+    // ── `orderId` = ID PEMBAYARAN KITA ─────────────────────────────────────
+    // Ini kunci idempotensi Midtrans. Kalau `order_id` yang sama dikirim dua
+    // kali, Midtrans menolak dengan "order_id has been paid" atau
+    // mengembalikan yang lama — bukan membuat transaksi baru.
+    const trx = await buatTransaksiSnap({
+      orderId: id,
       jumlah: harga.total,
       deskripsi: `Langganan ${harga.namaPaket} — ${harga.periode}`,
       emailPelanggan: emailBersih,
@@ -200,40 +203,23 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
         pembayaran_id: id,
         tier: harga.tier,
         periode: harga.periode,
-        // Angka ini untuk VERIFIKASI nanti, bukan untuk ditagih —
-        // yang ditagih tetap `amount` yang dikirim di atas.
-        jumlah_diharapkan: String(harga.total),
       },
     });
 
-    // Xendit mengembalikan `expiry_date` sebagai ISO string
-    const kedaluwarsa = inv.expiry_date
-      ? new Date(inv.expiry_date).getTime()
-      : sekarang + MS_SEHARI;
+    // Masa berlaku: 24 jam (sama dengan yang diminta di `expiry`)
+    const kedaluwarsa = sekarang + MS_SEHARI;
 
     db.prepare(
-      'UPDATE payments SET xendit_invoice_id = ?, kedaluwarsa_pada = ? WHERE id = ?',
-    ).run(inv.id, kedaluwarsa, id);
+      'UPDATE payments SET midtrans_order_id = ?, kedaluwarsa_pada = ? WHERE id = ?',
+    ).run(id, kedaluwarsa, id);
 
     return {
       pembayaranId: id,
-      url: inv.invoice_url,
-      sesiId: inv.id,
+      url: trx.redirect_url,
+      sesiId: trx.token ?? id,
       tier: harga.tier,
       periode: harga.periode,
       jumlah: harga.total,
-      // ── PERINGATAN YANG HARUS SAMPAI KE LOG ──────────────────────────────
-      // Kalau jumlah yang dikembalikan Xendit berbeda dari yang dihitung di
-      // sini, itu tanda ada yang tidak sinkron. Pembayaran tetap jalan
-      // (Xendit yang menagih), tapi ada yang harus diperiksa.
-      ...(inv.amount && Number(inv.amount) !== harga.total
-        ? {
-            peringatanHarga: {
-              dihitung: harga.total,
-              diXendit: Number(inv.amount),
-            },
-          }
-        : {}),
     };
   } catch (err) {
     // Tandai gagal — jangan biarkan baris "pending" yang tidak pernah selesai
@@ -241,9 +227,9 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
       'UPDATE payments SET status = ?, alasan_gagal = ? WHERE id = ?',
     ).run(STATUS.GAGAL, String(err?.kode ?? err?.message ?? 'tidak_diketahui').slice(0, 200), id);
 
-    const terjemahan = pesanGalatXendit(err);
+    const terjemahan = pesanGalatMidtrans(err);
     throw Object.assign(new Error(terjemahan.pesan), {
-      kode: err?.kode ?? 'xendit_error',
+      kode: err?.kode ?? 'midtrans_error',
       saran: terjemahan.saran,
       statusCode: err?.statusCode ?? 400,
     });
@@ -253,65 +239,58 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
 /* ── Webhook ────────────────────────────────────────────────────────────── */
 
 /**
- * Proses webhook dari Xendit.
+ * Proses webhook dari Midtrans.
  *
  * ── URUTAN YANG TIDAK BOLEH DIBALIK ────────────────────────────────────────
- *   1. Verifikasi token   — SEBELUM apa pun
+ *   1. Verifikasi tanda tangan  — SEBELUM apa pun
  *   2. Catat event (idempoten)  — supaya kiriman ulang tidak diproses dua kali
  *   3. Baru proses
  *
  * Kalau langkah 3 dijalankan sebelum 1, siapa pun bisa menerbitkan token
  * gratis dengan mengirim JSON palsu.
  *
- * ── BEDA PENTING DARI STRIPE ───────────────────────────────────────────────
- * Xendit TIDAK menandatangani body. Yang dikirim adalah TOKEN STATIS di
- * header `x-callback-token` — sama di setiap request.
+ * ── TANDA TANGAN MIDTRANS TERIKAT PADA ISI TRANSAKSI ───────────────────────
+ * sha512(order_id + status_code + gross_amount + ServerKey)
  *
- * Konsekuensinya: verifikasi token saja TIDAK cukup melindungi dari:
- *   • Kiriman ulang (tidak ada cap waktu kriptografis)
- *   • Body yang diubah di tengah jalan (hanya HTTPS yang melindungi)
+ * Ini lebih kuat daripada token statis: webhook palsu untuk transaksi BERBEDA
+ * tidak bisa dibuat walaupun penyerang tahu satu signature yang valid. Ia
+ * harus tahu ServerKey — yang tidak pernah keluar dari server.
  *
- * Karena itu tiga lapisan berikutnya WAJIB ada:
+ * ── BENTUK WEBHOOK MIDTRANS ────────────────────────────────────────────────
+ * Midtrans mengirim objek transaksi langsung sebagai teratas (bukan dibungkus
+ * `{id, type, data}` seperti Stripe):
  *
- *   1. IDEMPOTENSI — `id` dari Xendit dicek; yang sama tidak diproses dua kali
- *   2. VERIFIKASI JUMLAH — nominal di webhook harus cocok dengan yang tercatat
- *   3. VERIFIKASI STATUS — hanya proses status yang memang final
+ *   { "order_id": "pay_xxx", "transaction_status": "settlement",
+ *     "status_code": "200", "gross_amount": "200000.00",
+ *     "fraud_status": "accept", "signature_key": "..." }
  *
- * Ketiganya ada di fungsi ini. Tanpa mereka, integrasi ini tidak aman —
- * bukan karena tokennya lemah, tapi karena token statis memang tidak bisa
- * membuktikan bahwa body-nya utuh dan baru.
- *
- * ── BENTUK WEBHOOK XENDIT ──────────────────────────────────────────────────
- * Berbeda dari Stripe yang membungkus event dalam `{id, type, data}`,
- * Xendit mengirim INVOICE LANGSUNG sebagai objek teratas:
- *
- *   { "id": "inv_xxx", "external_id": "pay_xxx", "status": "PAID",
- *     "amount": 200000, "paid_amount": 200000, ... }
- *
- * Jadi tidak ada `event.type` — yang menentukan adalah `status` invoice.
+ * Yang menentukan adalah `transaction_status`, bukan `event.type`.
  */
-export async function prosesWebhook(bodyMentah, headerToken) {
-  const verifikasi = verifikasiWebhookXendit(headerToken);
+export async function prosesWebhook(bodyMentah) {
+  let payload;
+  try {
+    payload = JSON.parse(bodyMentah);
+  } catch {
+    return { ok: false, statusCode: 400, alasan: 'body_bukan_json', pesan: 'Body bukan JSON' };
+  }
+
+  const verifikasi = verifikasiTandaTanganMidtrans(payload);
   if (!verifikasi.ok) {
     return {
       ok: false,
       statusCode: 401,
       alasan: verifikasi.alasan,
-      pesan: 'Token webhook tidak valid',
+      pesan: 'Tanda tangan webhook tidak valid',
     };
   }
 
-  let inv;
-  try {
-    inv = JSON.parse(bodyMentah);
-  } catch {
-    return { ok: false, statusCode: 400, alasan: 'body_bukan_json', pesan: 'Body bukan JSON' };
-  }
+  const orderId = payload.order_id;
+  const statusTrx = String(payload.transaction_status ?? '').toLowerCase();
 
-  if (!inv?.id || !inv?.external_id) {
+  if (!orderId || !statusTrx) {
     return {
-      ok: false, statusCode: 400, alasan: 'invoice_tidak_lengkap',
-      pesan: 'Webhook tidak berisi id dan external_id',
+      ok: false, statusCode: 400, alasan: 'transaksi_tidak_lengkap',
+      pesan: 'Webhook tidak berisi order_id dan transaction_status',
     };
   }
 
@@ -319,10 +298,14 @@ export async function prosesWebhook(bodyMentah, headerToken) {
   const sekarang = Date.now();
 
   // ── Idempotensi ──────────────────────────────────────────────────────────
-  // Kunci uniknya gabungan `id` + `status`: Xendit mengirim webhook BERKALI
-  // untuk satu invoice (PENDING → PAID), dan masing-masing membawa informasi
-  // berbeda. Mengunci hanya pada `id` akan menolak update status yang sah.
-  const kunciEvent = `${inv.id}:${String(inv.status).toUpperCase()}`;
+  // Kunci uniknya gabungan `order_id` + status: Midtrans mengirim webhook
+  // BERKALI untuk satu transaksi (pending → settlement), dan masing-masing
+  // membawa informasi berbeda. Mengunci hanya pada order_id akan menolak
+  // update status yang sah.
+  //
+  // `transaction_id` ditambahkan karena satu order bisa punya beberapa
+  // percobaan transaksi — dan kita ingin masing-masing tercatat.
+  const kunciEvent = `${orderId}:${statusTrx}:${payload.transaction_id ?? ''}`;
 
   const sudahAda = db.prepare('SELECT event_id, diproses FROM payment_events WHERE event_id = ?')
     .get(kunciEvent);
@@ -340,15 +323,15 @@ export async function prosesWebhook(bodyMentah, headerToken) {
   db.prepare(`
     INSERT INTO payment_events (event_id, tipe, body_mentah, diterima_pada, diproses)
     VALUES (?, ?, ?, ?, 0)
-  `).run(kunciEvent, `invoice.${String(inv.status).toLowerCase()}`, bodyMentah.slice(0, 200_000), sekarang);
+  `).run(kunciEvent, `transaksi.${statusTrx}`, bodyMentah.slice(0, 200_000), sekarang);
 
-  // ── Proses berdasarkan status ────────────────────────────────────────────
+  // ── Proses ───────────────────────────────────────────────────────────────
   let hasil;
   try {
-    hasil = await tanganiInvoice(inv);
+    hasil = await tanganiTransaksi(payload);
   } catch (err) {
     // ── KENAPA TIDAK MELEMPAR ──────────────────────────────────────────────
-    // Kalau kita jawab 500, Xendit akan mengirim ulang. Tapi kalau
+    // Kalau kita jawab 500, Midtrans akan mengirim ulang. Tapi kalau
     // kegagalannya ada di kode kita (bukan jaringan), kiriman ulang tidak
     // akan berhasil juga — dan kita hanya membanjiri diri sendiri.
     //
@@ -357,7 +340,7 @@ export async function prosesWebhook(bodyMentah, headerToken) {
     db.prepare('UPDATE payment_events SET diproses = -1, catatan = ? WHERE event_id = ?')
       .run(String(err?.message ?? err).slice(0, 500), kunciEvent);
 
-    console.error(`[xendit] webhook ${kunciEvent} GAGAL diproses:`, err?.stack ?? err);
+    console.error(`[midtrans] webhook ${kunciEvent} GAGAL diproses:`, err?.stack ?? err);
 
     return {
       ok: true,
@@ -374,63 +357,68 @@ export async function prosesWebhook(bodyMentah, headerToken) {
 }
 
 /**
- * Tangani satu invoice Xendit.
+ * Tangani satu transaksi Midtrans.
  *
- * Hanya tiga status yang bertindak — sisanya dicatat saja:
- *   PAID / SETTLED → pembayaran berhasil, terbitkan token
- *   EXPIRED        → invoice kedaluwarsa, tidak ada yang perlu dilakukan
- *   FAILED         → pembayaran gagal
+ * ── KENAPA `capture` DIPERLAKUKAN HATI-HATI ────────────────────────────────
+ * Untuk kartu kredit, `capture` berarti otorisasi berhasil tapi dana belum
+ * tentu cair — bisa menyusul `settlement` beberapa jam kemudian, atau `deny`
+ * kalau terdeteksi fraud.
  *
- * ── PAID DAN SETTLED SAMA-SAMA MENERBITKAN TOKEN ───────────────────────────
- * PAID    = pembeli sudah membayar.
- * SETTLED = uang sudah masuk rekening.
+ * Memberi token saat `capture` berisiko: kalau nanti di-deny, pembeli sudah
+ * dapat akses padahal tidak membayar. Karena itu `statusInternalMidtrans()`
+ * hanya menganggap `capture` sebagai lunas kalau `fraud_status` = `accept`.
  *
- * Untuk penerbitan token, yang penting adalah PAID — pembeli sudah
- * menunaikan kewajibannya. Menunggu SETTLED berarti pembeli menunggu 1-2
- * hari kerja sebelum bisa mengakses, dan itu tidak perlu.
- *
- * Fungsi ini idempoten: kalau dipanggil dua kali untuk invoice yang sama,
+ * Fungsi ini idempoten: kalau dipanggil dua kali untuk transaksi yang sama,
  * token hanya terbit sekali (dicek dari status pembayaran di database).
  */
-async function tanganiInvoice(inv) {
-  const status = String(inv.status).toUpperCase();
-  const pembayaranId = inv.external_id;
+async function tanganiTransaksi(payload) {
+  const orderId = payload.order_id;
+  const status = statusInternalMidtrans(payload.transaction_status, payload.fraud_status);
 
   const db = getDb();
-  const bayar = db.prepare('SELECT * FROM payments WHERE id = ?').get(pembayaranId);
+  const bayar = db.prepare('SELECT * FROM payments WHERE id = ?').get(orderId);
 
   if (!bayar) {
-    throw new Error(`Pembayaran ${pembayaranId} tidak ada di database`);
+    throw new Error(`Pembayaran ${orderId} tidak ada di database`);
   }
 
   // ── VERIFIKASI JUMLAH ────────────────────────────────────────────────────
-  // Karena Xendit tidak menandatangani body, ini lapisan penting: kalau
-  // nominal di webhook berbeda dari yang kita minta, ada yang salah —
-  // dan token TIDAK boleh diterbitkan untuk jumlah yang tidak cocok.
+  // Tanda tangan Midtrans sudah mengikat gross_amount ke transaksi ini, jadi
+  // secara teori jumlahnya tidak bisa diubah. Tapi memeriksanya tetap penting:
+  // ia menangkap kesalahan KONFIGURASI — kalau nominal yang dikirim ke
+  // Midtrans berbeda dari yang tercatat di database.
   //
-  // Ini yang membedakan integrasi aman dari yang tidak.
-  const ditagih = Number(inv.paid_amount ?? inv.amount ?? 0);
+  // `gross_amount` datang sebagai string "200000.00" — dibandingkan sebagai
+  // angka setelah diparse, karena perbandingan string akan gagal untuk
+  // format yang berbeda ("200000" vs "200000.00").
+  const ditagih = Math.round(Number(payload.gross_amount ?? 0));
   if (ditagih !== bayar.jumlah) {
     throw new Error(
-      `Jumlah tidak cocok untuk ${pembayaranId}: tercatat ${bayar.jumlah}, `
+      `Jumlah tidak cocok untuk ${orderId}: tercatat ${bayar.jumlah}, `
       + `dibayar ${ditagih}. Token TIDAK diterbitkan — perlu diperiksa manual.`,
     );
   }
 
-  if (status === 'EXPIRED') {
+  if (status === 'kedaluwarsa') {
     db.prepare('UPDATE payments SET status = ? WHERE id = ? AND status = ?')
-      .run(STATUS.KEDALUWARSA, pembayaranId, STATUS.PENDING);
-    return { pesan: 'Invoice kedaluwarsa' };
+      .run(STATUS.KEDALUWARSA, orderId, STATUS.PENDING);
+    return { pesan: 'Transaksi kedaluwarsa' };
   }
 
-  if (status === 'FAILED') {
+  if (status === 'gagal') {
     db.prepare('UPDATE payments SET status = ?, alasan_gagal = ? WHERE id = ? AND status = ?')
-      .run(STATUS.GAGAL, 'pembayaran_gagal', pembayaranId, STATUS.PENDING);
-    return { pesan: 'Pembayaran gagal' };
+      .run(STATUS.GAGAL, String(payload.transaction_status ?? 'gagal'), orderId, STATUS.PENDING);
+    return { pesan: 'Transaksi gagal' };
   }
 
-  if (status !== 'PAID' && status !== 'SETTLED') {
-    return { pesan: `Status "${status}" dicatat, tidak ada tindakan`, diabaikan: true };
+  if (status === 'dikembalikan') {
+    db.prepare('UPDATE payments SET status = ?, alasan_gagal = ? WHERE id = ?')
+      .run(STATUS.DIKEMBALIKAN, 'dana_dikembalikan', orderId);
+    return { pesan: 'Dana dikembalikan' };
+  }
+
+  if (status !== 'dibayar') {
+    return { pesan: `Status "${payload.transaction_status}" dicatat, tidak ada tindakan`, diabaikan: true };
   }
 
   // ── Sudah dibayar? Jangan terbitkan token kedua ──────────────────────────
@@ -453,11 +441,11 @@ async function tanganiInvoice(inv) {
     tier: tierToken,
     label: `${bayar.nama || bayar.email} — ${bayar.tier} ${bayar.periode}`,
     issuedTo: bayar.email,
-    issuedBy: 'xendit',
+    issuedBy: 'midtrans',
     expiresInDays: masaHari,
     maxIps: 5,
     maxDevices: 5,
-    notes: `Pembayaran ${bayar.id} · invoice ${inv.id}`,
+    notes: `Pembayaran ${bayar.id} · transaksi ${payload.transaction_id ?? ''}`,
     prefix: config.tokenPrefix,
     segments: config.tokenSegments,
     segmentLength: config.tokenSegmentLength,
@@ -466,12 +454,12 @@ async function tanganiInvoice(inv) {
   transaction(() => {
     db.prepare(`
       UPDATE payments
-      SET status = ?, dibayar_pada = ?, xendit_invoice_id = ?, token_id = ?
+      SET status = ?, dibayar_pada = ?, midtrans_order_id = ?, token_id = ?
       WHERE id = ?
-    `).run(STATUS.DIBAYAR, Date.now(), String(inv.id ?? ''), token.id, pembayaranId);
+    `).run(STATUS.DIBAYAR, Date.now(), orderId, token.id, orderId);
   });
 
-  console.log(`[xendit] ✅ ${pembayaranId} dibayar — token ${token.id} diterbitkan untuk ${bayar.email}`);
+  console.log(`[midtrans] ✅ ${orderId} dibayar — token ${token.id} diterbitkan untuk ${bayar.email}`);
 
   return {
     pesan: 'Pembayaran berhasil, token diterbitkan',
@@ -513,8 +501,8 @@ export function ambilPembayaran(id) {
 export function statusPembayaran() {
   // ── KENAPA TIDAK ADA DAFTAR "HARGA SIAP" ─────────────────────────────────
   // Versi Stripe memeriksa apakah setiap kombinasi tier+periode punya
-  // `price_id` yang terdaftar. Xendit TIDAK memerlukan itu — nominal
-  // dikirim langsung saat invoice dibuat, bukan disimpan di dashboard.
+  // `price_id` yang terdaftar. Midtrans TIDAK memerlukan itu — nominal
+  // dikirim langsung saat transaksi dibuat, bukan disimpan di dashboard.
   //
   // Jadi yang perlu diperiksa hanya: apakah kredensial sudah ada.
   const tersedia = paketBisaDibeli().flatMap((p) => {
@@ -534,8 +522,11 @@ export function statusPembayaran() {
   });
 
   return {
-    aktif: xenditAktif(),
-    penyedia: 'xendit',
+    aktif: midtransAktif(),
+    penyedia: 'midtrans',
+    // Sandbox atau production — supaya halaman bisa menampilkan peringatan
+    // kalau ini masih mode uji
+    sandbox: !config.midtransProduction,
     harga: tersedia,
   };
 }

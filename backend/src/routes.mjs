@@ -704,8 +704,9 @@ export const routes = [
     // yang membuat, setiap percobaan ulang dapat kunci baru, dan justru itu
     // yang menyebabkan dobel tagih.
     //
-    // Xendit memakai `external_id` sebagai kunci idempotensi — dikirim di body,
-    // bukan header. Efeknya sama: dobel-klik tidak menghasilkan dua invoice.
+    // Midtrans memakai `order_id` sebagai kunci idempotensi. Kalau order_id
+    // yang sama dikirim dua kali, Midtrans menolak — bukan membuat transaksi
+    // baru. Dobel-klik tidak menghasilkan dobel tagih.
     method: 'POST',
     pattern: '/api/checkout',
     handler: safe(async (req, res) => {
@@ -773,7 +774,7 @@ export const routes = [
   {
     // ── Status pembayaran ───────────────────────────────────────────────────
     //
-    // Dipakai halaman /pesanan setelah pembeli kembali dari Xendit.
+    // Dipakai halaman /pesanan setelah pembeli kembali dari Midtrans.
     //
     // ── KENAPA ID-nya Panjang & Acak ────────────────────────────────────────
     // ID pembayaran (`pay_` + 24 heksadesimal) tidak bisa ditebak. Itu
@@ -814,34 +815,42 @@ export const routes = [
   },
 
   {
-    // ── Webhook Xendit ──────────────────────────────────────────────────────
+    // ── Webhook Midtrans ──────────────────────────────────────────────────────
     //
     // ── KENAPA RUTE INI BERBEDA DARI YANG LAIN ─────────────────────────────
     // Tiga hal yang tidak biasa, dan semuanya disengaja:
     //
     //   1. Body dibaca MENTAH (readBody), bukan readJson. Xendit tidak
     //      Body dibaca mentah supaya bisa disimpan utuh sebagai bukti.
-    //      Xendit tidak menandatangani body, tapi menyimpan yang asli
-    //      memudahkan pemeriksaan kalau ada sengketa.
+    //      Tanda tangan Midtrans dihitung dari body asli, jadi menyimpan
+    //      yang asli juga memudahkan pemeriksaan kalau ada sengketa.
     //
-    //   2. Jawaban SELALU 200 kecuali token tidak valid. Xendit
+    //   2. Jawaban SELALU 200 kecuali tanda tangan tidak valid. Midtrans
     //      mengirim ulang kalau menerima non-2xx — jadi jawaban 500 karena
     //      bug di kode kita hanya akan membanjiri diri sendiri dengan
     //      kiriman ulang yang gagal sama.
     //
-    //   3. Tidak ada CORS, tidak ada cookie. Yang memanggil ini Xendit,
+    //   3. Tidak ada CORS, tidak ada cookie. Yang memanggil ini Midtrans,
     //      bukan browser.
     method: 'POST',
-    pattern: '/api/xendit/webhook',
+    pattern: '/api/midtrans/webhook',
     handler: safe(async (req, res) => {
       const bodyMentah = await readBody(req);
-      const tokenWebhook = req.headers['x-callback-token'] ?? '';
 
-      const hasil = await prosesWebhook(bodyMentah, tokenWebhook);
+      // ── KENAPA TIDAK ADA HEADER YANG DIBACA ─────────────────────────────
+      // Berbeda dari penyedia dengan token statis, Midtrans mengirim tanda
+      // tangan DI DALAM BODY (`signature_key`) — bukan di header.
+      //
+      // Tanda tangannya dihitung dari isi transaksi:
+      //   sha512(order_id + status_code + gross_amount + ServerKey)
+      //
+      // Jadi tidak ada yang perlu dibaca dari header. Verifikasinya dilakukan
+      // di dalam prosesWebhook(), dari payload itu sendiri.
+      const hasil = await prosesWebhook(bodyMentah);
 
       if (!hasil.ok) {
         // Tanda tangan tidak valid — satu-satunya kasus yang dijawab non-2xx.
-        // Permintaan ini BUKAN dari Xendit.
+        // Permintaan ini BUKAN dari Midtrans.
         return sendJson(res, hasil.statusCode ?? 400, {
           ok: false,
           error: hasil.alasan,
@@ -850,7 +859,7 @@ export const routes = [
       }
 
       // ── KENAPA TOKEN TIDAK DIKIRIM DI SINI ───────────────────────────────
-      // Jawaban webhook bisa dilihat di dashboard Xendit oleh siapa pun yang
+      // Jawaban webhook bisa dilihat di dashboard Midtrans oleh siapa pun yang
       // punya akses ke akun. Token akses TIDAK boleh muncul di sana.
       //
       // Yang dikirim hanya status. Token dikirim ke pembeli lewat email.
@@ -865,7 +874,7 @@ export const routes = [
   {
     // ── Status pembayaran publik ────────────────────────────────────────────
     //
-    // Dipakai halaman harga untuk tahu tombol mana yang aktif. Kalau Xendit
+    // Dipakai halaman harga untuk tahu tombol mana yang aktif. Kalau Midtrans
     // belum dikonfigurasi, tombol berubah jadi ajakan menghubungi — bukan
     // checkout yang rusak saat diklik.
     method: 'GET',
