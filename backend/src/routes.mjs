@@ -79,8 +79,9 @@ import {
 } from './gate.mjs';
 import {
   applyCors, clientCountry, clientIp, ipBucket, extractToken, handlePreflight,
-  readJson, sendJson, parseCookies, setCookie, clearCookie,
+  readJson, readBody, sendJson, parseCookies, setCookie, clearCookie,
 } from './http-util.mjs';
+import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
 
 /** Jenis event analytics yang diterima — mencegah polusi database. */
 const ALLOWED_EVENTS = new Set([
@@ -689,6 +690,188 @@ export const routes = [
         // Dipakai panel admin & form agar tidak ada daftar hardcoded.
         projects: listProjects(),
       });
+    }),
+  },
+
+  {
+    // ── Mulai pembayaran langganan ──────────────────────────────────────────
+    //
+    // Publik — pembeli tidak perlu punya akun dulu.
+    //
+    // ── KENAPA IDEMPOTENCY_KEY DARI KLIEN ──────────────────────────────────
+    // Kuncinya datang dari browser, bukan dibuat di server. Yang tahu "ini
+    // percobaan ulang dari klik yang sama" adalah browser — kalau server
+    // yang membuat, setiap percobaan ulang dapat kunci baru, dan justru itu
+    // yang menyebabkan dobel tagih.
+    //
+    // Xendit memakai `external_id` sebagai kunci idempotensi — dikirim di body,
+    // bukan header. Efeknya sama: dobel-klik tidak menghasilkan dua invoice.
+    method: 'POST',
+    pattern: '/api/checkout',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+
+      // ── KENAPA ERROR DITANGKAP DI SINI, BUKAN DIBIARKAN KE safe() ─────────
+      // `safe()` menyembunyikan pesan error 5xx jadi "kesalahan_internal" —
+      // itu benar untuk mencegah kebocoran detail sistem.
+      //
+      // Tapi pembeli yang gagal bayar butuh tahu APA YANG HARUS DILAKUKAN.
+      // "kesalahan_internal" tidak memberi tahu apa pun, dan mereka pergi.
+      //
+      // Jadi error dari `mulaiPembayaran()` ditangkap di sini, dan yang
+      // dikirim adalah pesan + saran yang sudah disiapkan di checkout.mjs —
+      // keduanya ditulis khusus untuk pembaca, bukan untuk developer.
+      try {
+        const hasil = await mulaiPembayaran({
+          tier: String(body.tier ?? '').trim(),
+          periode: String(body.periode ?? 'bulanan').trim(),
+          email: String(body.email ?? '').trim(),
+          nama: String(body.nama ?? '').trim(),
+          idempotencyKey: String(body.idempotency_key ?? '').trim(),
+        });
+
+        // Pembayaran yang sudah selesai sebelumnya — bukan error
+        if (hasil.sudahDibayar) {
+          return sendJson(res, 200, {
+            ok: true,
+            sudah_dibayar: true,
+            pembayaran_id: hasil.pembayaranId,
+            tier: hasil.tier,
+            periode: hasil.periode,
+            message: 'Pembayaran untuk permintaan ini sudah selesai.',
+          });
+        }
+
+        return sendJson(res, 200, {
+          ok: true,
+          pembayaran_id: hasil.pembayaranId,
+          url: hasil.url,
+          sesi_id: hasil.sesiId,
+          tier: hasil.tier,
+          periode: hasil.periode,
+          jumlah: hasil.jumlah,
+          dilanjutkan: Boolean(hasil.dilanjutkan),
+          ...(hasil.peringatanHarga ? { peringatan_harga: hasil.peringatanHarga } : {}),
+        });
+      } catch (err) {
+        // 5xx tetap dicatat lengkap di server untuk penelusuran
+        if ((err?.statusCode ?? 500) >= 500) {
+          console.error('[checkout] error:', err?.stack ?? err);
+        }
+
+        return sendJson(res, err?.statusCode ?? 500, {
+          ok: false,
+          error: err?.kode ?? 'checkout_gagal',
+          message: err?.message ?? 'Pembayaran tidak bisa dimulai.',
+          // Saran hanya dikirim kalau ada — dan isinya ditulis untuk pembaca
+          ...(err?.saran ? { saran: err.saran } : {}),
+        });
+      }
+    }),
+  },
+
+  {
+    // ── Status pembayaran ───────────────────────────────────────────────────
+    //
+    // Dipakai halaman /pesanan setelah pembeli kembali dari Xendit.
+    //
+    // ── KENAPA ID-nya Panjang & Acak ────────────────────────────────────────
+    // ID pembayaran (`pay_` + 24 heksadesimal) tidak bisa ditebak. Itu
+    // penting: halaman ini bisa dibuka tanpa login, jadi siapa pun yang tahu
+    // ID-nya bisa melihat status pembayaran itu.
+    //
+    // Yang TIDAK ditampilkan: token akses. Token hanya dikirim sekali saat
+    // webhook diproses — lewat email. Membiarkannya bisa diambil dari
+    // halaman ini berarti siapa pun yang tahu ID-nya bisa mencuri akses.
+    method: 'GET',
+    pattern: '/api/pesanan/:id',
+    handler: safe(async (req, res, params) => {
+      const bayar = ambilPembayaran(String(params.id ?? ''));
+
+      if (!bayar) {
+        return sendJson(res, 404, {
+          ok: false,
+          error: 'tidak_ditemukan',
+          message: 'Pembayaran tidak ditemukan.',
+        });
+      }
+
+      sendJson(res, 200, {
+        ok: true,
+        pembayaran: {
+          id: bayar.id,
+          tier: bayar.tier,
+          periode: bayar.periode,
+          jumlah: bayar.jumlah,
+          email: bayar.email,
+          status: bayar.status,
+          token_terbit: bayar.tokenTerbit,
+          dibuat_pada: bayar.dibuat_pada,
+          dibayar_pada: bayar.dibayar_pada,
+        },
+      });
+    }),
+  },
+
+  {
+    // ── Webhook Xendit ──────────────────────────────────────────────────────
+    //
+    // ── KENAPA RUTE INI BERBEDA DARI YANG LAIN ─────────────────────────────
+    // Tiga hal yang tidak biasa, dan semuanya disengaja:
+    //
+    //   1. Body dibaca MENTAH (readBody), bukan readJson. Xendit tidak
+    //      Body dibaca mentah supaya bisa disimpan utuh sebagai bukti.
+    //      Xendit tidak menandatangani body, tapi menyimpan yang asli
+    //      memudahkan pemeriksaan kalau ada sengketa.
+    //
+    //   2. Jawaban SELALU 200 kecuali token tidak valid. Xendit
+    //      mengirim ulang kalau menerima non-2xx — jadi jawaban 500 karena
+    //      bug di kode kita hanya akan membanjiri diri sendiri dengan
+    //      kiriman ulang yang gagal sama.
+    //
+    //   3. Tidak ada CORS, tidak ada cookie. Yang memanggil ini Xendit,
+    //      bukan browser.
+    method: 'POST',
+    pattern: '/api/xendit/webhook',
+    handler: safe(async (req, res) => {
+      const bodyMentah = await readBody(req);
+      const tokenWebhook = req.headers['x-callback-token'] ?? '';
+
+      const hasil = await prosesWebhook(bodyMentah, tokenWebhook);
+
+      if (!hasil.ok) {
+        // Tanda tangan tidak valid — satu-satunya kasus yang dijawab non-2xx.
+        // Permintaan ini BUKAN dari Xendit.
+        return sendJson(res, hasil.statusCode ?? 400, {
+          ok: false,
+          error: hasil.alasan,
+          message: hasil.pesan,
+        });
+      }
+
+      // ── KENAPA TOKEN TIDAK DIKIRIM DI SINI ───────────────────────────────
+      // Jawaban webhook bisa dilihat di dashboard Xendit oleh siapa pun yang
+      // punya akses ke akun. Token akses TIDAK boleh muncul di sana.
+      //
+      // Yang dikirim hanya status. Token dikirim ke pembeli lewat email.
+      sendJson(res, 200, {
+        ok: true,
+        duplikat: Boolean(hasil.duplikat),
+        pesan: hasil.pesan,
+      });
+    }),
+  },
+
+  {
+    // ── Status pembayaran publik ────────────────────────────────────────────
+    //
+    // Dipakai halaman harga untuk tahu tombol mana yang aktif. Kalau Xendit
+    // belum dikonfigurasi, tombol berubah jadi ajakan menghubungi — bukan
+    // checkout yang rusak saat diklik.
+    method: 'GET',
+    pattern: '/api/pembayaran/status',
+    handler: safe(async (req, res) => {
+      sendJson(res, 200, { ok: true, ...statusPembayaran() });
     }),
   },
 

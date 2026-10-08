@@ -68,6 +68,54 @@ export const config = {
   /** Email sales untuk notifikasi permintaan akses. */
   salesEmail: pick('SALES_EMAIL', ''),
 
+  /**
+   * ── PENGIRIMAN EMAIL (RESEND) ────────────────────────────────────────────
+   *
+   * Dipakai untuk tautan reset sandi. Kalau `resendApiKey` kosong, modul
+   * email.mjs TIDAK rusak: ia menulis tautan reset ke log server sebagai
+   * jalur cadangan, sehingga alur reset tetap bisa dipakai manual sebelum
+   * email dikonfigurasi.
+   *
+   * EMAIL_FROM wajib memakai domain yang sudah diverifikasi di Resend
+   * (SPF + DKIM). Mengirim dari domain yang belum diverifikasi akan ditolak
+   * Resend dengan 403 — dan email reset tidak pernah sampai.
+   *
+   * Contoh: "Victer <noreply@portfolio-victer.pages.dev>"
+   */
+  // Cloudflare Email Service (menggantikan Resend).
+  //   CF_ACCOUNT_ID  — ID akun Cloudflare
+  //   CF_API_TOKEN   — token dengan izin kirim email
+  //   EMAIL_FROM     — alamat pengirim di domain yang sudah di-onboard
+  //
+  // Kalau salah satu kosong, email.mjs TIDAK rusak: ia menulis tautan reset
+  // ke log server sebagai jalur cadangan.
+  cfAccountId: pick('CF_ACCOUNT_ID', ''),
+  cfApiToken: pick('CF_API_TOKEN', ''),
+  emailFrom: pick('EMAIL_FROM', ''),
+
+  /** URL situs publik — dipakai untuk menyusun tautan reset sandi.
+   *  Harus absolut: tautan relatif tidak berguna di dalam email. */
+  siteUrl: pick('SITE_URL', 'https://portfolio-victer.pages.dev'),
+
+  /**
+   * ── OAUTH (SSO) — BELUM AKTIF ──────────────────────────────────────────────
+   *
+   * Dikosongkan = tombol SSO TIDAK ditampilkan di halaman masuk/daftar.
+   * Frontend menanyakannya lewat /api/config dan menyembunyikan tombolnya
+   * kalau kosong — supaya tidak ada tombol yang mengarah ke endpoint mati.
+   *
+   * Untuk mengaktifkan:
+   *   1. Buat OAuth app di Google Cloud Console / GitHub Developer Settings
+   *   2. Isi CLIENT_ID + CLIENT_SECRET di env
+   *   3. Tambahkan endpoint /api/auth/google dan /api/auth/github di routes.mjs
+   *      (alur: redirect → callback → tukar code → buat/temukan pengguna → sesi)
+   *   4. Tombol muncul sendiri, tanpa mengubah HTML
+   */
+  googleClientId: pick('GOOGLE_CLIENT_ID', ''),
+  googleClientSecret: pick('GOOGLE_CLIENT_SECRET', ''),
+  githubClientId: pick('GITHUB_CLIENT_ID', ''),
+  githubClientSecret: pick('GITHUB_CLIENT_SECRET', ''),
+
   /** URL webhook untuk notifikasi lead baru (Discord/Slack/generik). Kosong = nonaktif. */
   leadWebhookUrl: pick('LEAD_WEBHOOK_URL', ''),
 
@@ -146,6 +194,44 @@ export const config = {
   r2AccountId: pick('CLOUDFLARE_ACCOUNT_ID', ''),
   r2ApiToken: pick('CLOUDFLARE_API_TOKEN', ''),
   r2Bucket: pick('R2_BUCKET', 'portfolio-assets'),
+
+  /**
+   * ── XENDIT (pembayaran langganan) ──────────────────────────────────────
+   *
+   * ── KENAPA XENDIT, BUKAN STRIPE ────────────────────────────────────────
+   * Stripe tidak mendukung Indonesia secara penuh — statusnya *preview*
+   * (undangan saja). Kebanyakan bisnis Indonesia tidak bisa mendaftar
+   * sendiri, dan yang di-approve hanya settle IDR lewat metode lokal.
+   *
+   * Jalan "pakai rekening Payoneer" juga tidak sah: Stripe mensyaratkan
+   * badan hukum, tax ID, DAN rekening bank FISIK di negara yang sama.
+   * Virtual account tidak memenuhi itu.
+   *
+   * Xendit berlisensi Bank Indonesia, settle IDR langsung ke rekening
+   * Indonesia, dan mendukung QRIS, VA, GoPay, OVO, DANA, ShopeePay, kartu.
+   *
+   * ── KENAPA DUA NILAI, BUKAN SATU ───────────────────────────────────────
+   *   secretKey     — untuk memanggil API Xendit
+   *   callbackToken — untuk MEMVERIFIKASI bahwa webhook benar dari Xendit
+   *
+   * Callback token terpisah karena tanpa itu siapa pun bisa mengirim
+   * request "pembayaran berhasil" ke server ini dan mendapat token gratis.
+   *
+   * ── KENAPA HARGA DARI XENDIT, BUKAN DIHITUNG SENDIRI ───────────────────
+   * `pricing.mjs` punya angka untuk DITAMPILKAN. Yang benar-benar ditagih
+   * adalah `amount` yang dikirim ke Xendit — dan keduanya harus cocok.
+   *
+   * Kalau tidak cocok, sesi TIDAK dibuat. Lebih baik menolak pembayaran
+   * daripada menagih angka yang berbeda dari yang dilihat pembeli.
+   *
+   * Kalau kosong, fitur pembayaran NONAKTIF tapi situs tetap jalan normal.
+   */
+  xenditSecretKey: pick('XENDIT_SECRET_KEY', ''),
+  xenditCallbackToken: pick('XENDIT_CALLBACK_TOKEN', ''),
+
+  /** Alamat halaman setelah bayar berhasil / gagal. */
+  checkoutSuksesUrl: pick('CHECKOUT_SUKSES_URL', 'https://portfolio-victer.pages.dev/pesanan'),
+  checkoutBatalUrl: pick('CHECKOUT_BATAL_URL', 'https://portfolio-victer.pages.dev/pricing'),
   };
 
 /** Apakah konfigurasi cukup untuk menjalankan layanan produksi. */
@@ -181,6 +267,30 @@ export function validateConfig() {
     if (config.turnstileHostnames.length === 0) {
       problems.push('TURNSTILE_HOSTNAMES wajib diisi kalau Turnstile aktif — '
         + 'daftar hostname yang boleh menyelesaikan widget (dipisah koma) di ' + ENV_FILE);
+    }
+  }
+
+  // ── Xendit: konsistensi konfigurasi ─────────────────────────────────────
+  //
+  // Pola yang sama dengan Turnstile di atas: kunci sebagai penanda. Kalau
+  // secret key diisi, artinya pembayaran memang diaktifkan — dan kalau
+  // diaktifkan, callback token HARUS ada.
+  //
+  // ── INI LEBIH PENTING DI XENDIT DARIPADA DI STRIPE ──────────────────────
+  // Stripe menandatangani setiap webhook dengan HMAC — jadi body-nya
+  // terlindungi secara kriptografis.
+  //
+  // Xendit hanya mengirim TOKEN STATIS di header. Tanpa token itu, endpoint
+  // webhook kita terbuka: siapa pun yang tahu URL-nya bisa mengirim
+  // "pembayaran berhasil" palsu dan mendapat token akses gratis.
+  //
+  // Lebih baik menolak start daripada menjalankan pembayaran yang bisa
+  // dipalsukan.
+  if (config.xenditSecretKey) {
+    if (!config.xenditCallbackToken) {
+      problems.push('XENDIT_SECRET_KEY diisi tapi XENDIT_CALLBACK_TOKEN kosong — '
+        + 'webhook tidak bisa diverifikasi, siapa pun bisa memalsukan pembayaran. '
+        + 'Isi keduanya di ' + ENV_FILE);
     }
   }
 

@@ -358,6 +358,98 @@ CREATE TABLE IF NOT EXISTS releases (
 );
 
 CREATE INDEX IF NOT EXISTS idx_releases_created ON releases(created_at);
+-- ════════════════════════════════════════════════════════════════════════════
+-- PEMBAYARAN — langganan lewat Xendit
+-- ════════════════════════════════════════════════════════════════════════════
+--
+-- ── KENAPA TABEL SENDIRI, BUKAN LANGSUNG DARI STRIPE ────────────────────────
+-- Xendit adalah sumber kebenaran untuk UANG. Tapi token akses adalah milik
+-- sistem ini — dan hubungan antara keduanya perlu dicatat.
+--
+-- Tanpa tabel ini, setiap kali ada pertanyaan "token ini dari pembayaran
+-- mana?" harus bertanya ke Xendit. Itu lambat, dan bergantung pada layanan
+-- luar untuk pertanyaan internal.
+--
+-- ── KENAPA idempotency_key UNIK ─────────────────────────────────────────────
+-- Ini pengaman terhadap dobel tagih DAN dobel token.
+--
+-- Skenario nyata: pengguna klik "Bayar", jaringan lambat, ia klik lagi.
+-- Dua permintaan masuk. Tanpa kolom unik, dua sesi Checkout dibuat, dua
+-- pembayaran terjadi, dan dua token diterbitkan — padahal pengguna hanya
+-- ingin membayar sekali.
+--
+-- Dengan UNIQUE, percobaan kedua ditolak di tingkat database. Tidak ada
+-- balapan yang bisa lolos.
+--
+-- ── KENAPA xendit_invoice_id JUGA UNIK ─────────────────────────────────────
+-- Xendit mengirim webhook berkali-kali untuk satu invoice (PENDING → PAID).
+-- Kolom unik memastikan invoice yang sama tidak diterbitkan tokennya dua kali.
+CREATE TABLE IF NOT EXISTS payments (
+  id                 TEXT PRIMARY KEY,
+
+  -- Kunci anti-dobel dari klien. UNIK = percobaan kedua ditolak.
+  idempotency_key    TEXT NOT NULL UNIQUE,
+
+  -- ID dari Xendit
+  xendit_invoice_id  TEXT UNIQUE,
+  xendit_customer_id TEXT,
+  xendit_recurring_id TEXT,
+  
+
+  -- Apa yang dibeli
+  tier               TEXT NOT NULL,           -- standar | profesional
+  periode            TEXT NOT NULL,           -- bulanan | tahunan
+  jumlah             INTEGER NOT NULL,        -- dalam rupiah penuh (IDR zero-decimal)
+
+  -- Siapa yang membeli
+  email              TEXT NOT NULL DEFAULT '',
+  nama               TEXT NOT NULL DEFAULT '',
+
+  -- Status: pending | dibayar | gagal | kedaluwarsa | dikembalikan
+  status             TEXT NOT NULL DEFAULT 'pending',
+  alasan_gagal       TEXT,
+
+  -- Token yang diterbitkan setelah pembayaran berhasil
+  token_id           TEXT,
+
+  -- Waktu
+  dibuat_pada        INTEGER NOT NULL,
+  dibayar_pada       INTEGER,
+  kedaluwarsa_pada   INTEGER,
+
+  -- Metadata tambahan (JSON) — untuk hal yang belum terpikirkan sekarang
+  catatan            TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_status  ON payments(status, dibuat_pada DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_email   ON payments(email);
+CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(xendit_invoice_id);
+
+-- ── Log webhook mentah ───────────────────────────────────────────────────────
+--
+-- ── KENAPA DISIMPAN ─────────────────────────────────────────────────────────
+-- Webhook adalah satu-satunya bukti bahwa pembayaran benar terjadi. Kalau
+-- ada sengketa enam bulan kemudian ("saya sudah bayar, kok tidak dapat
+-- akses?"), data ini yang menjawab — bukan tebakan.
+--
+-- Body disimpan MENTAH (string persis seperti diterima) karena itulah yang
+-- ditandatangani penyedia. Kalau di-parse lalu disimpan ulang, bukti
+-- aslinya hilang.
+--
+-- ── KENAPA event_id UNIK ────────────────────────────────────────────────────
+-- Xendit bisa mengirim webhook berkali-kali untuk invoice yang sama.
+-- Dengan UNIK, kiriman kedua tidak diproses — tapi tetap tercatat.
+CREATE TABLE IF NOT EXISTS payment_events (
+  event_id     TEXT PRIMARY KEY,
+  tipe         TEXT NOT NULL,
+  body_mentah  TEXT NOT NULL,
+  diterima_pada INTEGER NOT NULL,
+  diproses     INTEGER NOT NULL DEFAULT 0,
+  catatan      TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_events_tipe ON payment_events(tipe, diterima_pada DESC);
+
 `;
 
 /** Buka (atau buat) database. Aman dipanggil berkali-kali. */
