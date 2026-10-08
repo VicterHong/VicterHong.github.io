@@ -265,6 +265,31 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
 }
 
+/* ── Tautan "Sign in" di navigasi ────────────────────────────────────────────
+   Pola korporat (Stripe, Linear, Vercel): tautan masuk adalah SATU-SATUNYA
+   item nav yang punya bentuk sendiri — garis tepi halus, bukan sekadar teks.
+
+   Alasannya: pengunjung yang sudah punya akun adalah yang paling ingin
+   bergerak cepat. Memberinya target yang terlihat jelas mengurangi friksi
+   tanpa mengganggu pengunjung baru yang sedang membaca.
+
+   Sengaja TIDAK memakai latar kuning penuh: itu akan bersaing dengan tombol
+   aksi utama di hero dan membuat halaman terasa berteriak. */
+.site-nav .nav-signin {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-weight: 500;
+  transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+
+.site-nav .nav-signin:hover {
+  border-color: var(--accent-line);
+  background: rgba(245, 197, 66, 0.06);
+  color: var(--text);
+}
+
 .site-nav a[aria-current="true"] {
   color: var(--text);
   position: relative;

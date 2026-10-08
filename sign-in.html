@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masuk — VIVASTIC</title>
-<meta name="description" content="Masuk ke area klien untuk mengakses proyek privat.">
+<title>Sign in — VIVASTIC</title>
+<meta name="description" content="Sign in ke area klien untuk mengakses proyek privat.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0a0a0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -52,11 +52,12 @@
     <span class="auth-nav-mark" aria-hidden="true"></span>
     <span>VIVASTIC</span>
   </a>
-  <nav class="auth-nav-links" aria-label="Navigasi halaman masuk">
+  <nav class="auth-nav-links" aria-label="Navigasi sign in">
     <a href="/home">Beranda</a>
     <a href="/pricing">Harga</a>
     <a href="/docs">Panduan</a>
     <a href="/home#kontak">Kontak</a>
+    <a class="auth-nav-signin" href="/sign-in">Sign in</a>
   </nav>
 </header>
 
@@ -78,7 +79,7 @@
                   fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </a>
-        <h1 class="auth-title" id="authTitle">Masuk</h1>
+        <h1 class="auth-title" id="authTitle">Sign in</h1>
         <p class="auth-sub" id="authSub">Area klien — akses proyek privat</p>
       </header>
 
@@ -97,19 +98,163 @@
            Token akses TETAP didukung di backend (dipakai admin & integrasi
            otomatis), tapi bukan lagi cara utama pengguna masuk. -->
       <section class="auth-panel is-active" id="panel-masuk" data-panel="masuk">
+
+        <!-- ══ METODE LAIN — DI ATAS FORM ══════════════════════════════════════
+             Pola 21st.dev & korporat (Stripe, Linear, Vercel): tombol penyedia
+             identitas muncul SEBELUM form email.
+
+             ── KENAPA DI ATAS, BUKAN DI BAWAH ─────────────────────────────────
+             Pengguna yang punya akun Google/Microsoft kerja biasanya ingin
+             masuk dalam satu klik. Menaruh tombolnya di bawah form berarti
+             mereka harus MELEWATI form email dulu — padahal form itu justru
+             yang tidak mereka butuhkan.
+
+             Untuk pengunjung yang memang mau pakai email, form tetap jalur
+             terpendek: tombol SSO hanya 4 ikon setinggi 44px, tidak menutupi
+             apa pun. -->
+        <!-- ══ METODE LAIN ══════════════════════════════════════════════════════
+             Struktur mengikuti pola korporat (Auth0 Universal Login, Okta,
+             WorkOS, Microsoft Entra):
+
+               BARIS 1 — penyedia identitas sosial (Google, Microsoft, Apple,
+                         GitHub). Empat ikon brand berwarna, satu keluarga visual.
+               BARIS 2 — passkey (mekanisme berbeda: kriptografi perangkat,
+                         bukan identitas pihak ketiga).
+               BARIS 3 — SSO perusahaan sebagai JALUR TERPISAH, bukan ikon
+                         kelima di barisan yang sama.
+               BARIS 4 — pemisah "atau dengan email", lalu form.
+
+             ── KENAPA SSO DIPISAH DARI IKON SOSIAL (temuan riset) ──────────────
+             WorkOS menyebutnya "NASCAR problem": deretan tombol brand yang
+             berjejal membuat pengguna bingung dan tidak yakin mana yang harus
+             diklik.
+
+             Panduan enterprise (Auth0, Figma SSO guide) lebih tegas lagi:
+             login konsumen (Google pribadi) dan login workforce (SSO
+             perusahaan) adalah DUA JALUR BERBEDA dan tidak boleh dicampur
+             dalam satu barisan ikon. Alasannya bukan estetika — salah pilih
+             berarti pengguna diarahkan ke identitas yang salah.
+
+             Jadi SSO perusahaan tampil sebagai tautan terpisah dengan label
+             yang jelas, di bawah metode sosial.
+
+             ── SEMUA NONAKTIF SAMPAI BACKEND SIAP ──────────────────────────────
+             Backend belum punya endpoint OAuth/SSO mana pun (diverifikasi di
+             routes.mjs). Tombol aktif sekarang = 404 = pengguna mengira situs
+             rusak. Catatan "segera hadir" diisi auth.js dari /api/config, jadi
+             begitu kredensial OAuth ditambahkan, tombol menyala sendiri. -->
+        <div class="auth-alt" id="altMethods">
+
+          <div class="auth-sso-grid" role="group" aria-label="Masuk dengan penyedia identitas">
+            <button type="button" class="auth-sso-btn" id="btnGoogle" disabled
+                    aria-label="Lanjut dengan Google" title="Google — segera hadir">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" fill="#EA4335"/>
+              </svg>
+            </button>
+
+            <button type="button" class="auth-sso-btn" id="btnMicrosoft" disabled
+                    aria-label="Lanjut dengan Microsoft" title="Microsoft — segera hadir">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M2 2h9.5v9.5H2z" fill="#F25022"/>
+                <path d="M12.5 2H22v9.5h-9.5z" fill="#7FBA00"/>
+                <path d="M2 12.5h9.5V22H2z" fill="#00A4EF"/>
+                <path d="M12.5 12.5H22V22h-9.5z" fill="#FFB900"/>
+              </svg>
+            </button>
+
+            <button type="button" class="auth-sso-btn" id="btnApple" disabled
+                    aria-label="Lanjut dengan Apple" title="Apple — segera hadir">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M17.05 12.54c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.89 2.65 3.24 2.6 1.3-.05 1.79-.84 3.36-.84s2.01.84 3.39.81c1.4-.02 2.28-1.27 3.13-2.53.99-1.45 1.4-2.86 1.42-2.93-.03-.01-2.72-1.04-2.75-4.13zM14.5 4.9c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.55-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.58 3.04-1.45z" fill="currentColor"/>
+              </svg>
+            </button>
+
+            <button type="button" class="auth-sso-btn" id="btnGithub" disabled
+                    aria-label="Lanjut dengan GitHub" title="GitHub — segera hadir">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+
+          <p class="auth-sso-segera" id="ssoSegera">Google, Microsoft, Apple, dan GitHub segera hadir.</p>
+
+          <!-- Passkey: mekanisme berbeda dari SSO — kriptografi perangkat,
+               bukan identitas pihak ketiga. Karena itu tombolnya sendiri,
+               bukan ikon kelima di barisan sosial. -->
+          <button type="button" class="auth-oauth auth-oauth-passkey" id="btnPasskey" hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+                 stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 10a2 2 0 0 0-2 2c0 .74.4 1.38 1 1.73V17h2v-3.27c.6-.35 1-.99 1-1.73a2 2 0 0 0-2-2z"/>
+              <path d="M6 10V7a6 6 0 1 1 12 0v3"/>
+              <rect x="4" y="10" width="16" height="11" rx="2.5"/>
+            </svg>
+            <span>Sign in dengan passkey</span>
+          </button>
+
+          <!-- SSO perusahaan — jalur terpisah, bukan ikon di barisan sosial.
+               Pola ini dipakai Auth0, Okta, WorkOS, dan portal enterprise lain:
+               pengguna workforce punya jalur sendiri yang jelas. -->
+          <button type="button" class="auth-oauth auth-oauth-enterprise" id="btnSso" disabled>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 21h18"/>
+              <path d="M5 21V7l7-4 7 4v14"/>
+              <path d="M9 21v-5h6v5"/>
+              <path d="M9 10h.01M15 10h.01M12 10h.01M9 13h.01M15 13h.01M12 13h.01"/>
+            </svg>
+            <span>Masuk dengan SSO perusahaan</span>
+          </button>
+
+          <div class="auth-divider"><span>atau dengan email</span></div>
+        </div>
+
         <form class="auth-form" id="formMasuk" autocomplete="on" novalidate>
 
           <div class="auth-field">
             <label for="inpEmailMasuk">Email</label>
-            <input class="auth-input" type="email" id="inpEmailMasuk" name="email"
-                   required autocomplete="username" placeholder="nama@perusahaan.com"
-                   aria-describedby="hintEmailMasuk">
+            <!-- Ikon di dalam input (pola 21st.dev): menghemat satu baris tinggi
+                 dan membuat kolom email langsung dikenali. `aria-hidden` karena
+                 labelnya sudah menjelaskan — ikon murni dekoratif. -->
+            <div class="auth-input-wrap auth-input-ikon">
+              <span class="auth-ikon-kiri" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m2 7 10 6 10-6"/>
+                </svg>
+              </span>
+              <input class="auth-input" type="email" id="inpEmailMasuk" name="email"
+                     required autocomplete="username" placeholder="nama@perusahaan.com"
+                     aria-describedby="hintEmailMasuk">
+            </div>
             <p class="auth-hint" id="hintEmailMasuk">Email yang Anda daftarkan.</p>
           </div>
 
           <div class="auth-field">
-            <label for="inpSandi">Sandi</label>
-            <div class="auth-input-wrap">
+            <!-- Label + "Lupa sandi?" sebaris — pola korporat (Stripe, Linear):
+                 tindakan pemulihan berada tepat di sebelah kolom yang bermasalah,
+                 bukan di bawah form tempat pengguna harus mencarinya. -->
+            <div class="auth-label-baris">
+              <label for="inpSandi">Sandi</label>
+              <button type="button" class="auth-link-inline auth-link-kecil" id="btnLupaSandi">Lupa sandi?</button>
+            </div>
+            <div class="auth-input-wrap auth-input-ikon">
+              <span class="auth-ikon-kiri" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <circle cx="7.5" cy="15.5" r="4.5"/>
+                  <path d="m10.7 12.3 8.8-8.8M17 6l2 2M14.5 8.5l2 2"/>
+                </svg>
+              </span>
               <input class="auth-input" type="password" id="inpSandi" name="password"
                      required autocomplete="current-password" placeholder="••••••••••••"
                      aria-describedby="hintSandi">
@@ -125,16 +270,14 @@
             </div>
           </div>
 
-          <!-- Lupa sandi: tautan teks, bukan tombol — ini tindakan sekunder
-               dan tidak boleh bersaing visual dengan tombol Masuk. -->
-          <div class="auth-row-lupa">
-            <button type="button" class="auth-link-inline" id="btnLupaSandi">Lupa sandi?</button>
-          </div>
+          <!-- Lupa sandi dipindah ke baris label sandi di atas — menghapus
+               duplikat di sini supaya tidak ada dua elemen dengan id yang sama
+               (getElementById hanya mengambil yang pertama, handler kedua mati). -->
 
           <div class="auth-turnstile" id="turnstileSlot" aria-hidden="true"></div>
 
           <button type="submit" class="auth-submit" id="btnSubmit">
-            <span class="auth-submit-label">Masuk</span>
+            <span class="auth-submit-label">Sign in</span>
             <span class="auth-submit-spinner" aria-hidden="true"></span>
           </button>
 
@@ -175,7 +318,7 @@
             <span class="auth-submit-spinner" aria-hidden="true"></span>
           </button>
           <p class="auth-msg" id="msgTotp" role="status" aria-live="polite"></p>
-          <button type="button" class="auth-link" id="btnBackToken">← Kembali ke masuk</button>
+          <button type="button" class="auth-link" id="btnBackToken">← Kembali ke sign in</button>
         </form>
       </section>
 
@@ -200,7 +343,7 @@
             <span class="auth-submit-spinner" aria-hidden="true"></span>
           </button>
           <p class="auth-msg" id="msgLupa" role="status" aria-live="polite"></p>
-          <button type="button" class="auth-link" id="btnBatalLupa">← Kembali ke masuk</button>
+          <button type="button" class="auth-link" id="btnBatalLupa">← Kembali ke sign in</button>
         </form>
       </section>
 
@@ -219,7 +362,7 @@
             sandi baru. Tautan berlaku 1 jam.
           </p>
           <button type="button" class="auth-submit" id="btnKembaliDariLupa">
-            <span class="auth-submit-label">Kembali ke masuk</span>
+            <span class="auth-submit-label">Kembali ke sign in</span>
           </button>
         </div>
       </section>
@@ -372,42 +515,16 @@
         </div>
       </section>
 
-      <!-- ══ Pemisah + metode lain ══════════════════════════════════════════ -->
-      <div class="auth-alt" id="altMethods">
-        <div class="auth-divider"><span>atau</span></div>
-
-        <!-- Passkey: tombol disembunyikan kalau browser tidak mendukung.
-             Prinsip progressive enhancement — jangan tampilkan tombol mati. -->
-        <button type="button" class="auth-oauth" id="btnPasskey" hidden>
-          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
-            <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9zm3 4a1.5 1.5 0 0 1 .75 2.8V18h-1.5v-1.2A1.5 1.5 0 0 1 12 14z"
-                  fill="currentColor"/>
-          </svg>
-          <span>Masuk dengan passkey</span>
-        </button>
-
-        <button type="button" class="auth-oauth" id="btnGoogle" disabled>
-          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" fill="#EA4335"/>
-          </svg>
-          <span>Lanjut dengan Google</span>
-          <em class="auth-soon">Segera</em>
-        </button>
-
-        <button type="button" class="auth-oauth" id="btnGithub" disabled>
-          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
-            <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" fill="currentColor"/>
-          </svg>
-          <span>Lanjut dengan GitHub</span>
-          <em class="auth-soon">Segera</em>
-        </button>
-      </div>
-
       <footer class="auth-foot">
-        <p>Belum punya akun? <a href="/daftar" class="auth-link-inline">Daftar sekarang</a></p>
+        <p>Belum punya akun? <a href="/sign-up" class="auth-link-inline">Sign up</a></p>
+        <!-- Legal: wajib ada di halaman auth (syarat Midtrans + UU PDP).
+             Diletakkan paling bawah, kecil, dan redup — tidak boleh bersaing
+             dengan tindakan utama, tapi harus ADA dan bisa diklik. -->
+        <p class="auth-legal">
+          Dengan masuk, Anda menyetujui
+          <a href="/syarat" class="auth-link-inline">Syarat Ketentuan</a> dan
+          <a href="/privasi" class="auth-link-inline">Kebijakan Privasi</a>.
+        </p>
       </footer>
 
     </div>

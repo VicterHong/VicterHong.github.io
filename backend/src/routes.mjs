@@ -684,6 +684,9 @@ export const routes = [
         sso: {
           google: Boolean(config.googleClientId),
           github: Boolean(config.githubClientId),
+          microsoft: Boolean(config.microsoftClientId),
+          apple: Boolean(config.appleClientId),
+          sso: Boolean(config.ssoEntryPoint),
         },
 
         // Daftar proyek — satu sumber kebenaran dari assets/js/data/projects.js.

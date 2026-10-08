@@ -453,12 +453,64 @@
     });
   }
 
+  /**
+   * Tunggu sampai widget Turnstile menghasilkan token.
+   *
+   * ── BUG YANG DIPERBAIKI ─────────────────────────────────────────────────────
+   * Sebelumnya kode memanggil `siapkanTurnstile()` lalu LANGSUNG mengirim
+   * request. Tapi widget Turnstile butuh waktu untuk menyelesaikan tantangan
+   * dan memanggil callback yang mengisi `turnstileToken` — jadi request
+   * berangkat dengan token KOSONG, dan server menolaknya dengan
+   * 'token_kosong' ('Selesaikan verifikasi keamanan dulu').
+   *
+   * Gejalanya membingungkan: pengguna sudah mengisi token akses dengan benar,
+   * tapi ditolak dengan pesan yang menyuruh "selesaikan verifikasi keamanan"
+   * padahal tidak ada yang terlihat perlu diselesaikan.
+   *
+   * ── CARA KERJA ──────────────────────────────────────────────────────────────
+   * Polling `turnstileToken` setiap 100ms sampai terisi atau timeout.
+   * Timeout PENTING: kalau Cloudflare tidak terjangkau (iklan pemblokir,
+   * jaringan perusahaan), kita tidak boleh menggantung selamanya — pengguna
+   * harus dapat respons, meski itu pesan galat.
+   *
+   * @param {number} timeoutMs - batas tunggu
+   * @returns {Promise<string>} token, atau string kosong kalau timeout
+   */
+  function tungguTokenTurnstile(timeoutMs = 8000) {
+    return new Promise((resolve) => {
+      if (turnstileToken) return resolve(turnstileToken);
+
+      const mulai = Date.now();
+      const periksa = () => {
+        if (turnstileToken) return resolve(turnstileToken);
+        if (Date.now() - mulai >= timeoutMs) return resolve('');
+        setTimeout(periksa, 100);
+      };
+      periksa();
+    });
+  }
+
   /** Siapkan widget Turnstile di slot yang tersedia.
    *  Kalau gagal (jaringan/iklan pemblokir), JANGAN gagalkan login —
    *  server tetap punya pertahanan sendiri (rate limit, verifikasi token).
    *  Lebih baik pengguna bisa mencoba daripada terkunci total. */
   async function siapkanTurnstile() {
-    const slot = $('#turnstileSlot');
+    // ── SLOT BISA BERBEDA NAMA DI SETIAP HALAMAN ─────────────────────────────
+    //
+    // Sebelumnya fungsi ini HANYA mencari `#turnstileSlot` — dan halaman
+    // daftar memakai `#turnstileSlotDaftar`. Akibatnya widget tidak pernah
+    // dirender di halaman daftar: slot tidak ditemukan → fungsi keluar lebih
+    // awal → `tungguTokenTurnstile(8000)` menunggu 8 detik penuh untuk token
+    // yang tidak akan pernah datang → form tersangkut di "Mengirim…" dan
+    // tidak ada request API sama sekali.
+    //
+    // Gejalanya sangat menyesatkan: pesannya "Mengirim…" (seolah request
+    // sedang berjalan), padahal tidak ada request apa pun.
+    //
+    // Sekarang fungsi mencari slot PERTAMA yang ada dari daftar kandidat.
+    // Setiap halaman cukup memakai salah satu id ini; halaman yang tidak
+    // punya slot Turnstile (mis. panel 2FA) tidak terpengaruh.
+    const slot = $('#turnstileSlot') ?? $('#turnstileSlotDaftar') ?? $('#turnstileSlotLupa');
     if (!slot || turnstileWidgetId !== null) return;
 
     const kunci = window.__TURNSTILE_SITEKEY__;
@@ -484,49 +536,70 @@
     }
   }
 
-  // ══ Alur: token ══════════════════════════════════════════════════════════
+  // ══ Alur: MASUK (email + sandi) ══════════════════════════════════════════
+  //
+  // ── MENGGANTIKAN ALUR "TOKEN AKSES" ────────────────────────────────────────
+  // Sebelumnya pengguna menyalin token acak 19 karakter. Sekarang email +
+  // sandi — pola yang dipakai semua halaman login korporasi besar.
+  //
+  // Token akses TETAP didukung backend (untuk admin & integrasi otomatis),
+  // hanya bukan lagi cara pengguna masuk.
 
-  const formToken = $('#formToken');
+  const formMasuk = $('#formMasuk');
   const btnSubmit = $('#btnSubmit');
-  const msgToken = $('#msgToken');
+  const msgMasuk = $('#msgToken');
 
-  formToken?.addEventListener('submit', async (e) => {
+  /** Simpan email agar dipakai lagi saat langkah 2FA (tidak perlu ketik ulang). */
+  let emailMasuk = '';
+  let sandiMasuk = '';
+
+  formMasuk?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const proyek = $('#inpProject')?.value?.trim() ?? '';
-    const token = $('#inpToken')?.value?.trim() ?? '';
+    const email = $('#inpEmailMasuk')?.value?.trim() ?? '';
+    const sandi = $('#inpSandi')?.value ?? '';
 
-    // Validasi lokal dulu — jangan buang perjalanan ke server untuk
-    // kesalahan yang bisa diketahui sekarang.
-    if (!proyek) {
-      pesan(msgToken, 'Pilih proyek terlebih dahulu.', 'galat');
+    // Validasi lokal — jangan buang perjalanan ke server untuk kesalahan
+    // yang bisa diketahui sekarang.
+    if (!email) {
+      pesan(msgMasuk, 'Email belum diisi.', 'galat');
       getar(kartu);
-      $('#inpProject')?.focus();
+      $('#inpEmailMasuk')?.focus();
       return;
     }
-    if (!token) {
-      pesan(msgToken, 'Token akses belum diisi.', 'galat');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      pesan(msgMasuk, 'Format email tidak valid.', 'galat');
       getar(kartu);
-      $('#inpToken')?.focus();
+      $('#inpEmailMasuk')?.focus();
+      return;
+    }
+    if (!sandi) {
+      pesan(msgMasuk, 'Sandi belum diisi.', 'galat');
+      getar(kartu);
+      $('#inpSandi')?.focus();
       return;
     }
 
     setMemuat(btnSubmit, true);
-    pesan(msgToken, 'Memeriksa…');
+    pesan(msgMasuk, 'Memeriksa…');
 
-    // Siapkan Turnstile sekarang — pengguna sudah menunjukkan niat.
+    // Siapkan Turnstile, lalu TUNGGU tokennya.
+    // Memuat widget saja tidak cukup — token baru terisi setelah widget
+    // menyelesaikan tantangan. Tanpa menunggu, request berangkat dengan
+    // token kosong dan server menolak dengan 'token_kosong'.
     await siapkanTurnstile();
+    const tokenTurnstile = await tungguTokenTurnstile(8000);
 
     try {
-      const hasil = await kirimJson('/api/token/session', {
-        project: proyek,
-        token,
+      const hasil = await kirimJson('/api/auth/masuk', {
+        email,
+        sandi,
         device_fp: ambilFingerprint(),
-        ...(turnstileToken ? { 'cf-turnstile-response': turnstileToken } : {}),
+        'cf-turnstile-response': tokenTurnstile,
       });
 
       if (!hasil.ok) {
-        pesan(msgToken, pesanGalat(hasil, 'Token tidak diterima.'), 'galat');
+        pesan(msgMasuk, pesanGalat(hasil, 'Email atau sandi salah.'), 'galat');
         getar(kartu);
         // Token Turnstile sekali pakai — reset supaya percobaan berikutnya
         // mendapat yang baru.
@@ -537,29 +610,46 @@
         return;
       }
 
-      // Kalau server minta 2FA, lanjut ke panel TOTP
-      if (hasil.isi?.perlu_totp) {
-        pesan(msgToken, '');
+      // ── Kalau server minta 2FA, lanjut ke panel TOTP ──────────────────────
+      // Email & sandi disimpan di variabel modul supaya pengguna tidak perlu
+      // mengetiknya ulang di langkah kedua. Endpoint /api/auth/2fa
+      // memverifikasi ULANG keduanya (bukan hanya kode) — jadi menyimpannya
+      // di memori halaman tidak melemahkan apa pun.
+      if (hasil.isi?.perlu_2fa) {
+        emailMasuk = email;
+        sandiMasuk = sandi;
+        pesan(msgMasuk, '');
         pindahPanel('totp');
         document.dispatchEvent(new Event('panel:totp'));
         return;
       }
 
-      // Berhasil
-      pesan(msgToken, '');
-      selesai(proyek, hasil.isi);
+      pesan(msgMasuk, '');
+      selesai(hasil.isi?.project ?? '', hasil.isi);
     } catch (err) {
       const pesanErr = err?.name === 'AbortError'
         ? 'Server tidak merespons. Coba lagi.'
         : 'Gagal terhubung. Periksa koneksi Anda.';
-      pesan(msgToken, pesanErr, 'galat');
+      pesan(msgMasuk, pesanErr, 'galat');
       getar(kartu);
     } finally {
       setMemuat(btnSubmit, false);
     }
   });
 
-  // ══ Alur: TOTP ═══════════════════════════════════════════════════════════
+  // ── Tombol tampilkan/sembunyikan sandi ─────────────────────────────────────
+  $('#btnRevealSandi')?.addEventListener('click', (e) => {
+    const inp = $('#inpSandi');
+    const tombol = e.currentTarget;
+    if (!inp) return;
+    const terlihat = inp.type === 'text';
+    inp.type = terlihat ? 'password' : 'text';
+    tombol.setAttribute('aria-pressed', terlihat ? 'false' : 'true');
+    tombol.setAttribute('aria-label', terlihat ? 'Tampilkan sandi' : 'Sembunyikan sandi');
+    inp.focus();
+  });
+
+  // ══ Alur: TOTP (langkah kedua) ═══════════════════════════════════════════
 
   const formTotp = $('#formTotp');
   const btnTotp = $('#btnTotp');
@@ -582,15 +672,17 @@
     pesan(msgTotp, 'Memverifikasi…');
 
     try {
-      const hasil = await kirimJson('/api/token/totp', {
-        project: $('#inpProject')?.value?.trim() ?? '',
+      const hasil = await kirimJson('/api/auth/2fa', {
+        email: emailMasuk,
+        sandi: sandiMasuk,
         code: kode,
+        device_fp: ambilFingerprint(),
+        'cf-turnstile-response': turnstileToken,
       });
 
       if (!hasil.ok) {
         pesan(msgTotp, pesanGalat(hasil, 'Kode tidak valid.'), 'galat');
         getar(kartu);
-        // Kosongkan & fokus ulang supaya pengguna bisa langsung coba lagi
         document.querySelectorAll('.auth-otp-cell').forEach((s) => {
           s.value = '';
           s.classList.remove('is-terisi');
@@ -600,7 +692,9 @@
       }
 
       pesan(msgTotp, '');
-      selesai($('#inpProject')?.value?.trim() ?? '', hasil.isi);
+      // Bersihkan sandi dari memori begitu tidak diperlukan lagi.
+      sandiMasuk = '';
+      selesai(hasil.isi?.project ?? '', hasil.isi);
     } catch (err) {
       pesan(msgTotp, err?.name === 'AbortError'
         ? 'Server tidak merespons.'
@@ -613,12 +707,212 @@
 
   $('#btnBackToken')?.addEventListener('click', () => {
     pesan(msgTotp, '');
-    pindahPanel('token');
+    // Bersihkan sandi tersimpan saat pengguna membatalkan.
+    sandiMasuk = '';
+    pindahPanel('masuk');
+  });
+
+  // ══ Alur: LUPA SANDI ═════════════════════════════════════════════════════
+
+  $('#btnLupaSandi')?.addEventListener('click', () => {
+    // Isi otomatis dengan email yang sudah diketik — hemat satu langkah.
+    const email = $('#inpEmailMasuk')?.value?.trim();
+    if (email) { const el = $('#inpEmailLupa'); if (el) el.value = email; }
+    pindahPanel('lupa');
+    $('#inpEmailLupa')?.focus();
+  });
+
+  $('#btnBatalLupa')?.addEventListener('click', () => {
+    pesan($('#msgLupa'), '');
+    pindahPanel('masuk');
+  });
+
+  $('#btnKembaliDariLupa')?.addEventListener('click', () => pindahPanel('masuk'));
+
+  const formLupa = $('#formLupa');
+  const btnLupa = $('#btnLupa');
+  const msgLupa = $('#msgLupa');
+
+  formLupa?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('#inpEmailLupa')?.value?.trim() ?? '';
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      pesan(msgLupa, 'Format email tidak valid.', 'galat');
+      getar(kartu);
+      $('#inpEmailLupa')?.focus();
+      return;
+    }
+
+    setMemuat(btnLupa, true);
+    pesan(msgLupa, 'Mengirim…');
+
+    await siapkanTurnstile();
+    const tokenTurnstile = await tungguTokenTurnstile(8000);
+
+    try {
+      const hasil = await kirimJson('/api/auth/lupa-sandi', {
+        email,
+        'cf-turnstile-response': tokenTurnstile,
+      });
+
+      // Server SELALU membalas sukses (mencegah orang memeriksa email mana
+      // yang terdaftar). Jadi panel berikutnya tidak pernah mengungkapkan
+      // apakah email itu ada atau tidak.
+      if (!hasil.ok) {
+        pesan(msgLupa, pesanGalat(hasil, 'Gagal mengirim. Coba lagi.'), 'galat');
+        getar(kartu);
+        return;
+      }
+
+      pesan(msgLupa, '');
+      pindahPanel('lupa-selesai');
+    } catch (err) {
+      pesan(msgLupa, err?.name === 'AbortError'
+        ? 'Server tidak merespons.'
+        : 'Gagal terhubung.', 'galat');
+      getar(kartu);
+    } finally {
+      setMemuat(btnLupa, false);
+    }
+  });
+
+  // ══ Alur: DAFTAR (sign up) ═══════════════════════════════════════════════
+  //
+  // ── DI HALAMAN TERPISAH ────────────────────────────────────────────────────
+  // Daftar TIDAK lagi menjadi panel di dalam halaman masuk. Korporasi
+  // memisahkannya: "Masuk" untuk yang sudah punya akun, "Daftar" untuk yang
+  // belum. Menggabung keduanya membuat pengguna yang salah masuk ke form
+  // daftar membuat akun duplikat, lalu bingung kenapa datanya kosong.
+  //
+  // Handler ini tidak berbuat apa-apa kalau #formDaftar tidak ada di halaman
+  // — jadi auth.js tetap aman dimuat di masuk.html.
+
+  const formDaftar = $('#formDaftar');
+  const btnDaftar = $('#btnDaftar');
+  const msgDaftar = $('#msgDaftar');
+
+  formDaftar?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Field sign up murni: nama, email, perusahaan (opsional), sandi.
+    // Field lead (anggaran, urgensi, pesan) TIDAK ada di sini — itu pertanyaan
+    // sales untuk formulir kontak, bukan pertanyaan pendaftaran akun.
+    const nama = $('#inpNama')?.value?.trim() ?? '';
+    const email = $('#inpEmail')?.value?.trim() ?? '';
+    const perusahaan = $('#inpPerusahaan')?.value?.trim() ?? '';
+    const sandi = $('#inpSandiDaftar')?.value ?? '';
+
+    // ── Validasi lokal (server memvalidasi ULANG — ini hanya umpan balik cepat)
+    const gagal = (m, sel) => {
+      pesan(msgDaftar, m, 'galat');
+      getar(kartu);
+      if (sel) $(sel)?.focus();
+    };
+
+    if (nama.length < 3 || /\d/.test(nama)) return gagal('Nama minimal 3 huruf, tanpa angka.', '#inpNama');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return gagal('Format email tidak valid.', '#inpEmail');
+    // Perusahaan OPSIONAL — hanya divalidasi kalau diisi.
+    if (perusahaan && perusahaan.length < 3) return gagal('Nama perusahaan minimal 3 huruf.', '#inpPerusahaan');
+    // Sandi minimal 12 karakter — sama dengan aturan server (NIST SP 800-63B).
+    // Memeriksa di klien menghemat perjalanan ke server untuk kesalahan yang
+    // bisa diketahui sekarang.
+    if (sandi.length < 12) return gagal('Sandi minimal 12 karakter.', '#inpSandiDaftar');
+
+    setMemuat(btnDaftar, true);
+    pesan(msgDaftar, 'Mengirim…');
+
+    await siapkanTurnstile();
+    const tokenTurnstile = await tungguTokenTurnstile(8000);
+
+    try {
+      // ── ENDPOINT: /api/auth/daftar, BUKAN /api/contact/sales ─────────────
+      // contact/sales adalah formulir LEAD — ia mencatat minat calon klien
+      // (nama, perusahaan, anggaran) tapi TIDAK membuat akun, dan tidak
+      // menerima sandi. /api/auth/daftar yang membuat akun + kredensial.
+      //
+      // Keduanya berbeda tujuan: lead untuk yang belum yakin, daftar untuk
+      // yang langsung ingin masuk. Mengarahkan form ini ke contact/sales
+      // membuat pendaftar tidak pernah bisa masuk — akunnya tidak ada.
+      const hasil = await kirimJson('/api/auth/daftar', {
+        nama,
+        email,
+        perusahaan,
+        sandi,
+        'cf-turnstile-response': tokenTurnstile,
+      });
+
+      if (!hasil.ok) {
+        pesan(msgDaftar, pesanGalat(hasil, 'Gagal mengirim. Coba lagi.'), 'galat');
+        getar(kartu);
+        return;
+      }
+
+      pesan(msgDaftar, '');
+      pindahPanel('daftar-selesai');
+
+      // ── ALIHKAN KE HALAMAN MASUK SETELAH 2,2 DETIK ────────────────────────
+      //
+      // ── KENAPA TIDAK LANGSUNG MASUK ───────────────────────────────────────
+      // Banyak pengguna mengira harus menunggu email verifikasi setelah
+      // mendaftar. Membiarkan mereka di halaman "berhasil" tanpa tindakan
+      // membuat sebagian menutup tab dan tidak pernah masuk.
+      //
+      // Mengalihkan ke halaman masuk membuat mereka LANGSUNG mencoba — dan
+      // karena itu berhasil, mereka tahu akunnya sudah aktif.
+      //
+      // ── KENAPA 2,2 DETIK ──────────────────────────────────────────────────
+      // Cukup untuk membaca judul + subjudul di panel selesai, tidak cukup
+      // membuat pengguna menunggu. Kalau terlalu cepat (< 1,5 detik), panel
+      // selesai tidak sempat terbaca dan terasa seperti lompatan tanpa alasan.
+      //
+      // ── EMAIL DIBERI LEWAT QUERY STRING ──────────────────────────────────
+      // Supaya pengguna tidak perlu mengetik ulang emailnya. Yang dilewatkan
+      // HANYA email — tidak ada sandi, tidak ada token. Email bukan rahasia
+      // (pengguna sendiri yang mengetiknya), dan halaman masuk akan
+      // memvalidasinya lagi saat submit.
+      if (!kurangiGerak) {
+        const tujuan = `/sign-in?email=${encodeURIComponent(email)}`;
+        setTimeout(() => { window.location.href = tujuan; }, 2200);
+      }
+    } catch (err) {
+      pesan(msgDaftar, err?.name === 'AbortError'
+        ? 'Server tidak merespons.'
+        : 'Gagal terhubung.', 'galat');
+      getar(kartu);
+    } finally {
+      setMemuat(btnDaftar, false);
+    }
+  });
+
+  $('#btnRevealSandiDaftar')?.addEventListener('click', (e) => {
+    const inp = $('#inpSandiDaftar');
+    const tombol = e.currentTarget;
+    if (!inp) return;
+    const terlihat = inp.type === 'text';
+    inp.type = terlihat ? 'password' : 'text';
+    tombol.setAttribute('aria-pressed', terlihat ? 'false' : 'true');
+    tombol.setAttribute('aria-label', terlihat ? 'Tampilkan sandi' : 'Sembunyikan sandi');
+    inp.focus();
+  });
+
+  $('#btnKembaliMasuk')?.addEventListener('click', () => {
+    window.location.href = '/sign-in';
   });
 
   // ══ Selesai ══════════════════════════════════════════════════════════════
 
+  /** Timer alih-otomatis setelah login.
+   *
+   *  Dibatalkan kalau pengguna masuk ke alur setup 2FA — kalau tidak,
+   *  halaman berpindah DI TENGAH alur dan panel terlepas dari DOM.
+   *  Harus di scope modul supaya selesai(), batalkanAlih(), dan
+   *  mulaiSetup2fa() melihat variabel yang sama.
+   */
+  let timerAlih = null;
+
   function selesai(proyek, data) {
+    if (proyek) proyekAktif = proyek;
     const tujuan = data?.redirect || (proyek ? `/${proyek}` : '/home');
     const tautan = $('#btnGoProject');
     if (tautan) tautan.href = tujuan;
@@ -635,8 +929,26 @@
     // Alihkan otomatis. Jeda 900ms memberi waktu animasi centang selesai
     // dan pengguna membaca pesan — kalau terlalu cepat, terasa seperti
     // halaman "melompat" tanpa alasan.
+    //
+    // ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────
+    // Timer ini HARUS bisa dibatalkan. Kalau pengguna menekan "Aktifkan 2FA"
+    // dalam 900ms setelah panel 'done' muncul, halaman berpindah DI TENGAH
+    // alur setup 2FA — panel terlepas dari DOM, pesan galat tidak pernah
+    // muncul, dan API /2fa/selesai tidak pernah dipanggil.
+    //
+    // Gejalanya sangat menyesatkan: seolah tombol 2FA tidak berfungsi,
+    // padahal halaman hanya dinavigasi ulang sebelum sempat bekerja.
+    // Terukur: klik pada t+225ms → halaman langsung tercabut.
     if (!kurangiGerak) {
-      setTimeout(() => { window.location.href = tujuan; }, 900);
+      timerAlih = setTimeout(() => { window.location.href = tujuan; }, 900);
+    }
+  }
+
+  /** Batalkan alih-otomatis kalau pengguna masuk ke alur 2FA. */
+  function batalkanAlih() {
+    if (timerAlih !== null) {
+      clearTimeout(timerAlih);
+      timerAlih = null;
     }
   }
 
@@ -674,16 +986,6 @@
 
   // ══ Tombol reveal token ══════════════════════════════════════════════════
 
-  $('#btnReveal')?.addEventListener('click', (e) => {
-    const inp = $('#inpToken');
-    const tombol = e.currentTarget;
-    if (!inp) return;
-    const terlihat = inp.type === 'text';
-    inp.type = terlihat ? 'password' : 'text';
-    tombol.setAttribute('aria-pressed', terlihat ? 'false' : 'true');
-    tombol.setAttribute('aria-label', terlihat ? 'Tampilkan token' : 'Sembunyikan token');
-    inp.focus();
-  });
 
   // ══ Passkey (WebAuthn) ═══════════════════════════════════════════════════
 
@@ -710,22 +1012,440 @@
   $('#btnPasskey')?.addEventListener('click', () => {
     // Backend endpoint belum dibangun. Tampilkan pesan jujur, bukan
     // tombol yang diam-diam tidak melakukan apa-apa.
-    pesan(msgToken, 'Passkey belum aktif. Gunakan token akses.', 'galat');
+    pesan(msgToken, 'Passkey belum aktif. Gunakan email dan sandi.', 'galat');
   });
 
-  // ══ OAuth — tombol belum aktif ═══════════════════════════════════════════
-  // Tombol sudah `disabled` di HTML. Kalau nanti Client ID tersedia,
-  // cukup hapus `disabled` dan isi handler di bawah.
+  // ══ SSO (Google / Microsoft / Apple / GitHub) ════════════════════════════
+  //
+  // ── TOMBOL TERLIHAT TAPI NONAKTIF SAMPAI BACKEND SIAP ──────────────────────
+  // Backend BELUM punya endpoint OAuth (`/api/auth/google`, `/api/auth/github`,
+  // dst. tidak ada — sudah diverifikasi dengan grep). Mengaktifkan tombol
+  // sekarang = 404 = pengguna mengira situsnya rusak.
+  //
+  // ── KENAPA DITAMPILKAN, BUKAN DISEMBUNYIKAN ────────────────────────────────
+  // Menyembunyikan berarti pengunjung tidak tahu metode ini akan ada, dan
+  // halaman terasa lebih miskin dari yang sebenarnya. Menampilkannya redup
+  // dengan catatan "segera hadir" jujur pada dua sisi: bentuknya terlihat,
+  // dan tidak ada yang mengklik tombol mati.
+  //
+  // Ketika endpoint OAuth ditambahkan nanti, tombol menyala sendiri tanpa
+  // perlu mengubah HTML — cukup set flag di config server.
+  async function siapkanSso() {
+    let aktif = { google: false, github: false, microsoft: false, apple: false, sso: false };
+    try {
+      const r = await fetch('/api/config', { cache: 'no-store', credentials: 'same-origin' });
+      if (r.ok) {
+        const d = await r.json();
+        aktif = {
+          google: Boolean(d?.sso?.google),
+          github: Boolean(d?.sso?.github),
+          microsoft: Boolean(d?.sso?.microsoft),
+          apple: Boolean(d?.sso?.apple),
+          sso: Boolean(d?.sso?.sso),
+        };
+      }
+    } catch {
+      // Server tidak terjangkau → biarkan semua tombol dalam keadaan awal
+      // (nonaktif). Catatan "segera hadir" sudah ada di HTML, jadi pengunjung
+      // tetap dapat penjelasan tanpa JavaScript tambahan.
+      return;
+    }
 
-  $('#btnGoogle')?.addEventListener('click', () => {
-    if ($('#btnGoogle').disabled) return;
-    window.location.href = '/api/auth/google';
-  });
+    // Penyedia SOSIAL — satu keluarga visual, satu baris.
+    // SSO perusahaan TIDAK di sini: ia jalur terpisah dengan tombol sendiri
+    // (lihat di bawah), mengikuti panduan Auth0/WorkOS.
+    const penyedia = [
+      { id: '#btnGoogle',    nama: 'Google',    url: '/api/auth/google',    siap: aktif.google },
+      { id: '#btnMicrosoft', nama: 'Microsoft', url: '/api/auth/microsoft', siap: aktif.microsoft },
+      { id: '#btnApple',     nama: 'Apple',     url: '/api/auth/apple',     siap: aktif.apple },
+      { id: '#btnGithub',    nama: 'GitHub',    url: '/api/auth/github',    siap: aktif.github },
+    ];
 
-  $('#btnGithub')?.addEventListener('click', () => {
-    if ($('#btnGithub').disabled) return;
-    window.location.href = '/api/auth/github';
-  });
+    const belumSiap = [];
+
+    for (const p of penyedia) {
+      const btn = $(p.id);
+      if (!btn) continue;
+
+      if (p.siap) {
+        // Menyala: bisa diklik, catatan "segera" dihapus dari tombol ini.
+        btn.disabled = false;
+        btn.removeAttribute('title');
+        btn.addEventListener('click', () => { window.location.href = p.url; });
+      } else {
+        belumSiap.push(p.nama);
+        btn.title = p.nama + ' — segera hadir';
+      }
+    }
+
+    // ── SSO PERUSAHAAN: jalur terpisah ────────────────────────────────────────
+    // Ditangani sendiri, bukan lewat loop penyedia di atas, karena metodenya
+    // berbeda: pengguna diarahkan ke IdP organisasinya, bukan ke penyedia
+    // identitas publik.
+    const btnSso = $('#btnSso');
+    if (btnSso) {
+      if (aktif.sso) {
+        btnSso.disabled = false;
+        btnSso.removeAttribute('title');
+        btnSso.addEventListener('click', () => { window.location.href = '/api/auth/sso'; });
+      } else {
+        btnSso.title = 'SSO perusahaan — segera hadir';
+        belumSiap.push('SSO perusahaan');
+      }
+    }
+
+    // ── CATATAN "SEGERA HADIR" ─────────────────────────────────────────────────
+    // Satu baris untuk SEMUA provider yang belum siap, bukan lencana di tiap
+    // tombol. Empat lencana "Segera" dalam satu baris membuat halaman terasa
+    // belum jadi; satu catatan di bawahnya menyampaikan hal yang sama dengan
+    // lebih tenang.
+    //
+    // Daftar nama disusun dari keadaan sebenarnya, jadi kalau Google aktif
+    // sementara Apple belum, catatannya otomatis menyebut Apple saja.
+    const catatan = document.getElementById('ssoSegera');
+    if (catatan) {
+      if (belumSiap.length === 0) {
+        catatan.hidden = true;
+      } else {
+        catatan.hidden = false;
+        catatan.textContent = belumSiap.join(', ') + ' segera hadir.';
+      }
+    }
+  }
+
+  siapkanSso();
+
+  // ══ Enrollment 2FA (setup) ══════════════════════════════════════════════
+  //
+  // Alur: mulaiEnrollment() → server balas QR + secret → pengguna memindai →
+  //       memasukkan 6 digit → server memverifikasi → kode pemulihan.
+  //
+  // ── KENAPA PANEL TERPISAH, BUKAN MODAL ────────────────────────────────────
+  // Setup 2FA butuh perhatian penuh: memindai QR, membuka aplikasi lain,
+  // mengetik 6 digit, lalu MENYIMPAN kode pemulihan. Modal yang bisa
+  // ditutup tidak sengaja akan membuat pengguna kehilangan kode pemulihan
+  // tanpa sadar. Panel penuh memaksa satu alur yang selesai.
+
+  let dataEnrollment = null;   // { secret, uri, akun, ... }
+
+  /**
+   * Isi satu set sel OTP (dipakai dua tempat: login 2FA dan setup 2FA).
+   *
+   * Dibuat fungsi terpisah karena logikanya identik — menyalinnya berarti
+   * dua tempat yang harus diperbarui setiap kali ada perbaikan perilaku.
+   */
+  function pasangSelOtp(sel, { onLengkap } = {}) {
+    if (!sel.length) return () => {};
+
+    let timerKirim = null;
+
+    const nilai = () => sel.map((s) => s.value).join('');
+
+    const isi = (i, v) => {
+      if (i < 0 || i >= sel.length) return;
+      sel[i].value = v;
+      sel[i].classList.toggle('is-terisi', v !== '');
+    };
+
+    const bersihkan = () => {
+      if (timerKirim) { clearTimeout(timerKirim); timerKirim = null; }
+    };
+
+    sel.forEach((s, i) => {
+      s.addEventListener('input', () => {
+        const bersih = s.value.replace(/\D/g, '');
+        if (bersih.length > 1) {
+          // Pengguna menempel beberapa digit sekaligus (dari SMS atau
+          // aplikasi authenticator). Sebar ke sel berikutnya.
+          const digit = bersih.slice(0, sel.length - i).split('');
+          digit.forEach((d, k) => isi(i + k, d));
+          const berikut = Math.min(i + digit.length, sel.length - 1);
+          sel[berikut].focus();
+        } else {
+          isi(i, bersih);
+          if (bersih && i < sel.length - 1) sel[i + 1].focus();
+        }
+
+        if (nilai().length === sel.length && onLengkap) {
+          // Jeda 280ms supaya mata sempat memverifikasi 6 digit sebelum
+          // terkirim — dan pengguna masih bisa menekan Backspace.
+          bersihkan();
+          timerKirim = setTimeout(() => onLengkap(nilai()), 280);
+        }
+      });
+
+      s.addEventListener('keydown', (e) => {
+        bersihkan();
+        if (e.key === 'Backspace' && !s.value && i > 0) {
+          e.preventDefault();
+          isi(i - 1, '');
+          sel[i - 1].focus();
+        }
+        if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); sel[i - 1].focus(); }
+        if (e.key === 'ArrowRight' && i < sel.length - 1) { e.preventDefault(); sel[i + 1].focus(); }
+      });
+
+      s.addEventListener('focus', () => s.select());
+    });
+
+    return { nilai, bersihkan, reset: () => { bersihkan(); sel.forEach((s) => isi(sel.indexOf(s), '')); sel[0]?.focus(); } };
+  }
+
+  /** Salin teks ke clipboard dengan fallback untuk browser lama/HTTP. */
+  async function salin(teks) {
+    try {
+      // API modern — butuh HTTPS atau localhost.
+      await navigator.clipboard.writeText(teks);
+      return true;
+    } catch {
+      // Fallback: textarea sementara + document.execCommand.
+      // Masih bekerja di semua browser meski sudah "deprecated".
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = teks;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  /** Tampilkan umpan balik singkat di tombol setelah menyalin. */
+  function umpanSalin(tombol, teksAsli) {
+    if (!tombol) return;
+    const label = tombol.querySelector('span');
+    tombol.classList.add('is-tersalin');
+    if (label) label.textContent = 'Tersalin';
+    setTimeout(() => {
+      tombol.classList.remove('is-tersalin');
+      if (label) label.textContent = teksAsli;
+    }, 1800);
+  }
+
+  // ── Mulai enrollment ──────────────────────────────────────────────────────
+  async function mulaiSetup2fa() {
+    // Pengguna memilih mengaktifkan 2FA — jangan alihkan halaman.
+    batalkanAlih();
+
+    const wrap = $('#qrWrap');
+    const skeleton = $('#qrSkeleton');
+    const img = $('#qrImage');
+    const msg = $('#msgSetup2fa');
+
+    pindahPanel('setup2fa');
+    pesan(msg, '');
+    if (skeleton) skeleton.hidden = false;
+    if (img) { img.hidden = true; img.removeAttribute('src'); }
+
+    try {
+      const hasil = await kirimJson('/api/token/2fa/mulai', {});
+
+      if (!hasil.ok) {
+        pesan(msg, pesanGalat(hasil, 'Gagal memulai setup 2FA.'), 'galat');
+        if (skeleton) skeleton.hidden = true;
+        return;
+      }
+
+      dataEnrollment = hasil.isi;
+
+      // Tampilkan QR kalau server berhasil membuatnya.
+      if (hasil.isi?.qr_data_url && img) {
+        img.src = hasil.isi.qr_data_url;
+        img.hidden = false;
+        if (skeleton) skeleton.hidden = true;
+      } else {
+        // QR gagal dibuat — sembunyikan skeleton, buka panel secret manual
+        // otomatis. Pengguna tetap bisa melanjutkan.
+        if (skeleton) skeleton.hidden = true;
+        const detail = $('#secretDetail');
+        if (detail) detail.open = true;
+        pesan(msg, hasil.isi?.qr_catatan ?? 'QR tidak tersedia — masukkan kode secara manual.', 'galat');
+      }
+
+      const sec = $('#secretText');
+      if (sec) sec.textContent = hasil.isi?.secret ?? '—';
+
+      // Fokuskan sel pertama supaya bisa langsung mengetik
+      document.querySelector('[data-otp-setup="0"]')?.focus();
+    } catch (err) {
+      pesan(msg, err?.name === 'AbortError' ? 'Server tidak merespons.' : 'Gagal terhubung.', 'galat');
+      if (skeleton) skeleton.hidden = true;
+    }
+  }
+
+  // ── Selesaikan enrollment ─────────────────────────────────────────────────
+  async function selesaikanSetup2fa(kode) {
+    const btn = $('#btnSetup2fa');
+    const msg = $('#msgSetup2fa');
+
+    setMemuat(btn, true);
+    pesan(msg, 'Memverifikasi…');
+
+    try {
+      const hasil = await kirimJson('/api/token/2fa/selesai', { code: kode });
+
+      if (!hasil.ok) {
+        pesan(msg, pesanGalat(hasil, 'Kode tidak cocok.'), 'galat');
+        getar(kartu);
+        // Kosongkan sel supaya bisa langsung coba lagi
+        document.querySelectorAll('[data-otp-setup]').forEach((s) => {
+          s.value = ''; s.classList.remove('is-terisi');
+        });
+        document.querySelector('[data-otp-setup="0"]')?.focus();
+        return;
+      }
+
+      // Berhasil — tampilkan kode pemulihan.
+      tampilkanKodePemulihan(hasil.isi?.kode_pemulihan ?? []);
+    } catch (err) {
+      pesan(msg, err?.name === 'AbortError' ? 'Server tidak merespons.' : 'Gagal terhubung.', 'galat');
+      getar(kartu);
+    } finally {
+      setMemuat(btn, false);
+    }
+  }
+
+  // ── Tampilkan kode pemulihan ──────────────────────────────────────────────
+  let kodePemulihanSaatIni = [];
+
+  function tampilkanKodePemulihan(kode) {
+    kodePemulihanSaatIni = kode;
+    const list = $('#recoveryList');
+    if (!list) return;
+
+    list.innerHTML = '';
+    kode.forEach((k, i) => {
+      const li = document.createElement('li');
+      li.textContent = k;
+      // Jeda bertahap: daftar terasa "terbentuk", bukan muncul sekaligus.
+      // Dibatasi 8 item (jumlah kode), jadi totalnya < 350ms.
+      li.style.animationDelay = `${i * 40}ms`;
+      list.appendChild(li);
+    });
+
+    // Reset konfirmasi — wajib dicentang ulang setiap kali kode baru tampil.
+    const chk = $('#chkSimpan');
+    const lanjut = $('#btnLanjut');
+    if (chk) chk.checked = false;
+    if (lanjut) lanjut.disabled = true;
+
+    pindahPanel('pemulihan');
+  }
+
+  /** Unduh kode pemulihan sebagai berkas teks. */
+  function unduhKodePemulihan() {
+    if (!kodePemulihanSaatIni.length) return;
+
+    const baris = [
+      'KODE PEMULIHAN — Area Klien',
+      '='.repeat(40),
+      '',
+      'Simpan berkas ini di tempat aman. Setiap kode hanya bisa',
+      'dipakai SEKALI untuk masuk kalau Anda kehilangan ponsel.',
+      '',
+      ...kodePemulihanSaatIni,
+      '',
+      '='.repeat(40),
+      `Dibuat: ${new Date().toLocaleString('id-ID')}`,
+      '',
+      'JANGAN bagikan kode ini. Siapa pun yang memilikinya bisa',
+      'masuk ke akun Anda tanpa kode dari aplikasi authenticator.',
+    ].join('\n');
+
+    // Blob + URL.createObjectURL — tidak butuh server, tidak butuh
+    // hak akses khusus. URL di-revoke setelah klik supaya tidak
+    // menahan memori.
+    const blob = new Blob([baris], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kode-pemulihan.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ── Pemasangan handler ────────────────────────────────────────────────────
+  function pasangEnrollment2fa() {
+    const selSetup = Array.from(document.querySelectorAll('[data-otp-setup]'));
+    if (selSetup.length) {
+      const otp = pasangSelOtp(selSetup, {
+        onLengkap: (kode) => selesaikanSetup2fa(kode),
+      });
+      // Batal: bersihkan sel supaya tidak ada kode tersisa di DOM
+      $('#btnBatalSetup')?.addEventListener('click', () => {
+        otp.reset();
+        dataEnrollment = null;
+        const img = $('#qrImage');
+        if (img) { img.hidden = true; img.removeAttribute('src'); }
+        const sec = $('#secretText');
+        if (sec) sec.textContent = '—';
+        pesan($('#msgSetup2fa'), '');
+        pindahPanel('masuk');
+      });
+    }
+
+    // Tombol setup dari panel selesai / status
+    $('#btnSetup2faMulai')?.addEventListener('click', mulaiSetup2fa);
+
+    // Form submit manual (kalau auto-submit dibatalkan dengan Backspace)
+    $('#formSetup2fa')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const kode = Array.from(document.querySelectorAll('[data-otp-setup]'))
+        .map((s) => s.value).join('');
+      if (kode.length !== 6) {
+        pesan($('#msgSetup2fa'), 'Masukkan 6 digit kode.', 'galat');
+        return;
+      }
+      selesaikanSetup2fa(kode);
+    });
+
+    // Salin secret
+    $('#btnCopySecret')?.addEventListener('click', async (e) => {
+      const teks = $('#secretText')?.textContent ?? '';
+      if (!teks || teks === '—') return;
+      const ok = await salin(teks);
+      if (ok) umpanSalin(e.currentTarget, '');
+      else pesan($('#msgSetup2fa'), 'Gagal menyalin. Pilih teksnya manual.', 'galat');
+    });
+
+    // Salin semua kode pemulihan
+    $('#btnCopyRecovery')?.addEventListener('click', async (e) => {
+      const ok = await salin(kodePemulihanSaatIni.join('\n'));
+      if (ok) umpanSalin(e.currentTarget, 'Salin semua');
+      else pesan($('#msgSetup2fa'), 'Gagal menyalin.', 'galat');
+    });
+
+    // Unduh kode pemulihan
+    $('#btnUnduhRecovery')?.addEventListener('click', unduhKodePemulihan);
+
+    // Konfirmasi sudah menyimpan → aktifkan tombol lanjut
+    $('#chkSimpan')?.addEventListener('change', (e) => {
+      const lanjut = $('#btnLanjut');
+      if (lanjut) lanjut.disabled = !e.target.checked;
+    });
+
+    // Lanjut ke proyek
+    $('#btnLanjut')?.addEventListener('click', () => {
+      // Bersihkan kode dari memori & DOM sebelum berpindah halaman —
+      // tidak ada alasan kode pemulihan tetap ada setelah dikonfirmasi.
+      kodePemulihanSaatIni = [];
+      const list = $('#recoveryList');
+      if (list) list.innerHTML = '';
+      selesai(proyekAktif, null);
+    });
+  }
+
+  // Proyek yang sedang dipakai — diisi saat login berhasil.
+  let proyekAktif = '';
 
   // ══ Siklus hidup halaman ═════════════════════════════════════════════════
 
@@ -760,14 +1480,31 @@
     mulaiPartikel();
     pasangTilt();
     pasangOtp();
+    pasangEnrollment2fa();
     siapkanPasskey();
 
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('resize', onResize, { passive: true });
     window.addEventListener('pagehide', bersihkan, { once: true });
 
-    // Fokuskan field pertama — hemat satu klik untuk pengguna keyboard
-    $('#inpProject')?.focus();
+    // Fokuskan field pertama — hemat satu klik untuk pengguna keyboard.
+    // Di halaman daftar, field pertama adalah nama; di halaman masuk, email.
+    // Keduanya memakai ?. jadi aman kalau elemennya tidak ada.
+    // ── ISI EMAIL OTOMATIS DARI QUERY STRING ─────────────────────────────
+    // Setelah mendaftar, pengguna dialihkan ke /masuk?email=... supaya tidak
+    // perlu mengetik ulang. Hanya diisi kalau field-nya masih kosong —
+    // jangan menimpa apa yang sudah diketik pengguna.
+    try {
+      const dariUrl = new URLSearchParams(location.search).get('email');
+      const inp = $('#inpEmailMasuk');
+      if (dariUrl && inp && !inp.value) {
+        inp.value = dariUrl;
+        // Fokuskan ke sandi, bukan email — emailnya sudah terisi.
+        $('#inpSandi')?.focus();
+      }
+    } catch { /* URL tidak bisa dibaca — abaikan */ }
+
+    ($('#inpEmailMasuk') ?? $('#inpNama'))?.focus();
   }
 
   if (document.readyState === 'loading') {

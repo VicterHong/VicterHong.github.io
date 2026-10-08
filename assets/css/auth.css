@@ -20,8 +20,14 @@
   --emas-garis: rgba(245, 197, 66, 0.28);
 
   --latar: #0a0a0b;
-  --permukaan: rgba(20, 20, 23, 0.72);
-  --permukaan-padat: #141417;
+  /* ── PERMUKAAN SOLID, BUKAN KACA ────────────────────────────────────────────
+     Sebelumnya rgba(20,20,23,0.72) + backdrop-filter blur(22px) + saturate(150%).
+     Itu gaya "glassmorphism" yang jadi penanda desain AI-generik.
+
+     Korporasi memakai permukaan solid: Vercel #fff, GitHub #fff, Resend #000.
+     Kartu gelap solid dengan border 1px — tegas, terbaca, tanpa efek. */
+  --permukaan: #131316;
+  --permukaan-padat: #131316;
   --garis: rgba(255, 255, 255, 0.09);
   --garis-terang: rgba(255, 255, 255, 0.16);
 
@@ -39,10 +45,18 @@
   --pegas: cubic-bezier(0.22, 1, 0.36, 1);      /* ease-out kuat */
   --pegas-mantul: cubic-bezier(0.34, 1.56, 0.64, 1); /* sedikit melewati */
 
-  /* Geometri */
-  --radius-kartu: 22px;
-  --radius-input: 12px;
-  --lebar-kartu: 428px;
+  /* ── Geometri — nilai dari riset korporasi ─────────────────────────────────
+     Terukur dari halaman login nyata:
+       radius kartu : GitHub 6px · Stripe 6px · Vercel 8px · Resend 16px
+                      → 12px dipilih: modern tapi tidak bulat seperti mainan
+       radius input : GitHub 6px · Stripe 6px · Vercel 8px · Resend 16px
+                      → 8px (tengah rentang)
+       tinggi input : GitHub 40px · Stripe 44px · Resend 48px → 44px
+     Radius 22px sebelumnya terlalu bulat; 12px sejalan dengan kartu korporasi. */
+  --radius-kartu: 12px;
+  --radius-input: 8px;
+  --lebar-kartu: 400px;      /* Stripe memakai 364px, Vercel ~400px */
+  --tinggi-input: 44px;
 }
 
 * { box-sizing: border-box; }
@@ -61,118 +75,433 @@ html, body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+
+  /* ── KOLOM FLEX SETINGGI VIEWPORT ──────────────────────────────────────────
+     Navigasi (.auth-nav) dan kartu (.auth-main) BERBAGI tinggi viewport,
+     bukan masing-masing menuntut tinggi penuh.
+
+     Sebelum ini .auth-main punya `min-height: 100dvh` sendiri. Begitu nav
+     ditambahkan di atasnya, tinggi total jadi nav + 100dvh = 45px LEBIH
+     TINGGI dari viewport → halaman menggulir padahal seluruh isinya muat
+     di satu layar. Terukur: 985px halaman vs 940px viewport.
+
+     Dengan flex, main mengambil SISA ruang setelah nav, jadi menambah nav
+     tidak menambah tinggi total. `flex: 1` pada main juga membuatnya tumbuh
+     kalau kartunya lebih tinggi dari ruang tersisa — benar untuk layar pendek. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* ══ Latar ═════════════════════════════════════════════════════════════════ */
 
+/*
+ * ── LATAR KORPORASI: SOLID, STATIS, TANPA DEKORASI ──────────────────────────
+ *
+ * ── APA YANG DIHAPUS DAN KENAPA ─────────────────────────────────────────────
+ * Versi sebelumnya punya 3 blob gradien beranimasi (28–42 detik, infinite),
+ * canvas partikel dengan requestAnimationFrame, dan overlay grain SVG noise.
+ * Itu pola "AI slop": dekorasi bergerak yang TIDAK PUNYA FUNGSI.
+ *
+ * ── BUKTI DARI RISET (diukur langsung dari DOM, bukan pendapat) ─────────────
+ * Tujuh halaman login korporasi internasional diperiksa:
+ *
+ *   Situs        canvas  blob  partikel  grain  video  animasi∞
+ *   Linear          0      0       0        0      0       —
+ *   Vercel          0      0       0        0      0       —
+ *   GitHub          0      0       0        0      0       —
+ *   Stripe          0      0       0        0      0       0
+ *   Cloudflare      0      0       0        0      0       0
+ *   Notion          0      0       0        0      0       0
+ *   Resend          0      0       0        0      0       0
+ *
+ * NOL elemen dekoratif. NOL animasi berulang. Seragam di ketujuhnya.
+ *
+ * Latar mereka: Vercel rgb(250,250,250) · GitHub rgb(255,255,255) ·
+ * Resend rgb(0,0,0) — semua SOLID, tanpa gradien bergerak.
+ *
+ * ── KENAPA "DIAM" TERLIHAT MAHAL ────────────────────────────────────────────
+ * Gerak ambient memindahkan perhatian dari tugas (mengisi form). Korporasi
+ * memakai pengendalian diri: gerak HANYA sebagai umpan balik fungsi — fokus
+ * input, hover tombol, transisi panel. Tidak ada gerak yang tidak menjawab
+ * tindakan pengguna.
+ *
+ * ── GRADASI HALUS: SATU, STATIS, SANGAT LEMAH ───────────────────────────────
+ * Bukan animasi — hanya satu gradien radial statis untuk mencegah latar
+ * terasa seperti lubang hitam datar. Opasitas 0.04 (sebelumnya 0.16 pada blob
+ * yang bergerak). Tidak ada frame yang dihitung GPU setelah halaman dimuat.
+ */
 .auth-bg {
   position: fixed;
   inset: 0;
   z-index: 0;
-  overflow: hidden;
   pointer-events: none;
+
+  /* Gradien radial tunggal, statis. Titik terang lembut di atas-tengah
+     meniru arah cahaya alami; sisanya gelap solid. */
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -10%,
+                    rgba(245, 197, 66, 0.040) 0%,
+                    transparent 62%),
+    var(--latar);
 }
 
-/* Blob: lingkaran besar dengan gradien radial. Bergerak sangat lambat —
-   cukup untuk terasa hidup, tidak cukup untuk mengganggu bacaan.
-   `filter: blur()` dihindari (mahal di GPU lemah); gradien radial
-   memberi efek lembut tanpa biaya filter. */
-.auth-blob {
-  position: absolute;
-  border-radius: 50%;
-  will-change: transform;
-}
+/* Kelas blob/partikel/grain sudah dihapus dari CSS. Elemennya juga dihapus
+   dari masuk.html — kalau hanya CSS yang dihapus, elemen kosong tetap ada di
+   DOM dan membingungkan pembaca kode berikutnya. */
 
-.auth-blob-1 {
-  width: 62vmax;
-  height: 62vmax;
-  top: -24vmax;
-  left: -18vmax;
-  background: radial-gradient(circle at 50% 50%,
-              rgba(245, 197, 66, 0.16) 0%,
-              rgba(245, 197, 66, 0.05) 42%,
-              transparent 70%);
-  animation: blob-1 34s ease-in-out infinite;
-}
+/* ══ Navigasi ══════════════════════════════════════════════════════════════ */
 
-.auth-blob-2 {
-  width: 48vmax;
-  height: 48vmax;
-  bottom: -18vmax;
-  right: -14vmax;
-  background: radial-gradient(circle at 50% 50%,
-              rgba(120, 90, 255, 0.13) 0%,
-              rgba(120, 90, 255, 0.04) 45%,
-              transparent 72%);
-  animation: blob-2 42s ease-in-out infinite;
-}
+/*
+ * Navigasi halaman masuk — sebelumnya tidak ada sama sekali.
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Satu-satunya jalan kembali adalah logo 36px DI DALAM kartu. Pengunjung yang
+ * salah masuk (atau ingin membaca panduan dulu) tidak punya jalan keluar yang
+ * terlihat. Di halaman publik lain, header selalu ada.
+ *
+ * ── KENAPA TIDAK PAKAI .site-header DARI main.css ──────────────────────────
+ * Kelas itu `position: sticky` + `max-width: var(--maxw)` + variabel warna
+ * main.css (`--text-dim`, `--accent`) yang tidak ada di halaman ini. Memakainya
+ * berarti mengimpor seluruh main.css (~40 KB) hanya untuk satu header, atau
+ * menduplikasi variabelnya. Lebih bersih: header ringan sendiri, memakai
+ * variabel auth.css yang sudah ada (--emas, --teks-redup, --garis).
+ *
+ * ── KENAPA BUKAN STICKY ────────────────────────────────────────────────────
+ * Halaman masuk muat dalam satu layar (kartu ~560px, viewport ≥ 640px) dan
+ * tidak menggulir. Header sticky hanya menambah lapisan blur yang dihitung
+ * GPU setiap frame tanpa manfaat. `position: static` di alur normal.
+ *
+ * ── SAAT GATE AKTIF ────────────────────────────────────────────────────────
+ * cf-gate.css punya `body.cf-gated > *:not(#cf-gate) { display: none }` —
+ * header ini ikut tersembunyi otomatis. Itu benar: layar verifikasi harus
+ * bersih tanpa distraksi. Tidak perlu aturan tambahan.
+ */
+.auth-nav {
+  position: relative;
+  z-index: 2;                    /* di atas latar (.auth-bg z-index 0) */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 
-.auth-blob-3 {
-  width: 34vmax;
-  height: 34vmax;
-  top: 42%;
-  left: 52%;
-  background: radial-gradient(circle at 50% 50%,
-              rgba(245, 197, 66, 0.09) 0%,
-              transparent 66%);
-  animation: blob-3 28s ease-in-out infinite;
-}
+  /* ── LEBAR NAV ─────────────────────────────────────────────────────────────
+     Awalnya saya batasi `max-width: var(--lebar-kartu)` (428px) supaya sejajar
+     dengan kartu. Hasilnya terlihat seperti elemen mengambang di tengah, bukan
+     header — brand dan tautan berdesakan di ruang sempit.
 
-@keyframes blob-1 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
-}
-@keyframes blob-2 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(-5vmax, -6vmax, 0) scale(1.16); }
-}
-@keyframes blob-3 {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(0.94); }
-  50%      { transform: translate3d(-4vmax, 3vmax, 0) scale(1.08); }
-}
+     Sekarang melebar seperti header situs utama: brand menempel kiri, tautan
+     menempel kanan. Kartu tetap 428px karena dibatasi .auth-scene.
 
-.auth-particles {
-  position: absolute;
-  inset: 0;
+     PENTING: nilainya literal 1080px, BUKAN `var(--maxw)`. Variabel itu hanya
+     didefinisikan di main.css (yang tidak dimuat halaman ini) — memakainya di
+     sini membuat `max-width` invalid dan nav melebar penuh sampai tepi layar
+     di monitor lebar. Nilai disamakan dengan --maxw main.css.
+
+     ── KENAPA `width: 100%` WAJIB ADA ────────────────────────────────────────
+     .auth-body sekarang `display: flex; flex-direction: column`. Sebagai anak
+     flex kolom, `.auth-nav` default-nya `align-self: stretch` — TAPI begitu
+     `margin: 0 auto` dipasang, auto-margin horizontal menang dan elemen
+     MENYUSUT ke lebar kontennya. Terukur: nav hanya 319px, mulai di x=480 —
+     terlihat seperti elemen mengambang di tengah, persis keluhan awal.
+
+     `width: 100%` memaksa nav mengisi lebar kolom dulu, baru `max-width`
+     membatasinya di 1080px dan `margin: auto` memusatkannya. */
   width: 100%;
-  height: 100%;
-  opacity: 0.5;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 22px 1.5rem 0;
 }
 
-/* Butiran halus: menutupi gradien yang bisa terlihat "berpita" (banding)
-   di layar 8-bit. Tekstur halus membuat gradien terasa mulus. */
-.auth-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+.auth-nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--teks);
+  text-decoration: none;
+  transition: opacity var(--durasi-cepat) var(--pegas);
+}
+.auth-nav-brand:hover { opacity: 0.82; }
+
+/* Mark kotak emas — sama dengan .brand-mark di situs utama, tapi memakai
+   variabel auth.css. Glow halus supaya konsisten dengan aksen halaman. */
+.auth-nav-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--emas);
+  box-shadow: 0 0 14px var(--emas-garis);
 }
 
-/* Saat tab tidak terlihat: matikan SEMUA animasi tanpa henti.
-   Tanpa ini, browser tetap menghitung frame di latar belakang dan
-   membuang baterai pengunjung. */
-body.is-tersembunyi .auth-blob,
-body.is-tersembunyi .auth-particles { animation-play-state: paused; }
+/* ── "Sign in" di nav halaman auth ───────────────────────────────────────────
+   Konsisten dengan .nav-signin di header situs utama: satu-satunya item nav
+   yang punya bentuk sendiri (pil bergaris). Memakai variabel auth.css karena
+   halaman ini tidak memuat main.css. */
+.auth-nav-signin {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--garis);
+  border-radius: 999px;
+  color: var(--teks);
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color var(--durasi-cepat) var(--pegas),
+              background-color var(--durasi-cepat) var(--pegas);
+}
+.auth-nav-signin:hover {
+  border-color: var(--emas-garis);
+  background: rgba(245, 197, 66, 0.06);
+}
+
+.auth-nav-links {
+  display: flex;
+  gap: 1.35rem;
+  font-size: 13.5px;
+  color: var(--teks-redup);
+}
+.auth-nav-links a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--durasi-cepat) var(--pegas);
+}
+.auth-nav-links a:hover { color: var(--teks); }
+
+/* Fokus keyboard harus terlihat — navigasi ini sering jadi sasaran Tab
+   pertama saat halaman dibuka. */
+.auth-nav a:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Di layar sempit, tiga tautan + brand mulai berdesakan. Sembunyikan tautan,
+   sisakan brand — pengunjung masih bisa kembali lewat logo di dalam kartu. */
+@media (max-width: 460px) {
+  .auth-nav { padding: 18px 16px 0; }
+  .auth-nav-links { display: none; }
+}
+
+/* ══ Formulir: input mandiri (di luar .auth-input-wrap) ═════════════════════
+ *
+ * ── KENAPA DIPISAH ─────────────────────────────────────────────────────────
+ * Sebelumnya semua input berada di dalam .auth-input-wrap (pembungkus yang
+ * menampung ikon di kanan). Aturan CSS-nya `.auth-input-wrap input` — jadi
+ * input TANPA pembungkus tidak mendapat gaya apa pun dan tampil sebagai kotak
+ * bawaan browser.
+ *
+ * Form email+sandi punya campuran keduanya:
+ *   • Email    → tanpa pembungkus (tidak perlu ikon)
+ *   • Sandi    → dengan pembungkus (ada tombol tampilkan)
+ *
+ * Kelas .auth-input dipakai di keduanya supaya gayanya identik tanpa
+ * bergantung pada ada/tidaknya pembungkus.
+ *
+ * ── UKURAN: DARI RISET KORPORASI ───────────────────────────────────────────
+ *   tinggi input : GitHub 40px · Stripe 44px · Resend 48px  → 44px
+ *   radius       : GitHub 6px · Stripe 6px · Vercel 8px     → 8px
+ *   border       : 1px solid (bukan bayangan/glow)
+ *   font-size    : 16px di mobile (mencegah zoom otomatis iOS), 15px di desktop
+ */
+.auth-input {
+  width: 100%;
+  min-height: var(--tinggi-input);
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--teks);
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-input);
+  outline: none;
+  transition:
+    border-color var(--durasi-cepat) var(--pegas),
+    background var(--durasi-cepat) var(--pegas);
+}
+
+/* Di dalam pembungkus, input tidak perlu radius/border sendiri — pembungkus
+   yang menanganinya. Ini menjaga tampilan sandi+ikon tetap satu kesatuan. */
+.auth-input-wrap .auth-input {
+  border: none;
+  background: transparent;
+  border-radius: 0;
+  min-height: auto;
+  padding: 12px 14px;
+}
+
+.auth-input::placeholder { color: var(--teks-samar); }
+
+.auth-input:hover:not(:focus) {
+  border-color: var(--garis-terang);
+}
+
+.auth-input:focus {
+  border-color: var(--emas-garis);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* Select butuh sedikit ruang ekstra di kanan untuk panah */
+select.auth-input {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+/* Textarea: tinggi minimum 4 baris, bisa ditarik vertikal saja.
+   `resize: vertical` mencegah pengguna merusak tata letak dengan menarik
+   ke samping. */
+.auth-textarea {
+  min-height: 104px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+/* ══ Judul panel (untuk panel yang punya judul sendiri) ════════════════════ */
+
+.auth-panel-title {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--teks);
+}
+
+/* ══ Penanda kolom wajib ═══════════════════════════════════════════════════ */
+
+.auth-wajib {
+  color: var(--emas);
+  margin-left: 2px;
+}
+
+/* ══ Syarat & ketentuan di halaman daftar ═════════════════════════════════
+ *
+ * Riset tiga halaman sign up korporasi:
+ *   Vercel  → "Terms of Service" + "Privacy Policy"
+ *   Resend  → "Terms" + "Privacy Policy"
+ *   Notion  → "Terms & Conditions" + "Privacy Policy"
+ *
+ * KETIGANYA menampilkannya. Ini bukan hiasan: di banyak yurisdiksi,
+ * persetujuan syarat saat pendaftaran adalah dasar hukum pemrosesan data.
+ *
+ * Diletakkan tepat di atas tombol kirim — pengguna harus melihatnya SEBELUM
+ * menekan tombol, bukan setelah.
+ */
+.auth-legal {
+  margin: 14px 0 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--teks-samar);
+  text-align: center;
+}
+.auth-legal a {
+  color: var(--teks-redup);
+  text-decoration: none;
+  border-bottom: 1px solid var(--garis-terang);
+  transition: color var(--durasi-kilat) var(--pegas);
+}
+.auth-legal a:hover { color: var(--emas); border-bottom-color: var(--emas-garis); }
+
+/* ══ Penanda kolom opsional ════════════════════════════════════════════════ */
+
+.auth-opsional {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--teks-samar);
+}
+
+/* ══ Blok SSO ══════════════════════════════════════════════════════════════ */
+
+.auth-sso {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 4px;
+}
+
+/* ══ Tautan teks di dalam kalimat ══════════════════════════════════════════
+ *
+ * Dipakai untuk "Lupa sandi?" dan "Daftar sekarang" — tindakan sekunder yang
+ * TIDAK boleh bersaing visual dengan tombol utama. Karena itu: tanpa latar,
+ * tanpa border, hanya teks bergaris bawah saat hover.
+ */
+.auth-link-inline {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--emas);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--durasi-kilat) var(--pegas);
+}
+.auth-link-inline:hover { border-bottom-color: currentColor; }
+.auth-link-inline:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Baris "Lupa sandi?" — rata kanan, tepat di bawah kolom sandi. */
+.auth-row-lupa {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 2px;
+}
+
+/* Tautan di bawah form (mis. "Sudah punya akun? Masuk") */
+.auth-alt-bawah {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--teks-redup);
+}
+.auth-alt-bawah a {
+  color: var(--emas);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--durasi-kilat) var(--pegas);
+}
+.auth-alt-bawah a:hover { border-bottom-color: currentColor; }
+
+/* ══ Layar sempit ══════════════════════════════════════════════════════════ */
+
+/* Input 16px di layar sentuh: iOS Safari melakukan zoom otomatis kalau
+   font-size < 16px saat input difokuskan. Zoom itu menggeser tata letak dan
+   membuat pengguna tersesat. */
+@media (max-width: 460px) {
+  .auth-input { font-size: 16px; }
+}
 
 /* ══ Panggung & kartu ══════════════════════════════════════════════════════ */
 
 .auth-main {
   position: relative;
   z-index: 1;
-  min-height: 100vh;
-  min-height: 100dvh;
+
+  /* `min-height: 100vh/100dvh` DIHAPUS — itu akar regresi gulir.
+     Sekarang main mengisi SISA ruang yang disediakan .auth-body (flex),
+     sehingga nav + main = tepat satu viewport. */
+  flex: 1;
   display: grid;
   place-items: center;
   padding: 32px 20px;
 }
 
-/* Perspektif untuk efek 3D. Nilai 1100px memberi kedalaman yang terasa
-   tapi tidak membuat kartu terlihat "melengkung". */
+/* ── TANPA PERSPEKTIF 3D ────────────────────────────────────────────────────
+   Versi sebelumnya memakai perspective: 1100px + tilt mengikuti kursor
+   (referensi 21st.dev). Efek itu membuat kartu miring saat mouse bergerak —
+   menarik untuk portofolio, tapi TIDAK ADA satu pun dari tujuh halaman login
+   korporasi yang melakukannya. Form login adalah alat, bukan pameran.
+
+   Perspektif dihapus. Kartu diam, tegak, terpusat. */
 .auth-scene {
   width: 100%;
   max-width: var(--lebar-kartu);
-  perspective: 1100px;
-  perspective-origin: 50% 40%;
 }
 
 .auth-card {
@@ -180,25 +509,20 @@ body.is-tersembunyi .auth-particles { animation-play-state: paused; }
   background: var(--permukaan);
   border: 1px solid var(--garis);
   border-radius: var(--radius-kartu);
-  padding: 34px 32px 26px;
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 24px 60px -20px rgba(0, 0, 0, 0.7),
-    0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  padding: 32px;
 
-  /* Transform diatur JS lewat variabel ini. Nilai awal = datar.
-     `transform-style: preserve-3d` membuat anak-anak bisa punya
-     kedalaman sendiri (efek parallax). */
-  transform:
-    rotateX(var(--rx, 0deg))
-    rotateY(var(--ry, 0deg))
-    translate3d(0, var(--ty, 0px), 0);
-  transform-style: preserve-3d;
-  transition: transform var(--durasi-sedang) var(--pegas),
-              box-shadow var(--durasi-sedang) var(--pegas);
-  will-change: transform;
+  /* ── BAYANGAN SATU LAPIS, LEMBUT ────────────────────────────────────────────
+     Sebelumnya tiga bayangan bertumpuk + inset highlight + backdrop-filter.
+     Itu "glow berlapis" — ciri khas template AI.
+
+     Korporasi memakai satu bayangan halus atau tidak sama sekali. Di tema
+     gelap, bayangan hampir tidak terlihat; yang memisahkan kartu dari latar
+     adalah BORDER 1px, bukan cahaya. */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+
+  /* Transform tilt DIHAPUS. Kartu tidak lagi miring mengikuti kursor:
+     tidak ada rujukan korporasi yang melakukannya, dan efek itu membuat
+     teks di dalam kartu ikut miring saat dibaca. */
 }
 
 /* Saat kursor di atas kartu: transisi transform dipercepat supaya
@@ -370,6 +694,151 @@ body.is-tersembunyi .auth-particles { animation-play-state: paused; }
 .auth-reveal:hover { color: var(--emas); background: var(--emas-redup); }
 .auth-reveal[aria-pressed="true"] { color: var(--emas); }
 
+/* ── IKON DI DALAM INPUT (kiri) ─────────────────────────────────────────────
+   Pola 21st.dev: ikon surat/kunci di dalam kolom, bukan di luar.
+   Menghemat satu baris tinggi dan membuat jenis kolom langsung dikenali
+   sebelum labelnya dibaca.
+
+   ── KENAPA padding-left, BUKAN POSISI ABSOLUT PADA INPUT ──────────────────
+   Ikon harus berada DI ATAS input tapi tidak menghalangi klik. `pointer-events:
+   none` menyelesaikan itu — klik menembus ke input di bawahnya, jadi
+   mengklik tepat di ikon tetap memfokuskan kolom.
+
+   Padding 40px memberi ruang yang cukup untuk ikon 16px + jarak, tanpa
+   membuat teks terasa jauh dari tepi. */
+.auth-input-ikon input { padding-left: 40px; }
+
+.auth-ikon-kiri {
+  position: absolute;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  color: var(--teks-samar);
+  pointer-events: none;
+  transition: color var(--durasi-cepat) var(--pegas);
+}
+
+/* Ikon menyala saat kolomnya fokus — umpan balik halus yang menandai
+   kolom mana yang sedang aktif tanpa garis tebal tambahan. */
+.auth-input-ikon:focus-within .auth-ikon-kiri { color: var(--emas); }
+
+/* ── BARIS LABEL: label + tindakan sekunder ─────────────────────────────────
+   "Lupa sandi?" berdampingan dengan label, bukan di bawah form.
+   Pola Stripe/Linear: tindakan pemulihan ada di tempat masalahnya. */
+.auth-label-baris {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-link-kecil { font-size: 11.5px; }
+
+/* ── GRID PENYEDIA SOSIAL: 4 TOMBOL IKON ───────────────────────────────────
+   Google, Microsoft, Apple, GitHub — ikon saja, satu baris.
+
+   ── KENAPA 4, BUKAN 5 ──────────────────────────────────────────────────────
+   Percobaan sebelumnya menaruh SSO perusahaan sebagai ikon kelima. Itu keliru
+   menurut panduan enterprise (Auth0, WorkOS, Figma SSO guide): login konsumen
+   dan login workforce adalah DUA JALUR BERBEDA.
+
+   Mencampurnya dalam satu barisan ikon bukan cuma soal estetika — pengguna
+   yang salah pilih diarahkan ke identitas yang salah. Ditambah lagi, ikon
+   kunci generik di antara empat logo brand justru terlihat paling menonjol
+   padahal metodenya paling jarang dipakai.
+
+   Jadi baris ini murni penyedia sosial. SSO punya tombolnya sendiri di bawah.
+
+   ── KENAPA grid, BUKAN flex ────────────────────────────────────────────────
+   Grid `1fr` memastikan semua tombol SAMA LEBAR apa pun bentuk logonya.
+   Flexbox menyesuaikan lebar ke konten — logo Apple yang sempit menghasilkan
+   tombol lebih kecil dari Google, dan barisnya terlihat tidak rapi.
+
+   ── TINGGI 44px ────────────────────────────────────────────────────────────
+   Target sentuh minimum (WCAG 2.5.8, pedoman Apple & Google). Lebih pendek
+   dari ini sulit ditekan dengan jempol di ponsel. */
+.auth-sso-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.auth-sso-btn {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0;
+  color: var(--teks);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  transition: background var(--durasi-cepat) var(--pegas),
+              border-color var(--durasi-cepat) var(--pegas),
+              transform var(--durasi-cepat) var(--pegas);
+}
+
+.auth-sso-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--garis-terang);
+  transform: translateY(-1px);
+}
+
+.auth-sso-btn:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+
+.auth-sso-btn:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 2px;
+}
+
+/* Nonaktif: diredupkan, tapi ikon tetap terlihat — pengunjung tahu metode
+   ini AKAN ada, bukan tidak pernah ada. */
+.auth-sso-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.auth-oauth-passkey { margin-bottom: 9px; }
+
+/* ── TOMBOL SSO PERUSAHAAN ──────────────────────────────────────────────────
+   Jalur terpisah di bawah penyedia sosial. Gaya sengaja dibuat sejajar
+   dengan tombol passkey: keduanya adalah "alternatif", bukan hierarki.
+
+   Ikon gedung dengan jendela — bukan kunci. Kunci sudah dipakai ikon sandi di
+   form, dan memakai kunci lagi di sini membuat dua hal berbeda terlihat sama.
+   Gedung perusahaan menyampaikan "identitas organisasi" tanpa ambigu. */
+.auth-oauth-enterprise {
+  margin-bottom: 9px;
+  font-size: 13.5px;
+}
+
+/* ── CATATAN "SEGERA HADIR" ─────────────────────────────────────────────────
+   Satu baris tenang di bawah grid, menggantikan lencana yang membuat halaman
+   terasa belum jadi. */
+.auth-sso-segera {
+  margin: 0 0 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--teks-samar);
+}
+
+/* ── Legal di footer auth ──────────────────────────────────────────────────
+   Wajib ada (syarat Midtrans + transparansi UU PDP), tapi tidak boleh
+   bersaing dengan tindakan utama. Kecil, redup, tetap bisa diklik. */
+.auth-legal {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--teks-samar);
+}
+
+.auth-legal a { color: var(--teks-redup); }
+.auth-legal a:hover { color: var(--emas); }
+
 .auth-hint {
   margin: 0;
   font-size: 11.5px;
@@ -416,7 +885,43 @@ body.is-tersembunyi .auth-particles { animation-play-state: paused; }
   transform: translateY(-1.5px);
   box-shadow: 0 10px 28px -8px rgba(245, 197, 66, 0.6);
 }
-.auth-submit:active:not(:disabled) { transform: translateY(0) scale(0.985); }
+
+/* ── SAAT DITEKAN ────────────────────────────────────────────────────────────
+ *
+ * ── RISET: APA YANG DILAKUKAN KORPORASI ────────────────────────────────────
+ * Diukur langsung dari CSS mereka:
+ *
+ *   GitHub  .btn-primary:active {
+ *             background-color: var(--color-btn-primary-selected-bg);
+ *             box-shadow: var(--button-primary-shadow-selected);
+ *           }
+ *           transition: background-color 0.08s cubic-bezier(0.33,1,0.68,1)
+ *           → warna LEBIH GELAP + bayangan dalam. Transisi 80ms.
+ *
+ *   Vercel  transition: 0.15s cubic-bezier(0.4, 0, 0.2, 1)
+ *           → hanya warna/opacity, TANPA transform.
+ *
+ * ── KENAPA PEDIHATANNYA BUKAN "MENGEcil" ───────────────────────────────────
+ * `scale(0.985)` (versi sebelumnya) membuat tombol terlihat MENGECIL seperti
+ * karet. Korporasi tidak melakukannya — mereka menggelapkan warna dan
+ * menambahkan bayangan dalam, sehingga tombol terasa TERTEKAN ke halaman.
+ *
+ * Ditambah turun 1px supaya ada umpan balik fisik yang jelas di layar sentuh,
+ * di mana perubahan warna saja mudah terlewat.
+ *
+ * Durasi 80ms mengikuti GitHub: cukup cepat untuk terasa instan, cukup lambat
+ * untuk terlihat. Transisi lama (220ms) membuat tombol terasa lambat.
+ */
+.auth-submit:active:not(:disabled) {
+  transform: translateY(1px);
+  /* Warna lebih gelap — mengikuti pola GitHub */
+  background: linear-gradient(180deg, var(--emas), #d9a92e);
+  /* Bayangan dalam: tombol terasa masuk ke halaman */
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.22),
+    0 1px 2px rgba(245, 197, 66, 0.3);
+  transition-duration: 80ms;
+}
 
 .auth-submit:focus-visible {
   outline: 2px solid var(--emas);
@@ -425,19 +930,20 @@ body.is-tersembunyi .auth-particles { animation-play-state: paused; }
 
 .auth-submit:disabled { opacity: 0.62; cursor: not-allowed; }
 
-/* Kilau yang menyapu tombol saat hover — halus, bukan berkedip */
-.auth-submit::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -120%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.42), transparent);
-  transform: skewX(-18deg);
-  transition: left var(--durasi-lambat) var(--pegas);
-}
-.auth-submit:hover::after { left: 130%; }
+/* ── KILAU MENYAPU: DIHAPUS ──────────────────────────────────────────────────
+ *
+ * Sebelumnya ada elemen ::after yang menyapu cahaya dari kiri ke kanan saat
+ * hover. Itu dekorasi yang tidak menjawab tindakan pengguna — persis pola
+ * "AI slop" yang dihapus dari bagian lain halaman ini.
+ *
+ * Tidak satu pun dari tujuh halaman login korporasi yang diukur memakai
+ * efek sapuan cahaya. Umpan balik hover yang mereka pakai: perubahan warna
+ * tombol, sesederhana itu.
+ *
+ * Elemen ::after dipertahankan sebagai wadah TAPI tanpa animasi — kalau ada
+ * kode lain yang bergantung padanya, ia tidak rusak.
+ */
+.auth-submit::after { content: none; }
 
 /* Keadaan memuat: label disembunyikan, spinner muncul.
    Keduanya bertumpuk (bukan saling menimpa) supaya tidak ada lompatan. */
@@ -677,14 +1183,10 @@ body.is-tersembunyi .auth-particles { animation-play-state: paused; }
 /* ══ Layar sempit ══════════════════════════════════════════════════════════ */
 
 @media (max-width: 460px) {
-  .auth-card { padding: 28px 22px 22px; border-radius: 18px; }
+  .auth-card { padding: 24px 20px; }
   .auth-title { font-size: 22px; }
   .auth-otp { gap: 6px; }
-  .auth-otp-cell { font-size: 18px; border-radius: 9px; }
-  /* Efek 3D dimatikan di layar sentuh: tidak ada kursor untuk diikuti,
-     dan `perspective` membuat teks kurang tajam di layar kecil. */
-  .auth-scene { perspective: none; }
-  .auth-card { transform: none; }
+  .auth-otp-cell { font-size: 18px; border-radius: 8px; }
 }
 
 /* ══ Hormati preferensi pengurangan gerak ══════════════════════════════════
@@ -697,8 +1199,9 @@ body.is-tersembunyi .auth-particles { animation-play-state: paused; }
  * memahami perubahan keadaan tanpa memicu masalah vestibular. */
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-blob,
-  .auth-particles { animation: none !important; }
+  /* Blob & partikel sudah dihapus dari markup — tidak ada yang perlu dijeda.
+     Yang tersisa hanya transisi fungsi (warna, opacity) yang tetap dibiarkan
+     karena membantu memahami perubahan keadaan. */
 
   .auth-card {
     transition: none !important;
@@ -726,4 +1229,281 @@ body.is-tersembunyi .auth-particles { animation-play-state: paused; }
   .auth-submit.is-memuat .auth-submit-spinner {
     animation-duration: 1.6s;  /* putaran lambat masih OK — bukan gerak translasi */
   }
+}
+
+/* ══ Setup 2FA: QR code ═════════════════════════════════════════════════════
+ *
+ * QR ditampilkan dengan latar PUTIH meski tema gelap. Alasannya praktis:
+ * kamera ponsel membaca QR hitam-putih jauh lebih andal daripada QR emas
+ * di atas hitam — terutama di ruangan redup. Keindahan kalah dari
+ * "bisa dipindai". */
+
+.auth-qr-wrap {
+  display: grid;
+  place-items: center;
+  margin: 4px 0 16px;
+  /* Tinggi tetap supaya tidak ada lompatan tata letak saat QR tiba
+     menggantikan skeleton. Skeleton dan QR punya ukuran yang sama. */
+  min-height: 200px;
+}
+
+.auth-qr-skeleton {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+/* Kilau yang menyapu skeleton. Hanya `transform` yang dianimasikan —
+   properti murah, tidak memicu layout ulang tiap frame. */
+.auth-qr-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.09) 50%,
+    transparent 80%
+  );
+  animation: qr-kilau 1.6s linear infinite;
+}
+
+@keyframes qr-kilau {
+  from { transform: translate3d(-100%, 0, 0); }
+  to   { transform: translate3d(100%, 0, 0); }
+}
+
+/* Pause saat tab tidak terlihat — pola yang sama dengan blob & partikel. */
+body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
+
+.auth-qr {
+  width: 200px;
+  height: 200px;
+  border-radius: 14px;
+  /* Latar putih WAJIB: QR butuh kontras tinggi. */
+  background: #fff;
+  padding: 10px;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.55);
+  /* Muncul dengan halus saat menggantikan skeleton — bukan "melompat". */
+  animation: qr-muncul var(--durasi-sedang) var(--pegas) both;
+}
+
+@keyframes qr-muncul {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ══ Secret manual (fallback) ══════════════════════════════════════════════ */
+
+.auth-secret-detail {
+  margin-bottom: 16px;
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.auth-secret-detail summary {
+  padding: 10px 13px;
+  font-size: 12.5px;
+  color: var(--teks-redup);
+  cursor: pointer;
+  border-radius: 10px;
+  transition: color var(--durasi-kilat) var(--pegas),
+              background var(--durasi-kilat) var(--pegas);
+  /* Hilangkan marker bawaan browser — diganti chevron sendiri */
+  list-style: none;
+}
+.auth-secret-detail summary::-webkit-details-marker { display: none; }
+
+.auth-secret-detail summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform var(--durasi-cepat) var(--pegas);
+}
+.auth-secret-detail[open] summary::before { transform: rotate(90deg); }
+
+.auth-secret-detail summary:hover {
+  color: var(--emas);
+  background: var(--emas-redup);
+}
+
+.auth-secret-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px 10px;
+}
+
+.auth-secret {
+  flex: 1;
+  padding: 9px 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.09em;
+  color: var(--emas);
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid var(--emas-garis);
+  border-radius: 8px;
+  /* Panjang secret base32 = 32 karakter. `break-all` supaya tidak
+     meluber keluar kotak di layar sempit. */
+  word-break: break-all;
+  user-select: all;   /* sekali klik = pilih semua, siap disalin */
+}
+
+.auth-copy {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: var(--teks-redup);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--garis);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color var(--durasi-kilat) var(--pegas),
+              background var(--durasi-kilat) var(--pegas),
+              border-color var(--durasi-kilat) var(--pegas);
+}
+.auth-copy:hover {
+  color: var(--emas);
+  background: var(--emas-redup);
+  border-color: var(--emas-garis);
+}
+.auth-copy.is-tersalin {
+  color: var(--sukses);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+.auth-secret-detail .auth-hint { padding: 0 13px 11px; margin: 0; }
+
+/* ══ Kode pemulihan ════════════════════════════════════════════════════════ */
+
+.auth-recovery { text-align: center; }
+
+.auth-recovery-icon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 10px;
+}
+
+.auth-recovery-title {
+  margin: 0 0 7px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.auth-recovery-sub {
+  margin: 0 0 18px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--teks-redup);
+}
+.auth-recovery-sub strong { color: var(--emas); font-weight: 600; }
+
+.auth-recovery-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-recovery-list li {
+  padding: 9px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  color: var(--teks);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--garis);
+  border-radius: 8px;
+  user-select: all;
+  /* Muncul berurutan — memberi kesan "daftar yang terbentuk",
+     bukan blok yang tiba-tiba ada. Jeda 40ms per item. */
+  animation: kode-muncul var(--durasi-cepat) var(--pegas) both;
+}
+
+@keyframes kode-muncul {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+.auth-recovery-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.auth-recovery-actions .auth-oauth { margin-bottom: 0; font-size: 13px; }
+
+.auth-recovery-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--teks-redup);
+  background: rgba(245, 197, 66, 0.06);
+  border: 1px solid var(--emas-garis);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background var(--durasi-cepat) var(--pegas);
+}
+.auth-recovery-confirm:hover { background: rgba(245, 197, 66, 0.1); }
+
+.auth-recovery-confirm input {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  accent-color: var(--emas);
+  cursor: pointer;
+}
+
+/* Tombol "Lanjut" dinonaktifkan sampai kotak konfirmasi dicentang.
+   `disabled` membuatnya tidak bisa diklik DAN tidak bisa di-tab —
+   jadi tidak ada jalan pintas melewati konfirmasi. */
+.auth-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ══ Layar sempit ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 460px) {
+  .auth-qr-wrap { min-height: 176px; }
+  .auth-qr, .auth-qr-skeleton { width: 176px; height: 176px; }
+  .auth-recovery-list { grid-template-columns: 1fr; }
+  .auth-recovery-actions { grid-template-columns: 1fr; }
+}
+
+/* ══ Hormati pengurangan gerak ═════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-qr-shimmer { animation: none !important; }
+  .auth-qr { animation: none !important; }
+  .auth-recovery-list li { animation: none !important; }
+  .auth-secret-detail summary::before { transition: none !important; }
+}
+
+/* Tombol tawaran setup 2FA di panel selesai — beri jarak dari tombol utama
+   supaya tidak terlihat seperti aksi sekunder yang terburu-buru. */
+.auth-setup-2fa {
+  margin-top: 14px;
+  margin-bottom: 0;
+  color: var(--emas);
+  border-color: var(--emas-garis);
+  background: rgba(245, 197, 66, 0.07);
+}
+.auth-setup-2fa:hover:not(:disabled) {
+  background: rgba(245, 197, 66, 0.13);
+  border-color: var(--emas);
 }

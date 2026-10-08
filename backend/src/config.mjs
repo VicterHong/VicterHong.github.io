@@ -114,6 +114,10 @@ export const config = {
   googleClientId: pick('GOOGLE_CLIENT_ID', ''),
   googleClientSecret: pick('GOOGLE_CLIENT_SECRET', ''),
   githubClientId: pick('GITHUB_CLIENT_ID', ''),
+  microsoftClientId: pick('MICROSOFT_CLIENT_ID', ''),
+  appleClientId: pick('APPLE_CLIENT_ID', ''),
+  // SSO perusahaan (SAML/OIDC) — satu entry point untuk IdP organisasi.
+  ssoEntryPoint: pick('SSO_ENTRY_POINT', ''),
   githubClientSecret: pick('GITHUB_CLIENT_SECRET', ''),
 
   /** URL webhook untuk notifikasi lead baru (Discord/Slack/generik). Kosong = nonaktif. */
