@@ -120,12 +120,110 @@
         <h2 id="mulai"><span class="sec-num">01</span> Memulai</h2>
 
         <p>
-          Beberapa proyek di portofolio ini punya bagian yang <strong>terkunci</strong> —
-          berisi arsitektur, keputusan desain, dan metrik internal yang tidak
-          dipublikasikan. Untuk membukanya, Anda butuh <strong>token akses</strong>.
+          Ada dua cara masuk ke area klien: <strong>akun email</strong> (cara utama
+          sekarang) dan <strong>token akses</strong> (untuk integrasi otomatis).
+          Bagian ini menjelaskan keduanya.
         </p>
 
-        <h3 id="apa-itu-token">Apa itu token akses?</h3>
+        <!-- ── CARA LOGIN DENGAN EMAIL ─────────────────────────────────────────
+             Ditulis di sini karena form sign-in sengaja TIDAK memakai placeholder.
+             Placeholder di kolom email/sandi adalah pola yang ditinggalkan
+             perusahaan besar: ia hilang begitu pengguna mulai mengetik, dan
+             pengguna yang lupa langkahnya tidak punya rujukan yang bisa dibaca
+             ulang. Panduan yang menetap di halaman ini lebih berguna. -->
+        <h3 id="cara-login">Cara masuk dengan email</h3>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-body">
+              <strong>Buka halaman Sign in</strong>
+              <p>
+                Klik <a href="/sign-in">Sign in</a> di navigasi, atau buka
+                <code>portfolio-victer.pages.dev/sign-in</code> langsung.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Masukkan email dan sandi</strong>
+              <p>
+                Email yang Anda daftarkan, dan sandi yang Anda buat saat mendaftar.
+                Kolomnya sengaja tanpa contoh teks — ketik langsung.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Verifikasi dua langkah (kalau aktif)</strong>
+              <p>
+                Kalau akun Anda memakai 2FA, muncul layar berisi 6 kotak angka.
+                Buka aplikasi authenticator (Google Authenticator, Authy, 1Password),
+                lalu masukkan 6 digit yang tampil.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-body">
+              <strong>Selesai</strong>
+              <p>
+                Anda masuk ke area klien. Sesi bertahan 24 jam sejak login terakhir,
+                jadi Anda tidak perlu memasukkan sandi berulang kali di hari yang sama.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <h3 id="lupa-sandi">Lupa sandi?</h3>
+        <p>
+          Klik tautan <strong>Lupa sandi?</strong> di sebelah label Sandi pada
+          halaman Sign in. Masukkan email Anda, lalu saya kirimkan tautan untuk
+          membuat sandi baru.
+        </p>
+        <p>
+          Demi keamanan, halaman itu <em>selalu</em> menampilkan pesan berhasil —
+          apa pun status emailnya. Ini disengaja: kalau sistem mengatakan "email
+          tidak ditemukan", siapa pun bisa memakai halaman itu untuk memeriksa
+          email mana yang terdaftar di sini.
+        </p>
+
+        <h3 id="belum-punya-akun">Belum punya akun?</h3>
+        <p>
+          Buka <a href="/sign-up">Sign up</a> dan isi nama, email, serta sandi.
+          Sandi minimal 12 karakter — syarat ini ada karena sandi pendek bisa
+          ditebak mesin dalam hitungan menit, bukan tahun.
+        </p>
+        <p>
+          Setelah mendaftar, Anda langsung bisa masuk. Tidak ada langkah
+          verifikasi email yang menghambat.
+        </p>
+
+        <h3 id="metode-lain">Metode masuk lain</h3>
+        <p>
+          Halaman Sign in juga menampilkan tombol <strong>Google, Microsoft,
+          Apple, GitHub</strong>, <strong>passkey</strong>, dan <strong>SSO
+          perusahaan</strong>. Semuanya masih dalam pengembangan — tombolnya
+          terlihat redup dengan catatan "segera hadir" sampai benar-benar aktif.
+        </p>
+        <p>
+          Tombol yang terlihat redup memang belum bisa diklik. Itu disengaja:
+          tombol yang mengarah ke halaman kosong lebih membingungkan daripada
+          tombol yang jujur mengatakan belum siap.
+        </p>
+
+        <div class="note">
+          <span data-icon="info" data-icon-size="17"></span>
+          <div class="note-body">
+          <strong>Kenapa kolomnya tanpa contoh teks?</strong> Placeholder seperti
+          "nama@perusahaan.com" hilang begitu Anda mulai mengetik, dan pengguna
+          yang ragu tidak bisa membacanya lagi. Label tetap ada di atas kolom,
+          dan panduan ini menjelaskan langkahnya secara menetap.
+          </div>
+        </div>
+
+        <!-- ── TOKEN AKSES ─────────────────────────────────────────────────────
+             Masih didukung untuk integrasi otomatis, tapi bukan lagi cara utama
+             pengguna masuk. -->
+        <h3 id="apa-itu-token">Token akses (untuk integrasi)</h3>
         <p>
           Token adalah kode unik berformat <code>VP-XXXX-XXXX-XXXX-XXXX</code> yang
           berfungsi seperti kunci. Setiap token terikat pada proyek tertentu,
