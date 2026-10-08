@@ -496,24 +496,42 @@
 
      `2.5em` mengikuti ukuran font wadah, jadi tingginya selalu sebanding
      di ukuran layar mana pun. */
-  min-height: 2.5em;
+  min-height: 2.4em;
 }
 
+/* ── Angka harga ─────────────────────────────────────────────────────────────
+   ── UKURAN: DIPERKECIL ────────────────────────────────────────────────────
+   Sebelumnya `clamp(2rem, 6vw, 2.5rem)` — 32px di ponsel, 40px di desktop.
+   Itu ukuran "landing page SaaS Amerika" yang menjual dengan angka besar.
+
+   Sekarang `clamp(1.5rem, 4.5vw, 2rem)` — 24px di ponsel, 32px di desktop.
+   Terasa seperti dokumen harga korporat: angkanya penting, tapi tidak
+   berteriak. Yang membuatnya terbaca bukan ukurannya, melainkan bobot dan
+   jaraknya terhadap elemen lain.
+
+   ── BOBOT: 700 → 600 ──────────────────────────────────────────────────────
+   Satoshi 700 pada ukuran besar terlihat berat. 600 memberi kesan presisi —
+   dan itu yang dibutuhkan angka harga.
+
+   ── ANGKA: `tabular-nums` ─────────────────────────────────────────────────
+   Angka tabular punya lebar yang sama untuk setiap digit (1 selebar 8).
+   Tanpa ini, "Rp 59.250" dan "Rp 187.500" punya lebar digit berbeda, dan
+   saat periode diganti angkanya terlihat bergeser.
+
+   ── JARAK: -0.02em, BUKAN -0.03em ─────────────────────────────────────────
+   Pada ukuran lebih kecil, jarak negatif yang terlalu rapat membuat angka
+   saling menempel. -0.02em cukup untuk terlihat rapat, tidak sampai
+   mengganggu keterbacaan. */
 .harga-angka {
-  font-size: clamp(2rem, 6vw, 2.5rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  /* 22px di ponsel, 28px di desktop — ukuran dokumen harga korporat,
+     bukan angka raksasa ala landing page */
+  font-size: clamp(1.375rem, 4vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
   color: var(--pr-text);
-}
-
-/* Harga teks — untuk tier tanpa angka (Enterprise).
-   Ukurannya lebih kecil dari angka supaya tidak terlihat seperti angka
-   yang hilang, dan tidak ada `tabular-nums` karena bukan deret angka. */
-.harga-angka--teks {
-  font-size: clamp(1.35rem, 4vw, 1.65rem);
-  font-variant-numeric: normal;
-  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 /* ── Harga coret + lencana diskon ────────────────────────────────────────────
@@ -533,7 +551,7 @@
 }
 
 .harga-coret {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: var(--pr-text-faint);
   /* Coretan tipis, bukan tebal — harga lama bukan hal yang perlu ditonjolkan */
   text-decoration: line-through;
@@ -590,8 +608,13 @@
 
 
 .harga-periode {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 400;
   color: var(--pr-text-faint);
+  /* Jarak kecil dari angka — "/bulan" adalah keterangan, bukan bagian
+     dari harganya. Menempelkannya terlalu rapat membuatnya terbaca
+     sebagai satu angka. */
+  margin-left: 0.15rem;
 }
 
 .harga-catatan {
@@ -790,16 +813,32 @@
 /* ── Harga di Enterprise: sejajarkan dengan kartu lain ───────────────────────
    Teks "Sesuai kebutuhan" lebih pendek dari angka, jadi tingginya beda.
    `min-height` menyamakan ruang yang dipakai. */
-.harga-angka--teks {
-  /* ── KENAPA TIDAK ADA min-height DI SINI ────────────────────────────────
-     Tinggi disamakan oleh `.harga-angka-wrap` (induknya) lewat
-     `align-items: flex-end` + `min-height`. Mengatur tinggi di sini juga
-     berarti dua tempat mengatur hal yang sama — dan keduanya bisa bentrok.
+/* ── Harga teks (Enterprise) ─────────────────────────────────────────────────
+   "Sesuai kebutuhan" — bukan angka, jadi diperlakukan berbeda.
 
-     Satu pengatur, satu tempat. */
-  line-height: 1;
+   ── UKURAN: SAMA DENGAN ANGKA ─────────────────────────────────────────────
+   Sempat lebih kecil (1.35rem vs 1.5rem) dengan alasan "supaya tidak
+   terlihat seperti angka yang hilang". Tapi justru itu masalahnya: ukuran
+   berbeda membuatnya terlihat seperti elemen dari desain lain.
+
+   Sekarang memakai ukuran yang sama — yang membedakan hanya bobot dan
+   warna, bukan ukurannya.
+
+   ── KENAPA TIDAK ADA min-height ───────────────────────────────────────────
+   Tinggi disamakan oleh `.harga-angka-wrap` (induknya) lewat
+   `align-items: flex-end` + `min-height`. Mengatur tinggi di sini juga
+   berarti dua tempat mengatur hal yang sama — dan keduanya bisa bentrok. */
+.harga-angka--teks {
+  /* Ukuran & bobot SAMA dengan angka harga di kartu lain.
+     Yang membedakan hanya isinya (kata, bukan angka) — bukan gayanya. */
+  font-size: clamp(1.375rem, 4vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
   display: flex;
   align-items: flex-end;
+  /* Bukan deret angka — tidak perlu lebar digit yang sama */
+  font-variant-numeric: normal;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
