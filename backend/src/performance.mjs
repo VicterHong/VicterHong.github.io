@@ -10,7 +10,7 @@
  *   2. Field metrics  — Core Web Vitals dari pengunjung nyata (via /api/vitals).
  */
 
-import { statSync, readdirSync, readFileSync } from 'node:fs';
+import { statSync, readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { getDb } from './db.mjs';
 
@@ -73,6 +73,20 @@ export function auditAssets(rootDir) {
 
       const ext = extname(entry.name).toLowerCase();
       if (EXCLUDE.has(ext)) continue;
+
+      // ── Lewati CSS yang punya kembaran .min.css ──────────────────────────
+      //
+      // build-css.mjs menulis auth.min.css DAN menyalin auth.css. HTML hanya
+      // memuat yang .min. Menghitung keduanya berarti mengukur isi disk,
+      // bukan yang diunduh pengunjung — dan itu membuat anggaran performa
+      // berbohong (terukur: 1166 KB dihitung vs 816 KB nyata).
+      //
+      // Kalau .min.css TIDAK ada, .css aslinya tetap dihitung — jadi tidak
+      // ada berkas yang lolos dari audit.
+      if (ext === '.css' && !entry.name.endsWith('.min.css')) {
+        const kembaran = join(dir, entry.name.replace(/\.css$/, '.min.css'));
+        if (existsSync(kembaran)) continue;
+      }
 
       let size = 0;
       try { size = statSync(full).size; } catch { continue; }
@@ -198,6 +212,10 @@ export function auditAssets(rootDir) {
     // bytes.* = total repo (berguna untuk memantau pertumbuhan repo),
     // perPage.* = yang benar-benar dimuat pengunjung (dipakai anggaran).
     bytes: { total: totalBytes, js: jsBytes, css: cssBytes, html: htmlBytes },
+    // Daftar berkas yang IKUT dihitung — dipakai pemindaian rahasia di
+    // preflight. Dikembalikan supaya pemanggil tidak perlu menelusuri
+    // direktori sendiri dengan aturan yang bisa berbeda.
+    files,
     perPage,
     heaviestPage,
     budgets: BUDGETS,

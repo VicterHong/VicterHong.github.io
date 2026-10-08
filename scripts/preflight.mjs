@@ -55,35 +55,18 @@ for (const f of ['home.html', 'index.html', '404.html', 'docs.html', 'robots.txt
 
 // ── 2. Anggaran performa ─────────────────────────────────────────────────────
 console.log('\n── Anggaran performa ──');
-const bytes = { total: 0, js: 0, css: 0, html: 0 };
-const files = [];
-
-function walk(dir, depth = 0) {
-  if (depth > 6) return;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue;
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) { walk(full, depth + 1); continue; }
-    const ext = extname(entry.name).toLowerCase();
-    if (EXCLUDE_EXT.has(ext)) continue;
-    let size = 0;
-    try { size = statSync(full).size; } catch { continue; }
-    files.push({ path: full.slice(ROOT.length + 1), bytes: size });
-    bytes.total += size;
-    if (ext === '.js' || ext === '.mjs') bytes.js += size;
-    else if (ext === '.css') bytes.css += size;
-    else if (ext === '.html') bytes.html += size;
-  }
-}
-walk(AUDIT);
+// ── SATU SUMBER KEBENARAN ────────────────────────────────────────────────────
+//
+// Sebelumnya berkas ini punya walk() SENDIRI untuk bytes.total, dan
+// memanggil auditAssets() untuk angka per-halaman. Dua implementasi
+// berarti dua kebenaran — dan keduanya memang menyimpang: perbaikan
+// "lewati .css yang punya kembaran .min.css" hanya masuk ke auditAssets(),
+// sehingga bytes.total tetap membengkak 1166 KB padahal angka nyatanya 816 KB.
+//
+// Sekarang SEMUA angka datang dari auditAssets(). Satu aturan, satu hasil.
+const { perPage, heaviestPage, bytes, files } = auditAssets(AUDIT);
 
 const kb = (n) => `${Math.round(n / 1024)} KB`;
-
-// Anggaran diukur per HALAMAN, bukan total repo.
-// Yang membebani pengunjung adalah berkas yang benar-benar dimuat satu
-// halaman. Menjumlahkan seluruh repo membuat laporan menyesatkan —
-// repo punya 22 berkas CSS, tapi tidak ada halaman yang memuat semuanya.
-const { perPage, heaviestPage } = auditAssets(AUDIT);
 const heaviest = heaviestPage ?? { page: '—', css: 0, js: 0, html: 0 };
 
 check('total-bytes', bytes.total <= BUDGETS.totalBytes,
