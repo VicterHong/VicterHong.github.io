@@ -1504,11 +1504,94 @@
 
   // ══ Mulai ════════════════════════════════════════════════════════════════
 
+  /**
+   * Terjemahkan kode galat OAuth dari URL menjadi pesan yang berguna.
+   *
+   * ── KENAPA PERLU ──
+   * Backend mengalihkan kegagalan OAuth ke /sign-in?galat=<kode>. Tanpa
+   * penerjemah ini, pengguna kembali ke halaman masuk dan melihat halaman
+   * biasa — tanpa tahu apa yang salah. Ia mengira tombolnya rusak.
+   *
+   * ── ATURAN PESAN ──
+   * Setiap pesan menjawab dua hal: APA yang terjadi, dan APA yang bisa
+   * dilakukan. Pesan yang hanya bilang "gagal" tidak menolong siapa pun.
+   *
+   * ── KENAPA KODE, BUKAN PESAN LANGSUNG DARI SERVER ──
+   * Pesan asli dari provider bisa memuat detail internal (nama endpoint,
+   * kode respons) dan URL terlihat serta tersimpan di riwayat browser.
+   * Yang lewat URL hanya kode pendek; terjemahannya ada di sini.
+   */
+  const PESAN_GALAT_OAUTH = {
+    provider_belum_aktif:
+      'Cara masuk itu belum aktif. Gunakan email dan sandi, atau hubungi dukungan.',
+    provider_tidak_dikenal:
+      'Penyedia identitas itu tidak dikenali.',
+    state_tidak_sah:
+      'Sesi masuk sudah kedaluwarsa. Coba lagi dari awal.',
+    callback_tidak_lengkap:
+      'Penyedia tidak mengirim data yang dibutuhkan. Coba lagi.',
+    provider_tidak_cocok:
+      'Terjadi ketidakcocokan data. Coba lagi dari awal.',
+    tukar_code_gagal:
+      'Tidak bisa menyelesaikan masuk. Coba lagi, atau gunakan email dan sandi.',
+    identitas_gagal:
+      'Identitas Anda tidak bisa diverifikasi. Coba lagi atau gunakan cara lain.',
+    identitas_kosong:
+      'Penyedia tidak mengirim identitas. Coba cara lain.',
+    akun_gagal:
+      'Akun tidak bisa dibuat saat ini. Coba lagi sebentar lagi.',
+    akun_tidak_ditemukan:
+      'Akun tidak ditemukan. Daftar dulu, atau gunakan cara lain.',
+    ditolak_pengguna:
+      '',   // pengguna sendiri yang membatalkan — tidak perlu pesan galat
+    terlalu_banyak:
+      'Terlalu banyak percobaan. Tunggu sebentar, lalu coba lagi.',
+    sso_belum_aktif:
+      'SSO perusahaan belum aktif. Gunakan cara lain, atau hubungi dukungan.',
+    sso_belum_dikonfigurasi:
+      'SSO perusahaan belum selesai disiapkan. Hubungi dukungan Anda.',
+  };
+
+  /** Baca ?galat= dari URL, tampilkan pesannya, lalu bersihkan URL. */
+  function tanganiGalatOauth() {
+    let kode;
+    try {
+      kode = new URLSearchParams(location.search).get('galat');
+    } catch {
+      return;   // URL tidak bisa dibaca — abaikan
+    }
+    if (!kode) return;
+
+    // Tampilkan pesannya kalau ada. Kode yang sengaja tidak punya pesan
+    // (ditolak_pengguna) dan kode tak dikenal sama-sama dilewati — tapi
+    // URL-nya TETAP dibersihkan di bawah.
+    const teks = PESAN_GALAT_OAUTH[kode];
+    if (teks) pesan(msgMasuk, teks, 'galat');
+
+    // ── KENAPA URL SELALU DIBERSIHKAN ──
+    // Tanpa ini, memuat ulang halaman menampilkan galat yang sama selamanya,
+    // dan URL bergalat bisa ikut tersalin kalau pengguna membagikan tautan.
+    //
+    // Dibersihkan untuk SEMUA kode — termasuk yang tidak punya pesan dan
+    // yang tidak dikenal. Kalau hanya dibersihkan saat ada pesan, pengguna
+    // yang membatalkan login akan terjebak dengan URL ?galat=ditolak_pengguna
+    // setiap kali memuat ulang.
+    //
+    // replaceState (bukan pushState) supaya tombol "kembali" tidak membawa
+    // pengguna ke URL bergalat itu lagi.
+    try {
+      const bersih = new URL(location.href);
+      bersih.searchParams.delete('galat');
+      history.replaceState(null, '', bersih.pathname + bersih.search + bersih.hash);
+    } catch { /* gagal membersihkan URL bukan alasan menggagalkan semuanya */ }
+  }
+
   function init() {
     pasangTilt();
     pasangOtp();
     pasangEnrollment2fa();
     siapkanPasskey();
+    tanganiGalatOauth();
 
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('resize', onResize, { passive: true });
