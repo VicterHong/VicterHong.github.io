@@ -275,14 +275,34 @@ html, body {
     background var(--durasi-cepat) var(--pegas);
 }
 
-/* Di dalam pembungkus, input tidak perlu radius/border sendiri — pembungkus
-   yang menanganinya. Ini menjaga tampilan sandi+ikon tetap satu kesatuan. */
+/* ── INPUT DI DALAM WRAPPER ──────────────────────────────────────────────────
+   ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
+   Aturan ini menghapus border input dengan alasan "wrapper yang menanganinya".
+   Tapi wrapper (.auth-input-wrap) TIDAK punya border sama sekali — jadi
+   kolomnya benar-benar tanpa garis, mengambang di latar tanpa batas yang
+   terlihat.
+
+   Yang benar: INPUT yang memegang border dan radius. Wrapper hanya
+   menyediakan posisi untuk ikon di atasnya. Dengan begitu kolom terlihat
+   sama persis dengan input yang tidak dibungkus — satu gaya, bukan dua. */
 .auth-input-wrap .auth-input {
-  border: none;
-  background: transparent;
-  border-radius: 0;
-  min-height: auto;
+  border: 1px solid var(--garis);
+  background: rgba(0, 0, 0, 0.32);
+  border-radius: var(--radius-input);
+  min-height: var(--tinggi-input);
   padding: 12px 14px;
+}
+
+/* Ikon perlu ruang kiri; tombol reveal perlu ruang kanan. */
+.auth-input-wrap.auth-input-ikon .auth-input { padding-left: 40px; }
+.auth-input-wrap:has(.auth-reveal) .auth-input { padding-right: 44px; }
+
+/* State fokus & hover tetap sama seperti input biasa. */
+.auth-input-wrap .auth-input:hover:not(:focus) { border-color: var(--garis-terang); }
+.auth-input-wrap .auth-input:focus {
+  border-color: var(--emas-garis);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 3px var(--emas-redup);
 }
 
 .auth-input::placeholder { color: var(--teks-samar); }
@@ -525,10 +545,22 @@ select.auth-input {
 .auth-logo {
   display: inline-block;
   margin-bottom: 14px;
-  transition: transform var(--durasi-cepat) var(--pegas-mantul);
+  /* Rotasi -3deg dihapus: logo yang miring saat hover adalah gerakan playful
+     yang tidak sejalan dengan identitas korporat. Sekarang hanya opacity. */
+  transition: opacity var(--durasi-cepat) var(--pegas);
 }
-.auth-logo:hover { transform: scale(1.08) rotate(-3deg); }
-.auth-logo:active { transform: scale(0.96); }
+
+.auth-logo:hover { opacity: 0.82; }
+
+/* Logo kartu — ukuran 44px, sudut membulat seperti di header supaya
+   keduanya terbaca sebagai identitas yang sama. */
+.auth-logo-img {
+  display: block;
+  border-radius: 11px;
+  box-shadow:
+    0 0 0 1px rgba(248, 187, 37, 0.18),
+    0 0 20px rgba(248, 187, 37, 0.12);
+}
 
 .auth-title {
   margin: 0 0 5px;

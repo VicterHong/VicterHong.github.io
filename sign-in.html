@@ -73,12 +73,13 @@
 
       <!-- Kepala kartu -->
       <header class="auth-head">
+        <!-- Logo kartu: SAMA dengan logo header — satu identitas, bukan dua.
+             Sebelumnya di sini ada chevron di kotak kuning, sementara header
+             memakai logo V dari Vic's Private HQ. Dua bentuk berbeda untuk
+             brand yang sama membuat halaman terasa tidak konsisten. -->
         <a href="/home" class="auth-logo" aria-label="Kembali ke beranda">
-          <svg viewBox="0 0 36 36" width="36" height="36" aria-hidden="true">
-            <rect width="36" height="36" rx="14" fill="#f5c542"/>
-            <path d="M11 12.5 L18 24 L25 12.5" stroke="#0a0a0b" stroke-width="2.6"
-                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <img src="/assets/brand-vics.png" alt="" width="44" height="44"
+               class="auth-logo-img" decoding="async">
         </a>
         <h1 class="auth-title" id="authTitle">Sign in</h1>
         <p class="auth-sub" id="authSub">Area klien — akses proyek privat</p>

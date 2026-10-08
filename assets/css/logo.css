@@ -1,56 +1,71 @@
-/* ── MONOGRAM VIVASTIC ─────────────────────────────────────────────────────────
-   Dua huruf V berlawanan di dalam bingkai belah ketupat — inisial, bukan
-   metafora. Lihat assets/js/monogram.js untuk alasan lengkap penggantiannya
-   dari logo `{ }` yang lama.
+/* ── LOGO VIVASTIC — dari icon "Vic's Private HQ" ─────────────────────────────
+   Huruf V dari pita geometris, emas (#f8bb25) di atas latar gelap (#0e1116).
+   Lihat assets/js/monogram.js untuk asal usul lengkapnya.
 
-   ── UKURAN: 26px, BUKAN 10px ────────────────────────────────────────────────
-   Mark lama hanya 10×10px — titik kuning kecil yang nyaris tak terbaca di
-   header. Monogram butuh ruang untuk bentuknya dikenali, dan 26px sejajar
-   dengan tinggi huruf kapital teks brand di sebelahnya.
+   ── UKURAN: 28px ────────────────────────────────────────────────────────────
+   Mark awal situs ini hanya 10×10px — titik kuning yang nyaris tak terbaca.
+   28px sejajar dengan tinggi huruf kapital teks brand di sebelahnya, dan
+   memberi bentuk V ruang untuk dikenali.
 
-   ── WARNA: SATU, DARI VARIABEL ──────────────────────────────────────────────
-   Seluruh monogram memakai `currentColor`, jadi warnanya mengikuti konteks
-   tempat ia dipasang. Di header gelap ia emas; kalau nanti dipakai di latar
-   terang, cukup ubah `color` — tidak ada nilai hex yang perlu dicari.
+   ── SUDUT MEMBULAT DENGAN MASK ──────────────────────────────────────────────
+   Ikon aslinya persegi dengan latar gelap. Ditempel apa adanya di header
+   gelap, ia terlihat seperti kotak yang mengambang — tepinya terlihat sebagai
+   garis lurus yang tidak sejajar apa pun.
 
-   ── KENAPA ADA FALLBACK VARIABEL ────────────────────────────────────────────
-   Berkas ini dipakai DUA kelompok halaman dengan sistem variabel berbeda:
+   `border-radius` + `overflow: hidden` menyelesaikannya tanpa mengedit
+   gambarnya. Radius 7px dari 28px = 25% — sama dengan radius kartu di situs,
+   supaya logo dan isi terasa satu keluarga.
 
-     Halaman utama (home, pricing, docs, privasi, syarat)
-       memuat main.css  → --accent
+   ── GLOW: MEMISAHKAN DARI LATAR ─────────────────────────────────────────────
+   Latar logo (#0e1116) hampir sama dengan latar header (#0a0a0b). Tanpa
+   pemisah, logo terlihat seperti lubang gelap dengan bentuk V di dalamnya.
 
-     Halaman auth (sign-in, sign-up)
-       memuat auth.css  → --emas   (TIDAK memuat main.css)
-
-   Rantai `var(--accent, var(--emas, #f5c542))` menyelesaikannya tanpa perlu
-   memuat main.css di halaman auth hanya untuk satu warna.
+   drop-shadow emas tipis memberi tepi yang memisahkannya — dan sekaligus
+   membuatnya terlihat "menyala" seperti panel instrumen. Ini efek yang
+   berfungsi, bukan hiasan.
    ───────────────────────────────────────────────────────────────────────────── */
 
-.brand-monogram {
+.brand-logo {
   display: block;
   flex: none;                      /* jangan menyusut saat teks brand panjang */
-  color: var(--accent, var(--emas, #f5c542));
-  transition: opacity 0.2s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
+  border-radius: 7px;
+  box-shadow:
+    0 0 0 1px rgba(248, 187, 37, 0.18),
+    0 0 14px rgba(248, 187, 37, 0.10);
+  transition: box-shadow 0.25s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-/* ── UMPAN BALIK HOVER: OPACITY, BUKAN ANIMASI ────────────────────────────────
-   Logo lama membuka kurungnya dan berputar saat diklik. Monogram hanya
-   meredup sedikit — cukup untuk memberi tahu bahwa ia bisa diklik (ia adalah
-   tautan ke beranda), tanpa mengubah bentuk.
+/* ── UMPAN BALIK HOVER: GLOW MENGUAT, BENTUK TETAP ────────────────────────────
+   Satu-satunya perubahan saat interaksi adalah intensitas cahaya. Bentuknya
+   tidak berubah — tidak berputar, tidak membuka, tidak berkedip.
 
-   Perubahan bentuk pada logo saat interaksi adalah tanda identitas yang belum
-   matang. Perusahaan yang sudah mapan tidak mengubah logonya saat disentuh. */
-a:hover > .brand-monogram,
-a:focus-visible > .brand-monogram {
-  opacity: 0.75;
+   Perubahan bentuk pada logo saat disentuh adalah tanda identitas yang belum
+   matang. Perusahaan yang sudah mapan tidak mengubah logonya saat interaksi. */
+a:hover > .brand-logo,
+a:focus-visible > .brand-logo {
+  box-shadow:
+    0 0 0 1px rgba(248, 187, 37, 0.34),
+    0 0 20px rgba(248, 187, 37, 0.20);
 }
 
-/* Garis bingkai lebih redup dari huruf di dalamnya — memberi kedalaman tanpa
-   menambah elemen. Rasio ketebalan 1.25 : 2 sudah diatur di SVG. */
-.monogram-bingkai {
-  opacity: 0.5;
+/* ── CADANGAN KALAU GAMBAR GAGAL DIMUAT ──────────────────────────────────────
+   Huruf V di kotak emas. Bukan pengganti yang indah, tapi lebih baik daripada
+   header dengan lubang kosong di tempat logo seharusnya berada. */
+.brand-logo-cadangan {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  color: #0e1116;
+  background: #f8bb25;
+  border-radius: 7px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brand-monogram { transition: none; }
+  .brand-logo { transition: none; }
 }

@@ -1,126 +1,104 @@
 /**
- * Monogram VIVASTIC — pengganti logo `{ }` animasi.
+ * Logo VIVASTIC — dari icon "Vic's Private HQ".
  *
- * ── KENAPA LOGO LAMA DIGANTI ────────────────────────────────────────────────
- * Logo sebelumnya adalah kurung kurawal `{ }` dengan kursor berkedip, yang
- * membuka saat hover dan berputar saat diklik.
+ * ── ASAL USUL ───────────────────────────────────────────────────────────────
+ * Icon ini diambil dari server Discord "Vic's Private HQ" (guild 1462563643760836610)
+ * lewat Discord REST API, pada resolusi maksimum yang tersedia (256×256).
  *
- * Masalahnya bukan tekniknya — semuanya berfungsi. Masalahnya adalah MAKNA:
- * kurung kurawal adalah metafora "coding" yang dipakai di hampir setiap
- * portofolio developer, template starter, dan proyek latihan. Bentuknya tidak
- * membawa informasi apa pun tentang VIVASTIC.
+ * Bentuknya: huruf V dari pita geometris berwarna emas (#f8bb25) di atas latar
+ * gelap (#0e1116). Bukan gambar metaforis — ini inisial, dan itu yang membuatnya
+ * bekerja sebagai identitas.
  *
- * Efeknya justru terbalik: alih-alih terlihat seperti perusahaan, ia terlihat
- * seperti template yang belum diganti. Itu definisi "AI slop" secara visual.
+ * ── SEJARAH: KENAPA BUKAN `{ }` DAN BUKAN MONOGRAM BUATAN SENDIRI ───────────
+ * Versi pertama logo situs ini adalah kurung kurawal `{ }` beranimasi. Itu
+ * metafora coding yang dipakai di hampir setiap template portofolio developer —
+ * bentuknya tidak membawa informasi apa pun tentang VIVASTIC, sehingga justru
+ * terlihat seperti template yang belum diganti.
  *
- * ── YANG DIPAKAI SEBAGAI GANTI ──────────────────────────────────────────────
- * Monogram. Ini pola tertua dan paling teruji dalam identitas korporat —
- * IBM, GE, HP, 3M, Louis Vuitton, Chanel semuanya memakai inisial, bukan
- * gambar metaforis.
+ * Versi kedua adalah monogram VV yang digambar manual. Lebih baik, tapi tetap
+ * ada masalah: dua V yang bertemu di tengah terbaca sebagai satu bentuk X.
  *
- * Alasannya: monogram hanya bisa dibuat setelah Anda tahu nama apa yang
- * diwakilinya. Ia tidak bisa diambil dari template. Itu yang membuatnya
- * terasa seperti identitas, bukan dekorasi.
+ * Versi ketiga (ini): icon yang SUDAH ADA dan sudah dipakai. Bentuknya dibuat
+ * untuk server ini, dan sudah terbukti terbaca di ukuran kecil (Discord
+ * menampilkannya 32px di daftar server). Tidak ada yang perlu ditebak.
  *
- * ── BENTUKNYA ───────────────────────────────────────────────────────────────
- * Dua huruf V bertumpuk secara VERTIKAL — bukan bersilangan. Ini perbedaan
- * penting yang ditemukan lewat pengujian visual:
+ * ── KENAPA BITMAP, BUKAN SVG PATH ───────────────────────────────────────────
+ * Idealnya logo adalah path SVG — tajam di ukuran apa pun dan bisa diwarnai
+ * lewat CSS. Tapi menjiplak bentuk ini jadi path manual berarti menebak
+ * koordinat setiap sudut, dan hasilnya hampir pasti berbeda dari aslinya.
  *
- *   Percobaan pertama: dua V berlawanan yang ujungnya BERTEMU di tengah
- *   (M10 10 L16 17 L22 10  +  M10 22 L16 15 L22 22)
+ * Icon 256×256 ditampilkan pada 28px di header. Layar retina (2×) memakai
+ * 56px dari 256px yang tersedia — oversample ~4,5×. Pada rasio itu, bitmap
+ * dan vektor tidak bisa dibedakan mata.
  *
- *   Hasilnya: kedua V menyatu menjadi satu bentuk X/silang. Mata membacanya
- *   sebagai "X" atau tanda silang — bukan "VV". Konsepnya ada di kode, tapi
- *   tidak sampai ke mata.
+ * ── EFEK: GLOW HALUS, BUKAN ANIMASI ─────────────────────────────────────────
+ * Yang ditambahkan hanya dua hal:
  *
- *   Perbaikan: kedua V DIPISAH dengan celah vertikal. V atas lebih kecil dan
- *   duduk di atas; V bawah lebih besar dan membuka ke bawah. Dengan celah di
- *   antaranya, masing-masing terbaca sebagai huruf tersendiri.
+ *   1. Glow lembut (drop-shadow) — memisahkan logo dari latar gelap dan
+ *      memberi kesan "menyala" seperti panel instrumen. Statis.
  *
- * Pelajaran yang berlaku umum untuk monogram: kalau dua huruf digabung, uji
- * apakah keduanya MASIH TERBACA sebagai huruf. Monogram yang hanya indah di
- * kepala perancangnya, tapi terbaca sebagai bentuk lain oleh orang lain,
- * gagal pada tugas utamanya.
+ *   2. Umpan balik hover — glow sedikit menguat saat kursor menyentuh.
+ *      Satu-satunya perubahan, dan hanya pada intensitas, bukan bentuk.
  *
- * ── KENAPA STATIS ───────────────────────────────────────────────────────────
- * Logo korporat tidak berputar, tidak berkedip, dan tidak menari saat disentuh.
- * Ia diam. Yang bergerak hanyalah umpan balik halus saat kursor menyentuh
- * (perubahan warna), dan itu pun opsional.
- *
- * Animasi pada logo adalah tanda identitas yang belum matang — perusahaan
- * yang sudah mapan tidak perlu menghibur pengunjung dengan logonya.
+ * Logo korporat tidak berputar, tidak berkedip, tidak menari. Efek yang
+ * mengubah BENTUK saat interaksi adalah tanda identitas yang belum matang.
  */
+
+const ASET_LOGO = 'assets/brand-vics.png';
 
 /**
- * Buat elemen monogram sebagai SVG.
- * @param {number} ukuran - tinggi dalam px (default 26)
- * @returns {SVGElement}
+ * Buat elemen logo sebagai <img>.
+ *
+ * @param {number} ukuran - tinggi dalam px (default 28)
+ * @returns {HTMLImageElement}
  */
-export function buatMonogram(ukuran = 26) {
-  const NS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(NS, 'svg');
+export function buatLogo(ukuran = 28) {
+  const img = document.createElement('img');
 
-  svg.setAttribute('viewBox', '0 0 32 32');
-  svg.setAttribute('width', String(ukuran));
-  svg.setAttribute('height', String(ukuran));
-  svg.setAttribute('class', 'brand-monogram');
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', 'VIVASTIC');
-  svg.setAttribute('fill', 'none');
+  img.src = ASET_LOGO;
+  img.alt = '';                          // teks brand di sebelahnya sudah cukup
+  img.width = ukuran;
+  img.height = ukuran;
+  img.className = 'brand-logo';
+  img.decoding = 'async';
+  img.loading = 'eager';                 // logo harus muncul segera
 
-  // ── Belah ketupat luar ────────────────────────────────────────────────────
-  // Garis tipis sebagai bingkai. Memberi bentuk yang jelas saat monogram
-  // ditempatkan di latar gelap, tanpa perlu blok warna solid yang berat.
-  const bingkai = document.createElementNS(NS, 'path');
-  bingkai.setAttribute('d', 'M16 2 L30 16 L16 30 L2 16 Z');
-  bingkai.setAttribute('class', 'monogram-bingkai');
-  bingkai.setAttribute('stroke', 'currentColor');
-  bingkai.setAttribute('stroke-width', '1.25');
-  bingkai.setAttribute('stroke-linejoin', 'round');
+  // ── Fallback kalau gambar gagal dimuat ────────────────────────────────────
+  // Bukan penanganan error yang rumit — hanya memastikan header tidak
+  // menyisakan kotak kosong kalau asetnya hilang. Logo yang hilang lebih
+  // buruk daripada logo yang diganti inisial teks.
+  img.addEventListener('error', () => {
+    const cadangan = document.createElement('span');
+    cadangan.className = 'brand-logo-cadangan';
+    cadangan.textContent = 'V';
+    cadangan.setAttribute('aria-hidden', 'true');
+    img.replaceWith(cadangan);
+  }, { once: true });
 
-  // ── Huruf V atas ──────────────────────────────────────────────────────────
-  // Lebih kecil, duduk di bagian atas belah ketupat. Ujungnya berhenti di
-  // y=13 — menyisakan celah 2px sebelum V bawah mulai di y=15.
-  const vAtas = document.createElementNS(NS, 'path');
-  vAtas.setAttribute('d', 'M11 9 L16 13 L21 9');
-  vAtas.setAttribute('class', 'monogram-v monogram-v-atas');
-  vAtas.setAttribute('stroke', 'currentColor');
-  vAtas.setAttribute('stroke-width', '1.9');
-  vAtas.setAttribute('stroke-linecap', 'round');
-  vAtas.setAttribute('stroke-linejoin', 'round');
-
-  // ── Huruf V bawah ─────────────────────────────────────────────────────────
-  // Lebih besar, membuka ke bawah — menyeimbangkan bentuk keseluruhan di
-  // dalam belah ketupat. Celah 2px dari V atas membuat keduanya terbaca
-  // sebagai dua huruf terpisah, bukan satu silang.
-  const vBawah = document.createElementNS(NS, 'path');
-  vBawah.setAttribute('d', 'M10 17 L16 23 L22 17');
-  vBawah.setAttribute('class', 'monogram-v monogram-v-bawah');
-  vBawah.setAttribute('stroke', 'currentColor');
-  vBawah.setAttribute('stroke-width', '1.9');
-  vBawah.setAttribute('stroke-linecap', 'round');
-  vBawah.setAttribute('stroke-linejoin', 'round');
-
-  svg.append(bingkai, vAtas, vBawah);
-  return svg;
+  return img;
 }
 
 /**
- * Ganti elemen mark statis dengan monogram.
+ * Ganti elemen mark statis dengan logo.
  *
  * Aman dipanggil berkali-kali — kalau elemennya tidak ada, keluar diam-diam.
  * Itu penting karena halaman yang berbeda punya header yang berbeda.
  *
  * @param {string} selector - selektor elemen yang akan diganti
  */
-export function pasangMonogram(selector = '.brand-mark') {
+export function pasangLogo(selector = '.brand-mark') {
   const elemen = document.querySelectorAll(selector);
   if (!elemen.length) return;
 
   // Instance terpisah untuk tiap tempat — node yang sama tidak bisa berada
-  // di dua lokasi DOM sekaligus, dan memindahkannya akan membuat yang
-  // pertama menghilang.
+  // di dua lokasi DOM sekaligus.
   for (const el of elemen) {
-    el.replaceWith(buatMonogram());
+    el.replaceWith(buatLogo());
   }
 }
+
+/* ── NAMA LAMA, UNTUK KOMPATIBILITAS ─────────────────────────────────────────
+   Beberapa berkas masih memanggil pasangMonogram(). Alih-alih menyunting
+   setiap pemanggil (dan berisiko melewatkan satu), nama lamanya tetap
+   diekspor sebagai alias. Satu tempat perubahan, tidak ada yang rusak. */
+export const pasangMonogram = pasangLogo;

@@ -1,35 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Victer">
-  <defs>
-    <!-- Gradien emas: sedikit lebih terang di kiri-atas, seperti cahaya
-         datang dari satu arah. Emas rata terlihat datar dan murah. -->
-    <linearGradient id="g" x1="0" y1="0" x2="0.35" y2="1">
-      <stop offset="0%" stop-color="#f7d77a"/>
-      <stop offset="52%" stop-color="#f5c542"/>
-      <stop offset="100%" stop-color="#d9a92c"/>
-    </linearGradient>
-    <!-- Latar: hampir hitam, bukan hitam pekat. Hitam murni di favicon
-         terlihat seperti lubang di tab browser yang berlatar terang. -->
-    <linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0%" stop-color="#17171b"/>
-      <stop offset="100%" stop-color="#0b0b0e"/>
-    </linearGradient>
-  </defs>
-
-  <!-- Latar membulat. Radius 14 dari 64 = 22% — sama dengan radius kartu
-       di situs, supaya ikon dan isi terasa satu keluarga. -->
-  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
-  <!-- Garis tepi tipis: memberi kesan ikon "duduk" di dalam bidangnya,
-       dan membuatnya tetap terlihat di tab dengan latar gelap. -->
-  <rect x="0.5" y="0.5" width="63" height="63" rx="13.5" fill="none"
-        stroke="#f5c542" stroke-opacity="0.18"/>
-
-  <!-- Monogram V. Geometri dihitung supaya:
-         - tinggi 34 dari 64 = 53% (cukup besar, tidak sesak)
-         - kedua kaki simetris sempurna terhadap x = 32
-         - ujung atas rata di y = 15, ujung bawah di y = 49
-       Garis 7px dengan ujung membulat (round) — konsisten dengan
-       ketebalan garis aksen di situs. -->
-  <path d="M17 15 L32 49 L47 15"
-        fill="none" stroke="url(#g)" stroke-width="7"
-        stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="VIVASTIC">
+  <!-- Ikon dari Vic's Private HQ — huruf V geometris emas.
+       Ditempel sebagai PNG data-URI karena bentuknya kompleks: menjiplaknya
+       jadi path SVG manual berisiko mengubah proporsi aslinya. -->
+  <image href="data:image/png;base64,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" width="64" height="64"/>
 </svg>
