@@ -286,22 +286,28 @@
                      bahwa aksi Anda BERHASIL. Ganti mendadak terasa seperti
                      tombol yang rusak lalu berubah sendiri. -->
                 <svg viewBox="0 0 24 24" width="19" height="19" fill="none"
-                     stroke="currentColor" stroke-width="1.6"
+                     stroke="currentColor" stroke-width="1.75"
                      stroke-linecap="round" stroke-linejoin="round"
                      aria-hidden="true">
                   <!-- Mata terbuka -->
                   <g class="mata-buka">
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>
+                    <!-- Path resmi Lucide (eye) — library yang sama dipakai
+                         shadcn/ui. Satu path + satu circle, bukan bentuk
+                         buatan sendiri: ikon standar sudah diuji terbaca di
+                         berbagai ukuran dan tidak perlu diperbaiki. -->
+                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
                     <circle cx="12" cy="12" r="3"/>
                   </g>
                   <!-- Mata tertutup: kelopak + bulu mata -->
                   <g class="mata-tutup">
-                    <path d="M2 12s3.5-7 10-7 10 7 10 7"/>
-                    <path d="M3.5 14.5 5 12.4"/>
-                    <path d="M7 17 8 14.4"/>
-                    <path d="M12 18v-2.8"/>
-                    <path d="M17 17 16 14.4"/>
-                    <path d="M20.5 14.5 19 12.4"/>
+                    <!-- Path resmi Lucide (eye-off): empat path — tiga busur
+                         kelopak + satu garis diagonal. Garis diagonal adalah
+                         penanda universal "tersembunyi", jauh lebih jelas
+                         daripada bulu mata yang hanya terbaca di ukuran besar. -->
+                    <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/>
+                    <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/>
+                    <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/>
+                    <path d="m2 2 20 20"/>
                   </g>
                 </svg>
               </button>
