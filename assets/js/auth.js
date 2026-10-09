@@ -1211,27 +1211,43 @@
     // tidak profesionalnya dengan menampilkan tombol pudar — pengguna tidak
     // perlu tahu apa yang belum ada. Catatan hanya muncul kalau ada provider
     // yang AKTIF tapi gagal dimuat, bukan yang memang belum dikonfigurasi.
+    // ── DAFTAR PROVIDER: DUA HALAMAN, SATU LOGIKA ───────────────────────────
+    //
+    // Halaman MASUK memakai id `#btnGoogle`, halaman DAFTAR memakai
+    // `#btnDaftarGoogle`. Keduanya butuh logika yang sama persis: tampilkan
+    // kalau provider siap, sembunyikan kalau belum, pasang pengalihan saat
+    // diklik.
+    //
+    // Sebelumnya loop ini HANYA menyebut id halaman masuk. Akibatnya tombol
+    // di halaman daftar tidak pernah mendapat handler — dan karena HTML-nya
+    // juga diberi `hidden`, tombol provider di halaman daftar tidak pernah
+    // bisa dipakai sama sekali. Halaman daftar hanya menawarkan email+sandi.
+    //
+    // `id` adalah daftar: satu tombol per halaman, diproses dengan logika
+    // yang sama. Kalau salah satu tidak ada di halaman itu, ia dilewati.
     const penyedia = [
-      { id: '#btnGoogle',    nama: 'Google',    url: '/api/auth/google',    siap: aktif.google },
-      { id: '#btnMicrosoft', nama: 'Microsoft', url: '/api/auth/microsoft', siap: aktif.microsoft },
-      { id: '#btnApple',     nama: 'Apple',     url: '/api/auth/apple',     siap: aktif.apple },
-      { id: '#btnGithub',    nama: 'GitHub',    url: '/api/auth/github',    siap: aktif.github },
-      { id: '#btnLinkedin',  nama: 'LinkedIn',  url: '/api/auth/linkedin',  siap: aktif.linkedin },
+      { id: ['#btnGoogle',    '#btnDaftarGoogle'],    url: '/api/auth/google',    siap: aktif.google },
+      { id: ['#btnMicrosoft', '#btnDaftarMicrosoft'], url: '/api/auth/microsoft', siap: aktif.microsoft },
+      { id: ['#btnApple',     '#btnDaftarApple'],     url: '/api/auth/apple',     siap: aktif.apple },
+      { id: ['#btnGithub',    '#btnDaftarGithub'],    url: '/api/auth/github',    siap: aktif.github },
+      { id: ['#btnLinkedin',  '#btnDaftarLinkedin'],  url: '/api/auth/linkedin',  siap: aktif.linkedin },
     ];
 
     for (const p of penyedia) {
-      const btn = $(p.id);
-      if (!btn) continue;
+      for (const sel of p.id) {
+        const btn = $(sel);
+        if (!btn) continue;
 
-      if (p.siap) {
-        // Menyala: bisa diklik.
-        btn.hidden = false;
-        btn.disabled = false;
-        btn.removeAttribute('title');
-        btn.addEventListener('click', () => { window.location.href = p.url; });
-      } else {
-        // Belum dikonfigurasi → sembunyikan sepenuhnya.
-        btn.hidden = true;
+        if (p.siap) {
+          // Menyala: bisa diklik.
+          btn.hidden = false;
+          btn.disabled = false;
+          btn.removeAttribute('title');
+          btn.addEventListener('click', () => { window.location.href = p.url; });
+        } else {
+          // Belum dikonfigurasi → sembunyikan sepenuhnya.
+          btn.hidden = true;
+        }
       }
     }
 

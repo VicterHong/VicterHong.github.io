@@ -104,27 +104,67 @@
                • Admin perusahaan bisa mencabut akses dari sisi mereka
 
              Untuk email pribadi, form di bawah tetap tersedia — SSO bukan
-             satu-satunya jalan. -->
-        <div class="auth-sso" hidden>
-          <button type="button" class="auth-oauth" id="btnDaftarGoogle">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+             satu-satunya jalan.
+
+             ── STRUKTUR SAMA DENGAN HALAMAN MASUK ──
+             Lima tombol ikon dalam satu baris, memakai kelas `.auth-sso-grid`
+             dan `.auth-sso-btn` yang sama. Itu penting untuk dua hal:
+
+               1. Konsistensi visual — pengguna melihat tata letak yang sama
+                  di halaman masuk dan daftar, jadi tidak perlu belajar ulang.
+               2. Satu sumber gaya — mengubah tampilan tombol provider cukup
+                  di auth.css, dan kedua halaman ikut berubah.
+
+             Tombol provider disembunyikan sampai `/api/config` melaporkan
+             provider itu siap (lihat siapkanSso di auth.js). Yang belum
+             dikonfigurasi tidak ditampilkan sama sekali. -->
+        <div class="auth-sso-grid" role="group" aria-label="Daftar dengan penyedia identitas">
+          <button type="button" class="auth-sso-btn" id="btnDaftarGoogle" hidden disabled
+                  aria-label="Daftar dengan Google">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z" fill="#34A853"/>
               <path d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" fill="#EA4335"/>
             </svg>
-            <span>Daftar dengan Google</span>
           </button>
 
-          <button type="button" class="auth-oauth" id="btnDaftarGithub">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <button type="button" class="auth-sso-btn" id="btnDaftarMicrosoft" hidden disabled
+                  aria-label="Daftar dengan Microsoft">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M11.4 11.4H2V2h9.4v9.4z" fill="#F25022"/>
+              <path d="M22 11.4h-9.4V2H22v9.4z" fill="#7FBA00"/>
+              <path d="M11.4 22H2v-9.4h9.4V22z" fill="#00A4EF"/>
+              <path d="M22 22h-9.4v-9.4H22V22z" fill="#FFB900"/>
+            </svg>
+          </button>
+
+          <button type="button" class="auth-sso-btn" id="btnDaftarApple" hidden disabled
+                  aria-label="Daftar dengan Apple">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M17.05 12.54c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.89 2.65 3.24 2.6 1.3-.05 1.79-.84 3.36-.84s2.01.84 3.39.81c1.4-.02 2.28-1.27 3.13-2.53.99-1.45 1.4-2.86 1.42-2.93-.03-.01-2.72-1.04-2.75-4.13zM14.5 4.9c.72-.87 1.2-2.08 1.07-3.28-1.03.04-2.28.69-3.02 1.55-.66.77-1.24 2-1.09 3.18 1.15.09 2.32-.58 3.04-1.45z" fill="currentColor"/>
+            </svg>
+          </button>
+
+          <button type="button" class="auth-sso-btn" id="btnDaftarGithub" hidden disabled
+                  aria-label="Daftar dengan GitHub">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" fill="currentColor"/>
             </svg>
-            <span>Daftar dengan GitHub</span>
+          </button>
+
+          <button type="button" class="auth-sso-btn" id="btnDaftarLinkedin" hidden disabled
+                  aria-label="Daftar dengan LinkedIn">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" fill="#0A66C2"/>
+            </svg>
           </button>
         </div>
 
-        <div class="auth-divider" hidden><span>atau dengan email</span></div>
+        <!-- Divider selalu tampil: memisahkan jalur provider dari jalur email.
+             Sebelumnya `hidden` — jadi saat provider muncul, tidak ada pemisah
+             dan pengguna tidak tahu bahwa form di bawah adalah jalur alternatif. -->
+        <div class="auth-divider"><span>atau dengan email</span></div>
 
         <form class="auth-form" id="formDaftar" autocomplete="on" novalidate>
 
