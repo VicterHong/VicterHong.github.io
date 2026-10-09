@@ -96,22 +96,57 @@ const PROVIDER = {
     ambilEmailDariIdToken: false,
   },
 
-  apple: {
-    nama: 'Apple',
-    authorizeUrl: 'https://appleid.apple.com/auth/authorize',
-    tokenUrl: 'https://appleid.apple.com/auth/token',
-    // Apple TIDAK punya userinfo endpoint. Email dan nama hanya ada di
-    // id_token — dan nama HANYA pada otorisasi pertama (scope 'name').
-    userinfoUrl: '',
-    jwksUrl: 'https://appleid.apple.com/auth/keys',
-    issuer: 'https://appleid.apple.com',
-    scope: 'name email',
-    extraAuth: { response_mode: 'form_post' },
-    // Apple mewajibkan response_mode=form_post: hasilnya POST ke callback,
-    // bukan query string. Callback harus menangani kedua bentuk.
-    formPost: true,
-    ambilEmailDariIdToken: true,
-  },
+  apple: (() => {
+    // ── OVERRIDE PENGUJIAN ─────────────────────────────────────────────────
+    //
+    // Apple TIDAK punya sandbox atau mode testing. Satu-satunya cara menguji
+    // alur Sign in with Apple tanpa membayar $99 adalah mengarahkan endpoint
+    // ke IdP tiruan.
+    //
+    // AKTIF HANYA KALAU APPLE_TEST_ENDPOINTS DIISI. Di produksi variabel itu
+    // tidak ada, jadi endpoint tetap appleid.apple.com.
+    //
+    // Cara pakai:
+    //   APPLE_TEST_ENDPOINTS=http://127.0.0.1:9912
+    //
+    // Lihat idp-apple-tiruan.mjs untuk IdP tiruannya.
+    const dasarUji = process.env.APPLE_TEST_ENDPOINTS || '';
+
+    if (dasarUji) {
+      const dasar = dasarUji.replace(/\/$/, '');
+      return {
+        nama: 'Apple (TIRUAN — pengujian)',
+        authorizeUrl: `${dasar}/auth/authorize`,
+        tokenUrl: `${dasar}/auth/token`,
+        userinfoUrl: '',
+        jwksUrl: `${dasar}/auth/keys`,
+        issuer: dasar,
+        scope: 'name email',
+        extraAuth: { response_mode: 'form_post' },
+        formPost: true,
+        ambilEmailDariIdToken: true,
+        // Penanda supaya log jelas ini bukan Apple sungguhan.
+        tiruan: true,
+      };
+    }
+
+    return {
+      nama: 'Apple',
+      authorizeUrl: 'https://appleid.apple.com/auth/authorize',
+      tokenUrl: 'https://appleid.apple.com/auth/token',
+      // Apple TIDAK punya userinfo endpoint. Email dan nama hanya ada di
+      // id_token — dan nama HANYA pada otorisasi pertama (scope 'name').
+      userinfoUrl: '',
+      jwksUrl: 'https://appleid.apple.com/auth/keys',
+      issuer: 'https://appleid.apple.com',
+      scope: 'name email',
+      extraAuth: { response_mode: 'form_post' },
+      // Apple mewajibkan response_mode=form_post: hasilnya POST ke callback,
+      // bukan query string. Callback harus menangani kedua bentuk.
+      formPost: true,
+      ambilEmailDariIdToken: true,
+    };
+  })(),
 
   github: {
     nama: 'GitHub',
