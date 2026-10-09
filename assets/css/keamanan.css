@@ -439,3 +439,133 @@
      lebih mudah ditekan di layar sempit. */
   .kam-tambah-isi { gap: 12px; }
 }
+
+/* ══ PROFIL: TOMBOL UBAH + FORM EDIT ══════════════════════════════════════════
+ *
+ * Mengikuti pola Stripe: informasi ditampilkan sebagai daftar, dan tombol
+ * "Ubah" mengubahnya jadi form. Satu bagian, dua keadaan.
+ *
+ * ── KENAPA TOMBOL UBAH DI KANAN JUDUL ───────────────────────────────────────
+ * Pola "judul kiri, aksi kanan" sudah dipakai baris "Cara masuk" di halaman
+ * ini (judul + penghitung). Menaruhnya di tempat yang sama membuat kedua
+ * bagian terasa satu keluarga, bukan dua desain berbeda.
+ */
+
+.kam-ubah {
+  padding: 0.3rem 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--teks, #e8e8ea);
+  background: transparent;
+  border: 1px solid var(--garis, rgba(255, 255, 255, 0.14));
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.kam-ubah:hover {
+  border-color: rgba(245, 197, 66, 0.5);
+  background: rgba(245, 197, 66, 0.06);
+}
+
+.kam-ubah:focus-visible {
+  outline: 2px solid rgba(245, 197, 66, 0.9);
+  outline-offset: 2px;
+}
+
+/* ── Form edit ──────────────────────────────────────────────────────────────── */
+
+.kam-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.kam-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.kam-field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--teks-redup, #9a9aa0);
+}
+
+.kam-opsional {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.kam-input {
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--teks, #e8e8ea);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--garis, rgba(255, 255, 255, 0.14));
+  border-radius: 8px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.kam-input:focus {
+  outline: none;
+  border-color: rgba(245, 197, 66, 0.55);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Field yang tidak bisa diedit (email) — dibuat jelas tidak bisa diisi,
+   bukan sekadar terlihat seperti input biasa yang rusak. */
+.kam-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.kam-field-catatan {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--teks-redup, #9a9aa0);
+}
+
+/* ── Aksi form ──────────────────────────────────────────────────────────────── */
+
+.kam-form-aksi {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+/* Tombol simpan memakai gaya tombol utama yang sudah ada, tapi tidak
+   selebar penuh — di dalam kartu pengaturan, tombol penuh terasa berat. */
+.kam-simpan {
+  width: auto;
+  min-width: 7rem;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+}
+
+.kam-batal {
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--teks-redup, #9a9aa0);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.kam-batal:hover {
+  color: var(--teks, #e8e8ea);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.kam-batal:focus-visible {
+  outline: 2px solid rgba(245, 197, 66, 0.9);
+  outline-offset: 2px;
+}

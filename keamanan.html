@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Keamanan akun | VIVASTIC</title>
-<meta name="description" content="Kelola cara masuk ke akun Anda.">
+<title>Profil Saya | VIVASTIC</title>
+<meta name="description" content="Profil dan cara masuk Anda.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0a0a0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -45,8 +45,8 @@
     <div class="auth-card auth-card-lebar" id="card">
 
       <header class="auth-head">
-        <h1 class="auth-title">Keamanan akun</h1>
-        <p class="auth-sub">Cara masuk ke akun Anda</p>
+        <h1 class="auth-title">Profil Saya</h1>
+        <p class="auth-sub">Profil dan cara masuk Anda</p>
       </header>
 
       <!-- ══ Status pemuatan ═══════════════════════════════════════════════════
@@ -54,7 +54,7 @@
            kosong sekejap dan mengira halamannya rusak. -->
       <div class="kam-memuat" id="kamMemuat">
         <span class="kam-spinner" aria-hidden="true"></span>
-        <span>Memuat data akun…</span>
+        <span>Memuat data profil…</span>
       </div>
 
       <!-- ══ Belum masuk ═══════════════════════════════════════════════════════
@@ -64,20 +64,41 @@
         <div class="kam-kosong">
           <p class="kam-kosong-judul">Anda belum masuk</p>
           <p class="kam-kosong-teks">
-            Halaman ini menampilkan cara masuk yang tersambung ke akun Anda.
+            Halaman ini menampilkan profil dan cara masuk Anda.
             Masuk dulu untuk melihatnya.
           </p>
-          <a class="auth-submit auth-submit-link" href="/sign-in">Masuk ke akun</a>
+          <a class="auth-submit auth-submit-link" href="/sign-in">Masuk</a>
         </div>
       </section>
 
       <!-- ══ Isi utama ════════════════════════════════════════════════════════ -->
       <div id="kamIsi" hidden>
 
-        <!-- Identitas akun -->
+        <!-- ══ PROFIL — MODE LIHAT & MODE EDIT ═══════════════════════════════
+             Mengikuti pola Stripe: informasi ditampilkan sebagai daftar, dan
+             tombol "Ubah" mengubahnya jadi form. Satu bagian, dua keadaan.
+
+             ── KENAPA DUA MODE, BUKAN FORM SELALU TERBUKA ──────────────────
+             Form yang selalu terbuka membuat halaman terasa seperti sedang
+             diisi, bukan seperti halaman informasi. Pengguna yang hanya
+             ingin MEMERIKSA datanya harus melihat input di mana-mana.
+
+             Mode lihat = jawaban cepat untuk "data saya apa?".
+             Mode edit  = hanya muncul saat memang ingin mengubah.
+
+             ── KENAPA EMAIL TIDAK BISA DIEDIT ──────────────────────────────
+             Email adalah identitas login dan kunci identitas OAuth. Ubahnya
+             butuh alur terpisah dengan verifikasi ke alamat BARU. Stripe
+             juga begitu: email ditampilkan sebagai informasi, tidak sebagai
+             input. -->
         <section class="kam-blok">
-          <h2 class="kam-judul">Akun</h2>
-          <dl class="kam-daftar">
+          <div class="kam-judul-baris">
+            <h2 class="kam-judul">Profil</h2>
+            <button type="button" class="kam-ubah" id="kamUbahProfil">Ubah</button>
+          </div>
+
+          <!-- Mode lihat -->
+          <dl class="kam-daftar" id="kamProfilLihat">
             <div class="kam-baris">
               <dt>Email</dt>
               <dd id="kamEmail">—</dd>
@@ -91,6 +112,42 @@
               <dd id="kamPerusahaan">—</dd>
             </div>
           </dl>
+
+          <!-- Mode edit. `hidden` sampai tombol Ubah ditekan. -->
+          <form class="kam-form" id="kamProfilEdit" hidden novalidate>
+            <div class="kam-field">
+              <label for="kamInputNama">Nama</label>
+              <input class="kam-input" type="text" id="kamInputNama"
+                     autocomplete="name" maxlength="200">
+            </div>
+
+            <div class="kam-field">
+              <label for="kamInputPerusahaan">Organisasi <span class="kam-opsional">(opsional)</span></label>
+              <input class="kam-input" type="text" id="kamInputPerusahaan"
+                     autocomplete="organization" maxlength="200">
+            </div>
+
+            <!-- Email ditampilkan tapi TIDAK bisa diedit — lihat catatan di atas. -->
+            <div class="kam-field">
+              <label for="kamInputEmail">Email</label>
+              <input class="kam-input" type="email" id="kamInputEmail"
+                     readonly disabled>
+              <p class="kam-field-catatan">
+                Email tidak bisa diubah di sini karena dipakai untuk masuk.
+                Hubungi dukungan kalau perlu mengubahnya.
+              </p>
+            </div>
+
+            <div class="kam-form-aksi">
+              <button type="submit" class="auth-submit kam-simpan" id="kamSimpanProfil">
+                <span class="auth-submit-label">Simpan</span>
+                <span class="auth-submit-spinner" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="kam-batal" id="kamBatalProfil">Batal</button>
+            </div>
+
+            <p class="auth-msg" id="kamPesanProfil" role="status" aria-live="polite"></p>
+          </form>
         </section>
 
         <!-- ══ Cara masuk ══════════════════════════════════════════════════════
@@ -103,8 +160,8 @@
           </div>
 
           <p class="kam-keterangan">
-            Akun Anda bisa dimasuki lewat cara-cara berikut. Menghapus salah
-            satunya tidak menghapus akun — hanya menutup jalan itu.
+            Profil Anda bisa dimasuki lewat cara-cara berikut. Menghapus salah
+            satunya tidak menghapus profil — hanya menutup jalan itu.
           </p>
 
           <ul class="kam-senarai" id="kamSenarai"></ul>
@@ -141,7 +198,7 @@
            sering dipakai, dan menaruhnya menonjol membuat pengguna tidak sengaja
            mengkliknya. -->
       <footer class="kam-kaki" id="kamKaki" hidden>
-        <a class="kam-keluar" href="/sign-in?keluar=1">Keluar dari akun</a>
+        <a class="kam-keluar" href="/sign-in?keluar=1">Keluar</a>
       </footer>
 
     </div>

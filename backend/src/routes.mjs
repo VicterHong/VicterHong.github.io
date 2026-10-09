@@ -1122,7 +1122,24 @@ export const routes = [
       if (sessionId) {
         destroySession(sessionId, config.secret);
       }
-      clearCookie(res, 'portfolio_session');
+      // ── OPSI HARUS SAMA DENGAN SAAT COOKIE DISET ─────────────────────────
+      //
+      // BUG YANG DIPERBAIKI: sebelumnya `clearCookie(res, 'portfolio_session')`
+      // tanpa opsi. Default setCookie adalah `SameSite=None`, sementara
+      // cookie sesi DISET dengan `SameSite=Lax` (lihat buatSesiUntuk di
+      // auth-routes.mjs).
+      //
+      // Browser mencocokkan cookie untuk penghapusan berdasarkan nama,
+      // domain, path, DAN atribut keamanannya. Atribut yang berbeda =
+      // dianggap cookie LAIN → Set-Cookie kosong tidak menghapus apa pun.
+      //
+      // Akibatnya pengguna menekan "Keluar", sesi di database terhapus,
+      // TAPI cookie-nya masih tersimpan di browser. Pada kunjungan
+      // berikutnya browser mengirim cookie itu, server tidak menemukan
+      // sesinya, dan pengguna melihat perilaku aneh: seolah setengah masuk.
+      clearCookie(res, 'portfolio_session', {
+        httpOnly: true, secure: true, sameSite: 'Lax',
+      });
       sendJson(res, 200, { ok: true, message: 'Sesi dihapus.' });
     }),
   },

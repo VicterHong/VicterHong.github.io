@@ -263,9 +263,24 @@ export function setCookie(res, name, value, { maxAgeSeconds = 86400, httpOnly = 
   }
 }
 
-/** Hapus cookie (set expired). */
-export function clearCookie(res, name) {
-  setCookie(res, name, '', { maxAgeSeconds: 0 });
+/**
+ * Hapus cookie (set expired).
+ *
+ * ── KENAPA OPSINYA HARUS BOLEH DISESUAIKAN ───────────────────────────────────
+ * Browser mencocokkan cookie untuk penghapusan berdasarkan nama, domain,
+ * path, DAN atribut keamanannya. Cookie yang diset dengan `Secure` +
+ * `SameSite=Lax` tidak terhapus oleh Set-Cookie tanpa atribut yang sama —
+ * browser menganggapnya cookie yang berbeda.
+ *
+ * Akibatnya pengguna menekan "Keluar" dan masih terlihat masuk: cookie
+ * sesinya tidak pernah benar-benar dibuang.
+ *
+ * Karena itu fungsi ini meneruskan opsi apa pun yang diberikan pemanggil,
+ * supaya penghapusan bisa memakai atribut yang PERSIS SAMA dengan saat
+ * cookie itu diset.
+ */
+export function clearCookie(res, name, opsi = {}) {
+  setCookie(res, name, '', { ...opsi, maxAgeSeconds: 0 });
 }
 
 /** Jawaban OPTIONS preflight. */

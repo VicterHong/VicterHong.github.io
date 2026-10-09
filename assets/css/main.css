@@ -290,6 +290,173 @@ a { color: inherit; text-decoration: none; }
   color: var(--text);
 }
 
+/* ══ MENU AKUN — PENGGANTI "Sign in" SAAT SUDAH MASUK ═════════════════════════
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Header selalu menampilkan "Sign in", bahkan setelah pengguna berhasil masuk.
+ * Pengguna yang sudah login melihat ajakan masuk di setiap halaman, dan tidak
+ * ada cara menemukan profilnya sendiri — harus mengetik /keamanan manual.
+ *
+ * ── KENAPA TOMBOL, BUKAN TAUTAN LANGSUNG ────────────────────────────────────
+ * Klik nama → langsung pindah halaman berarti pengguna tidak bisa melihat
+ * pilihan lain (keluar, misalnya). Dropdown memberi daftar tindakan yang
+ * tersedia — pola yang dipakai GitHub, Google, dan hampir semua dashboard.
+ *
+ * ── POSISI: absolute, BUKAN static ──────────────────────────────────────────
+ * Menu harus melayang DI ATAS konten, bukan mendorong tata letak. Tanpa
+ * `position: absolute`, membuka menu akan menggeser seluruh navigasi ke bawah
+ * — dan halaman terlihat "melompat" setiap kali menu dibuka.
+ * ────────────────────────────────────────────────────────────────────────── */
+.nav-akun {
+  position: relative;
+}
+
+.nav-akun-tombol {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.35rem;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+
+.nav-akun-tombol:hover {
+  border-color: var(--accent-line);
+  background: rgba(245, 197, 66, 0.06);
+}
+
+.nav-akun-tombol:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Avatar inisial. Warna emas dengan teks gelap — konsisten dengan aksen
+   situs, dan kontras teksnya terjamin (bukan emas di atas emas). */
+.nav-akun-avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0b0b0c;
+  background: var(--accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Nama bisa panjang (nama lengkap atau email). Dipotong dengan ellipsis
+   supaya tidak mendorong menu lain keluar layar. max-width dipilih ~11ch
+   agar nama umum muat, tapi tidak menguasai header. */
+.nav-akun-nama {
+  max-width: 11ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-akun-panah {
+  opacity: 0.55;
+  transition: transform 0.2s var(--ease);
+  flex-shrink: 0;
+}
+
+.nav-akun-tombol[aria-expanded="true"] .nav-akun-panah {
+  transform: rotate(180deg);
+}
+
+/* Menu dropdown. `min-width` memastikan email panjang tidak membuat menu
+   sempit dan terpotong. */
+.nav-akun-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 60;
+  min-width: 15rem;
+  padding: 0.4rem;
+  background: var(--surface, #131316);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.nav-akun-kepala {
+  padding: 0.5rem 0.65rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted, #9a9a9f);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.35rem;
+  /* Email panjang dipotong, bukan dibungkus — kepala menu harus tetap
+     satu baris supaya tingginya bisa diprediksi. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-akun-tautan,
+.nav-akun-keluar {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease);
+}
+
+.nav-akun-tautan:hover,
+.nav-akun-keluar:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-akun-tautan:focus-visible,
+.nav-akun-keluar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.nav-akun-garis {
+  height: 1px;
+  margin: 0.35rem 0;
+  background: var(--line);
+}
+
+/* "Keluar" diberi warna peringatan yang halus — bukan merah menyala, tapi
+   cukup berbeda untuk terasa sebagai tindakan yang mengakhiri sesi. */
+.nav-akun-keluar {
+  color: #e8a0a0;
+}
+
+.nav-akun-keluar:hover {
+  background: rgba(232, 160, 160, 0.1);
+}
+
+.nav-akun-keluar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Di layar sempit, nama di tombol disembunyikan — avatar + panah saja.
+   Header di ponsel tidak punya ruang untuk nama panjang. */
+@media (max-width: 640px) {
+  .nav-akun-nama { display: none; }
+  .nav-akun-tombol { padding: 0.3rem; }
+}
+
 .site-nav a[aria-current="true"] {
   color: var(--text);
   position: relative;

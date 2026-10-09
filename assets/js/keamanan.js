@@ -84,6 +84,17 @@
 
   let timerPesan = null;
 
+  /** Pesan khusus form profil — elemennya terpisah dari #kamPesan supaya
+   *  pesan form tidak bertabrakan dengan pesan halaman (mis. saat menghapus
+   *  cara masuk). Dua alur berbeda, dua tempat berbeda. */
+  function pesanProfil(teks, jenis = '') {
+    const el = $('#kamPesanProfil');
+    if (!el) return;
+    el.textContent = teks;
+    el.classList.toggle('is-galat', jenis === 'galat');
+    el.classList.toggle('is-sukses', jenis === 'sukses');
+  }
+
   function pesan(teks, jenis = '') {
     const el = $('#kamPesan');
     if (!el) return;
@@ -108,6 +119,10 @@
 
   let identitasCache = [];
   let punyaSandi = false;
+
+  /** Data profil terakhir — dipakai mode edit untuk mengisi form dan
+   *  mengembalikannya kalau pengguna menekan Batal. */
+  let profilCache = { email: '', nama: '', perusahaan: '' };
 
   async function muat() {
     const memuat = $('#kamMemuat');
@@ -152,6 +167,13 @@
 
       punyaSandi = Boolean(profil.punya_sandi);
       identitasCache = Array.isArray(data.identitas) ? data.identitas : [];
+
+      // Simpan untuk mode edit — email ditampilkan tapi tidak bisa diubah.
+      profilCache = {
+        email: profil.email || '',
+        nama: profil.nama || '',
+        perusahaan: profil.perusahaan || '',
+      };
 
       gambarSenarai();
 
@@ -511,7 +533,131 @@
       if (e.key === 'Escape' && !$('#kamDialog')?.hidden) tutupDialog();
     });
 
-    // ?keluar=1 → keluar dari akun, lalu ke halaman masuk.
+    // ══ MODE LIHAT / EDIT PROFIL ═══════════════════════════════════════════════
+  //
+  // ── KENAPA DUA MODE ────────────────────────────────────────────────────────
+  // Form yang selalu terbuka membuat halaman terasa seperti sedang diisi,
+  // bukan halaman informasi. Pengguna yang hanya ingin MEMERIKSA datanya
+  // harus melihat input di mana-mana.
+  //
+  // Mode lihat = jawaban cepat untuk "data saya apa?".
+  // Mode edit  = hanya muncul saat memang ingin mengubah.
+  //
+  // Pola ini sama dengan Stripe: informasi ditampilkan sebagai daftar, dan
+  // tombol "Update" mengubahnya jadi form.
+
+  function masukModeEdit() {
+    const lihat = $('#kamProfilLihat');
+    const edit = $('#kamProfilEdit');
+    const tombolUbah = $('#kamUbahProfil');
+    if (!lihat || !edit) return;
+
+    // Isi form dengan data yang sedang tampil — pengguna mengedit dari
+    // keadaan sekarang, bukan dari form kosong.
+    const inpNama = $('#kamInputNama');
+    const inpPerusahaan = $('#kamInputPerusahaan');
+    const inpEmail = $('#kamInputEmail');
+    if (inpNama) inpNama.value = profilCache.nama;
+    if (inpPerusahaan) inpPerusahaan.value = profilCache.perusahaan;
+    if (inpEmail) inpEmail.value = profilCache.email;
+
+    lihat.hidden = true;
+    edit.hidden = false;
+    if (tombolUbah) tombolUbah.hidden = true;
+
+    // Bersihkan pesan lama dari percobaan sebelumnya.
+    pesanProfil('');
+
+    // Fokuskan field pertama — hemat satu klik untuk pengguna keyboard.
+    inpNama?.focus();
+  }
+
+  function keluarModeEdit() {
+    const lihat = $('#kamProfilLihat');
+    const edit = $('#kamProfilEdit');
+    const tombolUbah = $('#kamUbahProfil');
+    if (!lihat || !edit) return;
+
+    lihat.hidden = false;
+    edit.hidden = true;
+    if (tombolUbah) tombolUbah.hidden = false;
+    pesanProfil('');
+  }
+
+  async function simpanProfil(e) {
+    e.preventDefault();
+
+    const inpNama = $('#kamInputNama');
+    const inpPerusahaan = $('#kamInputPerusahaan');
+    const tombol = $('#kamSimpanProfil');
+
+    const nama = (inpNama?.value || '').trim();
+    const perusahaan = (inpPerusahaan?.value || '').trim();
+
+    // ── Validasi klien: umpan balik cepat ─────────────────────────────────
+    // Server memvalidasi ULANG — ini hanya supaya pengguna tidak menunggu
+    // perjalanan bolak-balik untuk kesalahan yang jelas.
+    if (nama.length < 3 || /\d/.test(nama)) {
+      pesanProfil('Nama minimal 3 huruf, tanpa angka.', 'galat');
+      inpNama?.focus();
+      return;
+    }
+
+    if (tombol) { tombol.disabled = true; tombol.classList.add('is-memuat'); }
+    pesanProfil('Menyimpan…');
+
+    try {
+      const res = await fetch('/api/auth/profil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ nama, perusahaan }),
+      });
+      const hasil = await res.json().catch(() => ({}));
+
+      if (!res.ok || !hasil.ok) {
+        pesanProfil(hasil.message || 'Tidak bisa menyimpan. Coba lagi.', 'galat');
+        return;
+      }
+
+      // Perbarui tampilan mode-lihat dengan nilai baru. Tanpa ini, pengguna
+      // kembali ke mode lihat dan melihat data LAMA — dan mengira simpanannya
+      // gagal, padahal berhasil.
+      profilCache.nama = hasil.nama;
+      profilCache.perusahaan = hasil.perusahaan;
+
+      if (hasil.nama) {
+        $('#kamNama').textContent = hasil.nama;
+        $('#kamBarisNama').hidden = false;
+      }
+      if (hasil.perusahaan) {
+        $('#kamPerusahaan').textContent = hasil.perusahaan;
+        $('#kamBarisPerusahaan').hidden = false;
+      } else {
+        // Dikosongkan pengguna → sembunyikan barisnya.
+        $('#kamBarisPerusahaan').hidden = true;
+      }
+
+      pesanProfil('Profil diperbarui.', 'sukses');
+
+      // Kembali ke mode lihat setelah jeda singkat, supaya pesan "berhasil"
+      // sempat terbaca. Langsung menutup form membuat pengguna tidak yakin
+      // simpanannya jadi.
+      setTimeout(keluarModeEdit, 900);
+
+    } catch {
+      pesanProfil('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+    } finally {
+      if (tombol) { tombol.disabled = false; tombol.classList.remove('is-memuat'); }
+    }
+  }
+
+  // ── Pasang handler ─────────────────────────────────────────────────────────
+  $('#kamUbahProfil')?.addEventListener('click', masukModeEdit);
+  $('#kamBatalProfil')?.addEventListener('click', keluarModeEdit);
+  $('#kamProfilEdit')?.addEventListener('submit', simpanProfil);
+
+  // ?keluar=1 → keluar dari akun, lalu ke halaman masuk.
     //
     // Path-nya /api/token/logout (sudah ada sejak dulu, dipakai panel admin).
     // Saya sempat menulis '/api/keluar' dari ingatan — path itu tidak ada,

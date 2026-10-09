@@ -32,7 +32,7 @@ import { getDb } from './db.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, readJson } from './http-util.mjs';
 import { createSession, validateSession, destroySession } from './sessions.mjs';
 import { recordEvent } from './audit.mjs';
-import { normalEmail, emailValid, cariPengguna, penggunaById, buatPengguna } from './users.mjs';
+import { normalEmail, emailValid, cariPengguna, penggunaById, buatPengguna, perbaruiProfil } from './users.mjs';
 import { issueToken, tokenProblem } from './tokens.mjs';
 import { checkRateLimit } from './rate-limit.mjs';
 import {
@@ -834,6 +834,75 @@ const ruteProfil = {
   },
 };
 
+/**
+ * Perbarui profil — nama dan organisasi.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA POST KE PATH YANG SAMA DENGAN GET /api/auth/profil
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * REST murni akan memakai PUT atau PATCH. Tapi router di proyek ini
+ * mencocokkan berdasarkan METHOD + PATH — jadi POST ke path yang sama tidak
+ * bentrok dengan GET-nya. Path yang sama membuat hubungannya jelas: sumber
+ * daya yang sama, hanya berbeda tindakan (baca vs ubah).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA IDENTITAS DIAMBIL DARI SESI, BUKAN DARI BODY
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Pengguna hanya boleh mengubah profil MILIKNYA SENDIRI. Tidak ada parameter
+ * userId di body — kalau ada, siapa pun bisa mengubah profil orang lain
+ * hanya dengan menebak id-nya.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA EMAIL TIDAK BISA DIUBAH DI SINI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Email adalah identitas login dan kunci identitas OAuth. Mengubahnya butuh
+ * alur terpisah dengan verifikasi ke alamat BARU — kalau tidak, seseorang
+ * yang sempat menguasai sesi bisa memindahkan akun ke alamatnya sendiri, dan
+ * pemilik asli kehilangan akses tanpa tahu.
+ *
+ * Stripe melakukan hal yang sama: email ditampilkan di halaman profil, tapi
+ * alur mengubahnya terpisah.
+ */
+const rutePerbaruiProfil = {
+  method: 'POST',
+  pattern: '/api/auth/profil',
+  handler: async (req, res) => {
+    const tokenRow = sesiDariRequest(req);
+    if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+    const pengguna = penggunaDariToken(tokenRow);
+    if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+    const body = await readJson(req).catch(() => ({}));
+    const hasil = perbaruiProfil(pengguna.id, {
+      nama: body.nama,
+      perusahaan: body.perusahaan,
+    });
+
+    if (!hasil.ok) {
+      return sendJson(res, 400, { ok: false, error: 'validasi_gagal', message: hasil.pesan });
+    }
+
+    recordEvent({
+      projectSlug: '',
+      action: 'profil_diperbarui',
+      outcome: 'ok',
+      ip: clientIp(req),
+      userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+    });
+
+    return sendJson(res, 200, {
+      ok: true,
+      message: 'Profil diperbarui.',
+      nama: hasil.nama,
+      perusahaan: hasil.perusahaan,
+    });
+  },
+};
+
 const ruteDaftarIdentitas = {
   method: 'GET',
   pattern: '/api/auth/identitas',
@@ -961,6 +1030,7 @@ export function ruteAuth() {
     rutePasskeyMasukMulai,
     rutePasskeyMasukSelesai,
     ruteProfil,
+    rutePerbaruiProfil,
     ruteDaftarIdentitas,
     ruteHapusIdentitas,
   ];
