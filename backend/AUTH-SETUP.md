@@ -8,14 +8,21 @@ kredensial, tombol tidak muncul dan endpoint menolak dengan pesan yang jelas
 
 ## Ringkas: apa yang sudah jadi
 
-| Cara masuk | Status kode | Yang Anda butuhkan |
+| Cara masuk | Status | Yang Anda butuhkan |
 |---|---|---|
-| **Passkey** | ✅ Siap pakai | — tidak ada. Langsung jalan. |
-| **Google** | ✅ Siap | Client ID + Secret |
-| **GitHub** | ✅ Siap | Client ID + Secret |
-| **Microsoft** | ✅ Siap | Client ID + Secret |
-| **Apple** | ✅ Siap | Services ID + Team ID + Key ID + kunci .p8 |
-| **SSO perusahaan** | ⚠️ Perlu broker | Cloudflare Access / Okta / Auth0 |
+| **Passkey** | ✅ AKTIF | — tidak ada. Langsung jalan. |
+| **Google** | ✅ AKTIF | — sudah terpasang (production) |
+| **GitHub** | ✅ AKTIF | — sudah terpasang |
+| **Microsoft** | ✅ AKTIF | — sudah terpasang (multi-tenant + pribadi) |
+| **SSO perusahaan** | ✅ AKTIF | — Cloudflare Access (OIDC, One-time PIN) |
+| **Apple** | ⬜ TIDAK DIPAKAI | $99/tahun — lihat PROVIDER-STATUS.md |
+
+**Ringkasnya:** lima dari enam cara masuk sudah aktif. Apple diputuskan
+tidak dipakai karena $99/tahun sementara permintaannya diperkirakan
+sedikit — kodenya sudah siap kalau nanti berubah pikiran.
+
+Lihat `PROVIDER-STATUS.md` untuk status terkini dan cara mengaktifkan
+Apple kalau diperlukan.
 
 **Passkey tidak butuh kredensial pihak ketiga.** Ia memakai kunci kriptografi
 yang dibuat perangkat pengguna, jadi bisa langsung dipakai.
