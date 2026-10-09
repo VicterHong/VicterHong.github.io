@@ -27,51 +27,121 @@ import { icon, iconHtml } from './icons.js';
     if (svg) el.replaceWith(svg);
   });
 
-  // ── 1. Daftar isi otomatis dari heading ────────────────────────────────────
+  // ── 1. Daftar isi otomatis dari heading (accordion) ────────────────────────
+  //
+  // Versi lama menampilkan 7 bagian + 21 sub sekaligus (28 tautan). Pengunjung
+  // yang mencari "Batas laju" harus memindai semuanya. Sekarang jadi accordion:
+  // 7 baris saja, sub muncul saat bagiannya dibuka.
+  //
+  // Pola ini dari dokumentasi Stripe/Vercel/Linear. Satu terbuka pada satu
+  // waktu — kalau semua bisa terbuka, daftarnya kembali panjang dan accordion
+  // kehilangan gunanya.
   var headings = content.querySelectorAll('h2[id], h3[id]');
+  var panels = [];       // { bagian, tautan[] } — untuk observer & auto-buka
+
   if (headings.length) {
     var frag = document.createDocumentFragment();
-    var lastWasH2 = false;
+    var bagianKini = null;   // panel bagian yang sedang dibangun
+    var daftarSub = null;    // <ul> tempat sub-bagian ditaruh
 
     headings.forEach(function (h) {
       var isH2 = h.tagName === 'H2';
-
-      // Judul kelompok sebelum H2 berikutnya (pola "section title" MDN).
-      if (isH2 && lastWasH2) {
-        var group = document.createElement('span');
-        group.className = 'toc-group';
-        group.textContent = h.textContent.replace(/^\s*\d+\s*/, '').trim();
-        frag.appendChild(group);
-      }
-
-      var a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.className = 'toc-link toc-' + h.tagName.toLowerCase();
+      var judul = h.textContent.replace(/^\s*\d+\s*/, '').trim();
 
       if (isH2) {
-        // Nomor bagian dipisah jadi elemen sendiri supaya bisa digayai
-        // (monospace, redup) — bukan menempel di teks judul.
-        var num = h.querySelector('.sec-num');
-        var numText = num ? num.textContent.trim() : '';
-        var titleText = h.textContent.replace(/^\s*\d+\s*/, '').trim();
+        // ── Bagian utama: jadi tombol accordion ─────────────────────────────
+        var blok = document.createElement('div');
+        blok.className = 'toc-bagian';
 
-        if (numText) {
+        var tombol = document.createElement('button');
+        tombol.type = 'button';
+        tombol.className = 'toc-judul';
+        tombol.setAttribute('aria-expanded', 'false');
+        tombol.dataset.target = h.id;
+
+        var num = h.querySelector('.sec-num');
+        if (num) {
           var span = document.createElement('span');
           span.className = 'toc-num';
-          span.textContent = numText;
-          a.appendChild(span);
+          span.textContent = num.textContent.trim();
+          tombol.appendChild(span);
         }
-        a.appendChild(document.createTextNode(titleText));
-      } else {
-        a.textContent = h.textContent.trim();
-      }
 
-      frag.appendChild(a);
-      lastWasH2 = isH2;
+        var teks = document.createElement('span');
+        teks.className = 'toc-judul-teks';
+        teks.textContent = judul;
+        tombol.appendChild(teks);
+
+        // Chevron dari CSS (border), bukan SVG — rotasinya jadi animasi
+        // transform yang murah.
+        var panah = document.createElement('span');
+        panah.className = 'toc-panah';
+        panah.setAttribute('aria-hidden', 'true');
+        tombol.appendChild(panah);
+
+        blok.appendChild(tombol);
+
+        daftarSub = document.createElement('ul');
+        daftarSub.className = 'toc-sub';
+        daftarSub.id = 'toc-sub-' + h.id;
+        tombol.setAttribute('aria-controls', daftarSub.id);
+        blok.appendChild(daftarSub);
+
+        frag.appendChild(blok);
+
+        bagianKini = { id: h.id, tombol: tombol, daftar: daftarSub, tautan: [] };
+        panels.push(bagianKini);
+        blok.dataset.bagian = h.id;
+      } else if (bagianKini) {
+        // ── Sub-bagian: masuk ke daftar bagian induknya ──────────────────────
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.className = 'toc-link';
+        a.textContent = h.textContent.trim();
+        li.appendChild(a);
+        bagianKini.daftar.appendChild(li);
+        bagianKini.tautan.push(a);
+      }
     });
 
     toc.appendChild(frag);
   }
+
+  // ── 1b. Buka-tutup bagian ──────────────────────────────────────────────────
+  //
+  // Tombol + aria-expanded, bukan <details>: <details> tidak bisa dibuat
+  // eksklusif tanpa JS juga, dan gayanya sulit diseragamkan antar-browser.
+  function tutupSemua(kecuali) {
+    panels.forEach(function (p) {
+      if (p === kecuali) return;
+      p.tombol.setAttribute('aria-expanded', 'false');
+      p.daftar.hidden = true;
+      p.tombol.closest('.toc-bagian').classList.remove('is-terbuka');
+    });
+  }
+
+  function buka(p) {
+    p.tombol.setAttribute('aria-expanded', 'true');
+    p.daftar.hidden = false;
+    p.tombol.closest('.toc-bagian').classList.add('is-terbuka');
+  }
+
+  panels.forEach(function (p) {
+    p.daftar.hidden = true;   // semua tertutup saat halaman dimuat
+    p.tombol.addEventListener('click', function () {
+      var terbuka = p.tombol.getAttribute('aria-expanded') === 'true';
+      if (terbuka) {
+        // Klik kedua membalikkan yang pertama → semua tertutup.
+        p.tombol.setAttribute('aria-expanded', 'false');
+        p.daftar.hidden = true;
+        p.tombol.closest('.toc-bagian').classList.remove('is-terbuka');
+      } else {
+        tutupSemua(p);
+        buka(p);
+      }
+    });
+  });
 
   // ── 2. Sorot bagian yang sedang dibaca ────────────────────────────────────
   var links = toc.querySelectorAll('.toc-link');
@@ -86,6 +156,17 @@ import { icon, iconHtml } from './icons.js';
         if (e.isIntersecting) {
           links.forEach(function (l) { l.classList.remove('is-active'); });
           link.classList.add('is-active');
+
+          // Auto-buka bagian yang sedang dibaca. Tanpa ini, pengunjung yang
+          // menggulir ke bagian 4 melihat semua tertutup dan tidak tahu
+          // posisinya. Stripe melakukan hal yang sama.
+          var bagian = panels.find(function (p) {
+            return p.id === e.target.id || p.tautan.indexOf(link) >= 0;
+          });
+          if (bagian && bagian.tombol.getAttribute('aria-expanded') !== 'true') {
+            tutupSemua(bagian);
+            buka(bagian);
+          }
         }
       });
     }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });

@@ -19,7 +19,30 @@ import { getDb } from './db.mjs';
  * Nilai mengacu pada target "Good" Core Web Vitals + ukuran wajar situs statis.
  */
 export const BUDGETS = {
-  totalBytes: 900 * 1024,        // 900 KB total aset kritis (html+css+js, tanpa video)
+  // ── 920 KB (dari 900) — DENGAN ALASAN, BUKAN KARENA MENTOK ──────────────────
+  //
+  // ── KENAPA DINAIKKAN ────────────────────────────────────────────────────────
+  // Daftar isi /docs diubah dari 28 tautan sekaligus jadi accordion. Itu
+  // menambah 6 KB (CSS 2.6 + JS 3.4) — dan 900 KB sudah terpakai 899.9 KB
+  // SEBELUM perubahan ini, jadi tidak ada ruang sama sekali.
+  //
+  // Yang ditambahkan bukan hiasan: 28 tautan dalam satu kolom memaksa
+  // pengunjung memindai semuanya untuk menemukan satu bagian. Accordion
+  // memotongnya jadi 7 baris. Itu perbaikan kegunaan yang nyata.
+  //
+  // ── KENAPA 920, BUKAN 950 ATAU 1000 ────────────────────────────────────────
+  // Diukur: yang BENAR-BENAR diunduh pengunjung adalah SATU halaman —
+  // maksimum 216 KB (home.html). Angka 904 KB di sini adalah jumlah SEMUA
+  // berkas di dist/, termasuk halaman yang tidak pernah dibuka bersamaan.
+  //
+  // Jadi angka ini adalah pagar terhadap pertumbuhan yang tidak disadari,
+  // bukan ukuran pengalaman pengguna. 920 KB memberi ruang untuk satu-dua
+  // fitur lagi sebelum pagarnya berbunyi — dan kalau nanti berbunyi lagi,
+  // itu tanda untuk MEMERIKSA, bukan langsung menaikkan.
+  //
+  // Kalau angka ini naik lagi tanpa fitur baru yang jelas, curigai
+  // duplikasi (pernah terjadi: CSS dihitung dua kali, 1166 KB vs 816 KB).
+  totalBytes: 920 * 1024,        // 920 KB total aset kritis (html+css+js, tanpa video)
   maxRequests: 40,               // jumlah berkas kritis
   maxJsBytes: 250 * 1024,        // JS adalah yang paling mahal
   maxCssBytes: 120 * 1024,

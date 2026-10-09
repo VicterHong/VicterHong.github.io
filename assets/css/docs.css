@@ -13,6 +13,17 @@
      5. Nol emoji — semua ikon SVG stroke (currentColor)
    ────────────────────────────────────────────────────────────────────────── */
 
+/* ══ WAJIB: `hidden` HARUS benar-benar menyembunyikan ═════════════════════════
+ * Sub-daftar accordion pakai `hidden`, tapi `.toc-sub { display: flex }`
+ * mengalahkannya — aturan author menang atas `[hidden] { display: none }`
+ * bawaan browser. Terukur: `hidden=true` tapi tinggi 189px, dan daftar isi
+ * tidak menyusut (1039px baik tertutup maupun terbuka).
+ *
+ * Bug ini sudah muncul 3× di proyek ini. Satu aturan global menutup semuanya.
+ * `!important` perlu karena `display: flex` sama-sama spesifisitas 0-1-0. */
+[hidden] { display: none !important; }
+
+
 .docs-page {
   max-width: 1180px;
   margin: 0 auto;
@@ -160,57 +171,110 @@
 .toc::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
 .toc::-webkit-scrollbar-track { background: transparent; }
 
-/* Judul kelompok — memisahkan bagian utama (pola "section title" MDN) */
-.toc-group {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--text-faint);
-  font-weight: 600;
-  margin: 1.1rem 0 0.4rem;
-  padding-left: 0.75rem;
-}
-.toc-group:first-child { margin-top: 0; }
+/* ══ ACCORDION DAFTAR ISI ══════════════════════════════════════════════════════
+ * Pola Stripe/Vercel/Linear: bagian jadi tombol buka-tutup, sub muncul dengan
+ * garis penghubung. Versi lama menampilkan 28 tautan sekaligus; sekarang 7. */
 
-.toc-link {
+/* ── Bagian: tombol + daftar sub ─────────────────────────────────────────────── */
+.toc-bagian { margin-bottom: 1px; }
+
+.toc-judul {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--text-dim);
-  text-decoration: none;
+  font: inherit;
   font-size: 0.84rem;
-  padding: 0.45rem 0.75rem;
-  border-left: 2px solid transparent;
-  border-radius: 0 5px 5px 0;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  line-height: 1.45;
-}
-.toc-link:hover { color: var(--text); background: var(--bg-soft); }
-.toc-link.is-active {
-  color: var(--accent);
-  border-left-color: var(--accent);
-  background: var(--accent-soft);
   font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.toc-judul:hover { color: var(--text); background: var(--bg-soft); }
+
+/* Teks lebih terang saja, BUKAN latar penuh: bagian terbuka bukan berarti
+ * sedang dibaca. Latar penuh akan bersaing dengan sorotan item aktif. */
+.toc-bagian.is-terbuka > .toc-judul { color: var(--text); }
+
+.toc-judul:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* Nomor bagian (01, 02, …) — monospace, redup */
-.toc-link .toc-num {
+.toc-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.72rem;
   color: var(--text-faint);
   flex-shrink: 0;
 }
-.toc-link.is-active .toc-num { color: var(--accent); opacity: 0.8; }
+.toc-bagian.is-terbuka > .toc-judul .toc-num { color: var(--accent); opacity: 0.85; }
 
-/* Sub-bagian (H3) — indentasi + penanda garis pendek */
-.toc-h3 { padding-left: 1.9rem; font-size: 0.8rem; }
-.toc-h3::before {
-  content: '';
-  width: 4px;
-  height: 1px;
-  background: var(--line);
+.toc-judul-teks { flex: 1; min-width: 0; }
+
+/* Dua border diputar 45° membentuk panah — tanpa berkas tambahan, warna ikut
+ * currentColor, rotasinya transform (lebih murah dari animasi path SVG). */
+.toc-panah {
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);   /* menghadap bawah saat tertutup */
+  transition: transform 0.2s var(--ease);
   flex-shrink: 0;
-  margin-top: 0.6em;
+  opacity: 0.6;
+}
+
+.toc-bagian.is-terbuka .toc-panah { transform: rotate(45deg); }
+.toc-judul:hover .toc-panah { opacity: 1; }
+
+/* ── SUB-BAGIAN: INDENTASI + GARIS PENGHUBUNG ─────────────────────────────────
+ * Garis itu bukan hiasan: ia menghubungkan sub ke induknya. Tanpa garis,
+ * indentasi saja membuat sub terlihat seperti daftar terpisah.
+ * Pola yang sama dipakai dokumentasi Stripe dan Vercel.
+ *
+ * margin-left 1.05rem = sejajar tengah nomor bagian. Ke kiri → terlihat
+ * seperti tepi kotak; ke kanan → memotong teks sub-bagian. */
+.toc-sub {
+  list-style: none;
+  margin: 0.15rem 0 0.35rem 1.05rem;
+  padding: 0 0 0 0.75rem;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.toc-link {
+  display: block;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.8rem;
+  padding: 0.38rem 0.6rem;
+  border-radius: 5px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1.45;
+}
+
+.toc-link:hover { color: var(--text); background: var(--bg-soft); }
+
+/* Latar + warna teks saja. Border-left dihapus: wadahnya sudah punya
+ * border-left (garis penghubung) — border kedua = dua garis berdampingan. */
+.toc-link.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 500;
+}
+
+.toc-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* ── Konten ───────────────────────────────────────────────────────────────── */
@@ -532,8 +596,6 @@
     mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
   }
 
-  .toc-group { display: none; }
-
   .toc-link {
     display: inline-flex;
     align-items: center;
@@ -556,9 +618,6 @@
   }
   /* Sub-bagian disembunyikan di HP — chip jadi terlalu banyak.
      Sesuai anjuran docmd: batasi kedalaman navigasi di layar kecil. */
-  .toc-h3 { display: none; }
-  .toc-link .toc-num { font-size: 0.7rem; }
-
   .doc-content { max-width: none; }
 }
 
