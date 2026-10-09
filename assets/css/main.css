@@ -1347,9 +1347,35 @@ a { color: inherit; text-decoration: none; }
     font-size: 0.85rem;
   }
 
+  /* ── IKON DI PONSEL: 20px, BUKAN 16px ─────────────────────────────────────
+   *
+   * ── MASALAH YANG DIPERBAIKI ──────────────────────────────────────────────
+   * Awalnya 16px di ponsel — dikecilkan supaya tiga tombol muat satu baris.
+   * Tapi pengukuran membuktikan itu tidak perlu: tiga tombol dengan padding
+   * 0.85rem hanya butuh 302px, sementara ruang tersedia 320px (layar 360px).
+   * Ada 18px sisa yang tidak terpakai.
+   *
+   * Dan 16px itu terlalu kecil untuk logo Saweria. Pada 16px, detail wajahnya
+   * — mata, hidung, mulut, alis — menyatu jadi gumpalan gelap. Diverifikasi
+   * lewat analisis visual: "tidak ada mulut yang terdefinisi dengan jelas".
+   *
+   * ── 20px ADALAH AMBANG BATASNYA ──────────────────────────────────────────
+   * Diuji pada 18px, 20px, 24px:
+   *   18px  mata terlihat, mulut & alis hilang
+   *   20px  mata, hidung, mulut, telinga terbaca
+   *   24px  semua detail termasuk alis & kumis terbaca
+   *
+   * 20px dipilih karena itu ukuran terkecil di mana logo masih dikenali
+   * sebagai wajah — bukan sekadar bentuk. Tambahan 4px per ikon hanya
+   * menambah 12px total, masih jauh di bawah sisa ruang yang ada.
+   *
+   * ── KENAPA TIDAK 24px SEKALIAN ───────────────────────────────────────────
+   * 24px akan mendorong tombol melewati batas di layar 360px. 20px adalah
+   * titik di mana keterbacaan dan tata letak sama-sama terpenuhi.
+   * ──────────────────────────────────────────────────────────────────────── */
   .contact-ikon {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
   }
 }
 
