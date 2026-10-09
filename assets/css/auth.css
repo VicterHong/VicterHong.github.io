@@ -960,44 +960,161 @@ select.auth-input {
 
 /* ══ Turnstile ═════════════════════════════════════════════════════════════ */
 
-/* ── INGAT EMAIL DI PERANGKAT INI ─────────────────────────────────────────────
-   Referensi Cloudflare: checkbox tepat di atas tombol Sign in.
+/* ══ INGAT EMAIL & METODE LOGIN ══════════════════════════════════════════════
+ *
+ * ── REFERENSI CLOUDFLARE ────────────────────────────────────────────────────
+ * "Save email and login method on this device" — checkbox di atas tombol
+ * Sign in, dengan kotak persegi dan tanda centang.
+ *
+ * ── KENAPA CHECKBOX CUSTOM, BUKAN BAWAAN BROWSER ────────────────────────────
+ * Checkbox bawaan browser tidak bisa digayakan konsisten:
+ *   iOS      -> biru bulat
+ *   Android  -> hijau kotak
+ *   Desktop  -> abu-abu, ukuran berbeda
+ *
+ * Untuk halaman korporat, itu terlihat tidak sengaja — seperti halaman yang
+ * belum selesai digayakan. Dengan menyembunyikan input asli dan menggambar
+ * sendiri, tampilannya IDENTIK di semua platform.
+ *
+ * ── AKSESIBILITAS TIDAK DIKORBANKAN ─────────────────────────────────────────
+ * Input asli disembunyikan dengan `opacity: 0` (bukan `display: none`),
+ * sehingga:
+ *   - tetap bisa difokus dengan Tab
+ *   - tetap terbaca pembaca layar
+ *   - tetap bisa diklik (menutupi seluruh label)
+ * State :checked dan :focus-visible dipakai untuk menggambar ulang.
+ * ══════════════════════════════════════════════════════════════════════════ */
 
-   Ukuran teks SAMA dengan label field (12.5px) supaya tidak terlihat
-   seperti elemen tambahan. `accent-color` mewarnai checkbox bawaan browser
-   sesuai identitas emas — cara paling sederhana yang tetap menghormati
-   preferensi sistem pengguna (mode terang/gelap, kontras tinggi). */
 .auth-ingat {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 9px;
+  align-items: flex-start;
+  gap: 10px;
   font-size: 12.5px;
+  line-height: 1.45;
   color: var(--teks-redup);
   cursor: pointer;
-  /* Padding vertikal memberi area klik yang cukup — checkbox 16px terlalu
-     kecil untuk jari. Padding membuat seluruh baris bisa diklik. */
-  padding: 3px 0;
   user-select: none;
-  /* Baris ini hanya muncul kalau perlu — lihat auth.js */
-  width: fit-content;
-}
-
-.auth-ingat input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-  margin: 0;
-  accent-color: var(--emas);
-  cursor: pointer;
+  /* Padding vertikal: seluruh baris bisa diklik — kotak 16px terlalu kecil
+     untuk jari. Padding membuat area sentuh nyaman tanpa mengubah tampilan. */
+  padding: 4px 0;
+  transition: color var(--durasi-cepat) var(--pegas);
 }
 
 .auth-ingat:hover { color: var(--teks); }
 
-/* Fokus keyboard: checkbox bawaan sudah punya outline, tapi kita perkuat
-   supaya terlihat di latar gelap. */
-.auth-ingat input[type="checkbox"]:focus-visible {
+/* Input asli: tak terlihat tapi tetap berfungsi untuk keyboard & pembaca layar.
+   `position: absolute` + `opacity: 0` lebih baik daripada `display: none`
+   karena elemen yang di-display:none TIDAK bisa difokus. */
+.auth-ingat input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Kotak centang yang digambar sendiri. */
+.auth-ingat-kotak {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  /* WAJIB: klik harus menembus ke input di bawahnya.
+     Tanpa ini, kotak centang tidak bisa diklik sama sekali — SVG di
+     dalamnya menyerap pointer event, dan input asli tidak pernah menerima
+     klik. Label membungkus input, tapi kotak ini menutupinya. */
+  pointer-events: none;
+  /* Margin atas kecil: menyelaraskan kotak dengan baris PERTAMA teks,
+     bukan tengahnya. Untuk label dua baris, ini terlihat lebih benar. */
+  margin-top: 1px;
+  border: 1.5px solid var(--garis-terang);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  transition:
+    background var(--durasi-cepat) var(--pegas),
+    border-color var(--durasi-cepat) var(--pegas),
+    transform var(--durasi-kilat) var(--pegas-mantul);
+}
+
+/* Tanda centang: tersembunyi sampai checkbox dicentang. */
+.auth-ingat-kotak svg {
+  width: 11px;
+  height: 11px;
+  pointer-events: none;   /* sama alasannya — jangan serap klik */
+  color: #0a0a0b;             /* gelap di atas emas — kontras tinggi */
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity var(--durasi-kilat) var(--pegas),
+    transform var(--durasi-kilat) var(--pegas-mantul);
+}
+
+/* ── STATE: DICENTANG ─────────────────────────────────────────────────────── */
+.auth-ingat input[type="checkbox"]:checked + .auth-ingat-kotak {
+  background: var(--emas);
+  border-color: var(--emas);
+}
+
+.auth-ingat input[type="checkbox"]:checked + .auth-ingat-kotak svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── STATE: FOKUS KEYBOARD ────────────────────────────────────────────────── */
+/* Hanya tampil saat navigasi keyboard (:focus-visible), tidak saat diklik
+   mouse — supaya tidak ada cincin yang mengganggu setelah klik. */
+.auth-ingat input[type="checkbox"]:focus-visible + .auth-ingat-kotak {
   outline: 2px solid var(--emas-garis);
   outline-offset: 2px;
+}
+
+/* ── STATE: TEKAN ─────────────────────────────────────────────────────────── */
+.auth-ingat:active .auth-ingat-kotak { transform: scale(0.94); }
+
+/* ── HORMATI PREFERENSI GERAK ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .auth-ingat-kotak,
+  .auth-ingat-kotak svg { transition: none; }
+  .auth-ingat:active .auth-ingat-kotak { transform: none; }
+}
+
+/* Teks label: boleh turun ke baris kedua, tidak boleh terpotong. */
+.auth-ingat-teks { flex: 1; min-width: 0; }
+
+/* ══ PROFIL TERSIMPAN ═════════════════════════════════════════════════════════
+ *
+ * Referensi Cloudflare: "View saved profiles" di bawah tombol Sign in.
+ *
+ * Gaya: teks biasa, bukan tombol — karena ini aksi sekunder yang hanya
+ * berguna kalau ada profil tersimpan. Tombol dengan border akan menarik
+ * perhatian yang tidak sepadan.
+ * ══════════════════════════════════════════════════════════════════════════ */
+.auth-profil {
+  display: block;
+  width: 100%;
+  padding: 9px 0;
+  margin-top: 2px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--teks-samar);
+  text-align: center;
+  cursor: pointer;
+  transition: color var(--durasi-cepat) var(--pegas);
+}
+
+.auth-profil:hover,
+.auth-profil:focus-visible { color: var(--emas); }
+
+.auth-profil:focus-visible {
+  outline: 2px solid var(--emas-garis);
+  outline-offset: -2px;
+  border-radius: var(--radius-input);
 }
 
 .auth-turnstile {

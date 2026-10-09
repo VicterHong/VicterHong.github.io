@@ -1645,39 +1645,117 @@
   }
 
   /**
-   * Simpan / muat email di perangkat ini.
+   * Simpan / muat email DAN metode login di perangkat ini.
+   *
+   * ── REFERENSI CLOUDFLARE ──
+   * "Save email and login method on this device" — checkbox di atas tombol
+   * Sign in, dengan tautan "View saved profiles" di bawahnya.
    *
    * ── KEAMANAN ──
-   * Yang disimpan HANYA email. Sandi TIDAK disimpan — itu tugas password
-   * manager, dan menaruhnya di localStorage berarti siapa pun yang bisa
-   * menjalankan JavaScript di halaman ini (mis. lewat XSS) bisa membacanya.
+   * Yang disimpan: email + NAMA metode (mis. "google", "sandi").
+   * Yang TIDAK disimpan: sandi, token, atau data sesi apa pun.
+   *
+   * Menyimpan sandi di localStorage berarti siapa pun yang bisa menjalankan
+   * JavaScript di halaman ini (mis. lewat XSS) bisa membacanya. Itu tugas
+   * password manager, bukan halaman login.
    *
    * localStorage dipilih, bukan cookie: cookie ikut terkirim ke server di
-   * setiap permintaan, sehingga email pengguna terkirim ke endpoint yang
+   * SETIAP permintaan, sehingga email pengguna terkirim ke endpoint yang
    * tidak membutuhkannya.
+   *
+   * ── MANFAAT MENYIMPAN METODE ──
+   * Saat pengguna kembali, kita bisa menandai "terakhir masuk dengan Google"
+   * — jadi ia tidak menebak-nebak metode mana yang dipakai.
    */
-  const KUNCI_INGAT = 'vivastic.email-terakhir';
+  const KUNCI_INGAT = 'vivastic.profil-terakhir';
+
+  /** Baca profil tersimpan. Mengembalikan objek atau null. */
+  function bacaProfil() {
+    try {
+      const mentah = localStorage.getItem(KUNCI_INGAT);
+      if (!mentah) return null;
+      const data = JSON.parse(mentah);
+      if (!data || typeof data !== 'object' || !data.email) return null;
+      return {
+        email: String(data.email).slice(0, 320),
+        metode: String(data.metode || 'sandi').slice(0, 20),
+        waktu: Number(data.waktu) || 0,
+      };
+    } catch {
+      // Data rusak atau localStorage dilarang — anggap tidak ada profil.
+      return null;
+    }
+  }
+
+  /** Simpan profil. `metode` mis. 'sandi', 'google', 'github'. */
+  function simpanProfil(email, metode) {
+    try {
+      localStorage.setItem(KUNCI_INGAT, JSON.stringify({
+        email: String(email).trim().slice(0, 320),
+        metode: String(metode || 'sandi').slice(0, 20),
+        waktu: Date.now(),
+      }));
+    } catch { /* localStorage dilarang — abaikan */ }
+  }
+
+  /** Hapus profil tersimpan. */
+  function hapusProfil() {
+    try { localStorage.removeItem(KUNCI_INGAT); } catch { /* abaikan */ }
+  }
+
+  /** Nama metode untuk ditampilkan, mis. 'google' -> 'Google'. */
+  function namaMetode(metode) {
+    const peta = {
+      sandi: 'sandi', google: 'Google', microsoft: 'Microsoft',
+      apple: 'Apple', github: 'GitHub', sso: 'SSO', passkey: 'passkey',
+    };
+    return peta[metode] || metode;
+  }
 
   function pasangIngatEmail() {
     const kotak = $('#chkIngatEmail');
     const input = $('#inpEmailMasuk');
+    const btnProfil = $('#btnProfilTersimpan');
     if (!kotak || !input) return;
 
-    // ── Muat email tersimpan ────────────────────────────────────────────────
-    let tersimpan = '';
-    try {
-      tersimpan = localStorage.getItem(KUNCI_INGAT) || '';
-    } catch {
-      // localStorage bisa dilarang (mode privat, kebijakan browser).
-      // Bukan alasan menggagalkan halaman — checkbox tetap berfungsi
-      // untuk sesi ini, hanya tidak bertahan setelah ditutup.
-    }
+    // ── Muat profil tersimpan ───────────────────────────────────────────────
+    const profil = bacaProfil();
 
-    if (tersimpan && !input.value) {
-      input.value = tersimpan;
+    if (profil && !input.value) {
+      input.value = profil.email;
       kotak.checked = true;
       // Fokuskan ke sandi, bukan email — emailnya sudah terisi.
       $('#inpSandi')?.focus();
+    }
+
+    // ── Tampilkan tautan profil HANYA kalau ada profil ──────────────────────
+    //
+    // Tautan yang mengarah ke daftar kosong lebih buruk daripada tidak ada
+    // tautan — pengguna mengklik, melihat halaman kosong, dan mengira rusak.
+    if (btnProfil && profil) {
+      btnProfil.hidden = false;
+
+      // Tandai metode terakhir di teksnya, mis.
+      // "Lihat profil tersimpan (terakhir: Google)"
+      const teks = btnProfil.querySelector('.auth-profil-teks');
+      if (teks) {
+        teks.textContent = profil.metode && profil.metode !== 'sandi'
+          ? `Lihat profil tersimpan · terakhir dengan ${namaMetode(profil.metode)}`
+          : 'Lihat profil tersimpan';
+      }
+
+      // Klik: isi email dan beri tahu metode terakhirnya.
+      btnProfil.addEventListener('click', () => {
+        input.value = profil.email;
+        kotak.checked = true;
+        input.focus();
+        // Pesan singkat — pengguna tahu mengapa emailnya terisi.
+        pesan(msgMasuk,
+          profil.metode && profil.metode !== 'sandi'
+            ? `Email diisi. Terakhir Anda masuk dengan ${namaMetode(profil.metode)}.`
+            : 'Email diisi dari profil tersimpan.',
+          '');
+      });
     }
 
     // ── Simpan saat form dikirim ────────────────────────────────────────────
@@ -1686,14 +1764,30 @@
     const form = $('#formMasuk');
     if (form) {
       form.addEventListener('submit', () => {
-        try {
-          if (kotak.checked && input.value.trim()) {
-            localStorage.setItem(KUNCI_INGAT, input.value.trim());
-          } else {
-            localStorage.removeItem(KUNCI_INGAT);
-          }
-        } catch { /* localStorage dilarang — abaikan */ }
+        if (kotak.checked && input.value.trim()) {
+          simpanProfil(input.value, 'sandi');
+        } else {
+          hapusProfil();
+        }
       }, { capture: true });   // capture: jalan SEBELUM handler form lain
+    }
+
+    // ── Catat metode saat tombol provider diklik ────────────────────────────
+    //
+    // Kalau pengguna masuk lewat Google/GitHub/SSO, metode itu yang dicatat —
+    // supaya lain kali kita bisa memberi tahu "terakhir dengan Google".
+    // Disimpan SEBELUM pengalihan, karena setelah itu halaman berpindah.
+    for (const [id, metode] of [
+      ['#btnGoogle', 'google'], ['#btnMicrosoft', 'microsoft'],
+      ['#btnApple', 'apple'], ['#btnGithub', 'github'],
+      ['#btnSso', 'sso'], ['#btnPasskey', 'passkey'],
+    ]) {
+      const tombol = $(id);
+      if (!tombol) continue;
+      tombol.addEventListener('click', () => {
+        const email = input.value.trim();
+        if (kotak.checked && email) simpanProfil(email, metode);
+      }, { capture: true });
     }
   }
 

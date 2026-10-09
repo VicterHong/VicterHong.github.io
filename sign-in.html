@@ -290,25 +290,56 @@
 
           <div class="auth-turnstile" id="turnstileSlot" aria-hidden="true"></div>
 
-          <!-- ══ INGAT EMAIL DI PERANGKAT INI ══════════════════════════════════
-               Referensi Cloudflare: mereka menaruh "Save email and login
-               method on this device" tepat di atas tombol Sign in.
+          <!-- ══ INGAT EMAIL & METODE LOGIN ═════════════════════════════════════
+               Referensi Cloudflare: "Save email and login method on this
+               device" — disimpan tepat di atas tombol Sign in.
 
-               Yang kita simpan HANYA email — bukan sandi. Menyimpan sandi
-               adalah tugas password manager, dan menaruhnya di localStorage
-               adalah praktik berbahaya. Email saja sudah cukup mengurangi
-               friksi untuk pengguna yang sering login.
+               Yang disimpan: email + metode login yang dipakai (sandi,
+               Google, GitHub, dll). BUKAN sandi — menyimpan sandi di
+               localStorage berarti siapa pun yang bisa menjalankan
+               JavaScript di halaman ini bisa membacanya. Itu tugas
+               password manager, bukan halaman login.
+
+               Manfaat menyimpan METODE: saat pengguna kembali, kita bisa
+               menandai "terakhir masuk dengan Google" — jadi ia tidak
+               menebak-nebak metode mana yang dipakai.
 
                Email disimpan di localStorage, bukan cookie — supaya tidak
                ikut terkirim ke server di setiap permintaan. -->
           <label class="auth-ingat" id="wrapIngat">
             <input type="checkbox" id="chkIngatEmail">
-            <span>Ingat email di perangkat ini</span>
+            <span class="auth-ingat-kotak" aria-hidden="true">
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M2.5 6.2 4.8 8.5 9.5 3.8" stroke="currentColor"
+                      stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="auth-ingat-teks">Simpan email dan metode login di perangkat ini</span>
           </label>
 
           <button type="submit" class="auth-submit" id="btnSubmit">
             <span class="auth-submit-label">Sign in</span>
             <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+
+          <!-- ══ PROFIL TERSIMPAN ══════════════════════════════════════════════
+               Referensi Cloudflare: "View saved profiles" muncul DI BAWAH
+               tombol Sign in — bukan di atas.
+
+               ── KENAPA DI BAWAH ──
+               Tautan ini hanya berguna kalau ada profil tersimpan. Menaruhnya
+               di atas tombol berarti semua pengguna melihatnya, padahal
+               sebagian besar tidak punya profil tersimpan.
+
+               ── KENAPA DISEMBUNYIKAN SEBELUM ADA PROFIL ──
+               Tautan yang mengarah ke daftar kosong lebih buruk daripada
+               tidak ada tautan sama sekali — pengguna mengklik, melihat
+               halaman kosong, dan mengira ada yang rusak.
+
+               auth.js yang menampilkan ini: hanya kalau ada profil tersimpan
+               di localStorage. -->
+          <button type="button" class="auth-profil" id="btnProfilTersimpan" hidden>
+            <span class="auth-profil-teks">Lihat profil tersimpan</span>
           </button>
 
           <!-- ══ METODE ALTERNATIF, DI BAWAH TOMBOL SIGN IN ══════════════════
