@@ -95,6 +95,28 @@ const PROVIDER = {
     ],
   },
 
+  sso: {
+    nama: 'SSO (OIDC)',
+    kunci: [
+      { nama: 'SSO_ISSUER', label: 'Issuer (URL dasar IdP)', pola: /^https:\/\/[a-z0-9.-]+/i, contoh: 'https://vivastic.cloudflareaccess.com' },
+      { nama: 'SSO_CLIENT_ID', label: 'Client ID', pola: /^.{8,}$/, contoh: 'dari IdP Anda' },
+      { nama: 'SSO_CLIENT_SECRET', label: 'Client secret', pola: /^.{8,}$/, contoh: 'dari IdP Anda' },
+    ],
+    redirect: `${SITE_URL}/api/auth/sso/callback`,
+    konsol: 'https://one.dash.cloudflare.com → Access → Applications → Add → SaaS → OIDC',
+    petunjuk: [
+      'Aktifkan Zero Trust dulu (gratis sampai 50 user)',
+      'Access → Applications → Add an application → SaaS',
+      'Authentication protocol: OIDC',
+      'Redirect URL → isi URI di bawah',
+      'Salin Client ID + Client Secret (secret hanya terlihat sekali)',
+    ],
+    opsional: [
+      { nama: 'SSO_LABEL', label: 'Label tombol (opsional)', contoh: 'Cloudflare' },
+      { nama: 'SSO_DOMAINS', label: 'Domain email yang boleh (opsional, dipisah koma)', contoh: 'vivastic.id' },
+    ],
+  },
+
   apple: {
     nama: 'Apple',
     kunci: [
@@ -217,7 +239,8 @@ async function pasang(id) {
   console.log(`     ${warna.redup('perbandingan byte per byte. Satu garis miring tambahan akan ditolak.')}\n`);
 
   const nilai = {};
-  for (const k of p.kunci) {
+  const semuaKunci = [...p.kunci, ...(p.opsional || [])];
+  for (const k of semuaKunci) {
     const mentah = await tanya(`  ${k.label}: `);
     const jawaban = bersihkan(mentah);
 
@@ -233,7 +256,12 @@ async function pasang(id) {
       process.exit(1);
     }
 
-    if (!k.pola.test(jawaban)) {
+    if (!jawaban && p.opsional?.includes(k)) {
+      console.log(warna.redup('     (dilewati)'));
+      continue;
+    }
+
+    if (k.pola && !k.pola.test(jawaban)) {
       console.log(warna.kuning(`  ⚠️  Format tidak seperti biasanya.`));
       console.log(`     Contoh yang benar: ${k.contoh}`);
       const lanjut = bersihkan(await tanya('     Tetap pakai nilai ini? (y/n): '));
