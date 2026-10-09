@@ -11,6 +11,26 @@ Terakhir diperbarui: 2026-10-09
 | GitHub    | ✅ AKTIF | Ada | OAuth App |
 | SSO       | ✅ AKTIF | Ada | Cloudflare Access (team: red-leaf-5479), OIDC, One-time PIN |
 | Passkey   | ✅ AKTIF | Tidak perlu | WebAuthn — tanpa kredensial pihak ketiga |
+| LinkedIn  | ⬜ Menunggu | Belum | Kode siap; tinggal isi Client ID + Secret |
+
+### Cara mengaktifkan LinkedIn
+
+Self-serve, gratis, tanpa review:
+
+1. [developer.linkedin.com](https://developer.linkedin.com) → **Create app**
+2. Tab **Products** → tambahkan **"Sign In with LinkedIn using OpenID Connect"**
+   (tersedia langsung, tidak perlu menunggu persetujuan)
+3. Tab **Auth** → salin **Client ID** dan **Primary Client Secret**
+4. Tambahkan **Authorized redirect URL**:
+   `https://portfolio-victer.pages.dev/api/auth/linkedin/callback`
+5. Isi `service.env`:
+   ```
+   LINKEDIN_CLIENT_ID=...
+   LINKEDIN_CLIENT_SECRET=...
+   ```
+6. `sudo systemctl restart portfolio-token.service`
+
+Tombolnya muncul sendiri — tidak perlu ubah HTML.
 
 ## ⬜ Apple — DIPUTUSKAN TIDAK DIPAKAI
 
