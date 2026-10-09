@@ -332,6 +332,41 @@
             <span class="auth-submit-spinner" aria-hidden="true"></span>
           </button>
 
+          <!-- ══ SARAN DAFTAR — MUNCUL SAAT EMAIL TIDAK DITEMUKAN ══════════════
+               Muncul HANYA setelah percobaan masuk gagal karena emailnya
+               tidak terdaftar. Tersembunyi sejak awal (`hidden`), dinyalakan
+               oleh tampilkanSaranDaftar() di auth.js.
+
+               ── KENAPA TOMBOL, BUKAN TEKS DI PESAN GALAT ──────────────────
+               Memberi tahu "akun tidak ditemukan" saja tidak cukup — pengguna
+               tahu gagal, tapi tidak tahu harus apa. Tombol memberi LANGKAH
+               BERIKUTNYA yang jelas.
+
+               ── KENAPA DI BAWAH TOMBOL SIGN IN ────────────────────────────
+               Elemen ini muncul sebagai AKIBAT percobaan masuk. Menaruhnya
+               tepat di bawah tombol membuat hubungan sebab-akibatnya jelas:
+               "gagal masuk → ini yang bisa Anda lakukan".
+
+               ── EMAIL DIBERIKAN OTOMATIS ──────────────────────────────────
+               Tautan membawa email yang barusan diketik (?email=...), jadi
+               pengguna tidak perlu mengetik ulang di halaman daftar. Salah
+               ketik ulang adalah sumber kesalahan paling umum saat mendaftar
+               setelah gagal masuk.
+
+               role="alert" — pembaca layar langsung membacakannya saat muncul,
+               tanpa pengguna harus menjelajah mencari perubahan. -->
+          <div class="auth-saran" id="saranDaftar" role="alert" hidden>
+            <p class="auth-saran-teks">Belum punya akun dengan email ini?</p>
+            <a class="auth-saran-tautan" id="tautanDaftar" href="/sign-up">
+              Daftar akun baru
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                   stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+
           <!-- ══ PROFIL TERSIMPAN ══════════════════════════════════════════════
                Referensi Cloudflare: "View saved profiles" muncul DI BAWAH
                tombol Sign in — bukan di atas.

@@ -79,6 +79,54 @@
     el.classList.toggle('is-sukses', jenis === 'sukses');
   }
 
+  /** Tampilkan jalan keluar saat email tidak ditemukan.
+   *
+   *  ── KENAPA INI PERLU ─────────────────────────────────────────────────────
+   *  Memberi tahu "akun tidak ditemukan" saja tidak cukup — pengguna tahu
+   *  gagal, tapi tidak tahu harus apa. Yang ia butuhkan adalah LANGKAH
+   *  BERIKUTNYA.
+   *
+   *  Solusinya bukan teks tambahan di pesan galat (mudah terlewat), tapi
+   *  TOMBOL yang membawanya ke halaman daftar — dengan emailnya sudah
+   *  terisi, supaya tidak perlu mengetik ulang.
+   *
+   *  ── KENAPA DI BAWAH TOMBOL SIGN IN, BUKAN DI ATAS ───────────────────────
+   *  Elemen ini muncul sebagai AKIBAT dari percobaan masuk. Menaruhnya tepat
+   *  di bawah tombol membuat hubungan sebab-akibatnya jelas: "gagal masuk →
+   *  ini yang bisa Anda lakukan". Di atas form, ia akan terlihat seperti
+   *  ajakan yang tidak berhubungan dengan kegagalan.
+   *
+   *  ── KENAPA TIDAK OTOMATIS PINDAH HALAMAN ────────────────────────────────
+   *  Mengalihkan otomatis terasa memaksa, dan menghilangkan kesempatan
+   *  pengguna memeriksa ulang ejaan emailnya. Tombol memberi pilihan;
+   *  pengalihan otomatis mengambil pilihan itu. */
+  function tampilkanSaranDaftar(email) {
+    const kotak = $('#saranDaftar');
+    if (!kotak) return;
+
+    kotak.hidden = false;
+
+    // Tombol menuju halaman daftar. Email dibawa lewat query string supaya
+    // pengguna tidak perlu mengetiknya dua kali — sumber kesalahan yang
+    // paling sering saat mendaftar setelah gagal masuk.
+    const tautan = kotak.querySelector('#tautanDaftar');
+    if (tautan) {
+      const bersih = String(email || '').trim().slice(0, 320);
+      tautan.href = bersih ? `/sign-up?email=${encodeURIComponent(bersih)}` : '/sign-up';
+    }
+  }
+
+  /** Sembunyikan saran daftar — dipanggil saat percobaan berikutnya gagal
+   *  dengan sebab LAIN, atau saat masuk berhasil.
+   *
+   *  Tanpa ini, saran "daftar akun" dari percobaan sebelumnya bisa tertinggal
+   *  dan menyesatkan: pengguna sudah memperbaiki emailnya, tapi masih melihat
+   *  ajakan mendaftar — padahal akunnya ada. */
+  function sembunyikanSaranDaftar() {
+    const kotak = $('#saranDaftar');
+    if (kotak) kotak.hidden = true;
+  }
+
   /** Getar kartu saat ada galat. Kelas dilepas setelah animasi selesai
    *  supaya bisa dipicu lagi (kalau tidak, animasi kedua tidak jalan). */
   function getar(kartu) {
@@ -344,16 +392,45 @@
   let turnstileWidgetId = null;
   let turnstileToken = '';
 
-  /** Muat skrip Turnstile SEKALI, hanya saat dibutuhkan.
-   *  Memuatnya di awal berarti setiap pengunjung mengunduh ~90 KB
-   *  meski tidak pernah mengirim formulir. */
+  /** Muat skrip Turnstile SEKALI.
+   *
+   *  ── BUG YANG DIPERBAIKI DI SINI ──────────────────────────────────────────
+   *  Halaman (sign-in.html, sign-up.html) SUDAH memuat api.js lewat tag
+   *  `<script>` di HTML. Fungsi ini dulu memuatnya LAGI dengan src yang sama
+   *  persis, karena ia hanya mencari `script[data-turnstile]` — penanda yang
+   *  hanya dipasang oleh fungsi ini sendiri, bukan oleh tag di HTML.
+   *
+   *  Akibatnya Cloudflare memuat library DUA KALI dan mencatat:
+   *    "[Cloudflare Turnstile] Turnstile already has been loaded.
+   *     Was Turnstile imported multiple times?"
+   *  lalu widget gagal render dengan error 110200 dan token tidak pernah
+   *  terbit. Form tersangkut: server menolak karena token kosong.
+   *
+   *  ── PERBAIKANNYA: CARI LEBIH LUAS ────────────────────────────────────────
+   *  Sekarang ia mencari SEMUA script yang menunjuk ke api.js Turnstile —
+   *  baik yang dipasang HTML maupun oleh fungsi ini. Kalau sudah ada, ia
+   *  menunggu script itu selesai dimuat alih-alih menambah yang baru.
+   *
+   *  ── KENAPA TIDAK MENGHAPUS TAG DARI HTML ────────────────────────────────
+   *  Memuat lewat HTML lebih cepat: browser menemukan script saat mem-parsing
+   *  halaman, bukan setelah JavaScript jalan. Itu berarti verifikasi mulai
+   *  lebih awal dan pengguna menunggu lebih singkat. */
   function muatTurnstile() {
     return new Promise((resolve, reject) => {
       if (window.turnstile) return resolve();
 
-      const ada = document.querySelector('script[data-turnstile]');
+      // Cari script Turnstile yang SUDAH ada — dari HTML maupun dari fungsi
+      // ini. Memakai selector atribut supaya keduanya tertangkap.
+      const ada = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
       if (ada) {
-        ada.addEventListener('load', () => resolve(), { once: true });
+        // Kalau scriptnya sudah selesai dimuat tapi window.turnstile belum ada,
+        // berarti gagal. Kalau masih dimuat, tunggu.
+        if (ada.dataset.selesai === '1') {
+          // Sudah selesai tapi turnstile tidak ada → gagal.
+          if (window.turnstile) return resolve();
+          return reject(new Error('gagal_muat'));
+        }
+        ada.addEventListener('load', () => { ada.dataset.selesai = '1'; resolve(); }, { once: true });
         ada.addEventListener('error', () => reject(new Error('gagal_muat')), { once: true });
         return;
       }
@@ -362,8 +439,7 @@
       s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
       s.async = true;
       s.defer = true;
-      s.dataset.turnstile = '1';
-      s.addEventListener('load', () => resolve(), { once: true });
+      s.addEventListener('load', () => { s.dataset.selesai = '1'; resolve(); }, { once: true });
       s.addEventListener('error', () => reject(new Error('gagal_muat')), { once: true });
       document.head.appendChild(s);
     });
@@ -585,6 +661,38 @@
       });
 
       if (!hasil.ok) {
+        // ── AKUN TIDAK DITEMUKAN: PESAN + JALAN KELUAR ────────────────────────
+        //
+        // ── KENAPA DIBEDAKAN DARI "SANDI SALAH" ─────────────────────────────
+        // Kedua kegagalan ini butuh tindakan BERBEDA dari pengguna:
+        //
+        //   Email tidak ada  → harus DAFTAR, mencoba sandi lain sia-sia
+        //   Sandi salah      → harus pakai "Lupa sandi", daftar ulang salah
+        //
+        // Pesan seragam ("Email atau sandi salah") memaksa pengguna menebak
+        // mana yang terjadi, lalu mencoba keduanya. Untuk portal klien B2B —
+        // di mana satu orang sering punya beberapa email — itu beban harian
+        // yang nyata.
+        //
+        // Server sudah memutuskan membedakan (lihat routes.mjs) dan
+        // mengompensasinya dengan rate limit 5 percobaan/15 menit + Turnstile.
+        const kode = hasil.isi?.error;
+
+        if (kode === 'akun_tidak_ditemukan') {
+          pesan(msgMasuk, hasil.isi.message, 'galat');
+          // Tampilkan jalan keluar: tombol langsung ke halaman daftar.
+          // Tanpa ini pengguna hanya tahu gagal, tidak tahu harus apa.
+          tampilkanSaranDaftar(email);
+          getar(kartu);
+          if (turnstileWidgetId !== null && window.turnstile) {
+            window.turnstile.reset(turnstileWidgetId);
+            turnstileToken = '';
+          }
+          return;
+        }
+
+        // Kegagalan lain (sandi salah, rate limit, Turnstile) → pesan biasa.
+        sembunyikanSaranDaftar();
         pesan(msgMasuk, pesanGalat(hasil, 'Email atau sandi salah.'), 'galat');
         getar(kartu);
         // Token Turnstile sekali pakai — reset supaya percobaan berikutnya
@@ -595,6 +703,10 @@
         }
         return;
       }
+
+      // Berhasil → pastikan saran daftar tidak tertinggal dari percobaan
+      // sebelumnya yang gagal.
+      sembunyikanSaranDaftar();
 
       // ── Kalau server minta 2FA, lanjut ke panel TOTP ──────────────────────
       // Email & sandi disimpan di variabel modul supaya pengguna tidak perlu
@@ -1918,16 +2030,35 @@
     // Di halaman daftar, field pertama adalah nama; di halaman masuk, email.
     // Keduanya memakai ?. jadi aman kalau elemennya tidak ada.
     // ── ISI EMAIL OTOMATIS DARI QUERY STRING ─────────────────────────────
-    // Setelah mendaftar, pengguna dialihkan ke /masuk?email=... supaya tidak
-    // perlu mengetik ulang. Hanya diisi kalau field-nya masih kosong —
-    // jangan menimpa apa yang sudah diketik pengguna.
+    // Dua arah pemakaian:
+    //   /masuk?email=...    → setelah berhasil daftar
+    //   /sign-up?email=...  → setelah gagal masuk karena akun tidak ditemukan
+    //
+    // Keduanya butuh perilaku yang sama: isi email, lalu fokuskan ke field
+    // berikutnya supaya pengguna tinggal melanjutkan.
+    //
+    // Hanya diisi kalau field-nya masih kosong — jangan menimpa apa yang
+    // sudah diketik pengguna.
     try {
       const dariUrl = new URLSearchParams(location.search).get('email');
-      const inp = $('#inpEmailMasuk');
-      if (dariUrl && inp && !inp.value) {
-        inp.value = dariUrl;
-        // Fokuskan ke sandi, bukan email — emailnya sudah terisi.
-        $('#inpSandi')?.focus();
+      if (dariUrl) {
+        // `#inpEmailMasuk` = halaman masuk, `#inpEmail` = halaman daftar.
+        // Sebelumnya hanya yang pertama dicari, jadi tautan dari halaman
+        // masuk ke halaman daftar tidak pernah mengisi emailnya — pengguna
+        // harus mengetik ulang, dan itu sumber salah ketik yang paling umum.
+        const inpMasuk = $('#inpEmailMasuk');
+        const inpDaftar = $('#inpEmail');
+
+        if (inpMasuk && !inpMasuk.value) {
+          inpMasuk.value = dariUrl;
+          // Fokuskan ke sandi, bukan email — emailnya sudah terisi.
+          $('#inpSandi')?.focus();
+        } else if (inpDaftar && !inpDaftar.value) {
+          inpDaftar.value = dariUrl;
+          // Fokuskan ke sandi juga: nama biasanya sudah terisi dari autofill,
+          // dan kalau belum, pengguna tetap melihatnya saat mengisi.
+          $('#inpSandiDaftar')?.focus();
+        }
       }
     } catch { /* URL tidak bisa dibaca — abaikan */ }
 

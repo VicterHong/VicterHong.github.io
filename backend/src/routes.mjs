@@ -118,6 +118,25 @@ const ALLOWED_EVENTS = new Set([
  */
 const DEFAULT_LIMIT = { limit: 120, windowMs: 60_000 };
 
+/**
+ * ── BATAS ENDPOINT AUTENTIKASI ────────────────────────────────────────────────
+ *
+ * Bisa disesuaikan lewat env supaya server uji dan pengujian otomatis tidak
+ * perlu menunggu 15 menit antar percobaan:
+ *
+ *   BATAS_AUTH_MASUK=200        → 200 percobaan per jendela
+ *   BATAS_AUTH_JENDELA_MS=60000 → jendela 1 menit
+ *
+ * Bawaan (env kosong) = 5 percobaan / 15 menit. Aman kalau lupa mengisi —
+ * nilai ketat yang jadi bawaan, bukan nilai longgar.
+ *
+ * Kenapa TIDAK diubah lewat kode saat pengujian: mengubah kode untuk menguji
+ * berarti yang diuji bukan kode yang dipakai produksi. Env membuat perbedaan
+ * konfigurasi jadi eksplisit dan terlihat.
+ */
+const BATAS_AUTH = Number(process.env.BATAS_AUTH_MASUK || 5);
+const JENDELA_AUTH = Number(process.env.BATAS_AUTH_JENDELA_MS || 900_000);
+
 const PUBLIC_LIMITS = {
   // ── Endpoint mahal: batas ketat ──────────────────────────────────────────
   // Verifikasi token: mencegah brute force token tak dikenal.
@@ -141,6 +160,38 @@ const PUBLIC_LIMITS = {
   // Konversi eksperimen: sebelumnya TIDAK dibatasi. Konversi palsu merusak
   // hasil A/B dan setiap baris masuk ke SQLite.
   '/api/experiment/convert': { limit: 30, windowMs: 60_000 },
+
+  // ── AUTENTIKASI: BATAS KETAT ─────────────────────────────────────────────
+  //
+  // ── KENAPA LEBIH KETAT DARI DEFAULT (120/menit) ─────────────────────────
+  // /api/auth/masuk sekarang MEMBEDAKAN "email tidak terdaftar" dari "sandi
+  // salah" (lihat komentar di handler-nya). Itu keputusan UX yang disengaja,
+  // dan konsekuensinya: endpoint ini bisa dipakai memetakan email mana yang
+  // punya akun.
+  //
+  // Batas ketat adalah KOMPENSASI untuk keputusan itu. Tanpa ini, penyerang
+  // bisa mencoba ratusan email per menit dari satu IP.
+  //
+  // 5 percobaan / 15 menit dipilih karena:
+  //   • Pengguna wajar salah sandi 1–3 kali, lalu berhasil atau pakai
+  //     "Lupa sandi". Lima memberi ruang untuk itu.
+  //   • Untuk memetakan 1000 email, penyerang butuh 1000 IP berbeda —
+  //     dan tetap harus lolos Turnstile di setiap percobaan.
+  //
+  // ── BISA DISESUAIKAN LEWAT ENV ───────────────────────────────────────────
+  // BATAS_AUTH_MASUK=20  → 20 percobaan per jendela
+  // BATAS_AUTH_JENDELA_MS=60000 → jendela 1 menit
+  //
+  // Kenapa perlu: server uji dan pengujian otomatis butuh batas lebih longgar,
+  // sementara produksi tetap ketat. Tanpa ini, pengujian harus menunggu
+  // 15 menit antar percobaan — atau mengubah kode, yang jauh lebih buruk.
+  //
+  // Bawaan (kalau env kosong) tetap 5/15 menit — aman kalau lupa mengisi.
+  '/api/auth/masuk':    { limit: BATAS_AUTH, windowMs: JENDELA_AUTH },
+  '/api/auth/daftar':   { limit: BATAS_AUTH, windowMs: JENDELA_AUTH },
+  '/api/auth/lupa':     { limit: Math.max(3, Math.floor(BATAS_AUTH / 2)), windowMs: JENDELA_AUTH },
+  '/api/auth/2fa':      { limit: BATAS_AUTH * 2, windowMs: JENDELA_AUTH },
+  '/api/auth/totp':     { limit: BATAS_AUTH * 2, windowMs: JENDELA_AUTH },
 
   // ── Endpoint baca yang di-cache (batas bisa longgar) ─────────────────────
   // /api/ready melakukan query DB + tulis disk + statfs tiap panggilan.
@@ -1354,12 +1405,40 @@ export const routes = [
 
       const user = cariPengguna(email);
       if (!user) {
-        // Tetap jalankan scrypt dummy supaya WAKTU responsnya sama dengan
-        // kasus sandi salah. Tanpa ini, respons "email tidak ada" kembali
-        // jauh lebih cepat — dan perbedaan waktu itu sendiri membocorkan
-        // informasi yang sama.
-        await verifyPassword(sandi, 'scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==');
-        return sendJson(res, 401, { ok: false, error: 'kredensial_salah', message: PESAN_SALAH });
+        // ── EMAIL TIDAK TERDAFTAR: PESAN JELAS ─────────────────────────────────
+        //
+        // ── KEPUTUSAN: MEMBEDAKAN, TIDAK MENYAMAKAN ─────────────────────────────
+        // Sebelumnya endpoint ini membalas pesan SERAGAM ("Email atau sandi salah")
+        // untuk email-tidak-ada maupun sandi-salah, plus scrypt dummy supaya waktu
+        // responsnya sama. Tujuannya: mencegah user enumeration.
+        //
+        // Keputusan itu DIUBAH, dengan alasan yang ditimbang:
+        //
+        //   • Pengguna portal B2B sering lupa email mana yang dipakai. Menyuruh
+        //     mereka menebak antara "email salah" dan "sandi salah" membuat
+        //     mereka mencoba berulang, lalu menghubungi dukungan — beban nyata
+        //     yang terjadi setiap hari.
+        //
+        //   • Risiko pemetaan email sudah ditekan di lapisan lain:
+        //       - Turnstile wajib lolos SEBELUM baris ini (bot tidak lewat)
+        //       - Rate limit /api/auth/masuk: 5 percobaan / 15 menit per IP
+        //     Untuk memetakan 1000 email, penyerang butuh 1000 IP berbeda dan
+        //     lolos Turnstile 1000 kali. Biayanya tidak sepadan.
+        //
+        //   • Ini pola yang dipakai Clerk ("Couldn't find your account"),
+        //     Lyft, dan Handshake — layanan dengan skala jauh lebih besar.
+        //
+        // Scrypt dummy DIHAPUS karena tidak lagi ada gunanya: pesannya sudah
+        // berbeda, jadi menyamakan waktu tidak menyembunyikan apa pun.
+        return sendJson(res, 404, {
+          ok: false,
+          error: 'akun_tidak_ditemukan',
+          message: 'Akun dengan email ini tidak ditemukan.',
+          // Petunjuk tindakan — dibaca frontend untuk menampilkan tombol
+          // "Daftar akun baru". Tanpa ini, pengguna hanya tahu gagal, tidak
+          // tahu harus apa.
+          saran: 'daftar',
+        });
       }
 
       if (user.status !== 'aktif') {

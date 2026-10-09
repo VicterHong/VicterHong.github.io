@@ -1238,6 +1238,79 @@ select.auth-input {
   overflow: hidden;
 }
 
+/* ══ SARAN DAFTAR — JALAN KELUAR SAAT EMAIL TIDAK DITEMUKAN ═══════════════════
+ *
+ * ── KENAPA DIKOTAK, BUKAN TEKS BIASA ────────────────────────────────────────
+ * Elemen ini muncul setelah kegagalan, dan tugasnya mengalihkan perhatian
+ * pengguna dari "mencoba lagi" ke "mendaftar". Kotak berlatar sedikit lebih
+ * terang memberi bobot visual yang cukup untuk itu — tanpa terasa seperti
+ * galat kedua (tidak merah, tidak bergetar).
+ *
+ * ── KENAPA WARNA EMAS, BUKAN MERAH ATAU HIJAU ──────────────────────────────
+ * Merah = galat (sudah dipakai pesan di atasnya). Hijau = berhasil (padahal
+ * ini bukan keberhasilan). Emas adalah warna aksi di situs ini — dipakai
+ * untuk tombol utama dan tautan penting. Jadi kotak ini terbaca sebagai
+ * "ada yang bisa Anda lakukan", bukan "ada yang rusak".
+ *
+ * ── KENAPA `[hidden]` DIPERKUAT ─────────────────────────────────────────────
+ * Aturan global `[hidden] { display: none !important }` di bagian atas berkas
+ * ini sudah menangani itu. Tidak perlu diulang — dan mengulangnya berarti
+ * dua tempat yang harus dijaga sinkron.
+ * ────────────────────────────────────────────────────────────────────────── */
+.auth-saran {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  text-align: center;
+  background: rgba(245, 197, 66, 0.06);
+  border: 1px solid rgba(245, 197, 66, 0.22);
+  border-radius: var(--radius-input);
+  /* Muncul halus — elemen yang tiba-tiba muncul terasa seperti kejutan.
+     `prefers-reduced-motion` ditangani aturan global di bawah. */
+  animation: saran-masuk 220ms var(--pegas) both;
+}
+
+@keyframes saran-masuk {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.auth-saran-teks {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--teks-redup);
+}
+
+.auth-saran-tautan {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--emas);
+  text-decoration: none;
+  /* Target sentuh minimum (WCAG 2.5.8): 24px, meski teksnya lebih pendek. */
+  padding: 4px 2px;
+}
+
+.auth-saran-tautan:hover { text-decoration: underline; }
+
+.auth-saran-tautan:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Tautan yang belum dikonfigurasi (mis. provider nonaktif) tidak perlu
+   transisi — biar tidak ada gerakan yang tidak berarti. */
+.auth-saran-tautan svg { transition: transform var(--durasi-cepat) var(--pegas); }
+.auth-saran-tautan:hover svg { transform: translateX(2px); }
+
 /* ══ Tombol utama ══════════════════════════════════════════════════════════ */
 
 .auth-submit {
