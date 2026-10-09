@@ -219,17 +219,167 @@ single-tenant.
 dengan tombol Google biasa — pakai salah satu, atau pakai `SSO_LABEL` untuk
 membedakan.
 
-### Cloudflare Access
+### Cloudflare Access ✅ SUDAH TERPASANG
+
+**Status: aktif di produksi.** Ini panduan lengkap dari pengalaman memasangnya.
+
+#### 1. Aktifkan Zero Trust
 
 ```
-1. Zero Trust → Access → Applications → Add an application → SaaS
-2. Tambahkan OIDC sebagai aplikasi SaaS
-3. Redirect URI: https://portfolio-victer.pages.dev/api/auth/sso/callback
-4. SSO_ISSUER=https://<team>.cloudflareaccess.com
+https://one.dash.cloudflare.com
+→ pilih team name (jadi domain: <team>.cloudflareaccess.com)
+→ paket Free (gratis sampai 50 user)
 ```
 
-Keunggulan: Cloudflare Access **gratis sampai 50 user**, dan bisa
-menjembatani IdP yang hanya mendukung SAML.
+#### 2. Buat aplikasi SaaS OIDC
+
+```
+Access → Applications → Create new application
+→ SaaS application
+→ Application: ketik nama bebas, mis. "VIVASTIC SSO"
+→ Authentication protocol: ⚠️  OIDC (BUKAN SAML)
+```
+
+⚠️ **SAML tidak bisa diubah jadi OIDC.** Cloudflare sendiri yang
+menampilkan peringatan ini: *"To change authentication protocols, the
+application must be deleted and re-added."* Kalau salah pilih, hapus dan
+buat ulang.
+
+**Cara tahu sudah benar:** setelah memilih OIDC, field SAML
+(`Entity ID`, `Assertion Consumer Service URL`, `Name ID Format`) akan
+**hilang** dan diganti Client ID + Secret + endpoint OIDC.
+
+#### 3. Isi konfigurasi OIDC
+
+```
+Scopes        : openid, email, profile  (groups opsional)
+Redirect URLs : https://portfolio-victer.pages.dev/api/auth/sso/callback
+PKCE          : biarkan OFF
+OIDC Claims   : kosongkan
+```
+
+⚠️ **Redirect URL harus PERSIS.** Kesalahan umum yang terukur saat
+pemasangan: menulis `portfolio-victor` (dengan "o") bukan `portfolio-victer`
+(dengan "e"), dan lupa menambahkan `/sso/callback`.
+
+**PKCE:** biarkan OFF. Teks bantuan Cloudflare menyebut *"Only check this if
+your identity provider supports PKCE for confidential clients"* — dan
+Cloudflare belum menyambungkan IdP hulu, jadi tidak ada gunanya. Kode kita
+sudah mendukung PKCE kalau nanti dinyalakan.
+
+#### 4. Buat Access policy ⚠️ WAJIB
+
+Access bersifat **default-deny**. Tanpa policy, **tidak ada yang bisa
+login** — termasuk Anda sendiri.
+
+```
+Access policies → Create new policy
+→ Include: Emails = email-anda@gmail.com
+→ Name   : Karyawan VIVASTIC
+→ Action : Allow
+→ Save policy
+```
+
+**JANGAN biarkan `email@example.com`** di daftar Include — itu placeholder
+contoh, dan siapa pun dengan email itu bisa masuk.
+
+**Untuk satu organisasi** (lebih mudah dirawat):
+```
++ Add include (OR) → Emails ending in → @vivastic.id
+```
+
+**Require dan Exclude:** kosongkan dulu. Tambahkan nanti kalau sudah stabil.
+
+#### 5. Authentication — biarkan default
+
+```
+Accept all available identity providers : ON  ✅
+Apply instant authentication            : OFF ✅
+Cloudflare One Client                   : OFF ✅
+MFA tab                                 : jangan diubah
+```
+
+**Kenapa MFA jangan dinyalakan sekarang:** butuh setup di level organisasi,
+pengguna harus enroll authenticator, dan menambah gesekan (login email →
+kode email → MFA lagi). Situs Anda sudah punya 2FA sendiri di backend.
+
+**Kapan MFA berguna:** kalau nanti ada data sangat sensitif dan klien
+korporat yang mensyaratkannya.
+
+#### 6. Salin kredensial — lewat tombol Copy
+
+```
+Issuer        → tombol Copy
+Client ID     → tombol Copy
+Client Secret → klik "Reset secret" dulu (hanya terlihat sekali)
+```
+
+⚠️ **Client ID Cloudflare 64 karakter**, bukan 32. Kalau dapat 32
+karakter, kemungkinan tersalin sebagian.
+
+⚠️ **Issuer MEMUAT client id** — bentuk khusus Cloudflare:
+```
+https://<team>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<client-id>
+```
+
+**Bukan** cuma `https://<team>.cloudflareaccess.com` — discovery di root
+tidak lengkap (hanya issuer + jwks, tanpa authorization/token endpoint).
+
+#### 7. Pasang
+
+```bash
+cd backend && node pasang-kredensial.mjs sso
+```
+
+Atau isi manual di `service.env`:
+
+```bash
+SSO_ISSUER=https://<team>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<client-id>
+SSO_CLIENT_ID=<64 karakter>
+SSO_CLIENT_SECRET=<64 karakter>
+SSO_LABEL=Cloudflare
+```
+
+Lalu restart:
+```bash
+sudo systemctl restart portfolio-token.service
+```
+
+#### Yang Sudah Diverifikasi Bekerja
+
+```
+Discovery document     ✅ lengkap, terbaca kode kita
+Issuer cocok           ✅
+Redirect URL diterima  ✅
+PKCE                   ⬜ otomatis dilewati (Cloudflare tidak mengumumkannya)
+Tombol SSO             ✅ menyala dengan label "Masuk dengan Cloudflare"
+Alur end-to-end        ✅ dialihkan ke halaman login Cloudflare
+```
+
+#### Keterbatasan One-time PIN
+
+```
+⚠️  Setiap login = kode dikirim ke email, harus disalin
+⚠️  Tidak ada kontrol perangkat
+⚠️  Keamanan bergantung pada keamanan email pengguna
+```
+
+**Untuk naik tingkat nanti:** sambungkan Google atau Microsoft sebagai IdP:
+
+```
+Integrations → Identity providers → Add new → Google / Microsoft
+```
+
+Pengguna login dengan akun yang sudah mereka punya — tanpa kode email.
+Pengalaman jauh lebih mulus, dan tetap tidak perlu ubah kode situs.
+
+#### Keunggulan Cloudflare Access
+
+```
+✅ Gratis sampai 50 user
+✅ Bisa menjembatani IdP yang hanya mendukung SAML
+✅ Policy berlapis (Include/Require/Exclude)
+✅ Tidak perlu server sendiri
 
 ### Keycloak (self-hosted)
 
