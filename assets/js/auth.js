@@ -1123,6 +1123,23 @@
     // Penyedia SOSIAL — satu keluarga visual, satu baris.
     // SSO perusahaan TIDAK di sini: ia jalur terpisah dengan tombol sendiri
     // (lihat di bawah), mengikuti panduan Auth0/WorkOS.
+    //
+    // ── PROVIDER YANG BELUM SIAP: DISEMBUNYIKAN, BUKAN DISABLED ──────────────
+    //
+    // Tombol disabled yang terlihat pudar membuat halaman terasa belum jadi —
+    // pengguna melihat sesuatu yang tidak bisa dipakai, dan itu mengesankan
+    // situs setengah matang. Untuk provider yang benar-benar belum
+    // dikonfigurasi (mis. Apple, menunggu biaya $99), menyembunyikannya
+    // adalah pilihan yang lebih bersih dan profesional.
+    //
+    // KONSEKUENSINYA: kalau nanti kredensial Apple diisi, tombolnya muncul
+    // sendiri — frontend membaca /api/config. Tidak ada perubahan HTML.
+    //
+    // CATATAN: `belumSiap` sekarang TIDAK dipakai untuk catatan "akan
+    // tersedia". Menyebut "Apple akan tersedia" di bawah halaman sama
+    // tidak profesionalnya dengan menampilkan tombol pudar — pengguna tidak
+    // perlu tahu apa yang belum ada. Catatan hanya muncul kalau ada provider
+    // yang AKTIF tapi gagal dimuat, bukan yang memang belum dikonfigurasi.
     const penyedia = [
       { id: '#btnGoogle',    nama: 'Google',    url: '/api/auth/google',    siap: aktif.google },
       { id: '#btnMicrosoft', nama: 'Microsoft', url: '/api/auth/microsoft', siap: aktif.microsoft },
@@ -1130,20 +1147,19 @@
       { id: '#btnGithub',    nama: 'GitHub',    url: '/api/auth/github',    siap: aktif.github },
     ];
 
-    const belumSiap = [];
-
     for (const p of penyedia) {
       const btn = $(p.id);
       if (!btn) continue;
 
       if (p.siap) {
-        // Menyala: bisa diklik, catatan "segera" dihapus dari tombol ini.
+        // Menyala: bisa diklik.
+        btn.hidden = false;
         btn.disabled = false;
         btn.removeAttribute('title');
         btn.addEventListener('click', () => { window.location.href = p.url; });
       } else {
-        belumSiap.push(p.nama);
-        btn.title = p.nama + ' — akan tersedia';
+        // Belum dikonfigurasi → sembunyikan sepenuhnya.
+        btn.hidden = true;
       }
     }
 
@@ -1198,22 +1214,13 @@
     }
 
     // ── CATATAN "SEGERA HADIR" ─────────────────────────────────────────────────
-    // Satu baris untuk SEMUA provider yang belum siap, bukan lencana di tiap
-    // tombol. Empat lencana "Segera" dalam satu baris membuat halaman terasa
-    // belum jadi; satu catatan di bawahnya menyampaikan hal yang sama dengan
-    // lebih tenang.
-    //
-    // Daftar nama disusun dari keadaan sebenarnya, jadi kalau Google aktif
-    // sementara Apple belum, catatannya otomatis menyebut Apple saja.
+    // Selalu disembunyikan. Provider yang belum dikonfigurasi tombolnya
+    // disembunyikan sepenuhnya (lihat di atas), jadi tidak ada yang perlu
+    // diumumkan. Catatan "Apple akan tersedia" di bawah halaman sama tidak
+    // profesionalnya dengan tombol pudar — pengguna tidak perlu tahu apa
+    // yang belum ada.
     const catatan = document.getElementById('ssoSegera');
-    if (catatan) {
-      if (belumSiap.length === 0) {
-        catatan.hidden = true;
-      } else {
-        catatan.hidden = false;
-        catatan.textContent = belumSiap.join(', ') + ' akan tersedia.';
-      }
-    }
+    if (catatan) catatan.hidden = true;
   }
 
   siapkanSso();
