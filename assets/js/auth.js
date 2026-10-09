@@ -407,8 +407,31 @@
   }
 
   /** Siapkan widget Turnstile di slot yang tersedia.
-   *  Kalau gagal (jaringan/iklan pemblokir), JANGAN gagalkan login —
-   *  server tetap punya pertahanan sendiri (rate limit, verifikasi token).
+   *
+   *  ── PERUBAHAN: WIDGET SELALU TERLIHAT, TOMBOL SIGN IN MENUNGGU ────────────
+   *
+   *  Sebelumnya widget memakai `appearance: 'interaction-only'` — ia hanya
+   *  muncul kalau Cloudflare mendeteksi perlu tantangan. Akibatnya:
+   *
+   *    • Pengguna tidak melihat apa pun, dan tidak tahu ada verifikasi
+   *    • Sulit dipastikan widget benar-benar bekerja
+   *    • Tombol Sign in aktif sebelum verifikasi selesai, jadi klik pertama
+   *      sering gagal dengan 'token_kosong' dari server
+   *
+   *  Sekarang `appearance: 'always'` — widget terlihat di bawah kolom sandi,
+   *  dan tombol Sign in DITAHAN sampai verifikasi selesai. Pengguna melihat
+   *  jelas apa yang sedang terjadi.
+   *
+   *  ── KENAPA TOMBOL DITAHAN, BUKAN DIBIARKAN AKTIF ──────────────────────────
+   *  Kalau tombol aktif tapi token belum ada, pengguna mengklik → menunggu
+   *  8 detik → gagal. Itu pengalaman yang buruk dan terasa seperti bug.
+   *  Menahan tombol dengan label yang jelas lebih jujur: pengguna tahu harus
+   *  menunggu, bukan menebak kenapa gagal.
+   *
+   *  ── KALAU TURNSTILE GAGAL DIMUAT ─────────────────────────────────────────
+   *  Tombol TIDAK dikunci selamanya. Kalau Cloudflare tidak terjangkau
+   *  (iklan pemblokir, jaringan perusahaan), tombol dibuka kembali setelah
+   *  batas waktu — server tetap punya pertahanan sendiri (rate limit).
    *  Lebih baik pengguna bisa mencoba daripada terkunci total. */
   async function siapkanTurnstile() {
     // ── SLOT BISA BERBEDA NAMA DI SETIAP HALAMAN ─────────────────────────────
@@ -430,17 +453,31 @@
     if (!slot || turnstileWidgetId !== null) return;
 
     const kunci = window.__TURNSTILE_SITEKEY__;
-    if (!kunci) return;   // tidak dikonfigurasi — server yang menilai
+    if (!kunci) {
+      // Turnstile tidak dikonfigurasi (mis. di server uji). Jangan tahan
+      // tombol — server yang menilai, dan tanpa widget tidak ada yang
+      // perlu ditunggu.
+      return;
+    }
 
     try {
       await muatTurnstile();
-      if (!window.turnstile) return;
+      if (!window.turnstile) {
+        // Script gagal dimuat (iklan pemblokir, jaringan). Keluar senyap —
+        // tombol TIDAK ditahan di frontend, jadi tidak ada yang perlu dibuka.
+        // Backend tetap menilai token (yang akan kosong) dan menolak dengan
+        // pesan yang jelas.
+        return;
+      }
 
       turnstileWidgetId = window.turnstile.render(slot, {
         sitekey: kunci,
         theme: 'dark',
         size: 'flexible',
-        appearance: 'interaction-only',   // hanya muncul kalau perlu tantangan
+        // ── WIDGET TERLIHAT, TAPI TIDAK MENGHALANGI ───────────────────────────
+        // 'always' supaya pengguna melihat verifikasi sedang berjalan.
+        // Tapi tombol Sign in TIDAK ditahan — lihat catatan di bawah.
+        appearance: 'always',
         callback: (tok) => { turnstileToken = tok; },
         'expired-callback': () => { turnstileToken = ''; },
         'error-callback': () => { turnstileToken = ''; },
@@ -451,6 +488,39 @@
       // Senyap — jangan halangi pengguna karena masalah pihak ketiga
     }
   }
+
+  // ── TOMBOL SIGN IN / SIGN UP: TIDAK PERNAH DITAHAN DI FRONTEND ───────────────
+  //
+  // ── KENAPA TIDAK DITAHAN ────────────────────────────────────────────────────
+  // Versi sebelumnya menahan tombol (disabled + label "Memverifikasi…") sampai
+  // token Turnstile ada. Niatnya baik, tapi hasilnya buruk:
+  //
+  //   1. Kalau widget gagal dimuat (sitekey belum aktif, iklan pemblokir,
+  //      jaringan perusahaan), tombol terkunci dan pengguna TIDAK BISA MASUK
+  //      SAMA SEKALI. Verifikasi yang seharusnya melindungi malah memblokir
+  //      pengguna sah.
+  //
+  //   2. Frontend bukan tempat yang tepat untuk menegakkan aturan keamanan.
+  //      Siapa pun bisa membuka DevTools dan menghapus atribut disabled —
+  //      jadi penahanan di frontend tidak menambah keamanan sedikit pun.
+  //
+  //   3. Verifikasi sesungguhnya terjadi di BACKEND (siteverify). Backend
+  //      yang memutuskan boleh atau tidak, dan itulah satu-satunya keputusan
+  //      yang dipercaya.
+  //
+  // ── PEMBAGIAN TANGGUNG JAWAB YANG BENAR ─────────────────────────────────────
+  //   Frontend : tampilkan widget, kirim token apa adanya (boleh kosong)
+  //   Backend  : verifikasi token ke Cloudflare, tolak kalau tidak sah
+  //
+  // Kalau token kosong atau tidak sah, backend menolak dengan pesan yang jelas
+  // dan pengguna melihat pesan itu di halaman. Itu alur yang benar — keputusan
+  // ada di server, bukan di tombol.
+  //
+  // ── TOKEN TETAP DIKIRIM ─────────────────────────────────────────────────────
+  // `tungguTokenTurnstile()` masih dipakai di handler submit: kalau widget
+  // sudah selesai, token terkirim seketika. Kalau belum, ia menunggu sebentar
+  // (dengan batas waktu) lalu mengirim apa adanya — backend yang menilai.
+  // Pengguna tidak pernah terkunci.
 
   // ══ Alur: MASUK (email + sandi) ══════════════════════════════════════════
   //
@@ -1846,7 +1916,31 @@
     } catch { /* URL tidak bisa dibaca — abaikan */ }
 
     ($('#inpEmailMasuk') ?? $('#inpNama'))?.focus();
-  }
+
+    // ── TURNSTILE: RENDER SAAT HALAMAN DIMUAT ───────────────────────────────
+    //
+    // ── KENAPA INI HARUS DI SINI ────────────────────────────────────────────
+    // Sebelumnya `siapkanTurnstile()` HANYA dipanggil saat form di-submit
+    // (di dalam handler submit). Akibatnya:
+    //
+    //   1. Widget tidak pernah terlihat saat halaman dibuka — pengguna tidak
+    //      tahu ada verifikasi, dan tombol Sign in aktif seolah siap diklik.
+    //   2. Klik pertama memicu render widget DARI NOL, lalu menunggu token
+    //      sampai 8 detik. Pengguna melihat "Memeriksa…" lama tanpa alasan.
+    //   3. Kalau Cloudflare lambat, token kosong → server menolak dengan
+    //      'token_kosong' → pengguna mengira sandinya salah.
+    //
+    // Dengan render di awal, verifikasi sudah selesai SEBELUM pengguna
+    // mengetik sandi. Saat tombol diklik, token sudah siap.
+    //
+    // Pemanggilan di handler submit TETAP ADA sebagai jaring pengaman:
+    // kalau render awal gagal (jaringan sempat putus), submit masih bisa
+    // memicu percobaan kedua.
+    siapkanTurnstile().catch(() => {
+      // Senyap — kegagalan Turnstile tidak boleh menghalangi halaman.
+      // Tombol dibuka oleh jalur cadangan di dalam siapkanTurnstile().
+    });
+    }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
