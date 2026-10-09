@@ -845,3 +845,26 @@
   .kam-avatar { width: 44px; height: 44px; }
   .kam-avatar-inisial { font-size: 16px; }
 }
+
+/* ══ LABEL "OPSIONAL" ══════════════════════════════════════════════════════════
+ *
+ * ── KENAPA TEKS, BUKAN BINTANG MERAH ═════════════════════════════════════════
+ * Bintang merah adalah konvensi untuk field WAJIB. Memakainya untuk menandai
+ * yang opsional membalik artinya — dan pengguna yang sudah terbiasa dengan
+ * konvensi itu akan salah paham.
+ *
+ * Pola yang dipakai Stripe dan GitHub: field opsional diberi label kecil
+ * "opsional" tepat setelah namanya, dengan bobot lebih ringan supaya tidak
+ * bersaing dengan label utamanya.
+ *
+ * ── KENAPA 11px DAN HURUF KECIL ══════════════════════════════════════════════
+ * Ia keterangan, bukan label. Ukuran lebih kecil dari label (13px) membuat
+ * hierarkinya terbaca tanpa perlu warna yang mencolok.
+ * ──────────────────────────────────────────────────────────────────────────── */
+.kam-opsional {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--teks-samar);
+  text-transform: lowercase;
+}

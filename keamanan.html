@@ -195,6 +195,13 @@
                   <dt>Dibuat</dt>
                   <dd id="kamDibuat">—</dd>
                 </div>
+                <!-- Waktu masuk terakhir: sudah dikirim backend (masuk_terakhir),
+                     belum pernah ditampilkan. Berguna untuk pengguna yang ingin
+                     tahu apakah akunnya dipakai di tempat lain. -->
+                <div class="kam-baris">
+                  <dt>Terakhir masuk</dt>
+                  <dd id="kamMasukTerakhir">—</dd>
+                </div>
                 <!-- Penanda untuk JS: nilai yang bisa diedit tetap perlu
                      disimpan di DOM, walau tidak ditampilkan di mode lihat.
                      `hidden` di sini berfungsi — aturan global [hidden] di
@@ -217,7 +224,31 @@
                          autocomplete="name" maxlength="200">
                 </div>
 
-                <!-- Email ditampilkan tapi TIDAK bisa diedit — lihat catatan di atas. -->
+                <!-- ══ ORGANISASI — FIELD YANG SUDAH ADA DI BACKEND ══════════════════════════
+                     ── KENAPA INI DITAMBAHKAN ────────────────────────────────
+                     Backend sudah menyimpan dan mengirim `perusahaan` sejak
+                     dulu (users.mjs: perbaruiProfil menerima { nama, perusahaan },
+                     dengan validasi sendiri). Tapi UI tidak pernah punya
+                     input-nya — jadi nilai itu selalu kosong, dan tidak ada
+                     cara mengisinya.
+
+                     Ini fitur setengah jadi: kemampuan ada, pintunya tidak.
+                     Menambahkannya tidak butuh perubahan backend sama sekali.
+
+                     ── KENAPA OPSIONAL ───────────────────────────────────────
+                     Pengguna pribadi tidak punya organisasi, dan memaksa
+                     mereka mengisinya berarti mengarang jawaban. Backend juga
+                     memperlakukannya opsional — hanya divalidasi kalau diisi. -->
+                <div class="kam-field">
+                  <label for="kamInputPerusahaan">Organisasi <span class="kam-opsional">opsional</span></label>
+                  <input class="kam-input" type="text" id="kamInputPerusahaan"
+                         autocomplete="organization" maxlength="200">
+                  <p class="kam-field-catatan">
+                    Kosongkan kalau Anda memakai VIVASTIC sebagai pribadi.
+                  </p>
+                </div>
+
+                                <!-- Email ditampilkan tapi TIDAK bisa diedit — lihat catatan di atas. -->
                 <div class="kam-field">
                   <label for="kamInputEmail">Email</label>
                   <input class="kam-input" type="email" id="kamInputEmail"

@@ -122,7 +122,7 @@
 
   /** Data profil terakhir — dipakai mode edit untuk mengisi form dan
    *  mengembalikannya kalau pengguna menekan Batal. */
-  let profilCache = { email: '', nama: '' };
+  let profilCache = { email: '', nama: '', perusahaan: '' };
 
   // ══ AVATAR: DIBUAT DARI NAMA, TANPA UNGGAHAN ═══════════════════════════════
   //
@@ -249,6 +249,21 @@
         });
       }
 
+      // ── TERAKHIR MASUK ────────────────────────────────────────────────────────
+      // Sudah dikirim backend sejak dulu (`masuk_terakhir`), belum pernah
+      // ditampilkan. Berguna untuk pengguna yang ingin tahu apakah akunnya
+      // dipakai di tempat lain — pertanyaan keamanan yang wajar.
+      //
+      // Tanggal + jam, bukan hanya tanggal: "terakhir masuk 3 hari lalu"
+      // kurang berguna kalau yang dicari "apakah tadi malam ada yang masuk".
+      const elMasuk = $('#kamMasukTerakhir');
+      if (elMasuk && profil.masuk_terakhir) {
+        elMasuk.textContent = new Date(profil.masuk_terakhir).toLocaleString('id-ID', {
+          day: 'numeric', month: 'long', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        });
+      }
+
       punyaSandi = Boolean(profil.punya_sandi);
       identitasCache = Array.isArray(data.identitas) ? data.identitas : [];
 
@@ -256,6 +271,7 @@
       profilCache = {
         email: profil.email || '',
         nama: profil.nama || '',
+        perusahaan: profil.perusahaan || '',
       };
 
       gambarSenarai();
@@ -639,8 +655,10 @@
     // keadaan sekarang, bukan dari form kosong.
     const inpNama = $('#kamInputNama');
     const inpEmail = $('#kamInputEmail');
+    const inpPerusahaan = $('#kamInputPerusahaan');
     if (inpNama) inpNama.value = profilCache.nama;
     if (inpEmail) inpEmail.value = profilCache.email;
+    if (inpPerusahaan) inpPerusahaan.value = profilCache.perusahaan;
 
     lihat.hidden = true;
     edit.hidden = false;
@@ -669,9 +687,11 @@
     e.preventDefault();
 
     const inpNama = $('#kamInputNama');
+    const inpPerusahaan = $('#kamInputPerusahaan');
     const tombol = $('#kamSimpanProfil');
 
     const nama = (inpNama?.value || '').trim();
+    const perusahaan = (inpPerusahaan?.value || '').trim();
 
     // ── Validasi klien: umpan balik cepat ─────────────────────────────────
     // Server memvalidasi ULANG — ini hanya supaya pengguna tidak menunggu
@@ -690,7 +710,9 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ nama }),
+        // `perusahaan` ikut dikirim — backend sudah menerimanya sejak dulu
+        // (users.mjs: perbaruiProfil), lengkap dengan validasinya sendiri.
+        body: JSON.stringify({ nama, perusahaan }),
       });
       const hasil = await res.json().catch(() => ({}));
 
@@ -703,6 +725,7 @@
       // kembali ke mode lihat dan melihat data LAMA — dan mengira simpanannya
       // gagal, padahal berhasil.
       profilCache.nama = hasil.nama;
+      profilCache.perusahaan = hasil.perusahaan ?? perusahaan;
 
       if (hasil.nama) $('#kamNama').textContent = hasil.nama;
 
