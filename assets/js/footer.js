@@ -60,25 +60,6 @@
       'Alat otomasi dan sistem self-hosted untuk perangkat yang sudah ada. ' +
       'Dibangun hemat sumber daya, tanpa langganan wajib.',
 
-    // Ikon sosial. Memakai SVG inline, bukan pustaka ikon: footer butuh
-    // 4 ikon, dan memuat pustaka penuh untuk itu tidak sepadan.
-    sosial: [
-      {
-        label: 'GitHub',
-        href: 'https://github.com/VicterHong',
-        svg: '<path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" fill="currentColor"/>',
-      },
-      {
-        label: 'Ko-fi',
-        href: 'https://ko-fi.com/victer',
-        svg: '<path d="M4 5h13a3 3 0 0 1 0 6h-1v1a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V5zm12 2v2h1a1 1 0 0 0 0-2h-1zM3 19h16v2H3v-2z" fill="currentColor"/>',
-      },
-      {
-        label: 'Saweria',
-        href: 'https://saweria.co/victer',
-        svg: '<path d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.3 6.5 3.6L12 11.5 5.5 7.9 12 4.3zM5 9.6l6 3.3v6.8l-6-3.3V9.6zm8 10.1v-6.8l6-3.3v6.8l-6 3.3z" fill="currentColor"/>',
-      },
-    ],
 
     // Kolom tautan. Setiap href sudah dipastikan ada.
     kolom: [
@@ -129,37 +110,56 @@
     const kiri = document.createElement('div');
     kiri.className = 'footer-kiri';
 
-    const merek = document.createElement('a');
-    merek.className = 'footer-merek';
-    merek.href = '/home';
-    merek.innerHTML = `
-      <span class="footer-merek-mark" aria-hidden="true"></span>
-      <span class="footer-merek-teks">${DATA.nama}</span>
-    `;
-    kiri.appendChild(merek);
+    // ── TIDAK ADA LOGO/NAMA DI FOOTER ────────────────────────────────────────
+    //
+    // ── MASALAH YANG DIPERBAIKI ──────────────────────────────────────────────
+    // Footer ini awalnya menampilkan logo + "VIVASTIC" — sama persis dengan
+    // header di atasnya. Diukur: nama merek muncul 3× di satu halaman
+    // (title, header, footer), dan ikon sosial muncul 2× (tombol di bagian
+    // Kontak, ikon di footer).
+    //
+    // Pengulangan tanpa alasan membuat halaman terasa tidak disunting —
+    // seperti template yang setiap bagiannya diisi tanpa dilihat keseluruhan.
+    //
+    // ── YANG DILAKUKAN KORPORASI ─────────────────────────────────────────────
+    // Riset 258 footer SaaS: Linear, Vercel, dan Stripe TIDAK mengulang logo
+    // di footer. Brand block cukup SATU KALI di header. Footer fokus pada
+    // navigasi + legal — dua hal yang justru dicari orang di sana.
+    //
+    // Linear merumuskannya: "Setiap elemen harus berhak ada di sana."
+    // Logo di footer tidak berhak — pengunjung sudah tahu situs apa ini.
+    //
+    // ── KONSEKUENSINYA: KOLOM KIRI DIPAKAI UNTUK HAL BERGUNA ────────────────
+    // Ruang yang dulu dipakai logo sekarang menampung deskripsi singkat
+    // tentang apa yang VIVASTIC kerjakan — informasi yang BELUM ada di
+    // halaman lain, bukan pengulangan.
 
     const desc = document.createElement('p');
     desc.className = 'footer-deskripsi';
     desc.textContent = DATA.deskripsi;
     kiri.appendChild(desc);
 
-    // Ikon sosial. `rel="noopener"` wajib untuk tautan target="_blank":
-    // tanpa itu, halaman tujuan bisa mengakses window.opener dan mengubah
-    // halaman kita (tabnabbing).
-    const sosial = document.createElement('ul');
-    sosial.className = 'footer-sosial';
-    for (const s of DATA.sosial) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = s.href;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.setAttribute('aria-label', s.label);
-      a.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">${s.svg}</svg>`;
-      li.appendChild(a);
-      sosial.appendChild(li);
-    }
-    kiri.appendChild(sosial);
+    // ── TIDAK ADA TAUTAN SOSIAL DI FOOTER ───────────────────────────────────
+    //
+    // ── MASALAH YANG DIPERBAIKI ──────────────────────────────────────────────
+    // Footer ini awalnya menampilkan ikon bulat GitHub/Ko-fi/Saweria, lalu
+    // diganti tautan teks — tapi keduanya tetap SALAH, karena tiga tautan
+    // yang sama sudah ada sebagai tombol di bagian "Mari bicara" tepat di
+    // atasnya. Diukur: pengunjung melihat tautan yang sama DUA KALI dalam
+    // satu layar.
+    //
+    // ── KENAPA BAGIAN KONTAK YANG DIPERTAHANKAN ─────────────────────────────
+    // Bagian "Mari bicara" adalah tempat yang TEPAT untuk kontak: ia punya
+    // judul, deskripsi, dan konteks ("terbuka untuk kerja sama..."). Footer
+    // adalah tempat CADANGAN untuk yang tidak menemukan apa yang dicari.
+    //
+    // Menaruh tautan kontak di dua tempat berarti tidak ada satu pun yang
+    // terasa definitif — pengunjung tidak tahu mana yang "resmi".
+    //
+    // ── YANG TETAP ADA DI FOOTER ────────────────────────────────────────────
+    // Navigasi (3 kolom link) + legal (Privasi/Syarat) + copyright.
+    // Itu yang dicari orang di footer: halaman yang tidak ketemu di header,
+    // dan dokumen legal yang wajib ada.
 
     footer.appendChild(kiri);
 

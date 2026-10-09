@@ -1216,7 +1216,7 @@ a { color: inherit; text-decoration: none; }
 .contact-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   padding: 0.7rem 1.25rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -1225,10 +1225,55 @@ a { color: inherit; text-decoration: none; }
   transition: border-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease);
 }
 
+/* ── IKON MEREK DI TAUTAN KONTAK ─────────────────────────────────────────────
+ *
+ * ── KENAPA UKURANNYA 18px, BUKAN 20px ATAU 16px ─────────────────────────────
+ * Tiga logo ini punya kepadatan berbeda:
+ *
+ *   GitHub   octocat — gemuk, mengisi seluruh kotak 24×24
+ *   Ko-fi    cangkir — lebih ringan, banyak ruang kosong di sekelilingnya
+ *   Saweria  maskot — bentuk tinggi dan sempit (telinga panjang)
+ *
+ * Kalau ketiganya dipaksa selebar yang sama, Saweria akan terlihat paling besar
+ * karena tingginya, dan Ko-fi paling kecil. 18px adalah titik di mana
+ * ketiganya terlihat seimbang — bukan angka bulat, tapi angka yang benar.
+ *
+ * ── KENAPA flex-shrink: 0 ───────────────────────────────────────────────────
+ * Tanpa itu, di layar sempit label teks akan menekan ikon sampai gepeng.
+ * Ikon merek yang gepeng lebih buruk daripada ikon yang hilang — bentuknya
+ * jadi menyesatkan. Ikon harus mempertahankan rasio aslinya selalu.
+ * ──────────────────────────────────────────────────────────────────────────── */
+.contact-ikon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.contact-ikon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .contact-link:hover { border-color: var(--accent-line); color: var(--text); transform: translateY(-2px); }
 
 /* ── KAKI ────────────────────────────────────────────────────────────────────── */
 
+/* ── ATURAN LAMA — MASIH DIPAKAI HALAMAN YANG BELUM PUNYA FOOTER 4 KOLOM ─────
+ *
+ * Halaman seperti `keamanan.html` dan `sign-in.html` punya footer sederhana
+ * satu baris yang memakai `.site-footer` saja. Aturan ini melayaninya.
+ *
+ * ── KENAPA TIDAK MENGHAPUS border-top DI SINI ───────────────────────────────
+ * Untuk footer satu baris, garis pemisah memang diperlukan: ia memisahkan
+ * copyright dari konten di atasnya yang punya LATAR SAMA. Tanpa garis, batas
+ * itu tidak terlihat.
+ *
+ * Footer 4 kolom punya masalah berbeda — latarnya sudah berbeda dari bagian
+ * Kontak di atasnya, jadi garisnya justru berlebihan. Itu sebabnya
+ * `.site-footer-4kolom` menimpanya dengan `border-top: 0`.
+ * ──────────────────────────────────────────────────────────────────────────── */
 .site-footer {
   max-width: var(--maxw);
   margin: 0 auto;
@@ -1338,13 +1383,37 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
  * cukup rapi dan terbaca.
  * ──────────────────────────────────────────────────────────────────────────── */
 
+/* ── KENAPA TANPA GARIS PEMISAH DI ATAS FOOTER ───────────────────────────────
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Sebelumnya footer punya `border-top: 1px solid` — garis tegas tepat di
+ * bawah bagian "Mari bicara". Dilihat di layar, hasilnya: dua blok yang
+ * ditempel, bukan satu halaman yang mengalir.
+ *
+ * ── KENAPA GARIS ITU SALAH DI SINI ──────────────────────────────────────────
+ * Garis pemisah berguna kalau dua bagian punya LATAR yang sama dan butuh
+ * batas buatan. Di sini latarnya sudah berbeda (bagian kontak punya gradien
+ * hangat, footer gelap) — jadi batasnya sudah terbaca tanpa garis. Menambah
+ * garis di atas batas yang sudah jelas hanya menambah kebisingan visual.
+ *
+ * Yang dibutuhkan bukan garis, tapi RUANG: jarak vertikal yang cukup supaya
+ * mata berhenti sejenak sebelum masuk ke footer.
+ *
+ * ── JARAK 4rem (64px) ───────────────────────────────────────────────────────
+ * Dua kali jarak antar-kolom di dalam footer (2rem). Perbandingan itu yang
+ * membuat transisi terbaca sebagai "bagian baru" tanpa perlu garis.
+ * ──────────────────────────────────────────────────────────────────────────── */
 .site-footer-4kolom {
   display: grid;
   gap: 3rem 2rem;
-  padding: 3.5rem 1.5rem 2rem;
+  padding: 4rem 1.5rem 2.5rem;
   max-width: var(--maxw);
   margin: 0 auto;
-  border-top: 1px solid var(--line-soft);
+  /* TIDAK ada border-top — lihat catatan di atas.
+     Ditulis EKSPLISIT karena footer ini juga memakai kelas `.site-footer`,
+     dan aturan itu punya `border-top: 1px`. Tanpa penimpaan ini, garisnya
+     tetap muncul dan dua bagian kembali terlihat seperti blok terpisah. */
+  border-top: 0;
 }
 
 /* ── Kolom kiri: merek + deskripsi + sosial ─────────────────────────────────── */
@@ -1392,35 +1461,43 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 
 /* ── Ikon sosial ────────────────────────────────────────────────────────────── */
 
-.footer-sosial {
+/* ── TAUTAN SOSIAL SEBAGAI TEKS ──────────────────────────────────────────────
+ *
+ * Sebelumnya deretan ikon bulat 38px. Diganti teks karena dua alasan:
+ *
+ *   1. DUPLIKASI — tiga tautan yang sama sudah muncul sebagai tombol di
+ *      bagian "Mari bicara" tepat di atas footer. Ikon bulat menarik
+ *      perhatian, dan menarik perhatian ke sesuatu yang sudah dilihat
+ *      pengguna satu layar sebelumnya hanya mengulang tanpa menambah.
+ *
+ *   2. BOBOT VISUAL — ikon bulat adalah bentuk untuk AKSI UTAMA. Di footer,
+ *      tautan sosial adalah pelengkap; teks menempatkannya pada bobot yang
+ *      benar, sejajar dengan tautan footer lainnya.
+ * ──────────────────────────────────────────────────────────────────────────── */
+.footer-sosial-teks {
   display: flex;
-  gap: 1.1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.footer-sosial a {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
+.footer-sosial-teks a {
+  font-size: 0.875rem;
   color: var(--text-faint);
-  border: 1px solid var(--line-soft);
-  border-radius: 50%;
-  transition: color 0.2s var(--ease), border-color 0.2s var(--ease),
-              background-color 0.2s var(--ease);
+  text-decoration: none;
+  transition: color 0.18s var(--ease);
 }
 
-.footer-sosial a:hover {
-  color: var(--accent);
-  border-color: var(--accent-line, rgba(245, 197, 66, 0.45));
-  background: rgba(245, 197, 66, 0.06);
+.footer-sosial-teks a:hover {
+  color: var(--text);
 }
 
-.footer-sosial a:focus-visible {
+.footer-sosial-teks a:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 
 /* ── Tiga kolom tautan ──────────────────────────────────────────────────────── */

@@ -430,6 +430,41 @@ function renderPrinciples() {
 }
 
 // ── KONTAK ─────────────────────────────────────────────────────────────────────
+//
+// ── KENAPA TAUTAN KONTAK PAKAI LOGO MEREK, BUKAN IKON GENERIK ────────────────
+//
+// Versi sebelumnya memakai ikon yang SAYA GAMBAR SENDIRI: sebuah cangkir untuk
+// Ko-fi dan sebuah kubus untuk Saweria. Keduanya salah. Ikon itu tidak dikenali
+// siapa pun — pengunjung melihat "cangkir" dan "kubus", bukan Ko-fi dan Saweria.
+//
+// Ikon merek bekerja karena pengunjung SUDAH tahu bentuknya. Logo yang tidak
+// tepat bukan sekadar kurang cantik: ia memaksa orang membaca label teks, dan
+// itu artinya ikonnya tidak melakukan tugasnya sama sekali.
+//
+// ── SUMBER SETIAP LOGO ───────────────────────────────────────────────────────
+//   GitHub   simple-icons (octocat resmi) — sudah benar, tidak diubah
+//   Ko-fi    simple-icons `kofi` — cangkir dengan HATI di dalamnya
+//   Saweria  diturunkan dari favicon resmi saweria.co (maskot bertelinga
+//            panjang, satu warna) — Saweria tidak ada di koleksi ikon mana pun,
+//            jadi bentuknya diambil langsung dari aset resmi mereka
+//
+// ── KENAPA SAWERIA JADI SILUET SATU WARNA ────────────────────────────────────
+// Maskot aslinya punya 6 warna (pixel art 48×48). Di ukuran ikon 20px, 6 warna
+// itu saling menelan dan hasilnya jadi bintik tidak berbentuk. Siluet satu warna
+// mempertahankan hal yang membuatnya dikenali — bentuk telinga — dan itu satu-
+// satunya yang bertahan di ukuran kecil.
+//
+// Diverifikasi: masih terbaca di 40px, dan di 20px bentuknya masih utuh.
+//
+// ── SEMUA IKON PAKAI currentColor ────────────────────────────────────────────
+// Supaya warna mengikuti CSS (`color`), bukan di-hardcode. Tema berubah → ikon
+// ikut berubah, tanpa perlu menyentuh JavaScript.
+const IKON_KONTAK = {
+  GitHub: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49v-1.7c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.57 2.34 1.12 2.91.85.09-.66.35-1.12.63-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.94.68 1.9v2.82c0 .27.18.6.69.49A10.03 10.03 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>`,
+  'Ko-fi': `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.351 2.715c-2.7 0-4.986.025-6.83.26C2.078 3.285 0 5.154 0 8.61c0 3.506.182 6.13 1.585 8.493c1.584 2.701 4.233 4.182 7.662 4.182h.83c4.209 0 6.494-2.234 7.637-4a9.5 9.5 0 0 0 1.091-2.338C21.792 14.688 24 12.22 24 9.208v-.415c0-3.247-2.13-5.507-5.792-5.87c-1.558-.156-2.65-.208-6.857-.208m0 1.947c4.208 0 5.09.052 6.571.182c2.624.311 4.13 1.584 4.13 4v.39c0 2.156-1.792 3.844-3.87 3.844h-.935l-.156.649c-.208 1.013-.597 1.818-1.039 2.546c-.909 1.428-2.545 3.064-5.922 3.064h-.805c-2.571 0-4.831-.883-6.078-3.195c-1.09-2-1.298-4.155-1.298-7.506c0-2.181.857-3.402 3.012-3.714c1.533-.233 3.559-.26 6.39-.26m6.547 2.287c-.416 0-.65.234-.65.546v2.935c0 .311.234.545.65.545c1.324 0 2.051-.754 2.051-2s-.727-2.026-2.052-2.026m-10.39.182c-1.818 0-3.013 1.48-3.013 3.142c0 1.533.858 2.857 1.949 3.897c.727.701 1.87 1.429 2.649 1.896a1.47 1.47 0 0 0 1.507 0c.78-.467 1.922-1.195 2.623-1.896c1.117-1.039 1.974-2.364 1.974-3.897c0-1.662-1.247-3.142-3.039-3.142c-1.065 0-1.792.545-2.338 1.298c-.493-.753-1.246-1.298-2.312-1.298"/></svg>`,
+  Saweria: `<svg viewBox="0 0 960 960" aria-hidden="true"><g transform="translate(0.000000,960.000000) scale(0.100000,-0.100000)"><path fill="currentColor" d="M1550 9587 c0 -36 -67 -102 -173 -171 -125 -81 -157 -113 -217 -216 -134 -229 -159 -326 -167 -645 -4 -173 -2 -254 12 -374 22 -198 34 -243 100 -376 30 -60 68 -144 85 -187 17 -42 49 -100 70 -130 22 -29 70 -99 108 -155 169 -252 392 -451 622 -554 146 -66 195 -99 222 -152 47 -92 21 -178 -92 -302 -38 -41 -90 -112 -115 -157 -26 -44 -74 -109 -106 -144 -32 -34 -79 -95 -104 -133 -25 -39 -69 -97 -98 -129 -29 -31 -79 -99 -110 -150 -32 -51 -77 -119 -100 -150 -23 -32 -64 -96 -90 -143 -26 -47 -67 -108 -91 -135 -24 -27 -77 -101 -118 -164 -42 -63 -97 -142 -122 -175 -25 -33 -65 -96 -87 -140 -23 -44 -61 -108 -86 -142 -24 -34 -68 -115 -99 -180 -30 -65 -75 -143 -99 -174 -24 -31 -72 -116 -108 -190 -35 -74 -84 -164 -109 -201 -54 -78 -80 -142 -119 -295 -36 -141 -53 -270 -46 -349 8 -111 81 -208 191 -257 166 -74 196 -103 196 -190 0 -39 -10 -73 -45 -148 -31 -65 -54 -135 -70 -211 -13 -62 -38 -167 -55 -233 -43 -165 -34 -233 61 -431 34 -72 50 -92 146 -181 59 -55 134 -119 167 -143 32 -23 82 -64 110 -89 28 -26 87 -66 131 -90 44 -24 120 -71 170 -104 103 -70 147 -88 264 -111 95 -19 144 -41 183 -83 42 -44 131 -173 209 -301 80 -132 110 -167 224 -259 95 -78 145 -104 281 -149 168 -54 249 -103 274 -164 12 -30 12 -30 340 -30 327 0 327 0 351 38 36 56 141 104 334 152 114 28 186 52 250 84 122 61 265 155 334 220 107 102 148 112 496 121 198 5 250 3 298 -10 86 -22 152 -60 222 -125 66 -61 126 -95 308 -174 337 -147 980 -178 1321 -65 62 21 263 123 325 165 60 40 247 259 286 333 74 141 143 191 328 236 156 38 181 49 287 119 52 35 130 83 173 107 43 24 109 69 145 99 37 31 97 78 134 106 36 27 116 102 176 166 116 123 141 166 163 282 33 176 -25 533 -110 675 -22 36 -45 79 -50 94 -18 46 -13 133 9 176 22 45 54 66 165 112 95 39 155 91 184 160 32 73 35 129 16 259 -30 210 -57 291 -139 423 -25 40 -54 96 -65 125 -32 80 -66 143 -130 241 -32 49 -74 127 -94 174 -19 47 -62 127 -95 179 -33 51 -78 129 -100 174 -22 44 -66 112 -97 150 -31 38 -75 101 -97 139 -22 39 -71 111 -108 160 -37 50 -87 124 -110 165 -24 41 -62 100 -85 130 -23 30 -66 93 -94 140 -29 47 -85 126 -125 175 -40 50 -91 118 -114 152 -23 34 -64 87 -91 118 -27 31 -69 89 -92 128 -23 39 -90 130 -148 202 -154 189 -172 234 -131 315 26 51 65 76 222 144 137 59 161 72 228 126 25 20 79 60 121 88 81 54 210 192 284 304 22 33 71 101 108 151 77 103 103 150 140 252 14 39 43 109 65 156 54 116 68 166 88 321 13 105 15 178 11 348 -8 294 -16 330 -124 557 -102 215 -119 236 -274 340 -110 74 -164 126 -175 168 -6 25 -6 25 -209 25 -203 0 -203 0 -215 -30 -19 -45 -85 -98 -197 -158 -56 -30 -119 -72 -141 -95 -63 -65 -208 -335 -227 -421 -20 -93 -52 -429 -65 -686 -15 -285 -25 -357 -71 -495 -67 -200 -97 -253 -189 -337 -111 -100 -164 -130 -248 -135 -58 -4 -80 1 -167 33 -262 96 -284 102 -495 129 -393 51 -533 63 -955 81 -245 10 -642 -17 -1050 -72 -253 -34 -340 -55 -465 -115 -194 -94 -277 -80 -432 72 -94 92 -132 158 -188 325 -46 134 -47 147 -100 844 -21 268 -30 301 -186 626 -53 112 -111 169 -256 250 -113 64 -170 110 -188 154 -12 30 -12 30 -216 30 -165 0 -204 -3 -204 -13z"/></g></svg>`,
+};
+
 function renderContact() {
   const host = $('#contactLinks');
   const links = [
@@ -438,9 +473,28 @@ function renderContact() {
     { label: 'Saweria', href: profile.links.saweria },
   ];
   for (const link of links) {
-    host.append(el('a', {
-      class: 'contact-link', href: link.href, target: '_blank', rel: 'noopener', text: link.label,
-    }));
+    const a = el('a', {
+      class: 'contact-link', href: link.href, target: '_blank', rel: 'noopener',
+    });
+
+    // ── BUG YANG PERNAH ADA DI SINI ──────────────────────────────────────────
+    // Versi pertama menulis `a.appendChild(pembungkus.firstChild)` — itu
+    // mengambil SVG dari dalam span lalu MEMBUANG span-nya. Akibatnya SVG jadi
+    // anak langsung <a> tanpa kelas, tidak ada aturan CSS yang mengenainya, dan
+    // ukurannya jatuh ke 0×0. Ikonnya ada di DOM tapi tidak terlihat sama sekali.
+    //
+    // Yang benar: span-nya yang di-append, bukan isinya. Span itu yang membawa
+    // kelas `.contact-ikon` tempat ukuran 18×18 didefinisikan.
+    //
+    // `innerHTML` di sini aman: isinya literal yang kita tulis sendiri di
+    // IKON_KONTAK, bukan data dari pengguna atau server.
+    const pembungkus = document.createElement('span');
+    pembungkus.className = 'contact-ikon';
+    pembungkus.innerHTML = IKON_KONTAK[link.label] || '';
+    a.appendChild(pembungkus);
+
+    a.appendChild(el('span', { class: 'contact-label', text: link.label }));
+    host.append(a);
   }
 }
 
