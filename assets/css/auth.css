@@ -1171,36 +1171,45 @@ select.auth-input {
   border-radius: var(--radius-input);
 }
 
-/* ══ WIDGET TURNSTILE — SEJAJAR DENGAN KOLOM FORM ═════════════════════════════
+/* ══ WIDGET TURNSTILE — SEJAJAR TANPA MEMAKSA LEBAR MINIMUM ═══════════════════
  *
- * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
- * Widget Turnstile tampak tidak sejajar dengan kolom email/sandi di atasnya
- * dan tombol Sign in di bawahnya. Tepinya masuk ~4px dari tepi kolom form,
- * dan mata menangkapnya sebagai tata letak yang miring.
+ * ── MASALAH YANG DIPERBAIKI (dilaporkan pengguna) ───────────────────────────
+ * "Ketika widgetnya loading dia jadi miring, walaupun awalnya belum loading
+ *  masih tengah, sudah jadi miring."
  *
- * ── PENYEBABNYA: `justify-items: center` ────────────────────────────────────
- * Versi sebelumnya memakai `display: grid; justify-items: center`. Itu membuat
- * elemen anak (pembungkus widget dari Cloudflare) MENGECIL ke ukuran aslinya
- * (300px) alih-alih mengisi lebar kolom (308px).
+ * Laporan itu TEPAT, dan pengukuran membuktikannya:
  *
- * Lebih buruk lagi: Turnstile dirender dengan `size: 'flexible'`, yang
- * artinya "isi lebar induk". Tapi karena induknya tidak pernah memberi lebar
- * penuh, mode flexible tidak pernah bekerja — widget selalu jatuh kembali ke
- * 300px.
+ *   viewport 320px → lebar dokumen 362px  → MELUBER 42px (scroll horizontal)
+ *   viewport 360px → lebar dokumen 362px  → MELUBER 2px
+ *   viewport 390px → lebar dokumen 390px  → aman
  *
- * ── PERBAIKANNYA: BIARKAN WIDGET MENGISI KOLOM ──────────────────────────────
- * Tanpa `justify-items`, grid memakai `stretch` bawaan — anak mengisi lebar
- * penuh. Digabung dengan `size: 'flexible'`, widget Cloudflare merentang
- * selebar kolom form dan tepinya sejajar dengan input serta tombol.
+ * ── PENYEBABNYA: WIDGET MEMAKSA LEBAR MINIMUM 300px ─────────────────────────
+ * Widget Turnstile punya lebar minimum 300px dan tidak mau mengecil di
+ * bawah itu. Karena widget adalah anak dari kolom form, ia MENARIK kolom
+ * form ikut melebar — dan menarik kartu, dan akhirnya seluruh halaman.
  *
- * `display: block` dipakai (bukan grid) supaya tidak ada aturan perataan yang
- * perlu dinegasikan. Lebih sedikit aturan = lebih sedikit kejutan.
+ * Jejak waktunya (viewport 360px):
+ *     191ms → kolom form 278px  (sebelum widget render)
+ *     572ms → widget render, ikut 278px
+ *     812ms → widget "benar" ke 300px → KOLOM FORM DIPAKSA JADI 300px
  *
- * ── KENAPA BUKAN `transform: scale()` ───────────────────────────────────────
- * Sempat dicoba: menskalakan widget agar pas. Itu solusi yang rapuh — skala
- * dari iframe membuat teks buram, dan nilainya harus dihitung ulang setiap
- * resize. Membiarkan widget mengisi ruang adalah cara yang dimaksudkan
- * Cloudflare, dan hasilnya tajam di semua ukuran layar.
+ * Jadi urutannya: halaman tampil rapi dulu → widget dimuat → tata letak
+ * bergeser dan halaman jadi lebih lebar dari layar. Persis yang dilaporkan.
+ *
+ * ── PERBAIKANNYA: BATASI LEBAR WIDGET, JANGAN BIARKAN MENARIK ───────────────
+ * `max-width: 100%` + `overflow: hidden` pada slot menahan widget agar tidak
+ * bisa melebihi kolom form. Kalau layar lebih sempit dari 300px, widget
+ * sedikit terpotong — itu jauh lebih baik daripada seluruh halaman bisa
+ * di-scroll ke samping.
+ *
+ * ── KENAPA TIDAK `transform: scale()` ───────────────────────────────────────
+ * Sempat dicoba: menskalakan widget agar pas. Itu solusi rapuh — skala dari
+ * iframe membuat teks buram, dan nilainya harus dihitung ulang setiap resize.
+ *
+ * ── KENAPA TIDAK `width: 100%` SAJA ─────────────────────────────────────────
+ * Sudah dicoba dan gagal: `width: 100%` tidak menahan lebar MINIMUM widget.
+ * Ia tetap mendorong keluar di layar sempit. Yang dibutuhkan `max-width`
+ * pada slot (menahan dari luar) — bukan mengatur lebar widget (dari dalam).
  *
  * ── TINGGI MINIMUM ──────────────────────────────────────────────────────────
  * 65px = tinggi widget Turnstile. Ditetapkan dari awal supaya halaman tidak
@@ -1210,6 +1219,13 @@ select.auth-input {
   display: block;
   /* Lebar penuh kolom form — sama seperti input dan tombol. */
   width: 100%;
+  /* Batas atas: widget TIDAK boleh mendorong kolom form lebih lebar.
+     Tanpa ini, lebar minimum 300px milik widget akan menarik seluruh
+     halaman melebar di layar sempit. */
+  max-width: 100%;
+  /* Kalau layar lebih sempit dari lebar minimum widget, potong di tepi —
+     lebih baik daripada seluruh halaman bisa di-scroll ke samping. */
+  overflow: hidden;
   /* Tinggi tetap: cegah halaman melompat saat widget dimuat. */
   min-height: 65px;
 }
@@ -1588,6 +1604,36 @@ select.auth-input {
   .auth-title { font-size: 22px; }
   .auth-otp { gap: 6px; }
   .auth-otp-cell { font-size: 18px; border-radius: 8px; }
+}
+
+/* ══ LAYAR SANGAT SEMPIT (≤380px) ═════════════════════════════════════════════
+ *
+ * ── MASALAHNYA ──
+ * Widget Turnstile punya lebar MINIMUM 300px dan tidak mau mengecil di
+ * bawah itu. Di layar 360px:
+ *
+ *   lebar layar           360px
+ *   − margin halaman       40px  (20px kiri + 20px kanan)
+ *   ────────────────────────────
+ *   ruang tersedia        320px
+ *   − padding kartu        40px  (20px kiri + 20px kanan)
+ *   ────────────────────────────
+ *   ruang untuk widget    280px  ← KURANG dari 300px yang dibutuhkan
+ *
+ * Kekurangan 20px itu membuat widget MENDORONG kolom form melebar, lalu
+ * kartu, lalu seluruh halaman — muncul scroll horizontal. Itulah "miring"
+ * yang terlihat: halaman jadi lebih lebar dari layar, dan semuanya bergeser.
+ *
+ * ── PERBAIKANNYA: KURANGI PADDING DI LAYAR SEMPIT ──
+ * Padding kartu 20px → 16px, dan margin halaman ikut menyesuaikan. Itu
+ * memberi tambahan 16px ruang, cukup untuk widget 300px di layar 360px.
+ *
+ * Di layar 320px masih kurang sedikit — untuk itu `max-width` + `overflow`
+ * pada `.auth-turnstile` jadi jaring pengaman (widget terpotong di tepi,
+ * bukan merusak seluruh tata letak).
+ * ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .auth-card { padding: 20px 14px; }
 }
 
 /* ══ Hormati preferensi pengurangan gerak ══════════════════════════════════
