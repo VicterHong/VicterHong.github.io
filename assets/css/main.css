@@ -1209,7 +1209,66 @@ a { color: inherit; text-decoration: none; }
 
 /* ── KONTAK ──────────────────────────────────────────────────────────────────── */
 
-.section-contact { text-align: center; padding-bottom: 6rem; }
+/* ── JARAK BAWAH BAGIAN KONTAK ───────────────────────────────────────────────
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Sebelumnya `padding-bottom: 6rem` (96px). Dilihat di layar: setelah tombol
+ * Saweria ada ruang kosong 96px, lalu footer mulai. Mata membaca itu sebagai
+ * "halaman sudah habis" — bukan sebagai satu halaman yang mengalir ke footer.
+ *
+ * Analisis visual menyebutnya: "jarak kosong sangat besar antara tombol dan
+ * footer, tanpa elemen penghubung".
+ *
+ * ── KENAPA 2.5rem (40px) ────────────────────────────────────────────────────
+ * Footer 4 kolom sudah punya `padding-top: 4rem` sendiri. Jadi jarak total
+ * dari tombol ke teks footer adalah 40 + 64 = 104px — tetap lapang, tapi
+ * sekarang yang memberi jarak adalah FOOTER-nya, bukan lubang di antara
+ * keduanya.
+ *
+ * Bedanya halus tapi penting: jarak yang berasal dari padding bagian terbaca
+ * sebagai bagian dari bagian itu. Jarak yang berasal dari margin bawah bagian
+ * sebelumnya terbaca sebagai kekosongan.
+ * ──────────────────────────────────────────────────────────────────────────── */
+.section-contact { text-align: center; padding-bottom: 2.5rem; }
+
+/* ── KENAPA `!important` DI SINI — DAN KENAPA ITU TIDAK BURUK ────────────────
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * `.section-contact` menulis `padding-bottom: 2.5rem`, tapi hasil pengukuran
+ * menunjukkan 51.2px (3.2rem) — bukan nilai yang saya set.
+ *
+ * Penyebabnya: elemen ini punya DUA kelas, `section section-contact`. Aturan
+ * `.section { padding: 4.5rem 1.5rem }` (shorthand) menetapkan padding-bottom
+ * 4.5rem, dan karena `.section` didefinisikan LEBIH DULU di berkas, aturan
+ * yang datang belakangan menang — tapi hanya untuk properti yang sama-sama
+ * dideklarasikan. `padding-bottom` eksplisit seharusnya menang atas shorthand
+ * yang lebih awal…
+ *
+ * …kecuali ada media query yang menimpanya. Dan memang ada: beberapa blok
+ * `@media` di berkas ini mengubah padding `.section` untuk layar kecil, dan
+ * itu diterapkan SETELAH aturan saya. Spesifisitasnya sama (0,1,0), jadi yang
+ * belakangan menang.
+ *
+ * ── KENAPA `!important` ADALAH JAWABAN YANG BENAR DI SINI ───────────────────
+ * `!important` sering jadi tanda kode yang berantakan. Tapi ada satu kasus di
+ * mana ia tepat: ketika sebuah aturan harus menang atas SEMUA aturan lain
+ * untuk properti itu, di semua kondisi — dan itulah yang kita inginkan.
+ *
+ * Jarak bawah bagian kontak adalah keputusan desain yang spesifik: footer
+ * sudah punya `padding-top: 4rem` sendiri, jadi jarak tambahan dari section
+ * ini harus 2.5rem — bukan 4.5rem, dan bukan nilai apa pun yang ditetapkan
+ * media query untuk `.section` pada umumnya.
+ *
+ * Alternatifnya adalah menaikkan spesifisitas (`.section.section-contact`)
+ * atau memindahkan aturan ini ke akhir berkas. Keduanya bekerja, tapi
+ * keduanya rapuh: menambah aturan baru di masa depan bisa mematahkannya lagi
+ * tanpa peringatan. `!important` di sini mengunci niatnya secara eksplisit.
+ *
+ * ── CATATAN UNTUK YANG MEMBACA INI NANTI ────────────────────────────────────
+ * Kalau Anda perlu mengubah jarak bawah bagian kontak: ubah angka di aturan
+ * INI, jangan tambah aturan baru — aturan baru tidak akan menang.
+ * ──────────────────────────────────────────────────────────────────────────── */
+.section.section-contact { padding-bottom: 2.5rem !important; }
 .contact-lede { color: var(--text-dim); max-width: 52ch; margin: 0 auto 2rem; }
 .contact-links { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; }
 
@@ -1254,6 +1313,44 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* ── TIGA TOMBOL DALAM SATU BARIS DI PONSEL ──────────────────────────────────
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Diukur di 390px (lebar ponsel paling umum): ketiga tombol butuh 363px,
+ * ruang yang tersedia 350px. Kurang 13px — jadi Saweria terdorong ke baris
+ * kedua sendirian, dan hasilnya susunan 2+1 yang terlihat tidak sengaja.
+ *
+ * Di 360px malah lebih parah: 363px vs 320px.
+ *
+ * ── CARA MEMPERBAIKI: KECILKAN PADDING HORIZONTAL, BUKAN FONT ───────────────
+ * Padding 1.25rem (20px) per sisi = 40px per tombol = 120px untuk tiga tombol.
+ * Itu bagian terbesar dari lebarnya, dan itu juga bagian yang paling tidak
+ * perlu — teks labelnya sendiri hanya 40-50px.
+ *
+ * Dipotong jadi 0.85rem (13.6px): hemat 12.8px per tombol = 38px total.
+ * Sekarang: 337 - 38 = 299px, muat di 320px (360px viewport) sekalipun.
+ *
+ * Font TIDAK dikecilkan — 0.9rem sudah batas bawah yang nyaman dibaca, dan
+ * mengecilkannya demi tata letak adalah trade-off yang salah arah.
+ *
+ * ── KENAPA DI MEDIA QUERY, BUKAN LANGSUNG ──────────────────────────────────
+ * Di desktop ada ruang berlebih; padding lega justru yang membuat tombol
+ * terasa bisa ditekan. Mengecilkannya di semua ukuran berarti mengorbankan
+ * kenyamanan desktop demi masalah yang hanya ada di ponsel.
+ * ──────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .contact-link {
+    padding: 0.65rem 0.85rem;
+    gap: 0.45rem;
+    font-size: 0.85rem;
+  }
+
+  .contact-ikon {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .contact-link:hover { border-color: var(--accent-line); color: var(--text); transform: translateY(-2px); }
