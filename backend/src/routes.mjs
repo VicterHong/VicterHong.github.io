@@ -708,6 +708,7 @@ export const routes = [
           github: providerSiap('github', config),
           microsoft: providerSiap('microsoft', config),
           apple: providerSiap('apple', config),
+          linkedin: providerSiap('linkedin', config),
 
           // ── SSO: butuh issuer + client id ──────────────────────────────────
           // clientSecret opsional (beberapa IdP memakai PKCE saja), tapi

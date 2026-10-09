@@ -118,6 +118,18 @@ export const config = {
   microsoftClientId: pick('MICROSOFT_CLIENT_ID', ''),
   microsoftClientSecret: pick('MICROSOFT_CLIENT_SECRET', ''),
 
+  // ── LINKEDIN ────────────────────────────────────────────────────────────────
+  // Dua nilai dari halaman app LinkedIn (Products → "Sign In with LinkedIn
+  // using OpenID Connect" harus ditambahkan dulu, lalu ambil dari tab Auth).
+  //
+  // Kenapa LinkedIn: self-serve tanpa review, OIDC penuh, dan cocok untuk
+  // audiens korporat/B2B — lihat penjelasan lengkap di src/oauth.mjs.
+  //
+  // Redirect URL yang didaftarkan di LinkedIn:
+  //   https://<domain>/api/auth/linkedin/callback
+  linkedinClientId: pick('LINKEDIN_CLIENT_ID', ''),
+  linkedinClientSecret: pick('LINKEDIN_CLIENT_SECRET', ''),
+
   // ── APPLE: TIGA NILAI + SATU KUNCI ──────────────────────────────────────────
   // Apple tidak memberi client secret berupa string. Yang dipakai adalah JWT
   // yang ditandatangani private key .p8 milik developer, jadi butuh:

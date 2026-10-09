@@ -802,9 +802,30 @@ select.auth-input {
    ── TINGGI 44px ────────────────────────────────────────────────────────────
    Target sentuh minimum (WCAG 2.5.8, pedoman Apple & Google). Lebih pendek
    dari ini sulit ditekan dengan jempol di ponsel. */
+/* ── KISI TOMBOL PROVIDER — FLEKSIBEL, BUKAN 4 KOLOM KAKU ─────────────────────
+ *
+ * MASALAH YANG PERNAH TERJADI:
+ * Sebelumnya `repeat(4, 1fr)`. Ketika hanya 3 provider aktif (Apple
+ * disembunyikan menunggu kredensial), kisi tetap menyediakan 4 kolom —
+ * sehingga muncul SLOT KOSONG di kanan. Tiga tombol berkumpul di kiri dengan
+ * ruang menganggur di ujungnya, dan itu terlihat seperti ada yang kurang.
+ *
+ * KENAPA `auto-fit` + `minmax` MENYELESAIKANNYA:
+ *   auto-fit   → kisi membuat SEBANYAK kolom yang muat, lalu kolom sisa
+ *                yang kosong DILIPAT — tidak ada slot menganggur.
+ *   minmax()   → tiap kolom minimal 60px, maksimal 1fr. Dengan lebar kartu
+ *                ~342px dan gap 9px, ini menghasilkan tepat 4 kolom saat ada
+ *                4 tombol, dan 3 kolom saat hanya 3.
+ *
+ * Jadi jumlah tombol berapa pun selalu mengisi lebar penuh dan seimbang.
+ * Menambah provider baru tidak perlu menyentuh CSS ini.
+ *
+ * Catatan: `repeat(4, 1fr)` juga bermasalah di layar sempit kalau provider
+ * bertambah — dengan auto-fit, tombol menyusut sendiri alih-alih meluber.
+ */
 .auth-sso-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
   gap: 9px;
   margin-bottom: 10px;
 }

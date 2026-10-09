@@ -1095,7 +1095,7 @@
   // Ketika endpoint OAuth ditambahkan nanti, tombol menyala sendiri tanpa
   // perlu mengubah HTML — cukup set flag di config server.
   async function siapkanSso() {
-    let aktif = { google: false, github: false, microsoft: false, apple: false, sso: false };
+    let aktif = { google: false, github: false, microsoft: false, apple: false, linkedin: false, sso: false };
     // Label tombol SSO disimpan di scope FUNGSI, bukan di dalam blok try —
     // supaya bisa dipakai setelah blok itu selesai. Menyimpannya di dalam
     // `d` membuat nilainya hilang begitu try selesai.
@@ -1109,6 +1109,7 @@
           github: Boolean(d?.sso?.github),
           microsoft: Boolean(d?.sso?.microsoft),
           apple: Boolean(d?.sso?.apple),
+          linkedin: Boolean(d?.sso?.linkedin),
           sso: Boolean(d?.sso?.sso),
         };
         labelSso = String(d?.sso_label || '').slice(0, 40);
@@ -1145,6 +1146,7 @@
       { id: '#btnMicrosoft', nama: 'Microsoft', url: '/api/auth/microsoft', siap: aktif.microsoft },
       { id: '#btnApple',     nama: 'Apple',     url: '/api/auth/apple',     siap: aktif.apple },
       { id: '#btnGithub',    nama: 'GitHub',    url: '/api/auth/github',    siap: aktif.github },
+      { id: '#btnLinkedin',  nama: 'LinkedIn',  url: '/api/auth/linkedin',  siap: aktif.linkedin },
     ];
 
     for (const p of penyedia) {
@@ -1728,7 +1730,8 @@
   function namaMetode(metode) {
     const peta = {
       sandi: 'sandi', google: 'Google', microsoft: 'Microsoft',
-      apple: 'Apple', github: 'GitHub', sso: 'SSO', passkey: 'passkey',
+      apple: 'Apple', github: 'GitHub', linkedin: 'LinkedIn',
+      sso: 'SSO', passkey: 'passkey',
     };
     return peta[metode] || metode;
   }
@@ -1801,6 +1804,7 @@
     for (const [id, metode] of [
       ['#btnGoogle', 'google'], ['#btnMicrosoft', 'microsoft'],
       ['#btnApple', 'apple'], ['#btnGithub', 'github'],
+      ['#btnLinkedin', 'linkedin'],
       ['#btnSso', 'sso'], ['#btnPasskey', 'passkey'],
     ]) {
       const tombol = $(id);

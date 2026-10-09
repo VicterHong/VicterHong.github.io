@@ -128,6 +128,62 @@ const PROVIDER = {
     bukanOidc: true,
     ambilEmailDariIdToken: false,
   },
+
+  /**
+   * ── LINKEDIN ────────────────────────────────────────────────────────────────
+   *
+   * KENAPA LINKEDIN, BUKAN FACEBOOK/DISCORD/SLACK:
+   *
+   *   • Self-serve & GRATIS. Produk "Sign In with LinkedIn using OpenID
+   *     Connect" bisa dipakai langsung setelah membuat app — tidak ada proses
+   *     review manual seperti Facebook (yang butuh App Review + kebijakan
+   *     privasi + verifikasi bisnis untuk scope email).
+   *
+   *   • OIDC PENUH. LinkedIn menyediakan dokumen discovery, id_token RS256,
+   *     JWKS, dan endpoint userinfo. Artinya ia masuk ke jalur OIDC generik
+   *     yang sudah dipakai Google/Microsoft — tidak perlu kode khusus.
+   *     Diverifikasi dari dokumen resmi mereka:
+   *       issuer     https://www.linkedin.com/oauth
+   *       authorize  https://www.linkedin.com/oauth/v2/authorization
+   *       token      https://www.linkedin.com/oauth/v2/accessToken
+   *       jwks       https://www.linkedin.com/oauth/openid/jwks
+   *       userinfo   https://api.linkedin.com/v2/userinfo
+   *
+   *   • COCOK UNTUK AUDIENS VIVASTIC. Ini portal klien korporat/B2B. Google,
+   *     Microsoft, GitHub, LinkedIn adalah empat identitas yang wajar untuk
+   *     konteks profesional. Discord (gaming) akan terasa tidak pada tempatnya
+   *     di halaman masuk klien perusahaan.
+   *
+   * ── CATATAN PENTING SOAL `sub` ──
+   * LinkedIn memakai subject type PAIRWISE: nilai `sub` berbeda untuk setiap
+   * aplikasi, tapi STABIL untuk aplikasi yang sama. Jadi aman dipakai sebagai
+   * providerUserId — pengguna yang sama akan selalu mendapat `sub` yang sama
+   * di aplikasi ini. (Kalau `sub` berubah-ubah, akun akan terduplikasi.)
+   *
+   * ── SCOPE ──
+   * Hanya `openid profile email`. Ketiganya tersedia tanpa review tambahan.
+   * Scope lain (mis. w_member_social untuk posting) butuh persetujuan
+   * LinkedIn dan TIDAK kita minta — portal ini hanya perlu identitas.
+   *
+   * ── CATATAN DARI DOKUMENTASI LINKEDIN ──
+   * "Sign In with LinkedIn using OpenID Connect does not verify user
+   * identities and should not be marketed as such."
+   * Artinya: LinkedIn mengonfirmasi pengguna menguasai akun itu, tapi tidak
+   * melakukan verifikasi identitas resmi (KTP/paspor). Kita hanya memakai
+   * email untuk login, bukan sebagai bukti identitas legal — jadi tidak
+   * masalah. Ini berlaku sama untuk Google/Microsoft/GitHub.
+   */
+  linkedin: {
+    nama: 'LinkedIn',
+    authorizeUrl: 'https://www.linkedin.com/oauth/v2/authorization',
+    tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
+    userinfoUrl: 'https://api.linkedin.com/v2/userinfo',
+    jwksUrl: 'https://www.linkedin.com/oauth/openid/jwks',
+    issuer: 'https://www.linkedin.com/oauth',
+    scope: 'openid profile email',
+    extraAuth: {},
+    ambilEmailDariIdToken: false,
+  },
 };
 
 export function providerDikenal(nama) {
@@ -157,6 +213,8 @@ export function providerSiap(nama, config) {
       );
     case 'github':
       return Boolean(config.githubClientId && config.githubClientSecret);
+    case 'linkedin':
+      return Boolean(config.linkedinClientId && config.linkedinClientSecret);
     default:
       return false;
   }
@@ -205,6 +263,7 @@ function clientIdUntuk(provider, config) {
     case 'microsoft': return config.microsoftClientId;
     case 'apple': return config.appleClientId;
     case 'github': return config.githubClientId;
+    case 'linkedin': return config.linkedinClientId;
     default: throw new Error(`client id tidak dikenal: ${provider}`);
   }
 }
@@ -276,6 +335,7 @@ function clientSecretUntuk(provider, config) {
     case 'google': return config.googleClientSecret;
     case 'microsoft': return config.microsoftClientSecret;
     case 'github': return config.githubClientSecret;
+    case 'linkedin': return config.linkedinClientSecret;
     default: throw new Error(`client secret tidak dikenal: ${provider}`);
   }
 }

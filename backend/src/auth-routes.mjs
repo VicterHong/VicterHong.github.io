@@ -951,7 +951,7 @@ function penggunaDariToken(tokenRow) {
 
 export function ruteAuth() {
   return [
-    ...['google', 'microsoft', 'apple', 'github'].flatMap((p) => [
+    ...['google', 'microsoft', 'apple', 'github', 'linkedin'].flatMap((p) => [
       ruteMulai(p),
       ...ruteCallback(p),
     ]),
