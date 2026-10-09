@@ -91,9 +91,28 @@
            urgency, message). Server memvalidasi ULANG semuanya — validasi
            klien hanya untuk umpan balik cepat, bukan pengamanan. -->
       <section class="auth-panel is-active" id="panel-daftar" data-panel="daftar">
+        <!-- ── DESKRIPSI: AKURAT, BUKAN JANJI YANG SALAH ─────────────────────
+             Sebelumnya berbunyi: "Permintaan ditinjau manual, Anda akan
+             menerima token akses lewat email setelah disetujui."
+
+             Itu TIDAK COCOK dengan kenyataan. Diperiksa di backend:
+               • POST /api/auth/daftar → `issueToken` + buat pengguna, lalu
+                 balas "Tidak langsung membuat sesi — pengguna diarahkan ke
+                 halaman masuk"
+               • Alur OAuth → temukanAtauBuatPengguna langsung membuat akun
+
+             Tidak ada peninjauan manual di mana pun. Akun aktif seketika.
+
+             Kenapa ini penting: teks yang menjanjikan "ditinjau manual"
+             membuat pengguna MENUNGGU email yang tidak akan datang. Mereka
+             mengira pendaftarannya tertunda, padahal sudah bisa langsung
+             masuk. Janji palsu lebih buruk daripada tidak ada penjelasan.
+
+             Teks baru menyebut langkah berikutnya yang SEBENARNYA: setelah
+             daftar, pengguna diarahkan ke halaman masuk. -->
         <p class="auth-panel-desc">
-          Isi data berikut. Permintaan ditinjau manual, Anda akan menerima
-          token akses lewat email setelah disetujui.
+          Buat akun dengan penyedia di bawah, atau isi data diri Anda.
+          Setelah terdaftar, Anda langsung bisa masuk.
         </p>
 
         <!-- ══ SSO — jalur utama untuk email bisnis ══════════════════════════
@@ -255,9 +274,9 @@
                   stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
                   class="auth-check-path"/>
           </svg>
-          <h2 class="auth-done-title">Permintaan terkirim</h2>
+          <h2 class="auth-done-title">Akun Anda sudah aktif</h2>
           <p class="auth-done-sub" id="daftarSelesaiSub">
-            Kami akan meninjau permintaan Anda dan mengirim token akses lewat email.
+            Akun sudah dibuat. Silakan masuk dengan email dan sandi Anda.
           </p>
           <button type="button" class="auth-submit" id="btnKembaliMasuk">
             <span class="auth-submit-label">Kembali ke halaman masuk</span>
