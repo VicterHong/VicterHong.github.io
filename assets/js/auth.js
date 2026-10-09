@@ -37,6 +37,26 @@
     },
   };
 
+  /**
+   * Durasi frame acuan dalam milidetik — 60fps.
+   *
+   * ── KENAPA PERLU ──
+   * Faktor lerp harus dihitung dari WAKTU YANG BENAR-BENAR BERLALU, bukan
+   * diasumsikan 1 frame. Tanpa ini:
+   *   layar 120Hz  → animasi 2× lebih cepat dari yang didesain
+   *   HP lambat    → animasi 2× lebih lambat, terasa berat
+   *   tab tak fokus → RAF di-throttle ~1fps, animasi membeku lalu melompat
+   *
+   * Rumusnya: faktor = 1 - (1 - lerp)^(dt / FRAME_ACUAN)
+   * Dengan FRAME_ACUAN = 16.67ms, hasilnya identik di semua framerate.
+   *
+   * ── CATATAN ──
+   * Konstanta ini SEMPAT hilang dari kode — komentarnya ada, nilainya tidak.
+   * Akibatnya animasi tilt melempar ReferenceError setiap frame dan mati
+   * total, tanpa terlihat di UI (error di dalam RAF hanya muncul di console).
+   */
+  const FRAME_ACUAN = 1000 / 60;   // 16.67 ms
+
   // Hormati preferensi pengguna — dibaca sekali, dipantau perubahannya
   const mediaGerak = window.matchMedia('(prefers-reduced-motion: reduce)');
   let kurangiGerak = mediaGerak.matches;
