@@ -361,31 +361,46 @@
                bukan identitas pihak ketiga. Karena itu tombolnya sendiri,
                bukan ikon kelima di barisan sosial. -->
           <button type="button" class="auth-oauth auth-oauth-passkey" id="btnPasskey" hidden>
-            <!-- ── IKON: KUNCI, BUKAN GEMBOK ────────────────────────────────────
-                 Skill ui-ux-pro-max merekomendasikan Phosphor: 'key' untuk
-                 passkey, 'lock' untuk kolom sandi.
+            <!-- ── IKON PASSKEY RESMI (FIDO Alliance) ──────────────────────────────
+     FIDO Alliance menetapkan ikon passkey: figur ORANG + kunci.
 
-                 Pembagiannya jelas dan sengaja:
-                   • GEMBOK (lock)  → kolom sandi. Data yang dilindungi.
-                   • KUNCI (key)    → passkey. Kredensial yang membuka akses.
+     Panduan yang diikuti (dari dokumen resmi FIDO):
+       • "The person should always be on the LEFT side of the icon"
+       • "The key should always be on the RIGHT side, slightly overlapping
+          the person. The jagged edge should face RIGHT."
+       • "Use minimal shapes with no facial expressions or other detail"
+       • Warna boleh diubah, tapi SATU warna flat tanpa gradient
 
-                 Sebelumnya keduanya memakai gembok — dua hal berbeda dengan
-                 ikon sama. Pengguna yang melihat gembok di kolom sandi lalu
-                 gembok lagi di tombol passkey tidak dapat membedakan keduanya
-                 secepat kalau ikonnya berbeda.
+     KENAPA BUKAN KUNCI SENDIRIAN (versi sebelumnya):
+       • Kunci sudah dipakai ikon lain (kunci API, lisensi) — maknanya kabur
+       • Tidak menyiratkan "kredensial terikat ke perangkat/orang"
+       • Gerigi menghadap atas terlihat seperti panah, bukan kunci
 
-                 Bentuk kunci: kepala bulat + batang bergerigi, orientasi
-                 diagonal — standar ikon 'key' di Lucide/Phosphor/Heroicons. -->
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-                 stroke="currentColor" stroke-width="1.75" stroke-linecap="round"
-                 stroke-linejoin="round" aria-hidden="true">
-              <circle cx="7.5" cy="15.5" r="4.5"/>
-              <path d="m10.7 12.3 8.8-8.8"/>
-              <path d="M16.5 6.5 18.5 8.5"/>
-              <path d="M14 9 16 11"/>
-            </svg>
-            <span>Masuk dengan passkey</span>
-          </button>
+     Google dan Android memakai ikon FIDO yang sama — jadi pengguna sudah
+     mengenalinya dari sistem operasi mereka. Itu alasan terkuat memakainya:
+     pengguna tidak perlu mempelajari ikon baru.
+
+     aria-hidden: label teksnya sudah menjelaskan — ikon murni dekoratif. -->
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+     stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+     stroke-linejoin="round" aria-hidden="true">
+  <!-- ── FIGUR ORANG (kiri, panduan FIDO) ──
+       Kepala + bahu. Tanpa wajah — FIDO: "minimal shapes with no facial
+       expressions or other detail". -->
+  <circle cx="9" cy="6.6" r="3.3"/>
+  <path d="M3.9 19.4c0-3 2.3-5.2 5.1-5.2 1 0 1.9.3 2.7.8"/>
+
+  <!-- ── KUNCI (kanan, menimpa sedikit, gerigi ke KANAN) ──
+       Kepala kunci berupa lingkaran kecil — ini yang membedakannya dari
+       panah. Tanpa kepala, batang + gerigi terbaca sebagai tanda "masuk".
+       Batang dimulai setelah kepala, gerigi di ujung kanan. -->
+  <circle cx="14.6" cy="15.2" r="1.9"/>
+  <path d="M16.2 15.2h5.3"/>
+  <path d="M19.4 15.2v2.6"/>
+  <path d="M21.5 15.2v1.9"/>
+</svg>
+<span>Masuk dengan passkey</span>
+</button>
 
           <!-- SSO perusahaan — jalur terpisah, bukan ikon di barisan sosial.
                Pola ini dipakai Auth0, Okta, WorkOS, dan portal enterprise lain:

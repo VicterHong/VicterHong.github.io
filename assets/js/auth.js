@@ -941,7 +941,21 @@
    */
   $('#btnPasskey')?.addEventListener('click', async () => {
     const tombol = $('#btnPasskey');
-    const teksAsli = tombol?.textContent ?? '';
+
+    // ── Ambil simpul TEKS, bukan seluruh tombol ────────────────────────────
+    //
+    // `tombol.textContent = '...'` akan MENGHAPUS elemen <svg> ikon di
+    // dalam tombol — dan saat pulih, hanya teks yang kembali. Ikonnya
+    // hilang PERMANEN sampai halaman dimuat ulang.
+    //
+    // Ditemukan saat pengujian: setelah satu kali klik passkey, tombolnya
+    // kehilangan ikon dan tidak pernah mendapatkannya kembali.
+    //
+    // Dengan mengganti isi <span> teksnya saja, ikon tetap utuh. Pola yang
+    // sama dipakai tombol Sign in: teksnya di .auth-submit-label, dan
+    // spinner-nya tetap ada.
+    const spanTeks = tombol?.querySelector('span');
+    const teksAsli = spanTeks?.textContent ?? '';
 
     if (!window.PublicKeyCredential) {
       pesan(msgToken, 'Peramban ini tidak mendukung passkey.', 'galat');
@@ -950,14 +964,14 @@
 
     if (tombol) {
       tombol.disabled = true;
-      tombol.textContent = 'Menunggu passkey…';
+      if (spanTeks) spanTeks.textContent = 'Menunggu passkey…';
     }
 
     /** Kembalikan tombol ke keadaan semula, apa pun yang terjadi. */
     const pulihkan = () => {
       if (tombol) {
         tombol.disabled = false;
-        tombol.textContent = teksAsli;
+        if (spanTeks) spanTeks.textContent = teksAsli;
       }
     };
 
