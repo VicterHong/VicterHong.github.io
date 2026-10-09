@@ -290,6 +290,22 @@
 
           <div class="auth-turnstile" id="turnstileSlot" aria-hidden="true"></div>
 
+          <!-- ══ INGAT EMAIL DI PERANGKAT INI ══════════════════════════════════
+               Referensi Cloudflare: mereka menaruh "Save email and login
+               method on this device" tepat di atas tombol Sign in.
+
+               Yang kita simpan HANYA email — bukan sandi. Menyimpan sandi
+               adalah tugas password manager, dan menaruhnya di localStorage
+               adalah praktik berbahaya. Email saja sudah cukup mengurangi
+               friksi untuk pengguna yang sering login.
+
+               Email disimpan di localStorage, bukan cookie — supaya tidak
+               ikut terkirim ke server di setiap permintaan. -->
+          <label class="auth-ingat" id="wrapIngat">
+            <input type="checkbox" id="chkIngatEmail">
+            <span>Ingat email di perangkat ini</span>
+          </label>
+
           <button type="submit" class="auth-submit" id="btnSubmit">
             <span class="auth-submit-label">Sign in</span>
             <span class="auth-submit-spinner" aria-hidden="true"></span>
@@ -344,13 +360,17 @@
                Pola ini dipakai Auth0, Okta, WorkOS, dan portal enterprise lain:
                pengguna workforce punya jalur sendiri yang jelas. -->
           <button type="button" class="auth-oauth auth-oauth-enterprise" id="btnSso" disabled>
+            <!-- Ikon GEMBOK — mengikuti Cloudflare ("Continue with SSO"
+                 memakai ikon gembok). Gembok lebih tepat daripada gedung:
+                 yang ditonjolkan adalah "akses aman lewat organisasi",
+                 bukan bangunan fisiknya. Gedung juga sudah dipakai ikon
+                 lain di situs ini, jadi maknanya jadi kabur. -->
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
                  stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 21h18"/>
-              <path d="M5 21V7l7-4 7 4v14"/>
-              <path d="M9 21v-5h6v5"/>
-              <path d="M9 10h.01M15 10h.01M12 10h.01M9 13h.01M15 13h.01M12 13h.01"/>
+              <rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/>
+              <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+              <path d="M12 15v2.5"/>
             </svg>
             <span>Masuk dengan SSO</span>
           </button>

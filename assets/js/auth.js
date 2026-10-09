@@ -1644,12 +1644,66 @@
     } catch { /* gagal membersihkan URL bukan alasan menggagalkan semuanya */ }
   }
 
+  /**
+   * Simpan / muat email di perangkat ini.
+   *
+   * ── KEAMANAN ──
+   * Yang disimpan HANYA email. Sandi TIDAK disimpan — itu tugas password
+   * manager, dan menaruhnya di localStorage berarti siapa pun yang bisa
+   * menjalankan JavaScript di halaman ini (mis. lewat XSS) bisa membacanya.
+   *
+   * localStorage dipilih, bukan cookie: cookie ikut terkirim ke server di
+   * setiap permintaan, sehingga email pengguna terkirim ke endpoint yang
+   * tidak membutuhkannya.
+   */
+  const KUNCI_INGAT = 'vivastic.email-terakhir';
+
+  function pasangIngatEmail() {
+    const kotak = $('#chkIngatEmail');
+    const input = $('#inpEmailMasuk');
+    if (!kotak || !input) return;
+
+    // ── Muat email tersimpan ────────────────────────────────────────────────
+    let tersimpan = '';
+    try {
+      tersimpan = localStorage.getItem(KUNCI_INGAT) || '';
+    } catch {
+      // localStorage bisa dilarang (mode privat, kebijakan browser).
+      // Bukan alasan menggagalkan halaman — checkbox tetap berfungsi
+      // untuk sesi ini, hanya tidak bertahan setelah ditutup.
+    }
+
+    if (tersimpan && !input.value) {
+      input.value = tersimpan;
+      kotak.checked = true;
+      // Fokuskan ke sandi, bukan email — emailnya sudah terisi.
+      $('#inpSandi')?.focus();
+    }
+
+    // ── Simpan saat form dikirim ────────────────────────────────────────────
+    // Dipasang di form, bukan di tombol, supaya tetap bekerja kalau form
+    // dikirim lewat Enter di keyboard.
+    const form = $('#formMasuk');
+    if (form) {
+      form.addEventListener('submit', () => {
+        try {
+          if (kotak.checked && input.value.trim()) {
+            localStorage.setItem(KUNCI_INGAT, input.value.trim());
+          } else {
+            localStorage.removeItem(KUNCI_INGAT);
+          }
+        } catch { /* localStorage dilarang — abaikan */ }
+      }, { capture: true });   // capture: jalan SEBELUM handler form lain
+    }
+  }
+
   function init() {
     pasangTilt();
     pasangOtp();
     pasangEnrollment2fa();
     siapkanPasskey();
     tanganiGalatOauth();
+    pasangIngatEmail();
 
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('resize', onResize, { passive: true });

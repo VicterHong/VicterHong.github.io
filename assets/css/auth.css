@@ -960,6 +960,46 @@ select.auth-input {
 
 /* ══ Turnstile ═════════════════════════════════════════════════════════════ */
 
+/* ── INGAT EMAIL DI PERANGKAT INI ─────────────────────────────────────────────
+   Referensi Cloudflare: checkbox tepat di atas tombol Sign in.
+
+   Ukuran teks SAMA dengan label field (12.5px) supaya tidak terlihat
+   seperti elemen tambahan. `accent-color` mewarnai checkbox bawaan browser
+   sesuai identitas emas — cara paling sederhana yang tetap menghormati
+   preferensi sistem pengguna (mode terang/gelap, kontras tinggi). */
+.auth-ingat {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--teks-redup);
+  cursor: pointer;
+  /* Padding vertikal memberi area klik yang cukup — checkbox 16px terlalu
+     kecil untuk jari. Padding membuat seluruh baris bisa diklik. */
+  padding: 3px 0;
+  user-select: none;
+  /* Baris ini hanya muncul kalau perlu — lihat auth.js */
+  width: fit-content;
+}
+
+.auth-ingat input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--emas);
+  cursor: pointer;
+}
+
+.auth-ingat:hover { color: var(--teks); }
+
+/* Fokus keyboard: checkbox bawaan sudah punya outline, tapi kita perkuat
+   supaya terlihat di latar gelap. */
+.auth-ingat input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--emas-garis);
+  outline-offset: 2px;
+}
+
 .auth-turnstile {
   display: grid;
   justify-items: center;
