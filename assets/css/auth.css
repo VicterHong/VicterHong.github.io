@@ -1171,13 +1171,56 @@ select.auth-input {
   border-radius: var(--radius-input);
 }
 
+/* ══ WIDGET TURNSTILE — SEJAJAR DENGAN KOLOM FORM ═════════════════════════════
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Widget Turnstile tampak tidak sejajar dengan kolom email/sandi di atasnya
+ * dan tombol Sign in di bawahnya. Tepinya masuk ~4px dari tepi kolom form,
+ * dan mata menangkapnya sebagai tata letak yang miring.
+ *
+ * ── PENYEBABNYA: `justify-items: center` ────────────────────────────────────
+ * Versi sebelumnya memakai `display: grid; justify-items: center`. Itu membuat
+ * elemen anak (pembungkus widget dari Cloudflare) MENGECIL ke ukuran aslinya
+ * (300px) alih-alih mengisi lebar kolom (308px).
+ *
+ * Lebih buruk lagi: Turnstile dirender dengan `size: 'flexible'`, yang
+ * artinya "isi lebar induk". Tapi karena induknya tidak pernah memberi lebar
+ * penuh, mode flexible tidak pernah bekerja — widget selalu jatuh kembali ke
+ * 300px.
+ *
+ * ── PERBAIKANNYA: BIARKAN WIDGET MENGISI KOLOM ──────────────────────────────
+ * Tanpa `justify-items`, grid memakai `stretch` bawaan — anak mengisi lebar
+ * penuh. Digabung dengan `size: 'flexible'`, widget Cloudflare merentang
+ * selebar kolom form dan tepinya sejajar dengan input serta tombol.
+ *
+ * `display: block` dipakai (bukan grid) supaya tidak ada aturan perataan yang
+ * perlu dinegasikan. Lebih sedikit aturan = lebih sedikit kejutan.
+ *
+ * ── KENAPA BUKAN `transform: scale()` ───────────────────────────────────────
+ * Sempat dicoba: menskalakan widget agar pas. Itu solusi yang rapuh — skala
+ * dari iframe membuat teks buram, dan nilainya harus dihitung ulang setiap
+ * resize. Membiarkan widget mengisi ruang adalah cara yang dimaksudkan
+ * Cloudflare, dan hasilnya tajam di semua ukuran layar.
+ *
+ * ── TINGGI MINIMUM ──────────────────────────────────────────────────────────
+ * 65px = tinggi widget Turnstile. Ditetapkan dari awal supaya halaman tidak
+ * "melompat" saat widget selesai dimuat (menghindari Cumulative Layout Shift).
+ * ────────────────────────────────────────────────────────────────────────── */
 .auth-turnstile {
-  display: grid;
-  justify-items: center;
-  min-height: 0;
-  transition: min-height var(--durasi-sedang) var(--pegas);
+  display: block;
+  /* Lebar penuh kolom form — sama seperti input dan tombol. */
+  width: 100%;
+  /* Tinggi tetap: cegah halaman melompat saat widget dimuat. */
+  min-height: 65px;
 }
-.auth-turnstile.is-ada { min-height: 68px; }
+
+/* Kalau widget TIDAK dirender (Turnstile tidak dikonfigurasi, atau script
+   diblokir), slot tidak boleh menyisakan ruang kosong 65px. Kelas `is-ada`
+   ditambahkan JS hanya setelah render berhasil. */
+.auth-turnstile:not(.is-ada) {
+  min-height: 0;
+  overflow: hidden;
+}
 
 /* ══ Tombol utama ══════════════════════════════════════════════════════════ */
 
