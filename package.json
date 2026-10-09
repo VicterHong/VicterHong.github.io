@@ -20,7 +20,9 @@
     "r2:list": "wrangler r2 object list portfolio-assets",
     "logs": "wrangler tail",
     "status": "curl -s https://portfolio-victer.victerphanjaya.workers.dev/health | python3 -m json.tool",
-    "build": "node scripts/build-css.mjs"
+    "build": "node scripts/build-css.mjs",
+    "deploy:aman": "node scripts/deploy-aman.mjs",
+    "verifikasi": "node scripts/verifikasi-dist.mjs"
   },
   "dependencies": {
     "cloudflare": "^1.0.0-beta.12"

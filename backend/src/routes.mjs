@@ -1327,7 +1327,12 @@ export const routes = [
         return sendJson(res, 409, {
           ok: false,
           error: 'sudah_terdaftar',
-          message: 'Email ini sudah terdaftar. Coba masuk, atau gunakan "Lupa sandi".',
+          message: 'Email ini sudah terdaftar.',
+          // Petunjuk tindakan — dibaca frontend untuk menampilkan tombol
+          // "Masuk dengan email ini". Sama polanya dengan akun_tidak_ditemukan
+          // di /api/auth/masuk: pesan saja tidak cukup, pengguna butuh
+          // langkah berikutnya.
+          saran: 'masuk',
         });
       }
 

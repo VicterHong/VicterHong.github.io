@@ -261,6 +261,34 @@
             <span class="auth-submit-spinner" aria-hidden="true"></span>
           </button>
 
+          <!-- ══ SARAN MASUK — MUNCUL SAAT EMAIL SUDAH TERDAFTAR ═══════════════
+               Kembaran dari #saranDaftar di halaman masuk. Di sana: "akun tidak
+               ditemukan → daftar". Di sini kebalikannya: "email sudah dipakai
+               → masuk".
+
+               ── KENAPA PERLU ───────────────────────────────────────────────
+               Pengguna yang mencoba daftar dengan email yang sudah punya akun
+               biasanya hanya LUPA bahwa ia sudah pernah mendaftar. Memberi tahu
+               "email sudah terdaftar" tanpa jalan keluar membuat mereka
+               bingung — atau lebih buruk, mencoba daftar dengan email lain
+               sehingga punya dua akun.
+
+               ── EMAIL DIBERIKAN OTOMATIS ───────────────────────────────────
+               Tautan membawa ?email=... supaya pengguna tidak perlu mengetik
+               ulang di halaman masuk. -->
+
+          <div class="auth-saran" id="saranMasuk" role="alert" hidden>
+            <p class="auth-saran-teks">Email ini sudah punya akun.</p>
+            <a class="auth-saran-tautan" id="tautanMasuk" href="/sign-in">
+              Masuk dengan email ini
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                   stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+
           <p class="auth-msg" id="msgDaftar" role="status" aria-live="polite"></p>
         </form>
       </section>

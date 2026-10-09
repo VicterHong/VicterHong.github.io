@@ -22,7 +22,7 @@
  *
  * Jalankan: node scripts/build-css.mjs
  */
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, rmSync, statSync } from 'node:fs';
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -226,5 +226,84 @@ if (bocor) {
   console.error(`\n  ❌ ${bocor} rujukan CSS belum diminifikasi — build GAGAL`);
   process.exit(1);
 }
+
+// ── 6. Verifikasi: komentar HTML seimbang ────────────────────────────────────
+//
+// ── BUG YANG PERNAH TERJADI DI SINI ────────────────────────────────────────
+// Sebuah komentar ditutup dengan `*/` (gaya CSS) padahal di HTML harus `-->`.
+// Akibatnya regex minifikasi komentar (`/<!--[\s\S]*?-->/`) menganggap SEMUA
+// teks setelahnya masih bagian dari komentar — dan MENELAN seluruh blok HTML
+// berikutnya, termasuk elemen yang baru saja ditambahkan.
+//
+// Gejalanya sangat menyesatkan: build melaporkan sukses, dist terlihat wajar,
+// tapi elemen yang seharusnya ada HILANG tanpa pesan galat apa pun.
+//
+// ── KENAPA MEMERIKSA SUMBER, BUKAN DIST ────────────────────────────────────
+// Percobaan pertama memeriksa dist — dan itu SELALU lulus, karena minifikasi
+// sudah membuang semua komentar dari dist. Jumlah `<!--` di dist selalu 0,
+// jadi tidak ada yang bisa dilaporkan.
+//
+// Pemeriksaan harus pada SUMBER, SEBELUM minifikasi. Di situlah komentar
+// masih ada dan ketidakseimbangan bisa terdeteksi.
+let komentarRusak = 0;
+for (const f of htmlFiles) {
+  const isi = readFileSync(join(ROOT, f), 'utf8');
+  const buka = (isi.match(/<!--/g) || []).length;
+  const tutup = (isi.match(/-->/g) || []).length;
+  if (buka > tutup) {
+    console.error(`  ❌ ${f}: ${buka} komentar dibuka, hanya ${tutup} ditutup`);
+    komentarRusak++;
+  }
+}
+// HTML di subfolder ikut diperiksa.
+const sDirCek = join(ROOT, 's');
+if (existsSync(sDirCek)) {
+  for (const sub of readdirSync(sDirCek, { withFileTypes: true })) {
+    if (!sub.isDirectory()) continue;
+    const idx = join(sDirCek, sub.name, 'index.html');
+    if (!existsSync(idx)) continue;
+    const isi = readFileSync(idx, 'utf8');
+    const buka = (isi.match(/<!--/g) || []).length;
+    const tutup = (isi.match(/-->/g) || []).length;
+    if (buka > tutup) {
+      console.error(`  ❌ s/${sub.name}/index.html: ${buka} dibuka, ${tutup} ditutup`);
+      komentarRusak++;
+    }
+  }
+}
+if (komentarRusak) {
+  console.error(`\n  ❌ ${komentarRusak} berkas punya komentar HTML tidak seimbang — build GAGAL`);
+  console.error('     Komentar HTML ditutup dengan `-->`, bukan `*/`.');
+  console.error('     Kalau tidak, minifikasi akan menelan isi halaman setelahnya.\n');
+  process.exit(1);
+}
+
+// ── 7. Tulis manifest build ──────────────────────────────────────────────────
+//
+// ── KENAPA MANIFEST, BUKAN PERBANDINGAN STEMPEL WAKTU ───────────────────────
+// Percobaan pertama membandingkan mtime sumber vs dist DI DALAM skrip ini —
+// dan itu tidak pernah bisa gagal, karena skrip ini sendiri yang baru saja
+// menulis dist. Pemeriksaan yang selalu lulus tidak menjaga apa pun.
+//
+// Manifest mencatat mtime setiap sumber PADA SAAT BUILD. Pemeriksaan
+// dilakukan skrip LAIN (verifikasi-dist.mjs), yang membandingkan mtime
+// sumber SEKARANG dengan catatan di manifest. Kalau sumber lebih baru,
+// berarti ada perubahan setelah build terakhir — dist basi.
+//
+// Jadi: build menulis catatan, verifikasi memeriksa catatan itu.
+const manifest = {
+  dibangun: new Date().toISOString(),
+  berkas: {},
+};
+for (const f of htmlFiles) {
+  manifest.berkas[f] = statSync(join(ROOT, f)).mtimeMs;
+}
+for (const f of files) {
+  manifest.berkas[`assets/css/${f}`] = statSync(join(cssDir, f)).mtimeMs;
+}
+for (const js of readdirSync(join(ROOT, 'assets', 'js'))) {
+  manifest.berkas[`assets/js/${js}`] = statSync(join(ROOT, 'assets', 'js', js)).mtimeMs;
+}
+writeFileSync(join(DIST, '.build-manifest.json'), JSON.stringify(manifest, null, 2));
 
 console.log(`  ✅ build selesai → dist/`);

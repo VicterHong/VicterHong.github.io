@@ -127,6 +127,36 @@
     if (kotak) kotak.hidden = true;
   }
 
+  /** Tampilkan jalan keluar saat email sudah terdaftar (di halaman DAFTAR).
+   *
+   *  ── KEMBARAN DARI tampilkanSaranDaftar() ──────────────────────────────────
+   *  Dua halaman, dua kegagalan yang berlawanan, satu pola yang sama:
+   *
+   *    Halaman MASUK  : akun tidak ditemukan → tawarkan DAFTAR
+   *    Halaman DAFTAR : email sudah dipakai  → tawarkan MASUK
+   *
+   *  Keduanya melakukan hal yang sama: memberi tahu apa yang salah, lalu
+   *  menunjukkan langkah berikutnya. Itu yang membedakan pesan galat yang
+   *  berguna dari pesan galat yang membuat pengguna menyerah. */
+  function tampilkanSaranMasuk(email) {
+    const kotak = $('#saranMasuk');
+    if (!kotak) return;
+
+    kotak.hidden = false;
+
+    const tautan = kotak.querySelector('#tautanMasuk');
+    if (tautan) {
+      const bersih = String(email || '').trim().slice(0, 320);
+      tautan.href = bersih ? `/sign-in?email=${encodeURIComponent(bersih)}` : '/sign-in';
+    }
+  }
+
+  /** Sembunyikan saran masuk — saat gagal dengan sebab lain, atau berhasil. */
+  function sembunyikanSaranMasuk() {
+    const kotak = $('#saranMasuk');
+    if (kotak) kotak.hidden = true;
+  }
+
   /** Getar kartu saat ada galat. Kelas dilepas setelah animasi selesai
    *  supaya bisa dipicu lagi (kalau tidak, animasi kedua tidak jalan). */
   function getar(kartu) {
@@ -941,10 +971,42 @@
       });
 
       if (!hasil.ok) {
+        // ── EMAIL SUDAH TERDAFTAR: PESAN + JALAN KELUAR ────────────────────
+        //
+        // ── KENAPA DIBEDAKAN ──────────────────────────────────────────────
+        // Pengguna yang mendaftar dengan email yang sudah punya akun hampir
+        // selalu hanya LUPA bahwa ia pernah mendaftar. Yang ia butuhkan
+        // bukan pesan galat, tapi cara MASUK ke akun itu.
+        //
+        // Tanpa jalan keluar, dua hal buruk terjadi:
+        //   1. Ia bingung, lalu menghubungi dukungan — padahal akunnya ada
+        //   2. Ia mencoba daftar dengan email LAIN → punya dua akun, dan
+        //      data terpecah. Ini yang paling merepotkan saat dibereskan.
+        //
+        // Pola ini sama dengan Clerk: error `form_identifier_exists` →
+        // "This email address already exists" + tawaran masuk.
+        const kode = hasil.isi?.error;
+
+        if (kode === 'sudah_terdaftar') {
+          pesan(msgDaftar, hasil.isi.message, 'galat');
+          tampilkanSaranMasuk(email);
+          getar(kartu);
+          if (turnstileWidgetId !== null && window.turnstile) {
+            window.turnstile.reset(turnstileWidgetId);
+            turnstileToken = '';
+          }
+          return;
+        }
+
+        // Kegagalan lain (validasi, rate limit, Turnstile) → pesan biasa.
+        sembunyikanSaranMasuk();
         pesan(msgDaftar, pesanGalat(hasil, 'Gagal mengirim. Coba lagi.'), 'galat');
         getar(kartu);
         return;
       }
+
+      // Berhasil → pastikan saran masuk tidak tertinggal.
+      sembunyikanSaranMasuk();
 
       pesan(msgDaftar, '');
       pindahPanel('daftar-selesai');
