@@ -748,3 +748,100 @@
 
   .kam-panel { padding-left: 0; }
 }
+
+/* ══ KARTU IDENTITAS: AVATAR + NAMA + EMAIL ═══════════════════════════════════
+ *
+ * ── POLA INI DARI SETTINGS GITHUB DAN VERCEL ─────────────────────────────────
+ * Identitas (foto + nama) jadi BLOK TERSENDIRI di atas field lain — bukan
+ * baris "Nama: ..." di dalam daftar. Alasannya: nama dan foto bukan DATA yang
+ * dibaca, tapi penanda "ini akun siapa". Sejajar dengan email, ia terbaca
+ * sebagai field biasa — padahal ia jawaban dari pertanyaan pertama pengunjung:
+ * "apakah saya di akun yang benar?"
+ *
+ * ── JARAK 20px KE BAWAH ──────────────────────────────────────────────────────
+ * Lebih besar dari jarak antar-item (12px), lebih kecil dari jarak antar-blok
+ * (26px). Posisinya di antara keduanya karena kartu ini memang bukan bagian
+ * dari daftar field — ia header dari panel itu.
+ */
+
+.kam-identitas {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* ── AVATAR 52px ──────────────────────────────────────────────────────────────
+ * GitHub memakai 48px di halaman settings, Vercel ~56px. 52px ada di antaranya:
+ * cukup besar untuk jadi jangkar visual, tidak besar sampai mendorong nama
+ * turun ke baris kedua di layar sempit.
+ *
+ * `overflow: hidden` + `border-radius: 50%` memotong gambar jadi lingkaran.
+ * Bentuk lingkaran dipilih karena itu konvensi avatar di hampir semua layanan
+ * — kotak akan terbaca sebagai thumbnail, bukan identitas. */
+.kam-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--garis);
+}
+
+.kam-avatar-gambar {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* Inisial huruf — terlihat sebelum gambar selesai dimuat, dan tetap terlihat
+   kalau gambar gagal. `[hidden]` sudah ditangani aturan global di atas. */
+.kam-avatar-inisial {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--emas);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── NAMA 15px, EMAIL 13px ────────────────────────────────────────────────────
+ * Perbandingan bobot dan ukuran yang jelas: nama adalah judul, email adalah
+ * keterangan. Kalau keduanya sama besar, mata tidak tahu mana yang harus
+ * dibaca dulu — dan di halaman identitas, urutan baca itu penting.
+ *
+ * `min-width: 0` + `overflow-wrap`: email panjang (seperti alamat uji dengan
+ * timestamp) harus membungkus, bukan mendorong keluar panel. Ini jebakan
+ * klasik flexbox — anak flex punya `min-width: auto` secara bawaan. */
+.kam-identitas-teks { min-width: 0; }
+
+.kam-identitas-nama {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--teks);
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.kam-identitas-email {
+  margin: 0;
+  font-size: 13px;
+  color: var(--teks-samar);
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+/* Di layar sempit, avatar sedikit lebih kecil supaya nama tidak terpotong. */
+@media (max-width: 400px) {
+  .kam-avatar { width: 44px; height: 44px; }
+  .kam-avatar-inisial { font-size: 16px; }
+}

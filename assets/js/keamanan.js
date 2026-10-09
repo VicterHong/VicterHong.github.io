@@ -124,6 +124,78 @@
    *  mengembalikannya kalau pengguna menekan Batal. */
   let profilCache = { email: '', nama: '' };
 
+  // ══ AVATAR: DIBUAT DARI NAMA, TANPA UNGGAHAN ═══════════════════════════════
+  //
+  // ── POLA INI DARI GITHUB ───────────────────────────────────────────────────
+  // GitHub memberi setiap pengguna "identicon" — gambar yang DIHITUNG dari
+  // hash user ID, bukan diunggah. Setiap akun punya identicon sejak dibuat.
+  //
+  // Vercel melakukan hal yang sama: avatar default dibuat, bukan diminta.
+  //
+  // ── KENAPA TIDAK MINTA UNGGAH FOTO ─────────────────────────────────────────
+  // Fitur unggah berarti: penyimpanan berkas, validasi tipe dan ukuran,
+  // pembersihan berkas lama, satu titik kegagalan lagi. Untuk halaman yang
+  // jarang dibuka, itu tidak sebanding.
+  //
+  // Endpoint /avatar/<nama> sudah ada di worker dan menghasilkan SVG dari
+  // inisial + warna stabil dari hash. Tidak ada yang perlu disimpan.
+  //
+  // ── DUA LAPIS CADANGAN ─────────────────────────────────────────────────────
+  //   1. <img> dari /avatar/<nama>
+  //   2. Inisial huruf di dalam span (sudah ada di HTML)
+  //
+  // Kalau gambar gagal (jaringan mati, worker sedang deploy), `onerror`
+  // menghapus <img> dan inisialnya tetap terlihat. Tidak pernah ada ikon
+  // "gambar rusak" di halaman korporat.
+  function gambarAvatar(nama, email) {
+    const kotak = $('#kamAvatar');
+    const inisial = $('#kamAvatarInisial');
+    if (!kotak) return;
+
+    // Sumber nama: pakai nama kalau ada, kalau tidak bagian depan email.
+    // Pengguna yang mendaftar lewat OAuth kadang belum punya nama.
+    const sumber = (nama || '').trim() || (email || '').split('@')[0] || '?';
+
+    // Dua kata → dua huruf ("Ada Lovelace" → "AL"), satu kata → dua huruf awal.
+    const kata = sumber.split(/[\s._-]+/).filter(Boolean);
+    const huruf = kata.length >= 2
+      ? (kata[0][0] + kata[1][0]).toUpperCase()
+      : sumber.slice(0, 2).toUpperCase();
+
+    if (inisial) {
+      inisial.textContent = huruf;
+      inisial.hidden = false;   // tampilkan lagi (mungkin disembunyikan sebelumnya)
+    }
+
+    // Ganti gambar lama — muat() bisa dipanggil berkali-kali (setelah simpan
+    // profil), dan tanpa ini <img> lama menumpuk.
+    kotak.querySelector('img')?.remove();
+
+    const img = document.createElement('img');
+    img.className = 'kam-avatar-gambar';
+    img.alt = '';                 // dekoratif: nama sudah ada di sebelahnya
+    img.decoding = 'async';
+    img.src = '/avatar/' + encodeURIComponent(sumber);
+    img.addEventListener('error', () => { img.remove(); });
+    img.addEventListener('load', () => {
+      if (inisial) inisial.hidden = true;   // gambar tampil → inisial sembunyikan
+    });
+    kotak.appendChild(img);
+  }
+
+  /** Isi kartu identitas (avatar + nama + email) di panel Profil. */
+  function isiIdentitas(nama, email) {
+    const n = (nama || '').trim();
+    const e = (email || '').trim();
+
+    const elNama = $('#kamIdentitasNama');
+    const elEmail = $('#kamIdentitasEmail');
+    if (elNama) elNama.textContent = n || e || '—';
+    if (elEmail) elEmail.textContent = e || '—';
+
+    gambarAvatar(n, e);
+  }
+
   async function muat() {
     const memuat = $('#kamMemuat');
     const belumMasuk = $('#kamBelumMasuk');
@@ -156,9 +228,25 @@
       // ── Identitas akun ────────────────────────────────────────────────────
       $('#kamEmail').textContent = profil.email || '—';
 
-      if (profil.nama) {
-        $('#kamNama').textContent = profil.nama;
-        $('#kamBarisNama').hidden = false;
+      // Nama disimpan untuk mode edit, tapi TIDAK ditampilkan sebagai baris:
+      // ia sudah ada di kartu identitas tepat di atasnya.
+      if (profil.nama) $('#kamNama').textContent = profil.nama;
+
+      // Kartu identitas di atas panel — avatar + nama + email.
+      isiIdentitas(profil.nama, profil.email);
+
+      // ── TANGGAL DIBUAT ────────────────────────────────────────────────────────
+      // Satu-satunya data yang ditampilkan di mode lihat — karena nama dan email
+      // sudah ada di kartu identitas tepat di atasnya. Mengulangnya di sini
+      // membuat pengunjung melihat data yang sama dua kali dalam satu layar.
+      //
+      // Format tanggal Indonesia, bukan ISO. Pengguna yang membuka halaman
+      // akun ingin tahu "sejak kapan akun ini ada" — bukan membaca timestamp.
+      const elDibuat = $('#kamDibuat');
+      if (elDibuat && profil.dibuat_at) {
+        elDibuat.textContent = new Date(profil.dibuat_at).toLocaleDateString('id-ID', {
+          day: 'numeric', month: 'long', year: 'numeric',
+        });
       }
 
       punyaSandi = Boolean(profil.punya_sandi);
@@ -616,10 +704,12 @@
       // gagal, padahal berhasil.
       profilCache.nama = hasil.nama;
 
-      if (hasil.nama) {
-        $('#kamNama').textContent = hasil.nama;
-        $('#kamBarisNama').hidden = false;
-      }
+      if (hasil.nama) $('#kamNama').textContent = hasil.nama;
+
+      // Avatar dibangun dari NAMA — jadi ia harus diperbarui juga. Tanpa ini,
+      // pengguna yang mengubah nama melihat inisial lama sampai halaman
+      // dimuat ulang, dan itu terasa seperti simpanannya gagal.
+      isiIdentitas(hasil.nama, profilCache.email);
 
       pesanProfil('Profil diperbarui.', 'sukses');
 

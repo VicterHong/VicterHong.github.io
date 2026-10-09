@@ -126,18 +126,84 @@
                  edit = hanya muncul saat memang ingin mengubah. -->
             <section class="kam-blok kam-panel-isi is-aktif" id="panelProfil"
                      role="tabpanel" aria-labelledby="tabProfil">
+
+              <!-- ══ KARTU IDENTITAS: AVATAR + NAMA + EMAIL ═══════════════════════
+                   ── POLA INI DARI SETTINGS GITHUB DAN VERCEL ────────────────────
+                   Di kedua layanan itu, identitas (foto + nama) ditampilkan
+                   sebagai BLOK TERSENDIRI di atas field lain — bukan sebagai
+                   baris "Nama: ..." di dalam daftar.
+
+                   Alasannya: nama dan foto bukan DATA yang dibaca, tapi
+                   penanda "ini akun siapa". Menaruhnya sejajar dengan email
+                   membuatnya terbaca sebagai field biasa, padahal ia jawaban
+                   dari pertanyaan pertama pengunjung: "apakah saya di akun
+                   yang benar?"
+
+                   GitHub: foto profil di section tersendiri, dengan fallback
+                   identicon yang dibuat dari hash user ID.
+                   Vercel: avatar + nama sebagai heading, field di bawahnya.
+
+                   ── KENAPA AVATARNYA DARI /avatar/<nama> ─────────────────────
+                   Endpoint itu sudah ada di worker dan sudah berfungsi
+                   (diverifikasi: HTTP 200, SVG 396 byte). Ia membuat avatar
+                   dari INISIAL nama dengan warna stabil dari hash — jadi
+                   setiap pengguna dapat warna yang sama setiap kali, tanpa
+                   perlu menyimpan berkas atau unggahan.
+
+                   `onerror` menyembunyikan gambar kalau gagal, dan inisial
+                   huruf di dalamnya jadi cadangan — supaya tidak pernah ada
+                   ikon "gambar rusak" di halaman korporat. -->
+              <div class="kam-identitas">
+                <span class="kam-avatar" id="kamAvatar" aria-hidden="true">
+                  <!-- Diisi JS: <img> dari /avatar/<nama>, atau inisial -->
+                  <span class="kam-avatar-inisial" id="kamAvatarInisial">—</span>
+                </span>
+                <div class="kam-identitas-teks">
+                  <p class="kam-identitas-nama" id="kamIdentitasNama">—</p>
+                  <p class="kam-identitas-email" id="kamIdentitasEmail">—</p>
+                </div>
+              </div>
+
               <div class="kam-judul-baris">
-                <h2 class="kam-judul">Profil</h2>
+                <h2 class="kam-judul">Data akun</h2>
                 <button type="button" class="kam-ubah" id="kamUbahProfil">Ubah</button>
               </div>
 
-              <!-- Mode lihat -->
+              <!-- ══ MODE LIHAT ══════════════════════════════════════════════════
+                   ── MASALAH YANG DIPERBAIKI ──────────────────────────────────
+                   Sebelumnya blok ini menampilkan "Email: ..." dan "Nama: ..."
+                   — dua nilai yang SUDAH ADA di kartu identitas tepat di
+                   atasnya. Pengunjung melihat data yang sama dua kali dalam
+                   satu layar.
+
+                   ── KENAPA ITU SALAH, PADAHAL GITHUB JUGA BEGITU ─────────────
+                   Di GitHub, nama memang muncul di header DAN di section
+                   "Public profile". Tapi keduanya beda PERAN: header adalah
+                   tampilan, section itu TEMPAT MENGELOLANYA (input dengan
+                   tombol Save terpisah).
+
+                   Di sini tidak ada pemisahan itu — satu tombol "Ubah"
+                   mengedit nama dan email sekaligus. Jadi blok ini bukan
+                   "tempat mengelola", ia hanya mengulang.
+
+                   ── YANG DITAMPILKAN SEKARANG ────────────────────────────────
+                   Hanya yang BELUM ada di kartu identitas: kapan akun dibuat.
+                   Itu informasi yang memang dicari orang di halaman akun, dan
+                   tidak muncul di tempat lain. -->
               <dl class="kam-daftar" id="kamProfilLihat">
                 <div class="kam-baris">
+                  <dt>Dibuat</dt>
+                  <dd id="kamDibuat">—</dd>
+                </div>
+                <!-- Penanda untuk JS: nilai yang bisa diedit tetap perlu
+                     disimpan di DOM, walau tidak ditampilkan di mode lihat.
+                     `hidden` di sini berfungsi — aturan global [hidden] di
+                     keamanan.css memastikan ia benar-benar tidak terlihat. -->
+                <div class="kam-baris" hidden>
                   <dt>Email</dt>
                   <dd id="kamEmail">—</dd>
                 </div>
-                <div class="kam-baris" id="kamBarisNama" hidden>
+                <div class="kam-baris" hidden>
                   <dt>Nama</dt>
                   <dd id="kamNama">—</dd>
                 </div>

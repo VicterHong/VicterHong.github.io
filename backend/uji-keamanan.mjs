@@ -45,6 +45,15 @@ async function uji() {
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
+    // ── KENAPA ignoreHTTPSErrors PERLU ────────────────────────────────────────
+    // Cookie sesi diset dengan atribut `Secure` (wajib di produksi — situs
+    // berjalan di HTTPS). Browser MENOLAK cookie `Secure` di halaman HTTP,
+    // jadi server uji harus HTTPS.
+    //
+    // Sertifikatnya self-signed, jadi browser menolaknya kecuali opsi ini
+    // dinyalakan. Tanpa ini: uji melaporkan "sesi tidak tersimpan" padahal
+    // yang salah sertifikat uji, bukan kodenya.
+    ignoreHTTPSErrors: true,
   });
   const p = await ctx.newPage();
 
