@@ -82,8 +82,32 @@
 }
 
 /* ── Blok ─────────────────────────────────────────────────────────────────────*/
+/* ── PEMISAH ANTAR-BAGIAN ────────────────────────────────────────────────────
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Sebelumnya bagian "Profil" dan "Cara masuk" hanya dipisahkan SPASI 26px —
+ * sama dengan jarak antar-item di dalam satu bagian. Akibatnya mata tidak
+ * menemukan batas: kedua bagian terbaca sebagai satu blok panjang, dan
+ * pengguna harus membaca teks untuk tahu di mana bagian baru dimulai.
+ *
+ * ── KENAPA GARIS, BUKAN LATAR BERBEDA ───────────────────────────────────────
+ * Memberi latar berbeda pada tiap bagian menambah lapisan visual yang tidak
+ * perlu di halaman yang sudah gelap. Satu garis tipis sudah cukup memisahkan
+ * tanpa menambah "kotak di dalam kotak" — pola yang membuat halaman terasa
+ * seperti template.
+ *
+ * ── JARAK: 26px SEBELUM garis, 26px SESUDAHNYA ──────────────────────────────
+ * Simetris, dan dua kali jarak antar-item (12px). Perbandingan itu yang
+ * membuat batasnya terbaca sebagai pemisah BAGIAN, bukan pemisah item. */
 .kam-blok { margin-bottom: 26px; }
 .kam-blok:last-of-type { margin-bottom: 20px; }
+
+/* Garis pemisah hanya ANTAR bagian — bagian pertama tidak perlu garis di
+   atasnya, dan bagian terakhir tidak perlu di bawahnya. */
+.kam-blok + .kam-blok {
+  padding-top: 26px;
+  border-top: 1px solid var(--garis);
+}
 
 .kam-judul {
   margin: 0 0 12px;
@@ -112,6 +136,11 @@
   font-size: 13px;
   line-height: 1.55;
   color: var(--teks-redup);
+  /* Batas lebar baris. Di kartu sempit ini jarang tercapai, tapi kalau
+     halaman dibuka di layar lebar, baris 100+ karakter melelahkan dibaca —
+     mata kehilangan awal baris berikutnya. 62ch adalah rentang nyaman untuk
+     teks penjelasan. */
+  max-width: 62ch;
 }
 
 /* ── Daftar definisi akun ────────────────────────────────────────────────────*/

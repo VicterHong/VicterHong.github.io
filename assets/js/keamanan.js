@@ -122,7 +122,7 @@
 
   /** Data profil terakhir — dipakai mode edit untuk mengisi form dan
    *  mengembalikannya kalau pengguna menekan Batal. */
-  let profilCache = { email: '', nama: '', perusahaan: '' };
+  let profilCache = { email: '', nama: '' };
 
   async function muat() {
     const memuat = $('#kamMemuat');
@@ -160,10 +160,6 @@
         $('#kamNama').textContent = profil.nama;
         $('#kamBarisNama').hidden = false;
       }
-      if (profil.perusahaan) {
-        $('#kamPerusahaan').textContent = profil.perusahaan;
-        $('#kamBarisPerusahaan').hidden = false;
-      }
 
       punyaSandi = Boolean(profil.punya_sandi);
       identitasCache = Array.isArray(data.identitas) ? data.identitas : [];
@@ -172,7 +168,6 @@
       profilCache = {
         email: profil.email || '',
         nama: profil.nama || '',
-        perusahaan: profil.perusahaan || '',
       };
 
       gambarSenarai();
@@ -555,10 +550,8 @@
     // Isi form dengan data yang sedang tampil — pengguna mengedit dari
     // keadaan sekarang, bukan dari form kosong.
     const inpNama = $('#kamInputNama');
-    const inpPerusahaan = $('#kamInputPerusahaan');
     const inpEmail = $('#kamInputEmail');
     if (inpNama) inpNama.value = profilCache.nama;
-    if (inpPerusahaan) inpPerusahaan.value = profilCache.perusahaan;
     if (inpEmail) inpEmail.value = profilCache.email;
 
     lihat.hidden = true;
@@ -588,11 +581,9 @@
     e.preventDefault();
 
     const inpNama = $('#kamInputNama');
-    const inpPerusahaan = $('#kamInputPerusahaan');
     const tombol = $('#kamSimpanProfil');
 
     const nama = (inpNama?.value || '').trim();
-    const perusahaan = (inpPerusahaan?.value || '').trim();
 
     // ── Validasi klien: umpan balik cepat ─────────────────────────────────
     // Server memvalidasi ULANG — ini hanya supaya pengguna tidak menunggu
@@ -611,7 +602,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ nama, perusahaan }),
+        body: JSON.stringify({ nama }),
       });
       const hasil = await res.json().catch(() => ({}));
 
@@ -624,18 +615,10 @@
       // kembali ke mode lihat dan melihat data LAMA — dan mengira simpanannya
       // gagal, padahal berhasil.
       profilCache.nama = hasil.nama;
-      profilCache.perusahaan = hasil.perusahaan;
 
       if (hasil.nama) {
         $('#kamNama').textContent = hasil.nama;
         $('#kamBarisNama').hidden = false;
-      }
-      if (hasil.perusahaan) {
-        $('#kamPerusahaan').textContent = hasil.perusahaan;
-        $('#kamBarisPerusahaan').hidden = false;
-      } else {
-        // Dikosongkan pengguna → sembunyikan barisnya.
-        $('#kamBarisPerusahaan').hidden = true;
       }
 
       pesanProfil('Profil diperbarui.', 'sukses');
