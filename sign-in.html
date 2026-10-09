@@ -408,17 +408,25 @@
                Pola ini dipakai Auth0, Okta, WorkOS, dan portal enterprise lain:
                pengguna workforce punya jalur sendiri yang jelas. -->
           <button type="button" class="auth-oauth auth-oauth-enterprise" id="btnSso" disabled>
-            <!-- Ikon GEMBOK — mengikuti Cloudflare ("Continue with SSO"
-                 memakai ikon gembok). Gembok lebih tepat daripada gedung:
-                 yang ditonjolkan adalah "akses aman lewat organisasi",
-                 bukan bangunan fisiknya. Gedung juga sudah dipakai ikon
-                 lain di situs ini, jadi maknanya jadi kabur. -->
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-                 stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
-                 stroke-linejoin="round" aria-hidden="true">
-              <rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/>
-              <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
-              <path d="M12 15v2.5"/>
+            <!-- ── IKON: GEDUNG (Phosphor buildings) ─────────────────────────
+                 KENAPA BUKAN GEMBOK:
+                 Gembok sudah dipakai ikon kolom SANDI di halaman yang sama.
+                 Dua elemen berbeda dengan ikon sama membuat pengguna tidak
+                 bisa membedakan fungsinya sekilas. Kolom sandi = data
+                 rahasia; tombol SSO = masuk lewat organisasi.
+
+                 KENAPA GEDUNG:
+                 Dibandingkan 4 kandidat di ukuran asli 18px — gedung paling
+                 tepat dan paling jelas. Ikon "users" (dua orang) MENYATU
+                 jadi gumpalan di 18px. "shield-check" terlalu umum.
+
+                 Mental model: "Masuk dengan SSO" = "masuk lewat kantor/
+                 organisasi saya". Gedung adalah metafora universal untuk
+                 itu, dipakai luas di platform enterprise.
+
+                 aria-hidden: label teksnya sudah menjelaskan. -->
+            <svg viewBox="0 0 256 256" width="18" height="18" fill="currentColor" aria-hidden="true">
+              <path d="M240,208h-8V96a8,8,0,0,0-8-8H184V40a8,8,0,0,0-8-8H80a8,8,0,0,0-8,8V88H40a8,8,0,0,0-8,8V208H24a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM88,48h80V208H88Zm-40,56H64V208H48Zm160,104H184V104h24ZM104,72h16a8,8,0,0,1,0,16H104a8,8,0,0,1,0-16Zm32,0h16a8,8,0,0,1,0,16H136a8,8,0,0,1,0-16Zm-32,40h16a8,8,0,0,1,0,16H104a8,8,0,0,1,0-16Zm32,0h16a8,8,0,0,1,0,16H136a8,8,0,0,1,0-16Zm-32,40h16a8,8,0,0,1,0,16H104a8,8,0,0,1,0-16Zm32,0h16a8,8,0,0,1,0,16H136a8,8,0,0,1,0-16Z"/>
             </svg>
             <span>Masuk dengan SSO</span>
           </button>
