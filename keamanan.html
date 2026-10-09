@@ -74,127 +74,161 @@
       <!-- ══ Isi utama ════════════════════════════════════════════════════════ -->
       <div id="kamIsi" hidden>
 
-        <!-- ══ PROFIL — MODE LIHAT & MODE EDIT ═══════════════════════════════
-             Mengikuti pola Stripe: informasi ditampilkan sebagai daftar, dan
-             tombol "Ubah" mengubahnya jadi form. Satu bagian, dua keadaan.
+                <!-- ══ TATA LETAK: SIDEBAR + PANEL ══════════════════════════════════════
+             Sebelumnya "Profil" dan "Cara masuk" bertumpuk dalam satu kolom
+             panjang — pengguna yang hanya ingin melihat email harus menggulir
+             melewati daftar cara masuk. Sekarang mereka MEMILIH.
 
-             ── KENAPA DUA MODE, BUKAN FORM SELALU TERBUKA ──────────────────
-             Form yang selalu terbuka membuat halaman terasa seperti sedang
-             diisi, bukan seperti halaman informasi. Pengguna yang hanya
-             ingin MEMERIKSA datanya harus melihat input di mana-mana.
+             Pola dari "Settings Card with Sidebar": sidebar sempit di kiri,
+             panel di kanan, dipisah garis tipis. Di bawah 640px sidebar
+             berubah jadi tab horizontal di atas — pola pengaturan iOS/Android.
 
-             Mode lihat = jawaban cepat untuk "data saya apa?".
-             Mode edit  = hanya muncul saat memang ingin mengubah.
+             SEMUA ID DIPERTAHANKAN. Yang berubah hanya PEMBUNGKUSNYA — 32 uji
+             otomatis bergantung pada id itu. -->
+        <div class="kam-tata">
 
-             ── KENAPA EMAIL TIDAK BISA DIEDIT ──────────────────────────────
-             Email adalah identitas login dan kunci identitas OAuth. Ubahnya
-             butuh alur terpisah dengan verifikasi ke alamat BARU. Stripe
-             juga begitu: email ditampilkan sebagai informasi, tidak sebagai
-             input. -->
-        <section class="kam-blok">
-          <div class="kam-judul-baris">
-            <h2 class="kam-judul">Profil</h2>
-            <button type="button" class="kam-ubah" id="kamUbahProfil">Ubah</button>
-          </div>
-
-          <!-- Mode lihat -->
-          <dl class="kam-daftar" id="kamProfilLihat">
-            <div class="kam-baris">
-              <dt>Email</dt>
-              <dd id="kamEmail">—</dd>
-            </div>
-            <div class="kam-baris" id="kamBarisNama" hidden>
-              <dt>Nama</dt>
-              <dd id="kamNama">—</dd>
-            </div>
-          </dl>
-
-          <!-- Mode edit. `hidden` sampai tombol Ubah ditekan. -->
-          <form class="kam-form" id="kamProfilEdit" hidden novalidate>
-            <div class="kam-field">
-              <label for="kamInputNama">Nama</label>
-              <input class="kam-input" type="text" id="kamInputNama"
-                     autocomplete="name" maxlength="200">
-            </div>
-
-            <!-- Email ditampilkan tapi TIDAK bisa diedit — lihat catatan di atas. -->
-            <div class="kam-field">
-              <label for="kamInputEmail">Email</label>
-              <input class="kam-input" type="email" id="kamInputEmail"
-                     readonly disabled>
-              <p class="kam-field-catatan">
-                Email tidak bisa diubah di sini karena dipakai untuk masuk.
-                Hubungi dukungan kalau perlu mengubahnya.
-              </p>
-            </div>
-
-            <div class="kam-form-aksi">
-              <button type="submit" class="auth-submit kam-simpan" id="kamSimpanProfil">
-                <span class="auth-submit-label">Simpan</span>
-                <span class="auth-submit-spinner" aria-hidden="true"></span>
-              </button>
-              <button type="button" class="kam-batal" id="kamBatalProfil">Batal</button>
-            </div>
-
-            <p class="auth-msg" id="kamPesanProfil" role="status" aria-live="polite"></p>
-          </form>
-        </section>
-
-        <!-- ══ Cara masuk ══════════════════════════════════════════════════════
-             Ini inti halaman. Setiap cara masuk ditampilkan sebagai satu baris
-             dengan tombol hapus. -->
-        <section class="kam-blok">
-          <div class="kam-judul-baris">
-            <h2 class="kam-judul">Cara masuk</h2>
-            <span class="kam-hitung" id="kamHitung">—</span>
-          </div>
-
-          <p class="kam-keterangan">
-            Profil Anda bisa dimasuki lewat cara-cara berikut. Menghapus salah
-            satunya tidak menghapus profil — hanya menutup jalan itu.
-          </p>
-
-          <ul class="kam-senarai" id="kamSenarai"></ul>
-
-          <!-- Tambah passkey -->
-          <!-- ══ TAMBAH PASSKEY ═══════════════════════════════════════════════
-               ── MASALAH YANG DIPERBAIKI ────────────────────────────────────
-               Sebelumnya judul dan tombol sama-sama berbunyi "Tambah passkey":
-
-                 Tambah passkey          ← judul
-                 Masuk dengan sidik jari… ← keterangan
-                 [ Tambah passkey ]      ← tombol
-
-               Nama yang sama muncul dua kali dalam satu blok. Itu bukan
-               penekanan — itu pengulangan, dan membuat blok terasa seperti
-               template yang belum disunting.
-
-               ── PERBAIKANNYA: JUDUL MENYEBUT APA, TOMBOL MENYEBUT TINDAKAN
-               Judul menjawab "ini apa?", tombol menjawab "apa yang terjadi
-               kalau saya klik?". Dua pertanyaan berbeda, dua teks berbeda. -->
-          <div class="kam-tambah">
-            <div class="kam-tambah-isi">
-              <span class="kam-ikon" aria-hidden="true">
+          <!-- role="tablist": ini pemilih panel, bukan navigasi halaman. -->
+          <nav class="kam-sisi" role="tablist" aria-label="Bagian profil">
+            <button class="kam-sisi-item is-aktif" type="button" role="tab"
+                    id="tabProfil" aria-selected="true" aria-controls="panelProfil"
+                    data-panel="panelProfil">
+              <span class="kam-sisi-ikon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 10a2 2 0 0 0-2 2c0 .51.19.97.5 1.32V16a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2.68c.31-.35.5-.81.5-1.32a2 2 0 0 0-2-2Z"/>
-                  <path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9Z"/>
+                  <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/>
+                  <path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>
                 </svg>
               </span>
-              <div class="kam-tambah-teks">
-                <p class="kam-tambah-judul">Passkey</p>
-                <p class="kam-tambah-ket">
-                  Masuk dengan sidik jari, wajah, atau PIN perangkat.
-                  Tidak perlu mengetik sandi.
-                </p>
-              </div>
-            </div>
-            <button class="auth-oauth" type="button" id="btnTambahPasskey">
-              Tambah
+              <span>Profil</span>
             </button>
-          </div>
-        </section>
 
-        <!-- Pesan status -->
+            <button class="kam-sisi-item" type="button" role="tab"
+                    id="tabMasuk" aria-selected="false" aria-controls="panelMasuk"
+                    data-panel="panelMasuk">
+              <span class="kam-sisi-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3 5 6v5c0 4.4 2.9 8.4 7 10 4.1-1.6 7-5.6 7-10V6l-7-3Z"/>
+                  <path d="m9 12 2 2 4-4"/>
+                </svg>
+              </span>
+              <span>Cara masuk</span>
+              <!-- Penghitung di sidebar: pertanyaan "berapa banyak?" muncul
+                   saat MEMILIH bagian, bukan saat sudah di dalamnya. -->
+              <span class="kam-sisi-hitung" id="kamHitung">—</span>
+            </button>
+          </nav>
+
+          <!-- Panel isi. Hanya satu yang terlihat pada satu waktu. -->
+          <div class="kam-panel">
+
+            <!-- ══ PANEL: PROFIL ══════════════════════════════════════════════
+                 Pola Stripe: informasi sebagai daftar, tombol "Ubah" mengubahnya
+                 jadi form. Mode lihat = jawaban cepat "data saya apa?". Mode
+                 edit = hanya muncul saat memang ingin mengubah. -->
+            <section class="kam-blok kam-panel-isi is-aktif" id="panelProfil"
+                     role="tabpanel" aria-labelledby="tabProfil">
+              <div class="kam-judul-baris">
+                <h2 class="kam-judul">Profil</h2>
+                <button type="button" class="kam-ubah" id="kamUbahProfil">Ubah</button>
+              </div>
+
+              <!-- Mode lihat -->
+              <dl class="kam-daftar" id="kamProfilLihat">
+                <div class="kam-baris">
+                  <dt>Email</dt>
+                  <dd id="kamEmail">—</dd>
+                </div>
+                <div class="kam-baris" id="kamBarisNama" hidden>
+                  <dt>Nama</dt>
+                  <dd id="kamNama">—</dd>
+                </div>
+              </dl>
+
+              <!-- Mode edit. `hidden` sampai tombol Ubah ditekan. -->
+              <form class="kam-form" id="kamProfilEdit" hidden novalidate>
+                <div class="kam-field">
+                  <label for="kamInputNama">Nama</label>
+                  <input class="kam-input" type="text" id="kamInputNama"
+                         autocomplete="name" maxlength="200">
+                </div>
+
+                <!-- Email ditampilkan tapi TIDAK bisa diedit — lihat catatan di atas. -->
+                <div class="kam-field">
+                  <label for="kamInputEmail">Email</label>
+                  <input class="kam-input" type="email" id="kamInputEmail"
+                         readonly disabled>
+                  <p class="kam-field-catatan">
+                    Email tidak bisa diubah di sini karena dipakai untuk masuk.
+                    Hubungi dukungan kalau perlu mengubahnya.
+                  </p>
+                </div>
+
+                <div class="kam-form-aksi">
+                  <button type="submit" class="auth-submit kam-simpan" id="kamSimpanProfil">
+                    <span class="auth-submit-label">Simpan</span>
+                    <span class="auth-submit-spinner" aria-hidden="true"></span>
+                  </button>
+                  <button type="button" class="kam-batal" id="kamBatalProfil">Batal</button>
+                </div>
+
+                <p class="auth-msg" id="kamPesanProfil" role="status" aria-live="polite"></p>
+              </form>
+            </section>
+
+            <!-- ══ PANEL: CARA MASUK ═══════════════════════════════════════════
+                 Ini inti halaman. Setiap cara masuk ditampilkan sebagai satu baris
+                 dengan tombol hapus. -->
+            <section class="kam-blok kam-panel-isi" id="panelMasuk"
+                     role="tabpanel" aria-labelledby="tabMasuk" hidden>
+              <p class="kam-keterangan">
+                Profil Anda bisa dimasuki lewat cara-cara berikut. Menghapus salah
+                satunya tidak menghapus profil — hanya menutup jalan itu.
+              </p>
+
+              <ul class="kam-senarai" id="kamSenarai"></ul>
+
+              <!-- Tambah passkey -->
+              <!-- ══ TAMBAH PASSKEY ═══════════════════════════════════════════════
+                   ── MASALAH YANG DIPERBAIKI ────────────────────────────────────
+                   Sebelumnya judul dan tombol sama-sama berbunyi "Tambah passkey":
+
+                     Tambah passkey          ← judul
+                     Masuk dengan sidik jari… ← keterangan
+                     [ Tambah passkey ]      ← tombol
+
+                   Nama yang sama muncul dua kali dalam satu blok. Itu bukan
+                   penekanan — itu pengulangan, dan membuat blok terasa seperti
+                   template yang belum disunting.
+
+                   ── PERBAIKANNYA: JUDUL MENYEBUT APA, TOMBOL MENYEBUT TINDAKAN
+                   Judul menjawab "ini apa?", tombol menjawab "apa yang terjadi
+                   kalau saya klik?". Dua pertanyaan berbeda, dua teks berbeda. -->
+              <div class="kam-tambah">
+                <div class="kam-tambah-isi">
+                  <span class="kam-ikon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 10a2 2 0 0 0-2 2c0 .51.19.97.5 1.32V16a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2.68c.31-.35.5-.81.5-1.32a2 2 0 0 0-2-2Z"/>
+                      <path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9Z"/>
+                    </svg>
+                  </span>
+                  <div class="kam-tambah-teks">
+                    <p class="kam-tambah-judul">Passkey</p>
+                    <p class="kam-tambah-ket">
+                      Masuk dengan sidik jari, wajah, atau PIN perangkat.
+                      Tidak perlu mengetik sandi.
+                    </p>
+                  </div>
+                </div>
+                <button class="auth-oauth" type="button" id="btnTambahPasskey">
+                  Tambah
+                </button>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+        <!-- Di LUAR panel: pesan bisa datang dari panel mana pun, dan kalau
+             ditaruh di dalam salah satunya ia ikut tersembunyi saat ditutup. -->
         <p class="auth-msg" id="kamPesan" role="status" aria-live="polite"></p>
       </div>
 

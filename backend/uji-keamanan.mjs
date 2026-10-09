@@ -146,6 +146,18 @@ async function uji() {
 
   console.log('\n══ 4. TAMBAH PASSKEY (authenticator virtual) ══\n');
 
+  // ── BUKA PANEL "CARA MASUK" DULU ──────────────────────────────────────────
+  // Halaman ini sekarang bertata-letak sidebar + panel: #btnTambahPasskey dan
+  // #kamSenarai ada di panel "Cara masuk", yang TERSEMBUNYI saat halaman dibuka
+  // (panel awal = "Profil"). Playwright menolak mengklik elemen yang tidak
+  // terlihat, jadi tab-nya harus dibuka lebih dulu.
+  //
+  // Ini bukan penyesuaian agar uji lulus — ini memang alur yang dilalui
+  // pengguna sungguhan: mereka juga harus membuka tab "Cara masuk" sebelum
+  // bisa menambah passkey.
+  await p.click('#tabMasuk');
+  await p.waitForTimeout(400);
+
   await p.click('#btnTambahPasskey');
   // 4 detik: cukup untuk WebAuthn membuat kunci P-256 + server memverifikasi,
   // tapi KURANG dari 5 detik — pesan sukses hilang sendiri setelah 5 detik,
@@ -169,7 +181,15 @@ async function uji() {
   cek('Pesan sukses ditampilkan', r4.pesanSukses === true, `pesan: ${r4.pesan}`);
   cek('Daftar bertambah jadi 2', r4.jumlah === 2, `jumlah: ${r4.jumlah}`);
   cek('Penghitung diperbarui', r4.hitung === '2 cara masuk', `dapat: ${r4.hitung}`);
-  cek('Tombol pulih setelah selesai', r4.tombolAktif === true && r4.tombolTeks === 'Tambah passkey',
+  // Teks tombol 'Tambah' — bukan 'Tambah passkey'.
+  //
+  // ── KENAPA DIUBAH ────────────────────────────────────────────────────────
+  // Sebelumnya judul dan tombol sama-sama berbunyi "Tambah passkey". Nama yang
+  // sama dua kali dalam satu blok bukan penekanan — itu pengulangan.
+  //
+  // Sekarang judul menjawab "ini apa?" (Passkey) dan tombol menjawab "apa
+  // yang terjadi kalau saya klik?" (Tambah). Dua pertanyaan, dua teks.
+  cek('Tombol pulih setelah selesai', r4.tombolAktif === true && r4.tombolTeks === 'Tambah',
     `disabled=${!r4.tombolAktif}, teks="${r4.tombolTeks}"`);
 
   // Kredensial benar-benar tersimpan di authenticator?
@@ -257,6 +277,18 @@ async function uji() {
   // Caranya: tambah passkey lagi, lalu kosongkan password_hash langsung di
   // database uji — itu membuat akun ini menyerupai akun yang dibuat lewat
   // OAuth (tidak punya sandi). Lalu coba hapus passkey-nya lewat API.
+  // ── BUKA PANEL "CARA MASUK" DULU ──────────────────────────────────────────
+  // Halaman ini sekarang bertata-letak sidebar + panel: #btnTambahPasskey dan
+  // #kamSenarai ada di panel "Cara masuk", yang TERSEMBUNYI saat halaman dibuka
+  // (panel awal = "Profil"). Playwright menolak mengklik elemen yang tidak
+  // terlihat, jadi tab-nya harus dibuka lebih dulu.
+  //
+  // Ini bukan penyesuaian agar uji lulus — ini memang alur yang dilalui
+  // pengguna sungguhan: mereka juga harus membuka tab "Cara masuk" sebelum
+  // bisa menambah passkey.
+  await p.click('#tabMasuk');
+  await p.waitForTimeout(400);
+
   await p.click('#btnTambahPasskey');
   await p.waitForTimeout(4500);
 

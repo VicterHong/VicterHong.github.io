@@ -660,6 +660,65 @@
     muat();
   }
 
+  // ══ NAVIGASI SIDEBAR ══════════════════════════════════════════════════════
+  // Pola tab ARIA, bukan <details> atau radio: <details> tidak bisa jadi tab,
+  // radio membingungkan pembaca layar. ARIA memberi tahu bahwa tombol ini
+  // MENGUBAH APA YANG TERLIHAT, bukan menavigasi.
+  // Panel tidak aktif pakai `hidden` saja. Pilihan disimpan di location.hash
+  // supaya refresh kembali ke panel yang sama.
+  function initSisi() {
+    const tab = Array.from(document.querySelectorAll('.kam-sisi-item[data-panel]'));
+    if (!tab.length) return;
+
+    const panelDari = (id) => document.getElementById(id);
+
+    function pilih(id, { fokus = false } = {}) {
+      for (const t of tab) {
+        const aktif = t.dataset.panel === id;
+        t.classList.toggle('is-aktif', aktif);
+        t.setAttribute('aria-selected', aktif ? 'true' : 'false');
+        // roving tabindex: hanya tab aktif yang bisa di-Tab masuk. Ini yang
+        // membuat Tab berpindah KELUAR dari tablist, bukan berputar di dalamnya.
+        t.tabIndex = aktif ? 0 : -1;
+        if (aktif && fokus) t.focus();
+      }
+      for (const p of document.querySelectorAll('.kam-panel-isi')) {
+        const aktif = p.id === id;
+        p.hidden = !aktif;
+        p.classList.toggle('is-aktif', aktif);
+      }
+      if (history.replaceState) history.replaceState(null, '', '#' + id);
+    }
+
+    for (const t of tab) {
+      t.addEventListener('click', () => pilih(t.dataset.panel));
+    }
+
+    // Panah kiri/kanan berpindah tab, Home/End ke ujung. Tanpa ini, tablist
+    // hanya bisa dipakai mouse — pola ARIA-nya jadi tidak lengkap.
+    document.querySelector('.kam-sisi')?.addEventListener('keydown', (e) => {
+      const i = tab.indexOf(document.activeElement);
+      if (i < 0) return;
+      let next = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % tab.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + tab.length) % tab.length;
+      else if (e.key === 'Home') next = 0;
+      else if (e.key === 'End') next = tab.length - 1;
+      else return;
+      e.preventDefault();
+      pilih(tab[next].dataset.panel, { fokus: true });
+    });
+
+    // Panel awal: dari hash kalau ada, kalau tidak yang pertama.
+    const dariHash = location.hash.slice(1);
+    const awal = panelDari(dariHash) ? dariHash : tab[0].dataset.panel;
+    pilih(awal);
+  }
+
+  // Aman tanpa sesi: querySelector mengembalikan daftar kosong, fungsi
+  // berhenti di baris pertama.
+  initSisi();
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {

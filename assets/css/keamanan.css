@@ -53,7 +53,19 @@
    Halaman masuk butuh 400px (satu kolom input). Halaman ini menampilkan
    daftar cara masuk dengan ikon + teks + tombol — 400px membuat teks
    terpotong dan tombol berdesakan. 520px memberi ruang tanpa terasa kosong. */
-.auth-card-lebar { width: min(520px, 100%); }
+/* ── LEBAR: 400px → 720px ────────────────────────────────────────────────────
+ * Aturan pertama saya hanya menulis `.auth-card-lebar { width: ... }`, tapi
+ * kartu tetap 400px — karena yang membatasi adalah PEMBUNGKUSNYA:
+ * `.auth-scene { max-width: var(--lebar-kartu) }`. Anak tidak bisa lebih lebar
+ * dari induk, seberapa pun width-nya ditulis.
+ *
+ * Pelajaran: kalau elemen tidak mau melebar, periksa INDUKNYA dulu.
+ *
+ * 720px dihitung dari kebutuhan: sidebar 150 + garis 1 + panel 420 +
+ * padding 64 + gap 24 = 659px, sisa ~60px. Tidak sampai baris teks
+ * melewati 75 karakter — batas di mana mata kehilangan awal baris. */
+.auth-scene { max-width: min(720px, 100%); }
+.auth-card-lebar { width: 100%; }
 
 /* ── Status pemuatan ─────────────────────────────────────────────────────────*/
 .kam-memuat {
@@ -597,4 +609,142 @@
 .kam-batal:focus-visible {
   outline: 2px solid rgba(245, 197, 66, 0.9);
   outline-offset: 2px;
+}
+
+/* ══ TATA LETAK: SIDEBAR + PANEL ══════════════════════════════════════════════
+ * Pola dari komponen "Settings Card with Sidebar": sidebar sempit di kiri,
+ * panel lebar di kanan, dipisah garis tipis. Item aktif = latar terang.
+ *
+ * Kenapa sidebar, bukan blok bertumpuk: sebelumnya "Profil" dan "Cara masuk"
+ * bertumpuk dalam satu kolom panjang. Pengguna yang hanya ingin melihat email
+ * harus menggulir melewati daftar cara masuk. Sekarang mereka MEMILIH.
+ *
+ * Sidebar 150px (bukan 40% seperti aslinya): label terpanjang cuma
+ * "Cara masuk" (10 karakter). 150px cukup, dan menyisakan lebih banyak
+ * untuk isi — bagian yang justru dibaca. */
+
+.kam-tata {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 0;
+  align-items: start;
+}
+
+/* Padding atas 4px: menyelaraskan item pertama dengan judul panel di kanan.
+ * Tanpa itu, item sidebar terlihat 6px lebih tinggi dari judulnya. */
+.kam-sisi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 16px 0 0;
+  border-right: 1px solid var(--garis);
+}
+
+.kam-sisi-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--teks-redup);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.16s var(--ease, ease), color 0.16s var(--ease, ease);
+}
+
+.kam-sisi-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--teks);
+}
+
+/* Latar yang mengisi seluruh baris — bukan hanya warna teks — membuat posisi
+ * aktif terlihat dari sudut mata tanpa membaca. Itu yang dibutuhkan saat
+ * berpindah bagian berkali-kali. */
+.kam-sisi-item.is-aktif {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--teks);
+}
+
+.kam-sisi-item:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 2px;
+}
+
+.kam-sisi-ikon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+.kam-sisi-ikon svg { width: 100%; height: 100%; display: block; }
+.kam-sisi-ikon + span { flex: 1; }
+
+/* `margin-left: auto` mendorong angka ke tepi, jadi label bisa panjang
+ * tanpa mendorongnya keluar baris. */
+.kam-sisi-hitung {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--teks-samar);
+  font-variant-numeric: tabular-nums;
+}
+
+.kam-sisi-item.is-aktif .kam-sisi-hitung { color: var(--teks-redup); }
+
+/* ── Panel ────────────────────────────────────────────────────────────────────
+ * Padding kiri 24px: jarak dari garis pemisah ke isi. Lebih lega dari jarak
+ * antar-item (12px) supaya batas kolom terbaca jelas. */
+.kam-panel { padding-left: 24px; min-width: 0; }
+
+/* `min-width: 0` penting: tanpa itu, isi panjang (email, nama perangkat)
+ * memaksa kolom melebar dan merusak grid. Item grid punya `min-width: auto`
+ * secara bawaan — jebakan klasik CSS Grid. */
+
+/* Panel tidak aktif sudah pakai atribut `hidden` — ditangani aturan global
+ * di atas, jadi tidak perlu `display: none` lagi. */
+.kam-panel-isi { margin-bottom: 0; }
+
+/* Judul di dalam panel langsung diikuti isinya, bukan blok lain. */
+.kam-panel-isi .kam-judul { margin-bottom: 14px; }
+
+/* ── PONSEL: SIDEBAR JADI TAB DI ATAS ─────────────────────────────────────────
+ * Di 390px, sidebar 150px memakan 38% lebar dan menyisakan ~200px untuk panel.
+ * Daftar cara masuk dengan nama provider + tombol hapus tidak muat di 200px.
+ *
+ * Solusinya pola pengaturan iOS/Android: navigasi pindah ke atas sebagai tab
+ * horizontal, isi mengisi lebar penuh. Jumlah pilihan sama, orientasi berubah.
+ *
+ * 640px adalah titiknya — di bawah itu panel turun ke bawah 320px, batas di
+ * mana daftar mulai terpotong. */
+@media (max-width: 640px) {
+  .kam-tata {
+    grid-template-columns: 1fr;
+  }
+
+  .kam-sisi {
+    flex-direction: row;
+    gap: 6px;
+    padding: 0 0 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--garis);
+    margin-bottom: 18px;
+    /* Bisa digeser kalau bagian bertambah nanti, bukan terpotong. */
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .kam-sisi::-webkit-scrollbar { display: none; }
+
+  .kam-sisi-item {
+    width: auto;
+    flex-shrink: 0;
+    padding: 8px 14px;
+  }
+
+  .kam-panel { padding-left: 0; }
 }
