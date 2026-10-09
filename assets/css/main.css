@@ -1316,3 +1316,223 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ══ FOOTER 4 KOLOM ═══════════════════════════════════════════════════════════
+ *
+ * Struktur diadaptasi dari komponen React/shadcn footer-column.tsx — idenya
+ * diambil, kodenya tidak. Proyek ini HTML statis + CSS vanilla, jadi Tailwind
+ * tidak berlaku di sini.
+ *
+ * ── KENAPA KOLOM KIRI LEBIH LEBAR ───────────────────────────────────────────
+ * Komponen aslinya memakai `lg:col-span-2` untuk kolom kiri: dari 4 kolom,
+ * kiri mengambil 2. Itu rasio yang benar — deskripsi butuh ruang untuk
+ * berbaring, sementara tautan pendek tidak.
+ *
+ * Di CSS Grid: `1.4fr repeat(3, 1fr)` — kiri sedikit lebih lebar, tiga kolom
+ * tautan sama rata. Rasio 1.4 dipilih (bukan 2) karena di layar desktop lebar
+ * kolom 2× terlalu gemuk untuk teks sependek ini.
+ *
+ * ── KENAPA TANPA BAYANGAN DAN GRADIENT ──────────────────────────────────────
+ * Panduan Swiss Style yang dipakai situs ini: "avoid shadows and gradients,
+ * focus on clarity". Footer adalah penutup — ia tidak perlu menarik perhatian,
+ * cukup rapi dan terbaca.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+.site-footer-4kolom {
+  display: grid;
+  gap: 3rem 2rem;
+  padding: 3.5rem 1.5rem 2rem;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ── Kolom kiri: merek + deskripsi + sosial ─────────────────────────────────── */
+
+.footer-kiri {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.footer-merek {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text);
+  text-decoration: none;
+  /* Lebar mengikuti isi — supaya area klik tidak melebar ke seluruh kolom
+     dan menangkap klik yang tidak dimaksudkan. */
+  align-self: flex-start;
+}
+
+/* Mark: kotak emas kecil. Mengikuti .brand-mark di header supaya footer dan
+   header terlihat satu keluarga, bukan dua desain berbeda. */
+.footer-merek-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.footer-merek-teks {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.footer-deskripsi {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--text-faint);
+}
+
+/* ── Ikon sosial ────────────────────────────────────────────────────────────── */
+
+.footer-sosial {
+  display: flex;
+  gap: 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-sosial a {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: var(--text-faint);
+  border: 1px solid var(--line-soft);
+  border-radius: 50%;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease),
+              background-color 0.2s var(--ease);
+}
+
+.footer-sosial a:hover {
+  color: var(--accent);
+  border-color: var(--accent-line, rgba(245, 197, 66, 0.45));
+  background: rgba(245, 197, 66, 0.06);
+}
+
+.footer-sosial a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Tiga kolom tautan ──────────────────────────────────────────────────────── */
+
+.footer-kolom-grup {
+  display: grid;
+  gap: 2rem 1.5rem;
+  /* Mobile dulu: dua kolom. Empat kolom di layar sempit membuat setiap kolom
+     hanya ~70px — cukup untuk satu kata per baris, dan itu tidak terbaca. */
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.footer-kolom-judul {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.footer-kolom ul {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-kolom a {
+  font-size: 0.875rem;
+  color: var(--text-faint);
+  text-decoration: none;
+  transition: color 0.18s var(--ease);
+}
+
+.footer-kolom a:hover {
+  color: var(--text);
+}
+
+.footer-kolom a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ── Baris bawah: copyright + legal ─────────────────────────────────────────── */
+
+.footer-bawah {
+  /* Membentang penuh di bawah kedua kolom utama. */
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.footer-hak,
+.footer-legal {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.footer-legal {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.footer-legal a {
+  color: var(--text-faint);
+  text-decoration: none;
+  transition: color 0.18s var(--ease);
+}
+
+.footer-legal a:hover {
+  color: var(--text);
+}
+
+.footer-pisah {
+  opacity: 0.4;
+}
+
+/* ── Responsif ──────────────────────────────────────────────────────────────── */
+
+/* Layar sedang (tablet): kolom kiri pindah ke atas, tiga kolom tautan di bawah.
+   `auto-fit` dipakai supaya jumlah kolom menyesuaikan lebar yang tersedia
+   alih-alih dipaksa tiga — di tablet sempit, tiga kolom jadi terlalu rapat. */
+@media (min-width: 640px) {
+  .footer-kolom-grup {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Layar lebar (desktop): kiri + tiga kolom berdampingan.
+   `1.4fr` untuk kiri — lebih lebar dari yang lain, tapi tidak dua kali lipat. */
+@media (min-width: 900px) {
+  .site-footer-4kolom {
+    grid-template-columns: 1.4fr repeat(3, 1fr);
+    gap: 3rem 2.5rem;
+    padding: 4rem 1.5rem 2.5rem;
+  }
+
+  /* Di desktop, kolom tautan adalah kolom grid langsung — bukan grup
+     bersarang. Ini menghilangkan satu lapis pembungkus supaya jarak antar
+     kolom dikendalikan grid utama, bukan dua grid yang saling menimpa. */
+  .footer-kolom-grup {
+    display: contents;
+  }
+}
