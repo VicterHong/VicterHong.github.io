@@ -809,6 +809,39 @@ select.auth-input {
   margin-bottom: 10px;
 }
 
+/* ══ ATURAN WAJIB: `hidden` HARUS benar-benar menyembunyikan ══════════════════
+ *
+ * ── MASALAH ──
+ * Browser menyediakan `[hidden] { display: none }` di stylesheet bawaan (UA).
+ * Tapi aturan author SELALU menang atas UA — jadi setiap `display: flex` atau
+ * `display: grid` yang kita tulis pada elemen ber-atribut `hidden` membuat
+ * elemen itu TETAP TAMPIL.
+ *
+ * ── AKIBAT NYATA YANG PERNAH TERJADI DI HALAMAN INI ──
+ * Tombol Apple diberi `hidden` supaya tidak tampil di produksi (menunggu
+ * kredensial berbayar). Tapi `.auth-sso-btn` memakai `display: grid`, jadi
+ * tombol itu TETAP MUNCUL — pengguna melihat tombol yang tidak bisa dipakai,
+ * persis yang ingin dihindari.
+ *
+ * Bug ini sempat lolos karena uji hanya memeriksa `el.hidden === true`, dan
+ * itu memang benar — yang salah adalah tampilannya. Pemeriksaan yang benar
+ * adalah lebar elemen (`getBoundingClientRect().width > 0`).
+ *
+ * ── KENAPA SATU ATURAN GLOBAL, BUKAN TAMBAL PER-KELAS ──
+ * Bug yang sama sudah muncul tiga kali di proyek ini (dialog keamanan,
+ * spinner, tombol provider). Menambal satu per satu berarti bug akan kembali
+ * setiap kali ada elemen baru yang memakai `hidden`. Satu aturan menutup
+ * semuanya, termasuk elemen yang belum ditulis.
+ *
+ * ── KENAPA `!important` DI SINI BENAR ──
+ * `!important` biasanya tanda kode yang berantakan. Di sini ia melindungi
+ * SEMANTIK HTML (`hidden` berarti tersembunyi) dari gaya presentasi kita
+ * sendiri — persis penggunaan yang tepat.
+ * ══════════════════════════════════════════════════════════════════════════ */
+[hidden] {
+  display: none !important;
+}
+
 .auth-sso-btn {
   display: grid;
   place-items: center;

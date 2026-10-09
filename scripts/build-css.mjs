@@ -188,6 +188,22 @@ if (existsSync(sDir)) {
 console.log(`  HTML: ${nHtml} berkas · rujukan CSS dialihkan ke .min.css`);
 
 // ── 5. Verifikasi: tidak ada rujukan .css non-min yang tersisa ───────────────
+//
+// ── KENAPA VERIFIKASI INI PENTING ───────────────────────────────────────────
+// Tanpa ini, kesalahan rewrite hanya ketahuan setelah deploy — saat pengunjung
+// melihat halaman tanpa gaya. Verifikasi di build menangkapnya lebih awal.
+//
+// ── BUG YANG PERNAH TERJADI DI SINI ────────────────────────────────────────
+// Regex lama: /href="(assets\/css\/[^"]+\.css)"/
+//
+// Pola itu HANYA menangkap rujukan TANPA garis miring depan:
+//   href="assets/css/auth.css"    ← tertangkap
+//   href="/assets/css/auth.css"   ← LOLOS, tidak tertangkap
+//
+// sign-in.html memakai bentuk BERgaris-miring, jadi rujukan .css yang bocor
+// tidak pernah dilaporkan — build selalu "lulus" walau halaman rusak.
+//
+// Regex baru memakai \/? supaya kedua bentuk tertangkap.
 let bocor = 0;
 function cekBocor(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -195,7 +211,8 @@ function cekBocor(dir) {
     if (entry.isDirectory()) { cekBocor(full); continue; }
     if (!entry.name.endsWith('.html')) continue;
     const isi = readFileSync(full, 'utf8');
-    for (const m of isi.matchAll(/href="(assets\/css\/[^"]+\.css)"/g)) {
+    // \/? menangkap rujukan dengan MAUPUN tanpa garis miring depan.
+    for (const m of isi.matchAll(/href="(\/?assets\/css\/[^"]+\.css)"/g)) {
       if (!m[1].endsWith('.min.css')) {
         console.error(`  ❌ ${full.slice(ROOT.length + 1)} masih merujuk ${m[1]}`);
         bocor++;
