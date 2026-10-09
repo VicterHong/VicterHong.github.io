@@ -16,7 +16,16 @@ Terakhir diperbarui: 2026-10-09
 
 **Alasan:** $99/tahun, dan permintaan login lewat Apple ID diperkirakan sedikit.
 
-**Kode Apple SUDAH SIAP dan teruji.** Kalau nanti berubah pikiran, hanya perlu:
+**Status kode:** endpoint, verifikasi id_token, dan penanganan form_post sudah
+ADA di `src/oauth.mjs` dan `src/auth-routes.mjs` — tapi **BELUM PERNAH diuji
+dengan Apple sungguhan**, karena itu butuh membership berbayar.
+
+Yang sudah terbukti hanyalah bahwa kode kita *mengikuti bentuk yang benar*:
+callback menangani POST form_post, email dibaca dari id_token (Apple tidak
+punya endpoint userinfo), dan `client_secret` dibuat sebagai JWT ES256.
+Belum ada bukti kode ini bekerja melawan Apple asli.
+
+**Kalau nanti berubah pikiran:**
 
 1. Daftar Apple Developer Program ($99/tahun)
 2. Buat Services ID + kunci .p8 (lihat `AUTH-SETUP.md` bagian Apple)
@@ -32,8 +41,9 @@ Terakhir diperbarui: 2026-10-09
 **Tombolnya menyala sendiri** — tidak perlu ubah HTML. Frontend membaca
 `/api/config` dan menampilkan tombol hanya untuk provider yang siap.
 
-**Tidak ada pekerjaan ulang.** Endpoint, verifikasi id_token, dan
-penanganan form_post Apple sudah diuji.
+**Sisihkan waktu untuk menguji.** Karena belum pernah diuji dengan Apple
+asli, ada kemungkinan perlu penyesuaian (mis. format kunci .p8, atau
+perbedaan klaim). Anggarkan waktu debug, bukan sekadar "isi lalu jalan".
 
 ## Catatan: AltStore / SideStore TIDAK Bisa Menggantikan
 
