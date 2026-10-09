@@ -3056,6 +3056,44 @@ export const routes = [
       //
       // Biaya: satu permintaan kecil (~100 byte respons). Itu harga yang
       // dibayar untuk clearance yang tidak bisa dipalsukan.
+
+      // ── PENGGUNA YANG SUDAH LOGIN: LEWATI GATE ──────────────────────────
+      //
+      // ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────
+      // Sebelumnya gate hanya memeriksa cookie clearance. Pengguna yang baru
+      // berhasil masuk — sudah melewati Turnstile di form login — tetap
+      // diminta verifikasi LAGI saat diarahkan ke /home. Dua verifikasi
+      // berurutan untuk satu kunjungan.
+      //
+      // ── KENAPA INI SALAH ────────────────────────────────────────────────
+      // Gate dirancang untuk PENGUNJUNG ANONIM: mencegah bot memanen konten
+      // publik (landing page, harga, dokumentasi). Pengguna yang sudah login
+      // BUKAN sasaran gate — ia sudah membuktikan identitasnya dengan cara
+      // yang lebih kuat:
+      //
+      //   Login : email + sandi + Turnstile   ← tiga faktor
+      //   Gate  : Turnstile saja              ← satu faktor
+      //
+      // Meminta gate SETELAH login berarti memverifikasi ulang dengan bukti
+      // yang LEBIH LEMAH daripada yang sudah dimiliki. Itu tidak menambah
+      // keamanan sedikit pun — hanya menambah gesekan.
+      //
+      // ── KENAPA TIDAK MENGHAPUS GATE SAMA SEKALI ─────────────────────────
+      // Pengunjung anonim TETAP harus melewatinya. Gate masih berguna untuk
+      // mencegah bot memanen halaman publik. Yang berubah hanya: pengguna
+      // terautentikasi tidak perlu melewatinya dua kali.
+      const sesi = sesiDariRequest(req);
+      if (sesi) {
+        sendJson(res, 200, {
+          ok: true,
+          bersih: true,
+          // Penanda bahwa ini lolos karena SESI, bukan clearance. Berguna
+          // untuk debug dan untuk memastikan gate tidak salah lapor.
+          karena: 'sesi',
+        });
+        return;
+      }
+
       const token = bacaCookieClearance(req);
       const hasil = verifikasiClearance(token);
 
@@ -3064,6 +3102,7 @@ export const routes = [
           ok: true,
           bersih: true,
           expiresAt: hasil.expiresAt,
+          karena: 'clearance',
         });
         return;
       }
