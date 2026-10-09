@@ -1149,9 +1149,20 @@
         // menyebut namanya lebih jelas daripada "SSO perusahaan". Label
         // berasal dari /api/config (SSO_LABEL di env), jadi mengubahnya tidak
         // perlu menyentuh HTML.
+        // ── Label dari server, KALAU diisi ─────────────────────────────────
+        //
+        // SSO_LABEL kosong → pakai teks bawaan HTML ("Masuk dengan SSO").
+        // SSO_LABEL diisi  → pakai itu, mis. "Masuk dengan Okta".
+        //
+        // Formatnya fleksibel: kalau nilainya sudah memuat "Masuk dengan",
+        // pakai apa adanya. Kalau hanya nama vendor, tambahkan awalan.
         if (labelSso) {
           const span = btnSso.querySelector('span');
-          if (span) span.textContent = 'Masuk dengan ' + labelSso;
+          if (span) {
+            span.textContent = /^masuk dengan/i.test(labelSso)
+              ? labelSso
+              : 'Masuk dengan ' + labelSso;
+          }
         }
 
         // ── Kirim email kalau sudah diisi ────────────────────────────────────
