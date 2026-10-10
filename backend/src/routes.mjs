@@ -1507,6 +1507,10 @@ export const routes = [
       const gate = await turnstileGate(req, body, { action: 'masuk_turnstile' });
       if (!gate.ok) return sendJson(res, gate.status, gate.body);
 
+      // ── LOG SEMENTARA: lacak apakah 'perangkat' sampai ────────────────────
+      console.log('[lacak] masuk — perangkat:', JSON.stringify(body.perangkat ?? null),
+                  '| kunci:', Object.keys(body).join(','));
+
       // ── PESAN GALAT SERAGAM ────────────────────────────────────────────────
       // Baik email tidak ada maupun sandi salah, pesannya SAMA:
       // "Email atau sandi salah."
