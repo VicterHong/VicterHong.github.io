@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Animasi — Mekanisme BlackRay</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEMO: Mekanisme animasi BlackRay.Studio, direplikasi tanpa library.
+
+   Yang bisa Anda lihat di sini:
+     1. Layered screens — bukan scroll, tapi tukar opacity + z-index
+     2. clip-path reveal pada judul
+     3. Tag melayang dengan delay NEGATIF (gerakan organik)
+     4. Satu aksen terang saja
+     5. Hover jauh lebih cepat dari reveal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── EASING ────────────────────────────────────────────────────────────────
+     ease-out-expo: cepat di awal, melambat di akhir. Ini yang membuat
+     gerakan terasa "weighted" dan premium, bukan linear yang terasa mekanis. */
+  --ease-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-io:   cubic-bezier(0.76, 0, 0.24, 1);
+
+  /* ── DURASI ────────────────────────────────────────────────────────────────
+     Reveal lambat (dramatis), reaksi cepat (responsif). Rasio ~3x. */
+  --dur-reveal: 0.68s;
+  --dur-section: 0.72s;
+  --dur-hover: 0.22s;
+  --dur-press: 0.18s;
+
+  /* ── WARNA ─────────────────────────────────────────────────────────────────
+     Near-black, BUKAN #000. Satu aksen hijau saja. */
+  --bg:      #030303;
+  --bg-2:    #050505;
+  --teks:    #f3f3fa;
+  --redup:   #898b8e;
+  --samar:   #4a4c4f;
+  --aksen:   #8dff32;
+  --garis:   rgba(255,255,255,0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--teks);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  overflow: hidden;
+  height: 100dvh;
+}
+
+/* ══ SHELL: wadah semua layar ══════════════════════════════════════════════
+   `overflow: clip` memotong apa pun yang keluar — penting karena tag
+   melayang diposisikan keluar batas. */
+.shell {
+  position: relative;
+  height: 100dvh;
+  overflow: clip;
+}
+
+/* ══ LAYAR: semua bertumpuk di posisi yang SAMA ════════════════════════════
+   Ini kunci arsitekturnya. Bukan scroll — semua section ada di atas satu
+   sama lain, dan pindah = tukar opacity + z-index. */
+.layar {
+  position: absolute;
+  inset: 0;
+  padding: 5vh 6vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  /* Tidak ada transition di sini — animasi ditrigger lewat class */
+}
+
+/* Aktif: terlihat, bisa diklik, di atas */
+.layar.aktif {
+  opacity: 1;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+/* ── MASUK ──────────────────────────────────────────────────────────────────
+   Dipakai saat layar baru muncul. */
+.layar.masuk  { animation: masukSection var(--dur-section) var(--ease-expo) both; }
+
+/* ── KELUAR ─────────────────────────────────────────────────────────────────
+   Perhatikan `32%` — keluar SELESAI di 32% durasi, sisanya diam.
+   Jadi layar baru sudah mulai muncul sebelum layar lama hilang.
+   Itu yang membuat transisinya terasa lebih cepat dari durasinya. */
+.layar.keluar { animation: keluarSection var(--dur-section) var(--ease-io) both; }
+
+@keyframes masukSection {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.992); }
+  100% { opacity: 1; transform: translate(0) scale(1); }
+}
+@keyframes keluarSection {
+  0%        { opacity: 1; transform: translate(0) scale(1); }
+  32%, 100% { opacity: 0; transform: translateY(16px) scale(0.992); }
+}
+
+/* ══ JUDUL: clip-path reveal ═══════════════════════════════════════════════
+   `inset(100% 0 0)` memotong dari bawah → teks "terangkat" dari dalam
+   dirinya sendiri. Lebih menarik daripada fade biasa. */
+.judul {
+  font-size: clamp(2.5rem, 9vw, 6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.judul-baris {
+  display: block;
+  overflow: hidden;
+}
+
+.judul-baris > span {
+  display: block;
+  animation: judulMasuk 0.76s var(--ease-expo) both;
+}
+.judul-baris:nth-child(2) > span { animation-delay: 0.09s; }
+
+@keyframes judulMasuk {
+  0%   { opacity: 0; clip-path: inset(100% 0 0); transform: translateY(46px); }
+  100% { opacity: 1; clip-path: inset(0);        transform: translateY(0); }
+}
+
+.sub {
+  color: var(--redup);
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  margin-top: 1.4rem;
+  max-width: 42ch;
+  line-height: 1.6;
+  animation: kontenMasuk 0.65s var(--ease-expo) 0.25s both;
+}
+
+@keyframes kontenMasuk {
+  0%   { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ══ STATUS: satu-satunya warna terang ═════════════════════════════════════
+   Karena hanya satu, mata langsung ke sana. Kalau ada tiga aksen,
+   tidak ada yang menonjol. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 2rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--garis);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  width: fit-content;
+  animation: kontenMasuk 0.65s var(--ease-expo) 0.4s both;
+}
+
+.titik {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--aksen);
+  animation: denyut 2.4s ease-in-out infinite;
+}
+
+@keyframes denyut {
+  0%, 100% { opacity: 0.72; box-shadow: 0 0 10px rgba(141,255,50,0.22); }
+  50%      { opacity: 1;    box-shadow: 0 0 18px rgba(141,255,50,0.45); }
+}
+
+/* ══ AREA HERO: BATASI LEBAR JUDUL ═════════════════════════════════════════
+   Tanpa ini, judul selebar layar dan tag melayang akan menabraknya.
+   Tag diposisikan di area kanan 45%, jadi judul dibatasi 55%. */
+#layar-0 > .judul,
+#layar-0 > .sub,
+#layar-0 > p {
+  max-width: 52%;
+}
+
+@media (max-width: 900px) {
+  /* Layar sedang: judul boleh lebih lebar, tag disembunyikan di 720px */
+  #layar-0 > .judul, #layar-0 > .sub, #layar-0 > p { max-width: 100%; }
+}
+
+/* ══ TAG MELAYANG ══════════════════════════════════════════════════════════
+   DUA animasi pada satu elemen:
+     1. aboutTagReveal — sekali, blur → jelas
+     2. drift          — infinite, melayang pelan
+
+   TRIK KUNCI: setiap tag punya durasi dan delay NEGATIF yang berbeda.
+   Delay negatif = animasi sudah berjalan saat halaman dimuat, jadi tidak
+   ada dua tag yang mulai dari titik sama. Itu yang membuat gerakannya
+   organik, bukan serempak seperti robot. */
+.tag {
+  position: absolute;
+  padding: 0.55rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--garis);
+  background: rgba(20,20,22,0.72);
+  backdrop-filter: blur(10px);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.96;
+  transition: transform var(--dur-hover) var(--ease-expo),
+              background var(--dur-hover) var(--ease-expo),
+              border-color var(--dur-hover) var(--ease-expo);
+  animation:
+    tagMuncul var(--dur-reveal) var(--ease-expo) both,
+    melayang var(--drift-dur, 11s) ease-in-out infinite;
+  animation-delay: var(--tag-delay, 0s), var(--drift-delay, 0s);
+}
+
+/* Hover JAUH lebih cepat dari reveal (0.22s vs 0.68s) — rasio 3x.
+   Masuk lambat (dramatis), reaksi cepat (responsif). */
+.tag:hover {
+  background: rgba(141,255,50,0.1);
+  border-color: rgba(141,255,50,0.4);
+  transform: scale(1.06);
+}
+
+.tag:active { transform: scale(0.97); }
+
+@keyframes tagMuncul {
+  0%   { opacity: 0; filter: blur(5px); scale: 0.92; }
+  100% { opacity: 0.96; filter: blur(0); scale: 1; }
+}
+
+/* Rentang gerak KECIL (±5-7px). Gerakan besar terasa mabuk. */
+@keyframes melayang {
+  0%   { transform: translate(-5px, -5px); }
+  100% { transform: translate(7px, 6px); }
+}
+
+/* ══ NAVIGASI ══════════════════════════════════════════════════════════════ */
+.nav {
+  position: fixed;
+  bottom: 3vh;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--garis);
+  background: rgba(10,10,12,0.9);
+  backdrop-filter: blur(16px);
+  z-index: 100;
+}
+
+.nav button {
+  padding: 0.5rem 1.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--redup);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--dur-hover) ease, background var(--dur-hover) ease;
+}
+
+.nav button:hover { color: var(--teks); }
+.nav button.aktif { background: var(--teks); color: var(--bg); }
+
+/* ══ DAFTAR (layar 2) ══════════════════════════════════════════════════════
+   Reveal BERTAHAP: tiap item delay-nya bertambah ~0.08s.
+   Cukup untuk terasa berurutan, tidak cukup untuk terasa lambat. */
+.daftar { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 2rem; }
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.3rem;
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.015);
+  animation: itemMasuk var(--dur-reveal) var(--ease-expo) both;
+  transition: border-color var(--dur-hover) ease, background var(--dur-hover) ease;
+}
+
+.item:nth-child(1) { animation-delay: 0.18s; }
+.item:nth-child(2) { animation-delay: 0.26s; }
+.item:nth-child(3) { animation-delay: 0.34s; }
+.item:nth-child(4) { animation-delay: 0.42s; }
+
+.item:hover { border-color: rgba(141,255,50,0.3); background: rgba(141,255,50,0.04); }
+
+@keyframes itemMasuk {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.985); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.item-nama { font-weight: 600; font-size: 0.95rem; }
+.item-ket  { color: var(--redup); font-size: 0.8rem; margin-top: 0.2rem; }
+
+/* ══ HORMATI PREFERENSI PENGGUNA ═══════════════════════════════════════════
+   WAJIB. Sebagian orang pusing melihat gerakan. Ini bukan opsional. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ══ PONSEL ════════════════════════════════════════════════════════════════
+   Tag melayang disembunyikan — di layar kecil ia menutupi judul, dan
+   gerakannya mengganggu karena semua ada dalam satu pandangan. */
+@media (max-width: 720px) {
+  .tag { display: none; }
+  .layar { padding: 6vh 7vw 14vh; }
+  .nav button { padding: 0.5rem 0.85rem; font-size: 0.76rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══ LAYAR 1: HERO ══ -->
+  <section class="layar aktif" id="layar-0">
+    <p style="color:var(--redup);font-size:0.85rem;animation:kontenMasuk .65s var(--ease-expo) .1s both">
+      Hai, saya Ramil
+    </p>
+
+    <h1 class="judul" style="margin-top:.6rem">
+      <span class="judul-baris"><span>Product</span></span>
+      <span class="judul-baris"><span>Developer</span></span>
+    </h1>
+
+    <p class="sub">
+      Saya merancang dan membangun produk digital. Dari ide sampai rilis.
+    </p>
+
+    <div class="status">
+      <span class="titik"></span>
+      Tersedia untuk proyek baru
+    </div>
+
+    <!-- ══ TAG MELAYANG ══════════════════════════════════════════════════════
+         ── POSISI: PAKAI `right`, BUKAN `left` ──────────────────────────────
+         Versi pertama memakai `left: 74%` dan `left: 78%`. Di layar 1280px,
+         `left: 78%` = 998px, dan tag selebar 280px akan berakhir di 1278px —
+         mepet tepi, dan di layar lebih sempit langsung terpotong.
+
+         Dengan `right`, tag diukur dari KANAN. Ia tidak akan pernah keluar
+         tepi kanan, berapa pun lebar layarnya. Itu yang membuat tata letaknya
+         stabil di semua ukuran.
+
+         ── SETIAP TAG PUNYA DURASI & DELAY BERBEDA ───────────────────────────
+         `--drift-delay` NEGATIF = animasi sudah berjalan saat halaman dimuat.
+         Jadi tidak ada dua tag yang mulai dari titik yang sama — gerakannya
+         organik, bukan serempak seperti robot.
+
+         Rentang drift kecil saja (±5-7px). Gerakan besar terasa mabuk. -->
+    <button class="tag" style="top:13%;right:28%;--tag-delay:.42s;--drift-dur:10s;--drift-delay:-2s">
+      Landing Pages yang menjual
+    </button>
+    <button class="tag" style="top:11%;right:3%;--tag-delay:.51s;--drift-dur:12.4s;--drift-delay:-6.8s">
+      Web yang enak dipakai
+    </button>
+    <button class="tag" style="top:26%;right:22%;--tag-delay:.60s;--drift-dur:12s;--drift-delay:-6s">
+      Aplikasi yang terasa natural
+    </button>
+    <button class="tag" style="top:38%;right:2%;--tag-delay:.65s;--drift-dur:13s;--drift-delay:-8s">
+      Produk AI yang jelas gunanya
+    </button>
+    <button class="tag" style="top:52%;right:26%;--tag-delay:.72s;--drift-dur:9s;--drift-delay:-4s">
+      Bot yang benar-benar bekerja
+    </button>
+    <button class="tag" style="top:64%;right:6%;--tag-delay:.79s;--drift-dur:11s;--drift-delay:-7s">
+      Toko online tanpa ribet
+    </button>
+  </section>
+
+  <!-- ══ LAYAR 2: LAYANAN ══ -->
+  <section class="layar" id="layar-1">
+    <h2 class="judul" style="font-size:clamp(2rem,6vw,3.5rem)">
+      <span class="judul-baris"><span>Yang saya</span></span>
+      <span class="judul-baris"><span>kerjakan</span></span>
+    </h2>
+
+    <div class="daftar">
+      <div class="item">
+        <div>
+          <div class="item-nama">Landing Page</div>
+          <div class="item-ket">Satu halaman, satu tujuan: membuat orang bertindak.</div>
+        </div>
+      </div>
+      <div class="item">
+        <div>
+          <div class="item-nama">Aplikasi Web</div>
+          <div class="item-ket">Alat yang dipakai tiap hari, bukan hanya dipamerkan.</div>
+        </div>
+      </div>
+      <div class="item">
+        <div>
+          <div class="item-nama">Produk AI</div>
+          <div class="item-ket">AI yang menyelesaikan masalah, bukan demo.</div>
+        </div>
+      </div>
+      <div class="item">
+        <div>
+          <div class="item-nama">Bot & Mini App</div>
+          <div class="item-ket">Otomasi yang menghemat waktu nyata.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ LAYAR 3: KONTAK ══ -->
+  <section class="layar" id="layar-2">
+    <h2 class="judul" style="font-size:clamp(2rem,6vw,3.5rem)">
+      <span class="judul-baris"><span>Ceritakan</span></span>
+      <span class="judul-baris"><span>yang mau dibangun</span></span>
+    </h2>
+    <p class="sub">Balasan dalam 1×24 jam. Tanpa biaya konsultasi.</p>
+    <div class="status" style="border-color:rgba(141,255,50,.35);background:rgba(141,255,50,.06)">
+      <span class="titik"></span>
+      Mulai proyek
+    </div>
+  </section>
+
+</div>
+
+<nav class="nav">
+  <button class="aktif" data-layar="0">Tentang</button>
+  <button data-layar="1">Layanan</button>
+  <button data-layar="2">Kontak</button>
+</nav>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGIKA PINDAH LAYAR
+
+   Inti: tukar class, bukan atur style satu per satu. CSS yang mengurus
+   animasinya — JavaScript hanya memberi tahu "layar mana yang aktif".
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const layar = [...document.querySelectorAll('.layar')];
+const tombol = [...document.querySelectorAll('.nav button')];
+let aktif = 0;
+let sedangPindah = false;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BUG YANG DITEMUKAN SAAT UJI — dan perbaikannya
+
+   ── MASALAHNYA ────────────────────────────────────────────────────────────
+   Versi pertama mengandalkan `animationend` saja untuk membuka kunci:
+
+     dari.addEventListener('animationend', () => {
+       dari.classList.remove('keluar');
+       sedangPindah = false;      ← hanya di sini
+     }, { once: true });
+
+   Kalau animasi TIDAK PERNAH SELESAI, event itu tidak pernah fire, dan
+   `sedangPindah` tersangkut `true` SELAMANYA — navigasi mati total.
+
+   Kapan itu terjadi di dunia nyata?
+     • Tab di-background → browser mem-pause animasi (hemat baterai)
+     • `prefers-reduced-motion` → durasi 0.01ms, event bisa tidak fire
+     • Pengguna menutup laptop di tengah animasi
+     • Animasi dibatalkan elemen lain
+
+   Terbukti saat uji: klik "Kontak" setelah "Layanan" tidak bekerja sama
+   sekali, karena kunci dari transisi sebelumnya belum dibuka.
+
+   ── PERBAIKAN ─────────────────────────────────────────────────────────────
+   Dua jalur, mana pun yang lebih dulu:
+     1. `animationend` — jalur normal, presisi
+     2. `setTimeout` fallback — jaring pengaman
+
+   Kuncinya dibuka oleh yang PERTAMA tiba, dan dijaga agar tidak dobel.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════
+   PINDAH LAYAR — tanpa kunci, tanpa timer
+
+   ── KENAPA TIDAK PAKAI KUNCI `sedangPindah` ───────────────────────────────
+   Versi pertama mengunci navigasi selama animasi berjalan:
+
+     if (sedangPindah) return;
+     sedangPindah = true;
+     ... baru dibuka setelah animasi selesai
+
+   Masalahnya: kunci itu hanya bisa dibuka oleh `animationend` atau
+   `setTimeout`. Kalau KEDUANYA tidak jalan — tab di-background, laptop
+   ditutup, `prefers-reduced-motion` — kuncinya tersangkut SELAMANYA dan
+   navigasi mati total sampai halaman di-reload.
+
+   Itu bukan teori. Terbukti saat uji: timeline browser beku, dan klik
+   berikutnya tidak direspons sama sekali.
+
+   ── SOLUSI: IDEMPOTEN ────────────────────────────────────────────────────
+   Fungsi ini tidak menyimpan state transisi sama sekali. Ia hanya:
+
+     1. Bersihkan SEMUA layar dari class animasi
+     2. Set layar tujuan sebagai aktif + mainkan animasi masuk
+     3. Selesai
+
+   Klik beruntun aman karena setiap panggilan menghasilkan kondisi akhir
+   yang sama — tidak ada state yang bisa tersangkut. Class `masuk`/`keluar`
+   dibersihkan di AWAL panggilan berikutnya, jadi tidak menumpuk.
+
+   Tidak ada yang perlu dibuka. Tidak ada yang bisa macet.
+   ══════════════════════════════════════════════════════════════════════════ */
+function pindah(ke) {
+  if (ke === aktif) return;
+
+  // ── 1. BERSIHKAN SEMUA ──────────────────────────────────────────────────
+  // Termasuk layar yang sedang beranimasi dari klik sebelumnya. Ini yang
+  // membuat klik beruntun tidak menumpuk class.
+  for (const l of layar) l.classList.remove('masuk', 'keluar', 'aktif');
+
+  // ── 2. AKTIFKAN TUJUAN ──────────────────────────────────────────────────
+  const keLayar = layar[ke];
+  // `offsetWidth` memaksa browser menghitung ulang layout, sehingga animasi
+  // dimulai dari awal — bukan dilanjutkan dari posisi terakhir. Tanpa ini,
+  // membuka layar yang sama dua kali tidak akan menganimasikan apa pun.
+  void keLayar.offsetWidth;
+  keLayar.classList.add('aktif', 'masuk');
+
+  // ── 3. HAPUS CLASS ANIMASI SETELAH SELESAI ──────────────────────────────
+  // Ini HANYA pembersihan kosmetik — kalau tidak jalan (tab di-background),
+  // tidak ada yang rusak: class akan dibersihkan di awal panggilan berikutnya.
+  //
+  // Berbeda dari versi pertama, tidak ada state yang bergantung padanya.
+  keLayar.addEventListener('animationend', () => {
+    keLayar.classList.remove('masuk');
+  }, { once: true });
+
+  tombol.forEach((b, i) => b.classList.toggle('aktif', i === ke));
+  aktif = ke;
+}
+
+tombol.forEach(b => {
+  b.addEventListener('click', () => pindah(Number(b.dataset.layar)));
+});
+
+// Dukungan keyboard — panah kiri/kanan
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') pindah(Math.min(aktif + 1, layar.length - 1));
+  if (e.key === 'ArrowLeft')  pindah(Math.max(aktif - 1, 0));
+});
+</script>
+
+</body>
+</html>
