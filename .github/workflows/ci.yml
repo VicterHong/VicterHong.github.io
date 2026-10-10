@@ -54,13 +54,25 @@ jobs:
 
       - name: Pastikan berkas discovery tidak berubah (sudah di-commit)
         run: |
-          if ! git diff --quiet sitemap.xml robots.txt llms.txt; then
-            echo "::error::sitemap.xml / robots.txt / llms.txt belum diperbarui."
-            echo "Jalankan: npm run discovery  lalu commit hasilnya."
-            git diff --stat sitemap.xml robots.txt llms.txt
-            exit 1
-          fi
-          echo "✓ berkas discovery sinkron"
+          # sitemap.xml memuat <lastmod> yang diisi TANGGAL HARI INI oleh
+          # generator. Membandingkan berkas mentah berarti check ini GAGAL
+          # setiap hari setelah commit — bahkan saat tidak ada konten yang
+          # berubah. Jadi tanggal dinormalisasi dulu; yang dibandingkan
+          # adalah isinya (daftar URL, aturan robots, teks llms).
+          norm() { sed -E 's#<lastmod>[0-9]{4}-[0-9]{2}-[0-9]{2}</lastmod>#<lastmod>TANGGAL</lastmod>#g'; }
+
+          gagal=0
+          for f in sitemap.xml robots.txt llms.txt; do
+            norm < "$f" > "/tmp/sekarang.$f"
+            git show "HEAD:$f" | norm > "/tmp/head.$f"
+            if ! diff -q "/tmp/sekarang.$f" "/tmp/head.$f" > /dev/null; then
+              echo "::error::$f belum diperbarui — jalankan: npm run discovery lalu commit hasilnya."
+              diff "/tmp/sekarang.$f" "/tmp/head.$f" | head -40 || true
+              gagal=1
+            fi
+          done
+          if [ "$gagal" -ne 0 ]; then exit 1; fi
+          echo "✓ berkas discovery sinkron (tanggal lastmod diabaikan)"
 
   # ── 3. Validasi HTML & tautan penting ──────────────────────────────────────
   html-check:
