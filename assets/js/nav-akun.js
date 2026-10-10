@@ -64,7 +64,7 @@
    *     <div class="nav-akun-menu" hidden>
    *       <div class="nav-akun-kepala">email</div>
    *       <a href="/keamanan">Profil saya</a>
-   *       <a href="/keamanan#cara-masuk">Cara masuk</a>
+   *       <a href="/keamanan#panelMasuk">Cara masuk</a>
    *       <button>Keluar</button>
    *     </div>
    *   </div>
@@ -127,9 +127,16 @@
 
     // Tautan menu. "Profil saya" menuju halaman yang sudah ada (/keamanan),
     // yang menampilkan profil + cara masuk dalam satu tempat.
+    //
+    // ── KENAPA #panelMasuk, BUKAN #cara-masuk ──────────────────────────────
+    // Halaman /keamanan menyimpan tab yang sedang dibuka di location.hash,
+    // dan nilainya adalah ID PANEL (mis. `panelMasuk`), bukan ID bagian lama.
+    // Tautan lama `/keamanan#cara-masuk` tidak cocok dengan elemen mana pun,
+    // jadi halaman jatuh ke tab PERTAMA (Profil) — pengguna mengklik
+    // "Cara masuk" tapi mendarat di tab yang salah, tanpa pesan apa pun.
     for (const [teks, href] of [
       ['Profil saya', '/keamanan'],
-      ['Cara masuk', '/keamanan#cara-masuk'],
+      ['Cara masuk', '/keamanan#panelMasuk'],
     ]) {
       const a = document.createElement('a');
       a.className = 'nav-akun-tautan';
