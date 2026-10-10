@@ -261,8 +261,18 @@ html, body {
  */
 .auth-input {
   width: 100%;
+  /* ── TINGGI SERAGAM 44px DI SELURUH HALAMAN AUTH ─────────────────────────
+   * Sebelumnya tiap kontrol tingginya berbeda: SSO 44px (min-height), input
+   * 45px (11px padding + 15px font), submit 47px (13px padding), passkey/SSO
+   * 42px (11px padding + 14px font). Selisihnya 2-5px — kecil, tapi terlihat
+   * saat kontrolnya bertumpuk vertikal: tepinya tidak sejajar, dan halaman
+   * terbaca "belum dirapikan" tanpa pengguna tahu kenapa.
+   *
+   * Sekarang semuanya memakai --tinggi-input. Satu nilai, satu tinggi.
+   * Padding vertikal dihapus karena `min-height` + `place-items: center`
+   * sudah memusatkan teksnya tanpa bergantung pada perhitungan padding. */
   min-height: var(--tinggi-input);
-  padding: 11px 14px;
+  padding: 0 14px;
   font-family: inherit;
   font-size: 15px;
   color: var(--teks);
@@ -290,7 +300,11 @@ html, body {
   background: rgba(0, 0, 0, 0.32);
   border-radius: var(--radius-input);
   min-height: var(--tinggi-input);
-  padding: 12px 14px;
+  /* Padding vertikal 0 — tinggi ditentukan min-height, sama seperti input
+   * tanpa pembungkus. Dengan padding 12px, tinggi jadinya 45px (12+12+15
+   * font+2 border) sementara tombol 44px — selisih 1px yang membuat tepi
+   * input dan tombol tidak sejajar. */
+  padding: 0 14px;
 }
 
 /* Ikon perlu ruang kiri; tombol reveal perlu ruang kanan. */
@@ -483,7 +497,16 @@ select.auth-input {
   background: var(--permukaan);
   border: 1px solid var(--garis);
   border-radius: var(--radius-kartu);
-  padding: 32px;
+  /* ── 26px, BUKAN 32px ────────────────────────────────────────────────────
+   * Diukur pada kartu 400px: padding 32px menyisakan 336px untuk kontrol, dan
+   * dengan 7 blok bertumpuk (provider, divider, 2 field, turnstile, checkbox,
+   * 3 tombol) kartunya mencapai 851px tinggi — rasio 2.13:1, jauh lebih
+   * "menetes" daripada kartu Clerk (~500-600px).
+   *
+   * 26px mengembalikan 12px ruang vertikal tanpa membuat kontrolnya mepet ke
+   * tepi: jarak terkecil (26px) masih lebih besar dari gap antar-blok (14px),
+   * jadi batas kartu tetap terbaca sebagai batas. */
+  padding: 26px;
 
   /* ── BAYANGAN SATU LAPIS, LEMBUT ────────────────────────────────────────────
      Sebelumnya tiga bayangan bertumpuk + inset highlight + backdrop-filter.
@@ -599,7 +622,10 @@ select.auth-input {
 
 /* ══ Formulir ══════════════════════════════════════════════════════════════ */
 
-.auth-form { display: grid; gap: 16px; }
+/* Gap 14px, bukan 16px: diukur pada kartu yang punya 7 blok bertumpuk,
+ * 2px × 6 celah = 12px tinggi yang dikembalikan tanpa membuat bloknya
+ * berdesakan. Angka ini tetap pada skala 2px yang sama dengan sisa halaman. */
+.auth-form { display: grid; gap: 14px; }
 
 .auth-field { display: grid; gap: 7px; }
 
@@ -1318,7 +1344,10 @@ select.auth-input {
   display: grid;
   place-items: center;
   width: 100%;
-  padding: 13px 20px;
+  /* Tinggi seragam dengan input dan tombol provider — lihat catatan di
+   * .auth-input. Padding vertikal dihapus, min-height yang menentukan. */
+  min-height: var(--tinggi-input);
+  padding: 0 20px;
   font-family: inherit;
   font-size: 15px;
   font-weight: 600;
@@ -1596,7 +1625,9 @@ select.auth-input {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 11px 16px;
+  /* Tinggi seragam — lihat catatan di .auth-input. */
+  min-height: var(--tinggi-input);
+  padding: 0 16px;
   margin-bottom: 9px;
   font-family: inherit;
   font-size: 14px;
