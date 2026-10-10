@@ -263,16 +263,48 @@
   border: 1px solid var(--emas-garis);
 }
 
-/* ── Tombol hapus ────────────────────────────────────────────────────────────
-   Redup sampai kursor mendekat. Aksi merusak tidak boleh menonjol — pengguna
-   harus MEMILIH untuk menghapus, bukan tidak sengaja mengklik. */
+/* ── Tombol hapus / cabut ────────────────────────────────────────────────────
+ *
+ * ── DUA HAL YANG HARUS SEIMBANG ─────────────────────────────────────────────
+ * Aksi merusak (hapus passkey, cabut sesi) tidak boleh menonjol — pengguna
+ * harus MEMILIH untuk melakukannya, bukan tidak sengaja mengklik.
+ *
+ * Tapi "tidak menonjol" BUKAN "tidak terbaca sebagai tombol". Versi pertama
+ * memakai --teks-samar (#71717a) yang hanya mencapai kontras 3.91:1 terhadap
+ * latar kartu — di bawah ambang WCAG AA (4.5:1). Hasilnya terbaca seperti
+ * teks biasa yang kebetulan bisa diklik: pengguna yang ingin mencabut sesi
+ * asing tidak tahu bahwa itu bisa ditekan.
+ *
+ * ── KENAPA --teks-redup (#a1a1aa) ───────────────────────────────────────────
+ * Kontras 7.38:1 — lolos AA dengan margin. Masih jauh lebih redup dari teks
+ * utama (17.21:1) dan dari --galat (6.84:1), jadi hierarkinya tetap:
+ * teks utama > tombol > aksi merusak saat disorot.
+ *
+ * Warna MERAH tetap hanya muncul saat hover/focus. Itu yang membedakan
+ * "tersedia untuk dipilih" dari "sedang dipilih".
+ *
+ * ── KENAPA LATAR SAMAR, BUKAN BORDER TERANG ─────────────────────────────────
+ * Percobaan kedua memakai border --garis (alpha 0.09). Diukur terhadap latar
+ * kartu, border itu hanya mencapai kontras 1.28:1 — jauh di bawah ambang
+ * WCAG 1.4.11 (3:1) untuk batas komponen antarmuka. Tombolnya tetap terbaca
+ * seperti teks lepas.
+ *
+ * Menaikkan alpha sampai 0.35 baru mencapai 3.22:1 — tapi itu membuat tombol
+ * aksi-merusak jadi salah satu elemen paling terang di kartu. Terlalu
+ * menonjol untuk tindakan yang justru ingin dihindari pengguna.
+ *
+ * Jadi bukan bordernya yang dikuatkan, tapi BENTUKNYA yang diisi: latar
+ * rgba(255,255,255,0.04) memberi tombol bidang yang terbaca, sementara
+ * warnanya tetap gelap. Ini pola yang dipakai GitHub untuk tombol sekunder
+ * di halaman settings — terlihat sebagai tombol, tapi tidak menuntut
+ * perhatian. */
 .kam-hapus {
   flex-shrink: 0;
   padding: 6px 10px;
-  border: 1px solid transparent;
+  border: 1px solid var(--garis);
   border-radius: 6px;
-  background: transparent;
-  color: var(--teks-samar);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--teks-redup);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -284,8 +316,8 @@
 .kam-hapus:hover,
 .kam-hapus:focus-visible {
   color: var(--galat);
-  border-color: rgba(248, 113, 113, 0.3);
-  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.12);
 }
 
 .kam-hapus:disabled {
