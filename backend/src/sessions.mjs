@@ -40,6 +40,7 @@ export function hashSession(id, secret) {
  */
 export function createSession({
   tokenId, secret, deviceFp = '', ip = '', country = '', userAgent = '',
+  kota = '', wilayah = '', asn = '', zonaWaktu = '',
   durationHours = 24, maxDevices = null,
 }) {
   const id = sessionId();
@@ -71,9 +72,17 @@ export function createSession({
     }
 
     getDb().prepare(`
-      INSERT INTO sessions (id, token_id, device_fp, ip, country, user_agent, created_at, last_seen, expires_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(hashSession(id, secret), tokenId, deviceFp, ip, country, userAgent, at, at, expiresAt);
+      INSERT INTO sessions (
+        id, token_id, device_fp, ip, country, user_agent,
+        kota, wilayah, asn, zona_waktu,
+        created_at, last_seen, expires_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      hashSession(id, secret), tokenId, deviceFp, ip, country, userAgent,
+      kota, wilayah, asn, zonaWaktu,
+      at, at, expiresAt,
+    );
   });
 
   return { id, expiresAt };

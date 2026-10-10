@@ -87,6 +87,57 @@ export async function onRequest(context) {
   const ipAsli = context.request.headers.get('CF-Connecting-IP') || '';
   if (ipAsli) headers.set('X-Client-IP', ipAsli);
 
+  // ── DATA GEO DARI CLOUDFLARE ────────────────────────────────────────────────
+  //
+  // ── KENAPA HARUS DITERUSKAN DI SINI ─────────────────────────────────────────
+  // Cloudflare menyediakan kota, wilayah, ASN, dan zona waktu di
+  // `context.request.cf` — GRATIS, di setiap request, tanpa API eksternal.
+  //
+  // Tapi backend tidak berjalan di jaringan Cloudflare: ia server Node biasa
+  // di balik tunnel. Objek `cf` tidak ikut menyeberang. Satu-satunya cara data
+  // ini sampai ke backend adalah MENYALINNYA ke header di sini, di hop tempat
+  // `cf` masih tersedia.
+  //
+  // ── KENAPA TIDAK MEMAKAI LAYANAN GEO PIHAK KETIGA ───────────────────────────
+  // MaxMind/ipinfo memberi kota yang lebih presisi, tapi menambah dependensi
+  // eksternal pada jalur kritis login: kalau layanan itu lambat atau down,
+  // login ikut terganggu. Data Cloudflare sudah cukup untuk menjawab
+  // pertanyaan sebenarnya pengguna: "apakah ini dari kota yang masuk akal?"
+  //
+  // ── NILAI BISA KOSONG, DAN ITU WAJAR ────────────────────────────────────────
+  // `cf` bisa tidak ada (build lokal, domain non-Cloudflare), dan setiap
+  // fieldnya bisa kosong. Header hanya diset kalau nilainya ada — backend
+  // memperlakukan header yang tidak ada sebagai string kosong.
+  const cf = context.request.cf ?? {};
+  const setGeo = (header, nilai) => {
+    if (typeof nilai === 'string' && nilai.trim()) {
+      // Dipotong 80 karakter: nilai ini disimpan ke database, dan tanpa batas
+      // satu request bisa menulis nilai yang sangat panjang.
+      headers.set(header, nilai.trim().slice(0, 80));
+    }
+  };
+
+  // ── PREFIX X-, BUKAN CF- ────────────────────────────────────────────────────
+  //
+  // ── KENAPA BUKAN `CF-*` ─────────────────────────────────────────────────────
+  // Rantai permintaan punya EMPAT hop:
+  //   browser -> pages.dev -> workers.dev -> tunnel -> backend
+  //
+  // Cloudflare MEMBERSIHKAN header berawalan `CF-` di setiap hop fetch() antar
+  // domain — ia menganggapnya miliknya sendiri. Yang sudah terbukti bertahan
+  // adalah `X-Client-IP` (lihat http-util.mjs, komentarnya mencatat hal yang
+  // sama untuk IP).
+  //
+  // Jadi data geo dikirim dengan prefix `X-` supaya tidak dibersihkan di hop
+  // berikutnya. Ini BUKAN pilihan gaya: header `CF-*` sampai di backend sebagai
+  // kosong, dan itu sudah diuji.
+  setGeo('X-Geo-City', cf.city);
+  setGeo('X-Geo-Region', cf.region);
+  setGeo('X-Geo-ASN', cf.asn != null ? String(cf.asn) : '');
+  setGeo('X-Geo-Timezone', cf.timezone);
+  setGeo('X-Geo-Org', cf.asOrganization);
+  setGeo('X-Geo-Country', cf.country);
+
   const init = {
     method: context.request.method,
     headers,

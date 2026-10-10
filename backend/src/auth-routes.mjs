@@ -30,7 +30,7 @@
 import { createHash } from 'node:crypto';
 import { config } from './config.mjs';
 import { getDb } from './db.mjs';
-import { sendJson, setCookie, clientIp, clientCountry, readJson, bacaBodyBiner } from './http-util.mjs';
+import { sendJson, setCookie, clientIp, clientCountry, clientGeo, readJson, bacaBodyBiner } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
 // mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
@@ -193,6 +193,12 @@ function buatSesiUntuk(res, req, pengguna, { tujuan = '/' } = {}) {
     tokenRow = getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(diterbitkan.id);
   }
 
+  // ── GEO DISIMPAN SAAT SESI DIBUAT ─────────────────────────────────────────
+  // Data ini hanya tersedia saat request berlangsung (header Cloudflare).
+  // Kalau tidak disimpan sekarang, ia hilang — dan halaman Sesi aktif harus
+  // melakukan lookup eksternal setiap kali dibuka untuk mendapatkannya lagi.
+  const geo = clientGeo(req);
+
   const sesi = createSession({
     tokenId: tokenRow.id,
     secret: config.secret,
@@ -200,6 +206,10 @@ function buatSesiUntuk(res, req, pengguna, { tujuan = '/' } = {}) {
     ip: clientIp(req),
     country: clientCountry(req),
     userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+    kota: geo.kota,
+    wilayah: geo.wilayah,
+    asn: geo.asn,
+    zonaWaktu: geo.zonaWaktu,
     durationHours: config.sessionDurationHours,
     maxDevices: tokenRow.max_devices ?? config.maxDevices,
   });
@@ -1071,6 +1081,28 @@ function parseCookiesLokal(req) {
  * Kalau tidak dikenali, kembalikan string kosong — lebih baik tidak
  * menampilkan apa pun daripada "Perangkat tidak dikenal" yang tidak membantu.
  */
+/**
+ * Jenis perangkat dari User-Agent: 'ponsel', 'tablet', atau 'komputer'.
+ *
+ * ── KENAPA TERPISAH DARI namaPerangkat() ────────────────────────────────────
+ * UI memakai ini untuk MEMILIH IKON, dan ikon butuh satu dari tiga nilai
+ * yang pasti — bukan string bebas. Menggabungkannya dengan namaPerangkat()
+ * berarti UI harus menebak jenis dari teks ("apakah 'Chrome di Android'
+ * berarti ponsel atau tablet?") — dan tebakan itu salah untuk tablet.
+ *
+ * Urutan pengecekan penting: iPad modern melaporkan diri sebagai "Macintosh"
+ * di User-Agent-nya (Safari desktop mode), jadi iPad harus dicek SEBELUM Mac.
+ */
+function jenisPerangkat(ua) {
+  const s = String(ua || '');
+  if (!s) return 'komputer';
+  if (/iPad|Tablet|PlayBook|Silk/i.test(s)) return 'tablet';
+  if (/iPhone|iPod|Android.*Mobile|Windows Phone|BlackBerry|Opera Mini/i.test(s)) return 'ponsel';
+  // Android tanpa "Mobile" biasanya tablet.
+  if (/Android/i.test(s)) return 'tablet';
+  return 'komputer';
+}
+
 function namaPerangkat(ua) {
   const s = String(ua || '');
   if (!s) return '';
@@ -1415,7 +1447,8 @@ function ruteSso() {
         if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
 
         const rows = getDb().prepare(`
-          SELECT id, device_fp, ip, country, user_agent, created_at, last_seen, expires_at
+          SELECT id, device_fp, ip, country, user_agent, kota, wilayah, asn, zona_waktu,
+                 created_at, last_seen, expires_at
           FROM sessions
           WHERE token_id = ? AND expires_at > ?
           ORDER BY last_seen DESC
@@ -1447,10 +1480,23 @@ function ruteSso() {
             // Pengenal pendek untuk tombol cabut — BUKAN kunci masuk.
             pengenal: pengenalSesi(r.id),
             sekarang: Boolean(hashSesiIni) && r.id === hashSesiIni,
+
             perangkat: namaPerangkat(r.user_agent),
-            user_agent: String(r.user_agent || '').slice(0, 160),
+            // Dipakai UI untuk memilih ikon. Selalu salah satu dari tiga
+            // nilai, tidak pernah kosong — supaya UI tidak perlu menebak.
+            jenis: jenisPerangkat(r.user_agent),
+
             ip: r.ip || '',
             negara: r.country || '',
+            // Kota/wilayah dari Cloudflare. Kosong untuk sesi lama yang
+            // dibuat sebelum kolom ini ada — UI menampilkannya sebagai
+            // "Lokasi tidak diketahui", bukan mengarang nilai.
+            kota: r.kota || '',
+            wilayah: r.wilayah || '',
+            // Nomor ASN telanjang ("7713"). UI menambahkan awalan "AS".
+            asn: r.asn || '',
+            zona_waktu: r.zona_waktu || '',
+
             dibuat_pada: r.created_at,
             terakhir_aktif: r.last_seen,
             kedaluwarsa_pada: r.expires_at,

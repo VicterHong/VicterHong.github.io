@@ -528,6 +528,17 @@ function migrate(handle) {
     }
   };
 
+  // ── KOLOM GEO SESI ────────────────────────────────────────────────────────
+  //
+  // Sesi yang dibuat SEBELUM kolom ini ada akan punya nilai kosong — dan itu
+  // memang benar: datanya tidak pernah tersimpan, jadi tidak ada yang bisa
+  // dipulihkan. UI menanganinya dengan "Lokasi tidak diketahui" alih-alih
+  // mengarang nilai.
+  addColumn('sessions', 'kota', "TEXT NOT NULL DEFAULT ''");
+  addColumn('sessions', 'wilayah', "TEXT NOT NULL DEFAULT ''");
+  addColumn('sessions', 'asn', "TEXT NOT NULL DEFAULT ''");
+  addColumn('sessions', 'zona_waktu', "TEXT NOT NULL DEFAULT ''");
+
   // A8: status moderasi komentar.
   // Baris LAMA diisi 'approved' — komentar yang sudah tayang sebelum
   // moderasi ada tidak boleh tiba-tiba hilang dari halaman. Yang baru

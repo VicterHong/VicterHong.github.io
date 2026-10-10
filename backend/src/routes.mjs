@@ -78,7 +78,7 @@ import {
   hapusCookieClearance, bacaCookieClearance, GATE_TTL_SECONDS,
 } from './gate.mjs';
 import {
-  applyCors, clientCountry, clientIp, ipBucket, extractToken, handlePreflight,
+  applyCors, clientCountry, clientGeo, clientIp, ipBucket, extractToken, handlePreflight,
   readJson, readBody, sendJson, parseCookies, setCookie, clearCookie,
 } from './http-util.mjs';
 import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
@@ -1101,6 +1101,8 @@ export const routes = [
       const country = clientCountry(req);
       const deviceFp = String(body.device_fp ?? '').slice(0, 200);
 
+      // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
+      const geo = clientGeo(req);
       const session = createSession({
         tokenId: row.id,
         secret: config.secret,
@@ -1108,6 +1110,10 @@ export const routes = [
         ip,
         country,
         userAgent,
+        kota: geo.kota,
+        wilayah: geo.wilayah,
+        asn: geo.asn,
+        zonaWaktu: geo.zonaWaktu,
         durationHours: config.sessionDurationHours,
         maxDevices: row.max_devices ?? config.maxDevices,
       });
@@ -1260,6 +1266,8 @@ export const routes = [
       const country = clientCountry(req);
       const deviceFp = String(body.device_fp ?? '').slice(0, 200);
 
+      // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
+      const geo = clientGeo(req);
       const session = createSession({
         tokenId: row.id,
         secret: config.secret,
@@ -1267,6 +1275,10 @@ export const routes = [
         ip,
         country,
         userAgent,
+        kota: geo.kota,
+        wilayah: geo.wilayah,
+        asn: geo.asn,
+        zonaWaktu: geo.zonaWaktu,
         durationHours: config.sessionDurationHours,
         maxDevices: row.max_devices ?? config.maxDevices,
       });
@@ -1546,6 +1558,8 @@ export const routes = [
         return sendJson(res, 500, { ok: false, error: 'identitas_hilang', message: 'Identitas akun tidak ditemukan. Hubungi admin.' });
       }
 
+      // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
+      const geo = clientGeo(req);
       const session = createSession({
         tokenId: tokenRow.id,
         secret: config.secret,
@@ -1553,6 +1567,10 @@ export const routes = [
         ip: clientIp(req),
         country: clientCountry(req),
         userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        kota: geo.kota,
+        wilayah: geo.wilayah,
+        asn: geo.asn,
+        zonaWaktu: geo.zonaWaktu,
         durationHours: config.sessionDurationHours,
         maxDevices: tokenRow.max_devices ?? config.maxDevices,
       });
@@ -1642,11 +1660,17 @@ export const routes = [
       const tokenRow = getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(user.token_id);
       if (!tokenRow) return sendJson(res, 500, { ok: false, error: 'identitas_hilang', message: 'Identitas akun tidak ditemukan.' });
 
+      // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
+      const geo = clientGeo(req);
       const session = createSession({
         tokenId: tokenRow.id, secret: config.secret,
         deviceFp: String(body.device_fp ?? '').slice(0, 200),
         ip: clientIp(req), country: clientCountry(req),
         userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        kota: geo.kota,
+        wilayah: geo.wilayah,
+        asn: geo.asn,
+        zonaWaktu: geo.zonaWaktu,
         durationHours: config.sessionDurationHours,
         maxDevices: tokenRow.max_devices ?? config.maxDevices,
       });

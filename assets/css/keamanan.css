@@ -1349,3 +1349,66 @@
   color: var(--teks-redup);
   max-width: 62ch;
 }
+
+/* ══ BARIS META SESI: IKON + TEKS ═════════════════════════════════════════════
+ *
+ * ── KENAPA IKON DI SETIAP BARIS ──────────────────────────────────────────────
+ * Kartu sesi menampilkan empat fakta berbeda: perangkat, lokasi, jaringan, dan
+ * waktu. Tanpa ikon, keempatnya terbaca sebagai satu blok teks abu-abu yang
+ * harus dibaca kata per kata untuk dipilah.
+ *
+ * Ikon di awal baris membuat JENIS informasi terbaca sebelum isinya dibaca —
+ * itu yang membuat daftar bisa dipindai cepat. Pola ini dipakai GitHub, Google,
+ * dan Stripe di halaman sesi mereka.
+ *
+ * ── KENAPA LEBAR IKON DIPATOK 16px ───────────────────────────────────────────
+ * Tanpa lebar tetap, ikon dengan bentuk berbeda (pin vs jam) menghasilkan
+ * panjang yang berbeda, dan teksnya jadi tidak rata kiri. 16px adalah ukuran
+ * ikon terkecil yang masih terbaca jelas, dan cukup untuk menampung semua
+ * glyph di set Phosphor.
+ *
+ * ── KENAPA IKON LEBIH REDUP DARI TEKSNYA ─────────────────────────────────────
+ * Ikon adalah penanda jenis, bukan isi. Kalau ia seterang teksnya, mata akan
+ * berhenti di ikon dulu — padahal yang dicari pengguna adalah teksnya.
+ * `--teks-samar` membuatnya terbaca sebagai penanda tanpa menuntut perhatian.
+ */
+.kam-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--teks-redup);
+}
+
+/* Baris pertama meta diberi jarak dari judul; sisanya rapat satu sama lain
+ * supaya keempatnya terbaca sebagai satu kelompok, bukan empat baris lepas. */
+.kam-item-judul + .kam-meta { margin-top: 8px; }
+.kam-meta + .kam-meta { margin-top: 4px; }
+
+.kam-meta-ikon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  /* 1px turun: ikon 16px duduk sedikit lebih tinggi dari x-height teks 12.5px,
+   * dan tanpa penyesuaian ini ikonnya terlihat melayang di atas barisnya. */
+  margin-top: 1px;
+  color: var(--teks-samar);
+}
+
+/* ── KENAPA TEKSNYA BOLEH MEMBUNGKUS ──────────────────────────────────────────
+ * Alamat IP IPv6 panjangnya bisa 39 karakter. Dengan `nowrap` ia akan mendorong
+ * kartu melebar atau terpotong — dua-duanya merusak tata letak di ponsel.
+ * `overflow-wrap: anywhere` membuatnya membungkus di titik mana pun, termasuk
+ * di tengah alamat, yang memang satu-satunya pilihan untuk string tanpa spasi.
+ *
+ * `min-width: 0` wajib: tanpa itu, item flex tidak mau menyusut di bawah lebar
+ * kontennya, dan `overflow-wrap` tidak akan pernah aktif. */
+.kam-meta-teks {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

@@ -228,6 +228,64 @@ export function clientCountry(req) {
   return typeof c === 'string' ? c.trim() : '';
 }
 
+/**
+ * Data geografi dari header Cloudflare.
+ *
+ * ── KENAPA DARI HEADER, BUKAN DARI API GEO ─────────────────────────────────
+ * Cloudflare sudah menghitung ini di setiap request — gratis, tanpa panggilan
+ * jaringan tambahan, tanpa API key, tanpa batas kuota. Yang perlu dilakukan
+ * hanya membaca headernya.
+ *
+ * Layanan geo pihak ketiga (MaxMind, ipinfo) memberi kota yang lebih presisi,
+ * tapi menambah dependensi eksternal pada jalur kritis login — dan itu berarti
+ * login gagal saat layanan itu sedang down.
+ *
+ * ── KENAPA SEMUA NILAI OPSIONAL ────────────────────────────────────────────
+ * Header ini HANYA ada kalau request melewati Cloudflare. Di server uji lokal
+ * tidak ada satu pun, dan itu bukan kesalahan — pemanggil harus tetap bekerja
+ * dengan nilai kosong. Setiap pembacaan mengembalikan string kosong, bukan
+ * undefined, supaya tidak perlu penanganan khusus di pemanggil.
+ *
+ * ── KENAPA DIPOTONG 80 KARAKTER ────────────────────────────────────────────
+ * Nilai ini datang dari header HTTP, yang bisa dikirim siapa saja. Tanpa
+ * batas, satu request bisa menulis nilai sepanjang megabyte ke database —
+ * pengisian disk yang tidak perlu. 80 karakter jauh lebih dari cukup untuk
+ * nama kota atau organisasi terpanjang yang wajar.
+ *
+ * @returns {{kota: string, wilayah: string, asn: string, zonaWaktu: string}}
+ */
+export function clientGeo(req) {
+  const ambil = (nama) => {
+    const v = req.headers[nama];
+    return typeof v === 'string' ? v.trim().slice(0, 80) : '';
+  };
+
+  // ── URUTAN PEMBACAAN: X- DULU, LALU CF- ─────────────────────────────────────
+  //
+  // `X-Geo-*` adalah header yang DISET functions/[[path]].js — sudah terbukti
+  // bertahan melewati rantai empat hop (browser -> pages.dev -> workers.dev ->
+  // tunnel -> backend).
+  //
+  // `cf-*` dibaca sebagai cadangan: kalau backend suatu saat diakses langsung
+  // lewat Cloudflare tanpa melewati Functions, header aslinya tersedia.
+  //
+  // Membaca keduanya berarti kedua jalur berfungsi, dan tidak ada yang perlu
+  // diubah kalau topologinya berubah.
+  const ambilDua = (x, cf) => ambil(x) || ambil(cf);
+
+  return {
+    kota: ambilDua('x-geo-city', 'cf-ipcity'),
+    wilayah: ambilDua('x-geo-region', 'cf-region'),
+    // Cloudflare mengirim ASN sebagai angka telanjang ("7713").
+    asn: ambilDua('x-geo-asn', 'cf-asn'),
+    // Zona waktu IANA (mis. "Asia/Jakarta"). Lebih berguna daripada offset
+    // karena menyebut WILAYAHNYA, bukan hanya selisih jam.
+    zonaWaktu: ambilDua('x-geo-timezone', 'cf-timezone'),
+    // Negara ikut dibaca di sini supaya satu sumber untuk semua geo.
+    negara: ambilDua('x-geo-country', 'cf-ipcountry'),
+  };
+}
+
 /** Ambil token dari header atau body. */
 export function extractToken(req, body = {}) {
   const header = req.headers['x-project-token'];

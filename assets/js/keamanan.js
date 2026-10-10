@@ -610,11 +610,27 @@
     desktop: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24h72v16H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V200h72a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40ZM48,56H208a8,8,0,0,1,8,8v80H40V64A8,8,0,0,1,48,56ZM208,184H48a8,8,0,0,1-8-8V160H216v16A8,8,0,0,1,208,184Z"/></svg>',
   };
 
-  /** Pilih ikon dari nama perangkat yang sudah diurai server. */
-  function ikonPerangkat(nama) {
-    const s = String(nama || '').toLowerCase();
-    if (s.includes('ios') || s.includes('android')) return IKON_PERANGKAT.ponsel;
+  /**
+   * Pilih ikon perangkat.
+   *
+   * ── KENAPA MENERIMA `jenis` DULU, BUKAN MENEBAK DARI TEKS ──────────────────
+   * Server sekarang mengirim `jenis` ('ponsel' | 'tablet' | 'komputer') yang
+   * dihitung dari User-Agent. Itu lebih akurat daripada menebak dari teks
+   * perangkat: "Chrome di Android" bisa berarti ponsel ATAU tablet, dan
+   * menebaknya dari kata "Android" akan salah untuk tablet.
+   *
+   * Tebakan dari teks tetap ada sebagai cadangan untuk sesi lama yang dibuat
+   * sebelum `jenis` dikirim server.
+   */
+  function ikonPerangkat(jenisAtauNama) {
+    const s = String(jenisAtauNama || '').toLowerCase();
+    // Jalur utama: nilai pasti dari server.
+    if (s === 'ponsel') return IKON_PERANGKAT.ponsel;
+    if (s === 'tablet') return IKON_PERANGKAT.tablet;
+    if (s === 'komputer') return IKON_PERANGKAT.desktop;
+    // Cadangan: tebak dari teks nama perangkat (sesi lama).
     if (s.includes('ipad') || s.includes('tablet')) return IKON_PERANGKAT.tablet;
+    if (s.includes('ios') || s.includes('android')) return IKON_PERANGKAT.ponsel;
     return IKON_PERANGKAT.desktop;
   }
 
@@ -642,6 +658,113 @@
     const bulan = Math.round(hari / 30);
     if (bulan < 12) return `${bulan} bulan lalu`;
     return `${Math.round(bulan / 12)} tahun lalu`;
+  }
+
+  // ══ IKON META SESI ══════════════════════════════════════════════════════════
+  //
+  // ── KENAPA IKON PER BARIS, BUKAN SATU IKON PER KARTU ───────────────────────
+  // Sebelumnya kartu sesi hanya punya satu ikon perangkat di kiri, dan sisanya
+  // teks polos bertumpuk. Akibatnya mata harus MEMBACA setiap baris untuk tahu
+  // baris itu tentang apa — lokasi? waktu? alamat IP?
+  //
+  // Dengan ikon di awal tiap baris, jenis informasinya terbaca sebelum teksnya
+  // dibaca. Itu yang membuat daftar panjang bisa dipindai cepat, dan itu pola
+  // yang dipakai GitHub, Google, dan Stripe di halaman sesi mereka.
+  //
+  // ── SUMBER: PHOSPHOR (MIT) ─────────────────────────────────────────────────
+  // Jalur di bawah diambil apa adanya dari @phosphor-icons/core@2.1.1. Tidak
+  // digambar sendiri — ikon buatan sendiri tidak akan konsisten dengan 20 ikon
+  // Phosphor lain yang sudah dipakai di halaman ini.
+  const IKON_META = {
+    lokasi:   '<svg viewBox="0 0 256 256" fill="currentColor" width="14" height="14" aria-hidden="true" focusable="false"><path d="M128,64a40,40,0,1,0,40,40A40,40,0,0,0,128,64Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,128Zm0-112a88.1,88.1,0,0,0-88,88c0,31.4,14.51,64.68,42,96.25a254.19,254.19,0,0,0,41.45,38.3,8,8,0,0,0,9.18,0A254.19,254.19,0,0,0,174,200.25c27.45-31.57,42-64.85,42-96.25A88.1,88.1,0,0,0,128,16Zm0,206c-16.53-13-72-60.75-72-118a72,72,0,0,1,144,0C200,161.23,144.53,209,128,222Z"/></svg>',
+    globe:    '<svg viewBox="0 0 256 256" fill="currentColor" width="14" height="14" aria-hidden="true" focusable="false"><path d="M128,24h0A104,104,0,1,0,232,128,104.12,104.12,0,0,0,128,24Zm88,104a87.61,87.61,0,0,1-3.33,24H174.16a157.44,157.44,0,0,0,0-48h38.51A87.61,87.61,0,0,1,216,128ZM102,168H154a115.11,115.11,0,0,1-26,45A115.27,115.27,0,0,1,102,168Zm-3.9-16a140.84,140.84,0,0,1,0-48h59.88a140.84,140.84,0,0,1,0,48ZM40,128a87.61,87.61,0,0,1,3.33-24H81.84a157.44,157.44,0,0,0,0,48H43.33A87.61,87.61,0,0,1,40,128ZM154,88H102a115.11,115.11,0,0,1,26-45A115.27,115.27,0,0,1,154,88Zm52.33,0H170.71a135.28,135.28,0,0,0-22.3-45.6A88.29,88.29,0,0,1,206.37,88ZM107.59,42.4A135.28,135.28,0,0,0,85.29,88H49.63A88.29,88.29,0,0,1,107.59,42.4ZM49.63,168H85.29a135.28,135.28,0,0,0,22.3,45.6A88.29,88.29,0,0,1,49.63,168Zm98.78,45.6a135.28,135.28,0,0,0,22.3-45.6h35.66A88.29,88.29,0,0,1,148.41,213.6Z"/></svg>',
+    bangunan: '<svg viewBox="0 0 256 256" fill="currentColor" width="14" height="14" aria-hidden="true" focusable="false"><path d="M240,208H224V96a16,16,0,0,0-16-16H144V32a16,16,0,0,0-24.88-13.32L39.12,72A16,16,0,0,0,32,85.34V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,96V208H144V96ZM48,85.34,128,32V208H48ZM112,112v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm-32,0v16a8,8,0,0,1-16,0V112a8,8,0,1,1,16,0Zm0,56v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Zm32,0v16a8,8,0,0,1-16,0V168a8,8,0,0,1,16,0Z"/></svg>',
+    sinyal:   '<svg viewBox="0 0 256 256" fill="currentColor" width="14" height="14" aria-hidden="true" focusable="false"><path d="M168,72V200a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm32-48a8,8,0,0,0-8,8V200a8,8,0,0,0,16,0V32A8,8,0,0,0,200,24Zm-80,80a8,8,0,0,0-8,8v88a8,8,0,0,0,16,0V112A8,8,0,0,0,120,104ZM80,144a8,8,0,0,0-8,8v48a8,8,0,0,0,16,0V152A8,8,0,0,0,80,144ZM40,184a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-8A8,8,0,0,0,40,184Z"/></svg>',
+    jam:      '<svg viewBox="0 0 256 256" fill="currentColor" width="14" height="14" aria-hidden="true" focusable="false"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></svg>',
+    kalender: '<svg viewBox="0 0 256 256" fill="currentColor" width="14" height="14" aria-hidden="true" focusable="false"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Zm-38.34-85.66a8,8,0,0,1,0,11.32l-48,48a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L116,164.69l42.34-42.35A8,8,0,0,1,169.66,122.34Z"/></svg>',
+  };
+
+  /**
+   * Baris meta dengan ikon: satu fakta per baris.
+   *
+   * ── KENAPA SATU FAKTA PER BARIS ────────────────────────────────────────────
+   * Menggabungkan lokasi, IP, dan ISP jadi satu baris panjang ("Jakarta, ID ·
+   * 103.179.248.92 · AS7713") membuat ketiganya harus dibaca bersamaan, padahal
+   * pengguna biasanya mencari SATU hal: "dari mana ini?" atau "kapan terakhir?".
+   *
+   * Memisahkannya berarti mata bisa melompat langsung ke baris yang dicari.
+   *
+   * ── KENAPA IKON DI DALAM SPAN TERPISAH ─────────────────────────────────────
+   * Ikon tidak boleh ikut terbaca screen reader (sudah `aria-hidden`), dan
+   * teksnya harus tetap satu simpul agar bisa disalin pengguna tanpa ikut
+   * membawa markup.
+   */
+  function barisMeta(ikonKunci, teks) {
+    const p = document.createElement('p');
+    p.className = 'kam-meta';
+    const i = document.createElement('span');
+    i.className = 'kam-meta-ikon';
+    i.setAttribute('aria-hidden', 'true');
+    i.innerHTML = IKON_META[ikonKunci] || '';
+    const t = document.createElement('span');
+    t.className = 'kam-meta-teks';
+    t.textContent = teks;
+    p.append(i, t);
+    return p;
+  }
+
+  /**
+   * Samarkan alamat IP agar tidak terbaca penuh.
+   *
+   * ── KENAPA DISAMARKAN ──────────────────────────────────────────────────────
+   * Halaman sesi sering dibuka di tempat yang bisa dilihat orang lain: kantor,
+   * kafe, layar bersama saat rapat. Alamat IP penuh adalah data yang bisa
+   * dipakai untuk melacak — dan yang dibutuhkan pengguna untuk MEMASTIKAN
+   * sebuah sesi biasanya cukup bagian awalnya saja.
+   *
+   * ── KENAPA BUKAN DISEMBUNYIKAN TOTAL ───────────────────────────────────────
+   * Membandingkan "apakah IP ini sama dengan yang saya ingat?" adalah cara
+   * utama pengguna memastikan sesi miliknya. Menyembunyikannya sepenuhnya
+   * menghapus kemampuan itu.
+   *
+   * Bagian awal dipertahankan karena itu yang membedakan antar jaringan;
+   * bagian akhir (yang menunjuk perangkat spesifik) disamarkan.
+   *
+   * IPv4: 103.179.248.92  → 103.179.•.• 
+   * IPv6: 2001:448a:80d2:: → 2001:448a:•
+   */
+  function ipSamar(ip) {
+    const s = String(ip || '').trim();
+    if (!s) return '';
+    // IPv6 dikenali dari titik dua. Hanya dua blok pertama yang ditampilkan —
+    // sisanya menunjuk ke perangkat spesifik.
+    if (s.includes(':')) {
+      const bagian = s.split(':').filter(Boolean);
+      if (bagian.length <= 2) return bagian.join(':');
+      return bagian.slice(0, 2).join(':') + ':••••';
+    }
+    const o = s.split('.');
+    if (o.length === 4) return `${o[0]}.${o[1]}.•.•`;
+    return s;
+  }
+
+  /**
+   * Susun lokasi dari data Cloudflare.
+   *
+   * ── KENAPA "Perkiraan" DISEBUT DI UI ───────────────────────────────────────
+   * Lokasi ini berasal dari IP, yang menunjuk titik keluar ISP — bukan
+   * perangkat. Pengguna di Jakarta dengan ISP yang egress-nya di Surabaya akan
+   * melihat "Surabaya".
+   *
+   * Menyebutnya "Lokasi" akan membuat selisih itu terbaca sebagai penyusupan.
+   * Menyebutnya "Perkiraan lokasi" membuat pengguna tahu bahwa selisih wajar.
+   */
+  function teksLokasi(x) {
+    const bagian = [x.kota, x.wilayah].filter(Boolean);
+    if (bagian.length) return bagian.join(', ');
+    // Negara saja masih berguna kalau kota tidak tersedia.
+    if (x.negara) return x.negara;
+    return '';
   }
 
   daftarPemuat('panelSesi', async () => {
@@ -678,11 +801,14 @@
       // tanpa perlu membaca lencananya.
       li.className = 'kam-item kam-item-sesi' + (x.sekarang ? ' is-sekarang' : '');
 
-      // ── IKON ────────────────────────────────────────────────────────────────
+      // ── IKON PERANGKAT ──────────────────────────────────────────────────────
       const ikon = document.createElement('span');
       ikon.className = 'kam-ikon kam-ikon-perangkat';
       ikon.setAttribute('aria-hidden', 'true');
-      ikon.innerHTML = ikonPerangkat(x.perangkat);
+      // `x.jenis` dari server: 'ponsel' | 'tablet' | 'komputer'. Memakai ini
+      // (bukan menebak dari teks perangkat) berarti tablet tidak salah dapat
+      // ikon ponsel.
+      ikon.innerHTML = ikonPerangkat(x.jenis || x.perangkat);
 
       const isi = document.createElement('div');
       isi.className = 'kam-item-isi';
@@ -691,34 +817,56 @@
       judul.className = 'kam-item-judul';
       judul.textContent = x.perangkat || 'Perangkat tidak dikenal';
 
-      // ── META BARIS 1: lokasi ────────────────────────────────────────────────
-      // Negara dan IP dipisah dari waktu: keduanya menjawab "dari mana?", dan
-      // pertanyaan itu berbeda dari "kapan?". Menggabungnya jadi satu baris
-      // panjang membuat keduanya lebih lambat dibaca.
-      const lokasi = document.createElement('p');
-      lokasi.className = 'kam-item-ket';
-      lokasi.textContent = [x.negara, x.ip].filter(Boolean).join(' · ') || 'Lokasi tidak diketahui';
+      isi.append(judul);
 
-      // ── META BARIS 2: waktu ─────────────────────────────────────────────────
-      const waktu = document.createElement('p');
-      waktu.className = 'kam-item-ket kam-item-ket-waktu';
-      if (x.terakhir_aktif) {
-        const relatif = waktuRelatif(x.terakhir_aktif);
-        // ── KENAPA RELATIF *DAN* ABSOLUT ────────────────────────────────────
-        // Relatif menjawab "apakah ini baru?" — pertanyaan yang membawa
-        // pengguna ke sini. Absolut menjawab "tepatnya kapan?" — yang
-        // dibutuhkan saat ia sudah memutuskan untuk menyelidiki. GitHub
-        // menampilkan keduanya, dan keduanya memang menjawab pertanyaan
-        // berbeda. Menyembunyikan yang absolut di tooltip saja berarti
-        // pengguna ponsel tidak pernah bisa melihatnya.
-        waktu.textContent = x.sekarang
-          ? `Sedang dipakai sekarang · ${waktuRingkas(x.terakhir_aktif)}`
-          : `Terakhir aktif ${relatif} · ${waktuRingkas(x.terakhir_aktif)}`;
-      } else {
-        waktu.textContent = 'Belum pernah dipakai';
+      // ══ META: SATU FAKTA PER BARIS, MASING-MASING DENGAN IKON ═════════════
+      //
+      // ── KENAPA LOKASI DAN IP DIPISAH ──────────────────────────────────────
+      // Keduanya menjawab pertanyaan berbeda: "dari mana?" dan "lewat jaringan
+      // apa?". Menggabungkannya jadi satu baris ("Jakarta · 103.179.248.92")
+      // membuat pengguna harus memilah sendiri bagian mana yang ia cari.
+      //
+      // ── KENAPA IP DISAMARKAN ──────────────────────────────────────────────
+      // Halaman ini sering dibuka di tempat yang terlihat orang lain. Bagian
+      // awal IP dipertahankan (itu yang membedakan jaringan), bagian akhir
+      // disamarkan (itu yang menunjuk perangkat).
+      const lok = teksLokasi(x);
+      if (lok) {
+        isi.append(barisMeta('lokasi', `Perkiraan lokasi: ${lok}`));
       }
 
-      isi.append(judul, lokasi, waktu);
+      const ipTeks = ipSamar(x.ip);
+      if (ipTeks) {
+        isi.append(barisMeta('globe', `Alamat IP: ${ipTeks}`));
+      }
+
+      // ── ASN: HANYA KALAU ADA ───────────────────────────────────────────────
+      // Nomor ASN telanjang ("7713") tidak berarti apa-apa bagi kebanyakan
+      // orang. Yang berguna adalah fakta bahwa ada PENYEDIA yang teridentifikasi
+      // — itu yang membedakan "rumah saya" dari "jaringan publik".
+      if (x.asn) {
+        isi.append(barisMeta('sinyal', `Jaringan: AS${x.asn}`));
+      }
+
+      // ── WAKTU ──────────────────────────────────────────────────────────────
+      // Relatif menjawab "apakah ini baru?", absolut menjawab "tepatnya kapan?".
+      // Keduanya pertanyaan berbeda, dan GitHub menampilkan keduanya.
+      if (x.terakhir_aktif) {
+        const relatif = waktuRelatif(x.terakhir_aktif);
+        isi.append(barisMeta(
+          'jam',
+          x.sekarang
+            ? `Sedang dipakai sekarang`
+            : `Terakhir aktif ${relatif}`,
+        ));
+        // Baris terpisah: waktu absolut. Dipisah karena pengguna yang sudah
+        // memutuskan menyelidiki butuh jam presisi, dan menaruhnya di tooltip
+        // berarti pengguna ponsel tidak pernah bisa melihatnya.
+        isi.append(barisMeta('kalender', waktuRingkas(x.terakhir_aktif)));
+      } else {
+        isi.append(barisMeta('jam', 'Belum pernah dipakai'));
+      }
+
       li.append(ikon, isi);
 
       if (x.sekarang) {
