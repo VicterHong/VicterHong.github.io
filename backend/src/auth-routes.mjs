@@ -484,7 +484,7 @@ function ruteCallback(provider) {
     if (!hasil.pengguna) return gagalKe(res, '/sign-in', 'akun_tidak_ditemukan');
 
     // ── Sesi + cookie ───────────────────────────────────────────────────────
-    const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: body });
+    const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: clientHints(req) });
 
     recordEvent({
       projectSlug: '', action: 'auth_oauth_masuk',
@@ -803,7 +803,7 @@ const rutePasskeyMasukSelesai = {
 
     tandaiDipakai(idn.id, hasil.signCountBaru);
 
-    const { tujuan } = buatSesiUntuk(res, req, pengguna, { tujuan: '/', hints: body });
+    const { tujuan } = buatSesiUntuk(res, req, pengguna, { tujuan: '/', hints: clientHints(req) });
 
     recordEvent({
       projectSlug: '', action: 'auth_passkey_masuk', outcome: 'ok',
@@ -1047,6 +1047,39 @@ const ruteHapusIdentitas = {
  * Nilai dari klien tidak dipercaya begitu saja: `jenis` harus salah satu dari
  * tiga nilai yang dikenal, dan teks dipotong 40 karakter.
  */
+/**
+ * Deteksi perangkat dari HEADER — untuk jalur yang tidak punya body JSON.
+ *
+ * ── KENAPA PERLU FUNGSI KEDUA ────────────────────────────────────────────────
+ * `deteksiDariBody()` dipakai jalur login biasa (POST JSON). Tapi callback
+ * OAuth dan SSO datang sebagai REDIRECT GET dari penyedia identitas — tidak
+ * ada body sama sekali.
+ *
+ * Sebelumnya ketiga jalur itu memanggil `deteksiDariBody(body)` dengan `body`
+ * yang tidak pernah didefinisikan. Akibatnya setiap login Google gagal dengan
+ * `ReferenceError: body is not defined`, dan pengguna hanya melihat
+ * "kesalahan_internal".
+ *
+ * ── DARI MANA NILAINYA ───────────────────────────────────────────────────────
+ * Fungsi halaman (functions/[[path]].js) meneruskan deteksi perangkat sebagai
+ * header `X-Device-*`. Header bertahan melewati redirect, jadi ia tetap ada
+ * saat callback tiba.
+ *
+ * Nilainya tetap divalidasi seperti dari body — sumbernya tetap dari luar.
+ */
+function clientHints(req) {
+  const ambil = (nama, maks = 40) => {
+    const v = req.headers[nama];
+    return typeof v === 'string' ? v.trim().slice(0, maks) : '';
+  };
+  const jenis = ambil('x-device-jenis', 20);
+  return {
+    jenis: ['ponsel', 'tablet', 'komputer'].includes(jenis) ? jenis : '',
+    platform: ambil('x-device-platform'),
+    model: ambil('x-device-model'),
+  };
+}
+
 function deteksiDariBody(body) {
   const b = body && typeof body === 'object' ? body : {};
   const d = b.perangkat && typeof b.perangkat === 'object' ? b.perangkat : {};
@@ -1431,7 +1464,7 @@ function ruteSso() {
         if (!hasil.pengguna) return gagalKe(res, '/sign-in', 'akun_tidak_ditemukan');
 
         // ── Sesi + cookie ────────────────────────────────────────────────────
-        const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: body });
+        const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: clientHints(req) });
 
         recordEvent({
           projectSlug: '', action: 'auth_sso_masuk',

@@ -131,6 +131,26 @@ export async function onRequest(context) {
   // Jadi data geo dikirim dengan prefix `X-` supaya tidak dibersihkan di hop
   // berikutnya. Ini BUKAN pilihan gaya: header `CF-*` sampai di backend sebagai
   // kosong, dan itu sudah diuji.
+  // ── DETEKSI PERANGKAT DARI KLIEN ────────────────────────────────────────────
+  //
+  // ── KENAPA DITERUSKAN DI SINI ───────────────────────────────────────────────
+  // Callback OAuth datang sebagai REDIRECT dari Google/Microsoft — tidak ada
+  // body JSON tempat menaruh hasil deteksi perangkat.
+  //
+  // Header BERTAHAN melewati redirect, jadi nilainya bisa ikut sampai ke
+  // backend. Klien mengirimnya sebagai `X-Device-*` di request login; header
+  // itu ikut terbawa saat browser mengikuti redirect balik ke situs ini.
+  //
+  // Nilainya tetap divalidasi di backend — sumbernya dari luar.
+  for (const [dari, ke] of [
+    ['x-device-jenis', 'X-Device-Jenis'],
+    ['x-device-platform', 'X-Device-Platform'],
+    ['x-device-model', 'X-Device-Model'],
+  ]) {
+    const v = context.request.headers.get(dari);
+    if (v) headers.set(ke, String(v).trim().slice(0, 40));
+  }
+
   setGeo('X-Geo-City', cf.city);
   setGeo('X-Geo-Region', cf.region);
   setGeo('X-Geo-ASN', cf.asn != null ? String(cf.asn) : '');
