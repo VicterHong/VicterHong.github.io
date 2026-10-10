@@ -31,6 +31,9 @@ import { config } from './config.mjs';
 import { getDb } from './db.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, readJson } from './http-util.mjs';
 import { createSession, validateSession, destroySession } from './sessions.mjs';
+// statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
+// mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
+import { statusTotp } from './totp-service.mjs';
 import { recordEvent } from './audit.mjs';
 import { normalEmail, emailValid, cariPengguna, penggunaById, buatPengguna, perbaruiProfil } from './users.mjs';
 import { issueToken, tokenProblem } from './tokens.mjs';
@@ -1011,6 +1014,45 @@ function parseCookiesLokal(req) {
 }
 
 /** Pengguna dari baris token. */
+/**
+ * Ubah User-Agent jadi nama perangkat yang bisa dibaca manusia.
+ *
+ * ── KENAPA TIDAK MENAMPILKAN USER-AGENT MENTAH ─────────────────────────────
+ * User-Agent mentah panjangnya 100+ karakter dan isinya teknis:
+ * "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ..."
+ * Pengguna yang ingin tahu "perangkat mana ini?" tidak bisa menjawabnya
+ * dari string itu.
+ *
+ * Yang dicari: "Chrome di Windows", "Safari di iOS". Dua kata yang menjawab
+ * pertanyaan sebenarnya.
+ *
+ * Kalau tidak dikenali, kembalikan string kosong — lebih baik tidak
+ * menampilkan apa pun daripada "Perangkat tidak dikenal" yang tidak membantu.
+ */
+function namaPerangkat(ua) {
+  const s = String(ua || '');
+  if (!s) return '';
+
+  // Browser: urutan penting — Edge dan Opera menyamar sebagai Chrome,
+  // jadi keduanya harus dicek lebih dulu.
+  let browser = '';
+  if (/Edg\//.test(s)) browser = 'Edge';
+  else if (/OPR\/|Opera/.test(s)) browser = 'Opera';
+  else if (/Firefox\//.test(s)) browser = 'Firefox';
+  else if (/Chrome\//.test(s)) browser = 'Chrome';
+  else if (/Safari\//.test(s)) browser = 'Safari';
+
+  let os = '';
+  if (/iPhone|iPad|iPod/.test(s)) os = 'iOS';
+  else if (/Android/.test(s)) os = 'Android';
+  else if (/Windows/.test(s)) os = 'Windows';
+  else if (/Mac OS X|Macintosh/.test(s)) os = 'macOS';
+  else if (/Linux/.test(s)) os = 'Linux';
+
+  if (browser && os) return `${browser} di ${os}`;
+  return browser || os || '';
+}
+
 function penggunaDariToken(tokenRow) {
   if (!tokenRow?.issued_to) return null;
   return cariPengguna(tokenRow.issued_to);
@@ -1308,6 +1350,170 @@ function ruteSso() {
             dibayar_pada: b.dibayar_pada,
             kedaluwarsa_pada: b.kedaluwarsa_pada,
           })),
+        });
+      },
+    },
+
+
+    // ══ SESI AKTIF ═════════════════════════════════════════════════════════════
+    // "Di mana saja saya masih masuk?" — pertanyaan keamanan yang jawabannya
+    // hanya berguna kalau pengguna bisa MELIHAT dan MENCABUT.
+    //
+    // `sessions.id` TIDAK ditampilkan: itu kunci untuk masuk, dan menampilkannya
+    // berarti bisa bocor lewat screenshot atau ekstensi. Yang ditampilkan hanya
+    // data untuk MENGENALI sesi: perangkat, IP, lokasi, waktu.
+    {
+      method: 'GET',
+      pattern: '/api/auth/sesi',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        // ── SESI "SEKARANG" DIKENALI DARI last_seen TERBARU ───────────────────
+        // `sessions.id` disimpan sebagai HASH, jadi nilai di cookie tidak sama
+        // dengan nilai di database — dan hashSession() tidak diekspor.
+        //
+        // Setiap request memperbarui last_seen sesi yang dipakai, jadi sesi
+        // aktif selalu yang paling atas. Ini perkiraan (dua tab bisa sama-sama
+        // terlihat "sekarang"), tapi cukup untuk keperluan tampilan.
+        const rows = getDb().prepare(`
+          SELECT id, device_fp, ip, country, user_agent, created_at, last_seen, expires_at
+          FROM sessions
+          WHERE token_id = ? AND expires_at > ?
+          ORDER BY last_seen DESC
+          LIMIT 20
+        `).all(pengguna.token_id, Date.now());
+
+        const terbaru = rows[0]?.last_seen ?? 0;
+
+        sendJson(res, 200, {
+          ok: true,
+          sesi: rows.map((r, i) => ({
+            // Hanya yang paling atas DAN paling baru yang ditandai.
+            sekarang: i === 0 && r.last_seen === terbaru,
+            perangkat: namaPerangkat(r.user_agent),
+            user_agent: String(r.user_agent || '').slice(0, 160),
+            ip: r.ip || '',
+            negara: r.country || '',
+            dibuat_pada: r.created_at,
+            terakhir_aktif: r.last_seen,
+            kedaluwarsa_pada: r.expires_at,
+          })),
+        });
+      },
+    },
+
+    // ══ TOKEN AKSES ════════════════════════════════════════════════════════════
+    // Metadata token milik pengguna (users.token_id): paket, cakupan, masa berlaku.
+    //
+    // Nilai tokennya TIDAK bisa ditampilkan — disimpan sebagai hash, server
+    // sendiri tidak bisa membacanya lagi. Itu memang desainnya.
+    {
+      method: 'GET',
+      pattern: '/api/auth/token-saya',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const t = getDb().prepare(`
+          SELECT id, label, project_slug, tier, scopes, issued_to, company,
+                 issued_at, expires_at, revoked_at
+          FROM tokens WHERE id = ?
+        `).get(pengguna.token_id);
+
+        if (!t) return sendJson(res, 200, { ok: true, token: null });
+
+        let scopes = [];
+        try { const p = JSON.parse(t.scopes); scopes = Array.isArray(p) ? p : []; }
+        catch { scopes = []; }
+
+        const sekarang = Date.now();
+        sendJson(res, 200, {
+          ok: true,
+          token: {
+            label: t.label || '',
+            proyek: t.project_slug || '',
+            tier: t.tier || 'standard',
+            scopes,
+            perusahaan: t.company || '',
+            terbit_pada: t.issued_at,
+            kedaluwarsa_pada: t.expires_at,
+            dicabut_pada: t.revoked_at,
+            // Status dihitung server — klien tidak perlu tahu aturannya.
+            status: t.revoked_at ? 'dicabut'
+                  : (t.expires_at && t.expires_at < sekarang) ? 'kedaluwarsa'
+                  : 'aktif',
+          },
+        });
+      },
+    },
+
+    // ══ AKTIVITAS AKUN ═════════════════════════════════════════════════════════
+    // Cara pengguna membuktikan kecurigaannya sendiri: "apakah benar ada yang
+    // masuk dari negara lain?" GitHub menyebutnya "Security log".
+    //
+    // Difilter dengan token_id pengguna — tidak ada parameter yang bisa diubah
+    // klien untuk melihat aktivitas orang lain.
+    {
+      method: 'GET',
+      pattern: '/api/auth/aktivitas',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const rows = getDb().prepare(`
+          SELECT action, outcome, ip, country, detail, at
+          FROM access_events
+          WHERE token_id = ?
+          ORDER BY at DESC, id DESC
+          LIMIT 40
+        `).all(pengguna.token_id);
+
+        sendJson(res, 200, {
+          ok: true,
+          aktivitas: rows.map((r) => ({
+            aksi: r.action || '',
+            hasil: r.outcome || '',
+            ip: r.ip || '',
+            negara: r.country || '',
+            detail: String(r.detail || '').slice(0, 200),
+            pada: r.at,
+          })),
+        });
+      },
+    },
+
+    // ══ 2FA (TOTP) — HANYA BACA STATUS ═════════════════════════════════════════
+    // Mengaktifkan 2FA butuh dua langkah (pindai QR, buktikan kode) dan alur
+    // itu SUDAH ADA di halaman masuk. Endpoint ini hanya membaca status supaya
+    // tab bisa menampilkan "aktif" — bukan menduplikasi alurnya.
+    {
+      method: 'GET',
+      pattern: '/api/auth/2fa/status',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        // Identitas TOTP memakai email — lihat totp-service.mjs.
+        const s = statusTotp(pengguna.email);
+        sendJson(res, 200, {
+          ok: true,
+          aktif: Boolean(s?.aktif),
+          terverifikasi: Boolean(s?.terverifikasi),
+          dibuat_pada: s?.dibuat_pada ?? null,
+          terakhir_dipakai: s?.terakhir_dipakai ?? null,
         });
       },
     },

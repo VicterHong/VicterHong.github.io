@@ -145,6 +145,62 @@
               </span>
               <span>Pembayaran</span>
             </button>
+
+            <!-- "Di mana saja saya masih masuk?" — GitHub, Google, dan Stripe
+                 semuanya punya daftar ini. -->
+            <button class="kam-sisi-item" type="button" role="tab"
+                    id="tabSesi" aria-selected="false" aria-controls="panelSesi"
+                    data-panel="panelSesi">
+              <span class="kam-sisi-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2.5" y="4" width="19" height="13" rx="2"/>
+                  <path d="M8 20.5h8M12 17v3.5"/>
+                </svg>
+              </span>
+              <span>Sesi aktif</span>
+            </button>
+
+            <!-- Metadata token. Nilainya disimpan sebagai hash — server
+                 sendiri tidak bisa membacanya lagi. -->
+            <button class="kam-sisi-item" type="button" role="tab"
+                    id="tabToken" aria-selected="false" aria-controls="panelToken"
+                    data-panel="panelToken">
+              <span class="kam-sisi-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="7.5" cy="15.5" r="3.5"/>
+                  <path d="M10 13 20 3M17 6l2.5 2.5M14.5 8.5 17 11"/>
+                </svg>
+              </span>
+              <span>Token akses</span>
+            </button>
+
+            <!-- Cara pengguna membuktikan kecurigaannya sendiri. GitHub
+                 menyebutnya "Security log", Google "Recent security activity". -->
+            <button class="kam-sisi-item" type="button" role="tab"
+                    id="tabAktivitas" aria-selected="false" aria-controls="panelAktivitas"
+                    data-panel="panelAktivitas">
+              <span class="kam-sisi-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12h4l2.5-7 5 14L17 12h4"/>
+                </svg>
+              </span>
+              <span>Aktivitas</span>
+            </button>
+
+            <!-- STATUS 2FA saja. Alur mengaktifkan ada di halaman masuk —
+                 tidak diduplikasi. -->
+            <button class="kam-sisi-item" type="button" role="tab"
+                    id="tab2fa" aria-selected="false" aria-controls="panel2fa"
+                    data-panel="panel2fa">
+              <span class="kam-sisi-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="10" width="18" height="11" rx="2.5"/>
+                  <path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3"/>
+                  <circle cx="12" cy="15.5" r="1.3"/>
+                </svg>
+              </span>
+              <span>Verifikasi 2 langkah</span>
+            </button>
           </nav>
 
           <!-- Panel isi. Hanya satu yang terlihat pada satu waktu. -->
@@ -376,6 +432,69 @@
               </div>
 
               <p class="auth-msg" id="kamPesanBayar" role="status" aria-live="polite"></p>
+            </section>
+
+            <!-- Session ID tidak ditampilkan: itu kunci untuk masuk, dan
+                 menampilkannya berarti bisa bocor lewat screenshot. -->
+            <section class="kam-blok kam-panel-isi" id="panelSesi"
+                     role="tabpanel" aria-labelledby="tabSesi" hidden>
+              <p class="kam-keterangan">
+                Perangkat yang sedang masuk ke akun Anda. Cabut yang tidak
+                Anda kenali.
+              </p>
+              <ul class="kam-senarai" id="kamSesi"></ul>
+              <div class="kam-kosong" id="kamSesiKosong" hidden>
+                <p class="kam-kosong-judul">Tidak ada sesi aktif</p>
+                <p class="kam-kosong-teks">Sesi akan muncul di sini saat Anda masuk.</p>
+              </div>
+              <p class="auth-msg" id="kamPesanSesi" role="status" aria-live="polite"></p>
+            </section>
+
+            <!-- Metadata token saja — nilainya tidak bisa ditampilkan. -->
+            <section class="kam-blok kam-panel-isi" id="panelToken"
+                     role="tabpanel" aria-labelledby="tabToken" hidden>
+              <p class="kam-keterangan">
+                Token yang memberi akses ke proyek Anda. Nilainya hanya
+                ditampilkan sekali saat diterbitkan — setelah itu tidak bisa
+                dilihat lagi, termasuk oleh kami.
+              </p>
+              <dl class="kam-daftar" id="kamTokenDaftar"></dl>
+              <div class="kam-kosong" id="kamTokenKosong" hidden>
+                <p class="kam-kosong-judul">Belum ada token</p>
+                <p class="kam-kosong-teks">Token diterbitkan setelah pembelian terkonfirmasi.</p>
+              </div>
+              <p class="auth-msg" id="kamPesanToken" role="status" aria-live="polite"></p>
+            </section>
+
+            <!-- Hanya menampilkan aktivitas milik pengguna yang login. -->
+            <section class="kam-blok kam-panel-isi" id="panelAktivitas"
+                     role="tabpanel" aria-labelledby="tabAktivitas" hidden>
+              <p class="kam-keterangan">
+                Catatan aktivitas akun Anda. Kalau ada yang tidak Anda kenali,
+                cabut sesinya di tab Sesi aktif.
+              </p>
+              <ul class="kam-senarai" id="kamAktivitas"></ul>
+              <div class="kam-kosong" id="kamAktivitasKosong" hidden>
+                <p class="kam-kosong-judul">Belum ada aktivitas</p>
+                <p class="kam-kosong-teks">Catatan akan muncul di sini setelah akun dipakai.</p>
+              </div>
+              <p class="auth-msg" id="kamPesanAktivitas" role="status" aria-live="polite"></p>
+            </section>
+
+            <!-- STATUS saja. Alur mengaktifkan ada di halaman masuk. -->
+            <section class="kam-blok kam-panel-isi" id="panel2fa"
+                     role="tabpanel" aria-labelledby="tab2fa" hidden>
+              <p class="kam-keterangan">
+                Verifikasi dua langkah menambahkan kode 6 digit dari aplikasi
+                authenticator setiap kali Anda masuk. Sandi yang bocor saja
+                tidak cukup untuk masuk.
+              </p>
+              <div class="kam-status2fa" id="kamStatus2fa">
+                <span class="kam-lencana" id="kamLencana2fa">—</span>
+                <p class="kam-status2fa-teks" id="kamTeks2fa"></p>
+              </div>
+              <dl class="kam-daftar" id="kamDaftar2fa" hidden></dl>
+              <p class="auth-msg" id="kamPesan2fa" role="status" aria-live="polite"></p>
             </section>
 
           </div>

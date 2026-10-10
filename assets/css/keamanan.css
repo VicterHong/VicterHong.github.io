@@ -925,3 +925,29 @@
   width: 100%;
   margin-top: 1rem;
 }
+
+/* ══ STATUS 2FA ════════════════════════════════════════════════════════════════
+ *
+ * Lencana + penjelasan dalam satu blok. Lencananya memakai gaya yang sama
+ * dengan status pembayaran — supaya "aktif/belum aktif" dan "dibayar/menunggu"
+ * terbaca sebagai bahasa visual yang sama, bukan dua gaya berbeda.
+ *
+ * ── KENAPA LENCANA DI ATAS TEKS, BUKAN DI SAMPING ───────────────────────────
+ * Di baris daftar, lencana di samping menghemat tinggi. Di sini ia berdiri
+ * sendiri, jadi menaruhnya di atas membuat status terbaca LEBIH DULU daripada
+ * penjelasannya — dan status memang jawaban yang dicari. */
+.kam-status2fa {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 1rem 0 0.25rem;
+}
+
+.kam-status2fa-teks {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--teks-redup);
+  max-width: 62ch;
+}

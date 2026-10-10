@@ -230,13 +230,6 @@
     refund:   { teks: 'Dikembalikan',        kelas: 'is-gagal' },
   };
 
-  function tanggalRingkas(ms) {
-    if (!ms) return '';
-    return new Date(ms).toLocaleDateString('id-ID', {
-      day: 'numeric', month: 'short', year: 'numeric',
-    });
-  }
-
   async function muatPembelian() {
     const daftar = $('#kamPembelian');
     const kosong = $('#kamBayarKosong');
@@ -283,7 +276,7 @@
         ket.className = 'kam-item-ket';
         // Tanggal + jumlah: dua hal yang dicari orang di riwayat pembelian.
         ket.textContent = [
-          tanggalRingkas(b.dibayar_pada || b.dibuat_pada),
+          waktuRingkas(b.dibayar_pada || b.dibuat_pada, { jam: false }),
           rupiah(b.jumlah),
         ].filter(Boolean).join(' · ');
 
@@ -303,6 +296,244 @@
       // penjelasan kosong. Tidak ada pesan galat yang perlu ditakuti.
     }
   }
+
+  // ══ PEMUATAN MALAS ══════════════════════════════════════════════════════════
+  // Satu peta fungsi pemuat per panel — bukan satu variabel per tab, yang
+  // berarti tujuh baris harus dijaga sinkron dan mudah terlupa.
+  //
+  // Dimuat saat tab DIBUKA: profil dipakai setiap kunjungan, tab lain hanya
+  // sesekali. Memuat semuanya bersamaan memperlambat halaman yang paling
+  // sering dibuka.
+  const pemuat = {};
+
+  function daftarPemuat(panelId, fn) {
+    let sudah = false;
+    pemuat[panelId] = async () => {
+      if (sudah) return;
+      sudah = true;
+      try { await fn(); } catch { sudah = false; }   // gagal → boleh coba lagi
+    };
+  }
+
+  /** Format tanggal + jam ringkas. */
+  /**
+   * Format waktu ringkas. `{ jam: false }` untuk tanggal saja.
+   *
+   * ── KENAPA SATU FUNGSI, BUKAN DUA ──────────────────────────────────────────
+   * Sebelumnya ada `waktuRingkas()` dan `waktuRingkas()` — dua fungsi yang
+   * berbeda HANYA pada apakah jam ditampilkan. Duplikasi seperti ini berbahaya
+   * bukan karena ukurannya, tapi karena perbaikannya harus dilakukan dua kali:
+   * ubah format bulan di satu tempat, yang lain tertinggal.
+   */
+  function waktuRingkas(ms, { jam = true } = {}) {
+    if (!ms) return jam ? '—' : '';
+    const opsi = { day: 'numeric', month: 'short', year: 'numeric' };
+    if (jam) { opsi.hour = '2-digit'; opsi.minute = '2-digit'; }
+    return new Date(ms).toLocaleString('id-ID', opsi);
+  }
+
+  // ── SESI AKTIF ─────────────────────────────────────────────────────────────
+  daftarPemuat('panelSesi', async () => {
+    const res = await fetch('/api/auth/sesi', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const d = await res.json().catch(() => ({}));
+    const sesi = Array.isArray(d.sesi) ? d.sesi : [];
+
+    const daftar = $('#kamSesi');
+    const kosong = $('#kamSesiKosong');
+    if (!daftar) return;
+
+    daftar.innerHTML = '';
+    if (!sesi.length) { if (kosong) kosong.hidden = false; return; }
+    if (kosong) kosong.hidden = true;
+
+    for (const x of sesi) {
+      const li = document.createElement('li');
+      li.className = 'kam-item';
+
+      const kiri = document.createElement('div');
+      kiri.className = 'kam-item-teks';
+
+      const judul = document.createElement('p');
+      judul.className = 'kam-item-judul';
+      judul.textContent = x.perangkat || x.user_agent || 'Perangkat tidak dikenal';
+
+      const ket = document.createElement('p');
+      ket.className = 'kam-item-ket';
+      ket.textContent = [
+        x.ip, x.negara,
+        x.terakhir_aktif ? 'aktif ' + waktuRingkas(x.terakhir_aktif) : '',
+      ].filter(Boolean).join(' · ');
+
+      kiri.appendChild(judul);
+      kiri.appendChild(ket);
+      li.appendChild(kiri);
+
+      if (x.sekarang) {
+        const l = document.createElement('span');
+        l.className = 'kam-lencana is-sukses';
+        l.textContent = 'Perangkat ini';
+        li.appendChild(l);
+      }
+      daftar.appendChild(li);
+    }
+  });
+
+  // ── TOKEN AKSES ────────────────────────────────────────────────────────────
+  daftarPemuat('panelToken', async () => {
+    const res = await fetch('/api/auth/token-saya', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const d = await res.json().catch(() => ({}));
+    const t = d.token;
+
+    const daftar = $('#kamTokenDaftar');
+    const kosong = $('#kamTokenKosong');
+    if (!daftar) return;
+
+    if (!t) {
+      daftar.hidden = true;
+      if (kosong) kosong.hidden = false;
+      return;
+    }
+
+    daftar.hidden = false;
+    if (kosong) kosong.hidden = true;
+
+    const LENCANA = { aktif: 'is-sukses', dicabut: 'is-gagal', kedaluwarsa: 'is-gagal' };
+
+    const baris = [
+      ['Paket', t.tier || '—'],
+      ['Proyek', t.proyek || '—'],
+      ['Cakupan', (t.scopes || []).join(', ') || '—'],
+      ['Terbit', waktuRingkas(t.terbit_pada)],
+      ['Kedaluwarsa', t.kedaluwarsa_pada ? waktuRingkas(t.kedaluwarsa_pada) : 'Tidak ada'],
+    ];
+
+    daftar.innerHTML = '';
+    for (const [k, v] of baris) {
+      const div = document.createElement('div');
+      div.className = 'kam-baris';
+      const dt = document.createElement('dt');
+      dt.textContent = k;
+      const dd = document.createElement('dd');
+      dd.textContent = v;
+      div.appendChild(dt);
+      div.appendChild(dd);
+      daftar.appendChild(div);
+    }
+
+    // Status sebagai baris terakhir, dengan lencana — bukan teks polos.
+    const div = document.createElement('div');
+    div.className = 'kam-baris';
+    const dt = document.createElement('dt');
+    dt.textContent = 'Status';
+    const dd = document.createElement('dd');
+    const l = document.createElement('span');
+    l.className = 'kam-lencana ' + (LENCANA[t.status] || '');
+    l.textContent = t.status || '—';
+    dd.appendChild(l);
+    div.appendChild(dt);
+    div.appendChild(dd);
+    daftar.appendChild(div);
+  });
+
+  // ── AKTIVITAS ──────────────────────────────────────────────────────────────
+  daftarPemuat('panelAktivitas', async () => {
+    const res = await fetch('/api/auth/aktivitas', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const d = await res.json().catch(() => ({}));
+    const akt = Array.isArray(d.aktivitas) ? d.aktivitas : [];
+
+    const daftar = $('#kamAktivitas');
+    const kosong = $('#kamAktivitasKosong');
+    if (!daftar) return;
+
+    daftar.innerHTML = '';
+    if (!akt.length) { if (kosong) kosong.hidden = false; return; }
+    if (kosong) kosong.hidden = true;
+
+    // Nama aksi teknis → kalimat yang bisa dibaca.
+    const AKSI = {
+      auth_masuk: 'Masuk', auth_daftar: 'Akun dibuat', auth_keluar: 'Keluar',
+      auth_oauth_masuk: 'Masuk lewat penyedia', auth_sso_masuk: 'Masuk lewat SSO',
+      auth_passkey_masuk: 'Masuk dengan passkey',
+      token_validate: 'Token divalidasi', token_revoke: 'Token dicabut',
+    };
+
+    for (const a of akt) {
+      const li = document.createElement('li');
+      li.className = 'kam-item';
+
+      const kiri = document.createElement('div');
+      kiri.className = 'kam-item-teks';
+
+      const judul = document.createElement('p');
+      judul.className = 'kam-item-judul';
+      judul.textContent = AKSI[a.aksi] || a.aksi || 'Aktivitas';
+
+      const ket = document.createElement('p');
+      ket.className = 'kam-item-ket';
+      ket.textContent = [waktuRingkas(a.pada), a.ip, a.negara].filter(Boolean).join(' · ');
+
+      kiri.appendChild(judul);
+      kiri.appendChild(ket);
+      li.appendChild(kiri);
+
+      // Hasil: hanya tampilkan kalau BUKAN keberhasilan biasa — supaya
+      // daftar tidak penuh lencana hijau yang tidak menambah informasi.
+      if (a.hasil && a.hasil !== 'ok' && a.hasil !== 'sukses') {
+        const l = document.createElement('span');
+        l.className = 'kam-lencana is-gagal';
+        l.textContent = a.hasil;
+        li.appendChild(l);
+      }
+      daftar.appendChild(li);
+    }
+  });
+
+  // ── 2FA ────────────────────────────────────────────────────────────────────
+  daftarPemuat('panel2fa', async () => {
+    const res = await fetch('/api/auth/2fa/status', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const d = await res.json().catch(() => ({}));
+
+    const lencana = $('#kamLencana2fa');
+    const teks = $('#kamTeks2fa');
+    const daftar = $('#kamDaftar2fa');
+
+    if (lencana) {
+      lencana.className = 'kam-lencana ' + (d.aktif ? 'is-sukses' : 'is-menunggu');
+      lencana.textContent = d.aktif ? 'Aktif' : 'Belum aktif';
+    }
+    if (teks) {
+      teks.textContent = d.aktif
+        ? 'Akun Anda terlindungi kode 6 digit dari aplikasi authenticator.'
+        : 'Aktifkan verifikasi dua langkah saat masuk berikutnya untuk keamanan tambahan.';
+    }
+
+    // Detail teknis hanya ditampilkan kalau 2FA memang aktif — kalau belum,
+    // daftar kosong hanya menambah baris yang tidak berarti.
+    if (daftar && d.aktif) {
+      daftar.hidden = false;
+      daftar.innerHTML = '';
+      const baris = [
+        ['Aktif sejak', waktuRingkas(d.dibuat_pada)],
+        ['Terakhir dipakai', d.terakhir_dipakai ? waktuRingkas(d.terakhir_dipakai) : 'Belum pernah'],
+      ];
+      for (const [k, v] of baris) {
+        const div = document.createElement('div');
+        div.className = 'kam-baris';
+        const dt = document.createElement('dt');
+        dt.textContent = k;
+        const dd = document.createElement('dd');
+        dd.textContent = v;
+        div.appendChild(dt); div.appendChild(dd);
+        daftar.appendChild(div);
+      }
+    } else if (daftar) {
+      daftar.hidden = true;
+    }
+  });
 
   async function muat() {
     const memuat = $('#kamMemuat');
@@ -908,12 +1139,13 @@
         p.hidden = !aktif;
         p.classList.toggle('is-aktif', aktif);
       }
-      // ── PEMUATAN MALAS UNTUK TAB PEMBAYARAN ────────────────────────────────
-      // Riwayat pembelian dimuat saat tabnya DIBUKA, bukan saat halaman dimuat.
-      // Profil dipakai setiap kunjungan; riwayat pembelian hanya sesekali.
-      // Memuat keduanya bersamaan berarti semua pengunjung menunggu permintaan
-      // yang jarang dibutuhkan.
-      if (id === 'panelBayar') muatPembelian();
+      // ── PEMUATAN MALAS ───────────────────────────────────────────────────────
+      // Isi tab dimuat saat tabnya DIBUKA, bukan saat halaman dimuat. Profil
+      // dipakai setiap kunjungan; tab lain hanya sesekali. Memuat semuanya
+      // bersamaan berarti setiap pengunjung menunggu permintaan yang jarang
+      // dibutuhkan.
+      if (pemuat[id]) pemuat[id]();
+      else if (id === 'panelBayar') muatPembelian();
 
       if (history.replaceState) history.replaceState(null, '', '#' + id);
     }

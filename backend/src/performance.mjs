@@ -42,7 +42,38 @@ export const BUDGETS = {
   //
   // Kalau angka ini naik lagi tanpa fitur baru yang jelas, curigai
   // duplikasi (pernah terjadi: CSS dihitung dua kali, 1166 KB vs 816 KB).
-  totalBytes: 920 * 1024,        // 920 KB total aset kritis (html+css+js, tanpa video)
+  // ── 940 KB (dari 920) — DENGAN ALASAN, BUKAN KARENA MENTOK ──────────────────
+  //
+  // ── KENAPA DINAIKKAN ────────────────────────────────────────────────────────
+  // Halaman /keamanan bertambah dari 3 tab jadi 7: Profil, Keamanan,
+  // Pembayaran, Sesi aktif, Token akses, Aktivitas, Verifikasi 2 langkah.
+  //
+  // Yang ditambahkan bukan hiasan — semuanya menampilkan DATA NYATA yang sudah
+  // ada di database, dengan 4 endpoint baru yang masing-masing wajib sesi:
+  //
+  //   /api/auth/sesi        sessions: perangkat, IP, negara, waktu
+  //   /api/auth/token-saya  tokens: paket, cakupan, masa berlaku
+  //   /api/auth/aktivitas   access_events: catatan keamanan
+  //   /api/auth/2fa/status  totp_secrets: status 2FA
+  //
+  // Pertumbuhan terukur: +16.3 KB (HTML 6.5 + JS 9.1 + CSS 1.1).
+  //
+  // ── KENAPA 940, BUKAN 960 ATAU 1000 ─────────────────────────────────────────
+  // Diukur: yang BENAR-BENAR diunduh pengunjung adalah SATU halaman —
+  // maksimum 216 KB (home.html). Angka di sini adalah jumlah SEMUA berkas di
+  // dist/, termasuk halaman yang tidak pernah dibuka bersamaan.
+  //
+  // Jadi ini pagar terhadap pertumbuhan yang tidak disadari, bukan ukuran
+  // pengalaman pengguna. 940 KB memberi ruang untuk satu-dua fitur lagi.
+  //
+  // ── CATATAN: SUDAH DIPANGKAS SEBELUM DINAIKKAN ──────────────────────────────
+  // Komentar panjang di HTML/JS/backend diringkas (komentar bagus untuk dibaca
+  // manusia, tapi tidak perlu dikirim ke browser), dan dua fungsi tanggal yang
+  // duplikat digabung jadi satu.
+  //
+  // Kalau angka ini naik lagi TANPA fitur baru yang jelas, curigai duplikasi —
+  // pernah terjadi: CSS dihitung dua kali (1166 vs 816 KB).
+  totalBytes: 940 * 1024,        // 940 KB total aset kritis (html+css+js, tanpa video)
   maxRequests: 40,               // jumlah berkas kritis
   maxJsBytes: 250 * 1024,        // JS adalah yang paling mahal
   maxCssBytes: 120 * 1024,
