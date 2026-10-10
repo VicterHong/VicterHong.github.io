@@ -1247,9 +1247,27 @@ function namaPerangkat(ua, hints = {}) {
   // Android-nya HILANG. UA saja menyimpulkan "Linux" — dan itu yang membuat
   // sesi di produksi tertulis "Chrome di Linux" padahal penggunanya di ponsel.
   //
-  // Client Hints (`Sec-CH-UA-Platform`) tidak ikut berubah: ia tetap
-  // melaporkan "Android". Itu sebabnya deteksi klien diprioritaskan.
+  // Client Hints (`Sec-CH-UA-Platform`) biasanya tidak ikut berubah, TAPI
+  // sebagian build Chrome tetap melaporkan "Linux" saat mode desktop aktif.
+  //
+  // ── KENAPA JENIS PERANGKAT DIPAKAI UNTUK MEMVALIDASI PLATFORM ─────────────
+  // `jenis` datang dari sinyal LAYAR (lebar + titik sentuh) yang tidak bisa
+  // dipalsukan. Kalau layar bilang "ponsel" tapi platform bilang "Linux",
+  // yang benar adalah layarnya — dan platformnya dilaporkan "Android" karena
+  // hanya Android yang punya mode desktop di browser seluler.
+  //
+  // Tanpa pemeriksaan silang ini, klien yang melaporkan platform "Linux"
+  // dengan jenis "ponsel" akan tetap tertulis "Chrome di Linux".
   let os = String(hints.platform || '');
+  const jenisHints = String(hints.jenis || '');
+
+  // ── PERBAIKI PLATFORM YANG BERTENTANGAN DENGAN LAYAR ──────────────────────
+  const platformDesktop = ['Windows', 'macOS', 'Linux', 'ChromeOS'].includes(os);
+  const jenisGenggam = jenisHints === 'ponsel' || jenisHints === 'tablet';
+  if (platformDesktop && jenisGenggam) {
+    os = 'Android';
+  }
+
   if (!os) {
     if (/iPhone|iPad|iPod/.test(s)) os = 'iOS';
     else if (/Android/.test(s)) os = 'Android';

@@ -1164,7 +1164,7 @@
     if (lebar < 768 && sentuh) dariLayar = 'ponsel';
     else if (lebar < 1200 && sentuh) dariLayar = 'tablet';
 
-    // ── Client Hints: sumber paling akurat ──
+    // ── Client Hints: sumber paling akurat UNTUK PLATFORM ──
     const ch = navigator.userAgentData;
     if (ch && ch.platform) {
       let model = '';
@@ -1174,16 +1174,55 @@
         model = hi.model || '';
       } catch { /* ditolak — lanjut tanpa model */ }
 
+      // ══ SINYAL LAYAR MENANG SAAT BERTENTANGAN ══════════════════════════
+      //
+      // ── KENAPA INI PENTING ──────────────────────────────────────────────
+      // `userAgentData.platform` TIDAK selalu jujur:
+      //
+      //   1. Chrome Android mode "Desktop site" kadang tetap melaporkan
+      //      platform aslinya ("Android") — bagus. Tapi sebagian build
+      //      melaporkan "Linux" karena UA-nya diubah.
+      //
+      //   2. WebView dan browser pihak ketiga sering melaporkan platform
+      //      yang tidak akurat.
+      //
+      //   3. Lingkungan otomasi (headless) melaporkan platform mesin, bukan
+      //      perangkat yang ditiru.
+      //
+      // Sinyal layar TIDAK BISA berbohong: layar 390px dengan titik sentuh
+      // berarti perangkat genggam, apa pun kata platform.
+      //
+      // ── ATURANNYA ────────────────────────────────────────────────────────
+      // Kalau layar kecil + sentuh (ponsel) TAPI platform melaporkan
+      // desktop → percayai layarnya, dan sebut platformnya "Android"
+      // karena itu satu-satunya platform genggam yang memakai mode desktop.
+      //
+      // Kalau platform melaporkan platform genggam ("Android"/"iOS"),
+      // pakai itu — ia lebih spesifik daripada tebakan dari layar.
+      const platformGenggam = ['Android', 'iOS', 'Chrome OS'].includes(ch.platform);
+
       let jenis;
-      if (ch.mobile) {
+      let platform = LABEL[ch.platform] || ch.platform;
+
+      if (ch.mobile || platformGenggam) {
+        // Browser mengaku perangkat genggam — jenis dari layar.
         jenis = dariLayar === 'komputer' ? 'tablet' : dariLayar;
+      } else if (dariLayar === 'ponsel' || dariLayar === 'tablet') {
+        // ── BERTENTANGAN: platform desktop, tapi layar kecil + sentuh ────
+        // Ini kasus "Android mode Desktop site" yang dilaporkan pengguna.
+        // Layar tidak bisa berbohong, jadi jenis diambil dari layar.
+        //
+        // Platformnya disebut "Android" karena hanya Android yang punya
+        // mode desktop di browser seluler. iOS tidak.
+        jenis = dariLayar;
+        platform = 'Android';
       } else {
-        // Platform desktop TAPI layar kecil + sentuh = kemungkinan besar
-        // Android mode "Desktop site" — justru kasus yang dilaporkan.
-        jenis = (dariLayar === 'ponsel' && ch.platform === 'Android') ? 'ponsel' : dariLayar;
+        // Layar besar tanpa sentuh — memang desktop. Platform dari Client
+        // Hints (Windows/macOS/Linux) tetap benar.
+        jenis = 'komputer';
       }
 
-      return { jenis, platform: LABEL[ch.platform] || ch.platform, model };
+      return { jenis, platform, model };
     }
 
     // ── Cadangan: sinyal layar saja ──
