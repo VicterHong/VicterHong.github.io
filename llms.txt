@@ -4,7 +4,7 @@
 
 ## Ringkasan
 
-Saya membuat perangkat lunak yang berjalan di tempat Anda sendiri — tanpa langganan, tanpa cloud wajib, dan tetap hidup di laptop 2 GB RAM.
+Saya membuat perangkat lunak yang berjalan di tempat Anda sendiri, tanpa langganan, tanpa cloud wajib, dan tetap hidup di laptop 2 GB RAM.
 Fokus saya: sistem yang hemat sumber daya, keamanan yang serius (bukan tempelan), dan alat yang benar-benar dipakai sehari-hari.
 
 Fokus: perangkat lunak self-hosted, hemat sumber daya, keamanan serius.
@@ -12,7 +12,7 @@ Lokasi: Indonesia.
 
 ## Proyek
 
-### MINA Remote Control for Your Home Machine. Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun — shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB. Teknologi: Python, HMAC-SHA256, stdlib only, Telegram, Discord. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
+### MINA Remote Control for Your Home Machine. Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun, shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB. Teknologi: Python, HMAC-SHA256, stdlib only, Telegram, Discord. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
 ### Spareparts Inventory System Inventory & logistik untuk suku cadang alat berat. Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit. Teknologi: FastAPI, PostgreSQL, Docker, n8n, Telegram. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
