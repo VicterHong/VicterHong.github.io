@@ -288,6 +288,22 @@
                   <dt>Terakhir masuk</dt>
                   <dd id="kamMasukTerakhir">—</dd>
                 </div>
+                <!-- ══ ORGANISASI — DATA YANG SUDAH ADA, TAPI TAK PERNAH TAMPIL ══
+                     ── KENAPA BARIS INI DITAMBAHKAN ──────────────────────────
+                     Backend sudah menyimpan dan MENGIRIM `perusahaan` sejak
+                     lama (GET /api/auth/profil mengembalikannya). Form edit pun
+                     sudah punya input-nya. Yang tidak ada: barisnya di mode
+                     lihat — jadi pengguna bisa MENGISI organisasi, menyimpan,
+                     dan tidak pernah melihat hasilnya. Ia harus menekan "Ubah"
+                     lagi hanya untuk memastikan nilainya tersimpan.
+
+                     Baris ini ditampilkan HANYA kalau terisi (`hidden` dikelola
+                     JS): pengguna pribadi yang tidak punya organisasi tidak
+                     perlu melihat baris kosong berlabel "Organisasi —". -->
+                <div class="kam-baris" id="kamBarisPerusahaan" hidden>
+                  <dt>Organisasi</dt>
+                  <dd id="kamPerusahaan">—</dd>
+                </div>
                 <!-- Penanda untuk JS: nilai yang bisa diedit tetap perlu
                      disimpan di DOM, walau tidak ditampilkan di mode lihat.
                      `hidden` di sini berfungsi — aturan global [hidden] di
@@ -301,6 +317,45 @@
                   <dd id="kamNama">—</dd>
                 </div>
               </dl>
+
+              <!-- ══ RINGKASAN KEAMANAN ═══════════════════════════════════════
+                   ── POLA "SECURITY AT A GLANCE" ─────────────────────────────
+                   Riset halaman akun korporat (Stripe, GitHub, Google) menunjukkan
+                   pola yang konsisten: halaman akun DIBUKA dengan status, bukan
+                   dengan formulir. Sebelum meminta pengguna mengubah apa pun,
+                   tunjukkan dulu di mana ia berdiri — berapa cara masuk, apakah
+                   2FA menyala, berapa perangkat yang sedang masuk.
+
+                   ── KENAPA DI TAB PROFIL, BUKAN DI TAB KEAMANAN ─────────────
+                   Tab Keamanan sudah berisi DAFTAR cara masuk — menaruh
+                   ringkasannya di sana berarti mengulang. Di tab Profil, ia
+                   menjawab pertanyaan pertama yang muncul saat membuka halaman
+                   akun: "apakah akun saya aman?" — dan setiap barisnya adalah
+                   pintu ke tab tempat memperbaikinya.
+
+                   ── KENAPA SEMUA NILAI DIMUAT MALAS ─────────────────────────
+                   Ringkasan ini butuh tiga permintaan (identitas, sesi, 2FA).
+                   Memuatnya bersamaan dengan profil berarti setiap kunjungan
+                   menunggu tiga permintaan, padahal sebagian besar kunjungan
+                   hanya ingin melihat nama. Barisnya diisi setelah data tiba,
+                   dan kegagalan satu baris tidak menggagalkan yang lain. -->
+              <div class="kam-ringkasan" id="kamRingkasan" hidden>
+                <h2 class="kam-judul">Ringkasan keamanan</h2>
+                <div class="kam-ringkasan-petak">
+                  <button type="button" class="kam-petak" data-panel-tujuan="panelMasuk">
+                    <span class="kam-petak-nilai" id="kamRingkasanMasuk">—</span>
+                    <span class="kam-petak-label">Cara masuk</span>
+                  </button>
+                  <button type="button" class="kam-petak" data-panel-tujuan="panel2fa">
+                    <span class="kam-petak-nilai" id="kamRingkasan2fa">—</span>
+                    <span class="kam-petak-label">Verifikasi 2 langkah</span>
+                  </button>
+                  <button type="button" class="kam-petak" data-panel-tujuan="panelSesi">
+                    <span class="kam-petak-nilai" id="kamRingkasanSesi">—</span>
+                    <span class="kam-petak-label">Perangkat aktif</span>
+                  </button>
+                </div>
+              </div>
 
               <!-- Mode edit. `hidden` sampai tombol Ubah ditekan. -->
               <form class="kam-form" id="kamProfilEdit" hidden novalidate>
@@ -438,11 +493,34 @@
                  menampilkannya berarti bisa bocor lewat screenshot. -->
             <section class="kam-blok kam-panel-isi" id="panelSesi"
                      role="tabpanel" aria-labelledby="tabSesi" hidden>
-              <p class="kam-keterangan">
-                Perangkat yang sedang masuk ke akun Anda. Cabut yang tidak
-                Anda kenali.
-              </p>
-              <ul class="kam-senarai" id="kamSesi"></ul>
+
+              <!-- ══ JUDUL + AKSI MASSAL ══════════════════════════════════════
+                   ── POLA DARI GITHUB DAN GOOGLE ──────────────────────────────
+                   Halaman "Sessions" GitHub menaruh aksi massal ("Revoke all")
+                   di baris yang SAMA dengan judul daftar, bukan di bawah
+                   daftar. Alasannya: pengguna yang panik karena melihat
+                   perangkat asing mencari aksi itu PERTAMA — menaruhnya di
+                   bawah berarti ia harus menggulir dulu saat sedang khawatir.
+
+                   ── KENAPA TOMBOLNYA DISABLED, BUKAN DISEMBUNYIKAN ──────────
+                   Kalau hanya ada satu sesi (perangkat ini), tidak ada yang
+                   bisa dicabut. Menyembunyikan tombolnya membuat pengguna
+                   ragu apakah fiturnya ada; menampilkannya nonaktif dengan
+                   alasan tertulis menjawab pertanyaan itu sebelum ditanya. -->
+              <div class="kam-panel-kepala">
+                <div>
+                  <h2 class="kam-judul">Sesi aktif</h2>
+                  <p class="kam-keterangan kam-keterangan-rapat">
+                    Perangkat yang sedang masuk ke akun Anda. Cabut yang tidak
+                    Anda kenali.
+                  </p>
+                </div>
+                <button type="button" class="kam-aksi-massal" id="kamCabutSemua" hidden>
+                  Cabut semua perangkat lain
+                </button>
+              </div>
+
+              <ul class="kam-senarai kam-senarai-sesi" id="kamSesi"></ul>
               <div class="kam-kosong" id="kamSesiKosong" hidden>
                 <p class="kam-kosong-judul">Tidak ada sesi aktif</p>
                 <p class="kam-kosong-teks">Sesi akan muncul di sini saat Anda masuk.</p>

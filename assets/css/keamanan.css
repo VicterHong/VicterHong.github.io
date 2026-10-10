@@ -226,6 +226,164 @@
 
 .kam-ikon svg { width: 15px; height: 15px; }
 
+/* ── Ikon perangkat (daftar sesi) ────────────────────────────────────────────
+ * Netral abu, BUKAN emas seperti ikon cara masuk. Emas di palet ini berarti
+ * "milik akun Anda / utama" — memakainya di setiap perangkat membuat sepuluh
+ * sesi terlihat sama pentingnya, dan yang penting justru tidak menonjol.
+ *
+ * Perangkat "ini" mendapat emas lewat `.is-sekarang` di bawah: satu-satunya
+ * baris yang layak disorot. */
+.kam-ikon-perangkat {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--teks-redup);
+}
+
+.kam-item-sesi.is-sekarang .kam-ikon-perangkat {
+  background: var(--emas-redup);
+  color: var(--emas);
+}
+
+/* ── Baris sesi ─────────────────────────────────────────────────────────────
+ * Tiga baris teks (perangkat / lokasi / waktu) butuh perataan atas, bukan
+ * tengah: dengan `center`, tombol "Cabut" mengambang di tengah blok teks dan
+ * tidak sejajar dengan apa pun. */
+.kam-item-sesi {
+  align-items: flex-start;
+  padding: 14px;
+}
+
+.kam-item-sesi .kam-hapus,
+.kam-item-sesi .kam-lencana {
+  /* Sejajar dengan baris JUDUL, bukan tengah blok — jadi mata membaca
+   * "Chrome di Linux … Cabut" sebagai satu baris. */
+  margin-top: 1px;
+}
+
+/* ── Perangkat ini: latar samar + garis kiri ─────────────────────────────────
+ * Penanda bentuk, bukan hanya lencana. Pengguna yang memindai daftar dari
+ * jauh menemukan barisnya lewat latar; lencananya mengonfirmasi. */
+.kam-item-sesi.is-sekarang {
+  background: rgba(245, 197, 66, 0.04);
+  border-color: var(--emas-garis);
+}
+
+/* Baris waktu: lebih redup dari baris lokasi — hierarki "nama > lokasi >
+ * kapan" membuat mata berhenti di tempat yang benar. */
+.kam-item-ket-waktu {
+  color: var(--teks-samar);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Kepala panel: judul + aksi massal sebaris ───────────────────────────────
+ * Pola GitHub: aksi darurat berada di baris judul, bukan di bawah daftar.
+ * Pengguna yang panik tidak boleh diminta menggulir dulu. */
+.kam-panel-kepala {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.kam-keterangan-rapat { margin-bottom: 0; }
+
+/* ══ RINGKASAN KEAMANAN (tab Profil) ═══════════════════════════════════════════
+ *
+ * ── KENAPA TIGA PETAK, BUKAN DAFTAR BARIS ───────────────────────────────────
+ * Ketiganya adalah STATUS, dan status paling cepat dibaca kalau angkanya
+ * sejajar — mata membandingkan tiga nilai dalam satu sapuan. Sebagai daftar
+ * vertikal, "1 / Belum aktif / 3" terpisah sejauh tiga baris dan tidak bisa
+ * dibandingkan sekaligus.
+ *
+ * ── KENAPA TOMBOL, BUKAN DIV ────────────────────────────────────────────────
+ * Setiap petak BERPINDAH TAB saat diklik. Elemen yang bisa diklik harus bisa
+ * dicapai keyboard dan dibacakan pembaca layar sebagai tombol — <div> dengan
+ * onclick tidak melakukan keduanya.
+ */
+.kam-ringkasan { margin-top: 26px; }
+
+.kam-ringkasan-petak {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.kam-petak {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-input);
+  background: rgba(255, 255, 255, 0.015);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--durasi-cepat) var(--pegas),
+              background var(--durasi-cepat) var(--pegas);
+}
+
+.kam-petak:hover {
+  border-color: var(--garis-terang);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.kam-petak:focus-visible {
+  outline: 2px solid var(--emas);
+  outline-offset: 2px;
+}
+
+/* Nilai adalah jawabannya — karena itu ia yang paling besar dan paling terang.
+ * Label di bawahnya hanya menjelaskan angka mana ini. */
+.kam-petak-nilai {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--teks);
+  font-variant-numeric: tabular-nums;
+}
+
+.kam-petak-nilai.is-aktif { color: var(--emas); }
+
+.kam-petak-label {
+  font-size: 11.5px;
+  color: var(--teks-redup);
+}
+
+/* Di layar sempit, tiga kolom memaksa label membungkus dan angkanya
+ * berdesakan. Satu kolom penuh membuat setiap petak tetap terbaca. */
+@media (max-width: 620px) {
+  .kam-ringkasan-petak { grid-template-columns: 1fr; }
+}
+
+.kam-aksi-massal {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--garis-terang);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--teks-redup);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color var(--durasi-cepat) var(--pegas),
+              border-color var(--durasi-cepat) var(--pegas),
+              background var(--durasi-cepat) var(--pegas);
+}
+
+.kam-aksi-massal:hover,
+.kam-aksi-massal:focus-visible {
+  color: var(--galat);
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.kam-aksi-massal:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .kam-item-isi { flex: 1; min-width: 0; }
 
 .kam-item-judul {
@@ -239,10 +397,22 @@
   flex-wrap: wrap;
 }
 
+/* ── Baris keterangan: --teks-redup, BUKAN --teks-samar ─────────────────────
+ * Diukur dari piksel nyata terhadap latar kartu (rgb(28,26,24)):
+ *   --teks-samar #71717a → 3.59:1  ❌ GAGAL WCAG AA (butuh 4.5:1)
+ *   --teks-redup #a1a1aa → 6.77:1  ✅ LOLOS
+ *
+ * 11.5px bukan "teks besar" menurut WCAG (ambangnya 18.66px bold / 24px), jadi
+ * ambang 4.5:1 berlaku penuh. Ini bukan selera: teks di bawah ambang berarti
+ * pengguna dengan penglihatan rendah tidak bisa membaca dari mana sesinya
+ * berasal — di halaman keamanan, itu justru informasi yang paling dibutuhkan.
+ *
+ * Hierarki tetap terjaga lewat UKURAN (11.5px vs judul 13.5px), bukan lewat
+ * warna yang terlalu redup untuk dibaca. */
 .kam-item-ket {
   margin: 3px 0 0;
   font-size: 11.5px;
-  color: var(--teks-samar);
+  color: var(--teks-redup);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -300,7 +470,22 @@
  * perhatian. */
 .kam-hapus {
   flex-shrink: 0;
-  padding: 6px 10px;
+  /* ── UKURAN TARGET SENTUH ────────────────────────────────────────────────
+   * 6px/12px menghasilkan tinggi ~30px — di bawah minimum 44×44px yang
+   * disyaratkan WCAG 2.5.8 (Target Size). Di ponsel, tombol 30px berarti
+   * sering salah tekan, dan yang salah tekan di sini adalah "Cabut sesi".
+   *
+   * `min-height: 34px` + padding 7px: mencapai 34px pada layar sentuh tanpa
+   * membuat baris daftar terlihat gemuk di desktop. 44px penuh akan memaksa
+   * setiap baris sesi setinggi itu — trade-off yang salah untuk daftar yang
+   * dibaca, bukan diisi.
+   *
+   * Padding horizontal 12px: menambah area sasaran tanpa mengubah tampilan. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 12px;
   border: 1px solid var(--garis);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
@@ -657,7 +842,12 @@
 
 .kam-tata {
   display: grid;
-  grid-template-columns: 150px 1fr;
+  /* 172px, bukan 150px: label terpanjang ("Verifikasi 2 langkah") butuh ~120px
+   * teks + ikon + padding. Di 150px ia membungkus jadi DUA baris — satu-satunya
+   * item yang tingginya 56px sementara enam lainnya 36px, dan ritme vertikal
+   * sidebar patah. Melebarkan 22px jauh lebih murah daripada menyingkat nama
+   * bagian yang sudah jelas. */
+  grid-template-columns: 172px 1fr;
   gap: 0;
   align-items: start;
 }
@@ -689,6 +879,13 @@
   transition: background-color 0.16s var(--ease, ease), color 0.16s var(--ease, ease);
 }
 
+/* Label tidak boleh membungkus. Satu item dua baris membuat tinggi baris
+ * tidak seragam dan posisi aktif sulit dipindai dari sudut mata — dan itu
+ * justru alasan sidebar ini ada. */
+.kam-sisi-item > span:not(.kam-sisi-ikon):not(.kam-sisi-hitung) {
+  white-space: nowrap;
+}
+
 .kam-sisi-item:hover {
   background: rgba(255, 255, 255, 0.04);
   color: var(--teks);
@@ -714,19 +911,38 @@
   height: 15px;
 }
 
+/* `margin-left: auto` mendorong angka ke tepi, jadi label bisa panjang
+ * tanpa mendorongnya keluar baris. */
 .kam-sisi-ikon svg { width: 100%; height: 100%; display: block; }
 .kam-sisi-ikon + span { flex: 1; }
 
-/* `margin-left: auto` mendorong angka ke tepi, jadi label bisa panjang
- * tanpa mendorongnya keluar baris. */
+/* ── Penghitung di sidebar: pill angka, bukan kalimat ───────────────────────
+ * Versi pertama menulis "1 cara masuk" (68px) di samping label "Keamanan"
+ * (62px). Di kolom 172px, keduanya plus ikon tidak muat — teksnya membungkus
+ * atau terpotong, dan sidebar terlihat rusak.
+ *
+ * Pola GitHub/Google: penghitung adalah ANGKA di dalam pill kecil, bukan
+ * kalimat. Angka 11px cukup; keterangan lengkapnya ada di title dan
+ * aria-label, jadi pembaca layar tetap mendapat kalimat utuh. */
 .kam-sisi-hitung {
   flex-shrink: 0;
-  font-size: 11px;
+  margin-left: auto;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
   color: var(--teks-samar);
   font-variant-numeric: tabular-nums;
 }
 
-.kam-sisi-item.is-aktif .kam-sisi-hitung { color: var(--teks-redup); }
+.kam-sisi-item.is-aktif .kam-sisi-hitung {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--teks-redup);
+}
 
 /* ── Panel ────────────────────────────────────────────────────────────────────
  * Padding kiri 24px: jarak dari garis pemisah ke isi. Lebih lega dari jarak
@@ -942,6 +1158,22 @@
   color: var(--teks-redup);
   background: rgba(255, 255, 255, 0.05);
   border-color: var(--garis);
+}
+
+/* ── Lencana NETRAL: "Perangkat ini" ─────────────────────────────────────────
+ * Sebelumnya baris ini memakai `is-sukses` — kuning, sama dengan status
+ * "Dibayar" dan "2FA aktif". Kuning di palet ini berarti "ada yang perlu
+ * diperhatikan"; perangkat yang sedang dipakai justru satu-satunya yang
+ * TIDAK perlu diperhatikan. Lencana kuning di sana menarik mata ke arah yang
+ * salah, dan membuat tombol "Cabut" di baris lain terlihat seperti hal
+ * sekunder padahal itu tindakan yang dicari pengguna.
+ *
+ * Warna netral menyelesaikan keduanya: baris ini terbaca sebagai keterangan,
+ * dan yang menonjol tetap aksi. */
+.kam-lencana.is-netral {
+  color: var(--teks-redup);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--garis-terang);
 }
 
 .kam-lencana.is-gagal {

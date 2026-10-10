@@ -1536,6 +1536,75 @@ function ruteSso() {
       },
     },
 
+    // ══ CABUT SEMUA SESI LAIN ═══════════════════════════════════════════════════
+    //
+    // ── KENAPA INI PERLU ADA SENDIRI ───────────────────────────────────────────
+    // Halaman "Sessions" GitHub, Google, dan Stripe semuanya punya satu aksi
+    // untuk situasi panik: "saya melihat perangkat yang tidak saya kenali".
+    // Mencabut satu per satu berarti pengguna harus menebak mana yang aman —
+    // dan justru saat panik, menebak adalah hal terakhir yang ingin dilakukan.
+    //
+    // ── KENAPA SESI SEKARANG DIKECUALIKAN ──────────────────────────────────────
+    // Ini BUKAN "sign out everywhere". Kalau sesi sekarang ikut dicabut,
+    // pengguna langsung terlempar keluar dan tidak bisa melihat hasil
+    // tindakannya — apakah daftarnya benar-benar bersih. Untuk keluar dari
+    // perangkat ini sudah ada tombol Keluar, dan jalurnya berbeda.
+    //
+    // ── URUTAN: CATAT DULU, LALU HAPUS ─────────────────────────────────────────
+    // Pelajaran yang sama dengan cabut-satu: pencatatan bisa gagal, dan kalau
+    // DELETE dikerjakan lebih dulu, klien diberi tahu "gagal" padahal sesinya
+    // sudah hilang. Pencatatan dibungkus try/catch — audit adalah efek
+    // samping, bukan syarat keberhasilan.
+    {
+      method: 'POST',
+      pattern: '/api/auth/sesi/cabut-semua',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        // Sesi sekarang: hash dari cookie request ini, dicocokkan ke kolom id.
+        const cookies = parseCookiesLokal(req);
+        const idSesiIni = cookies[COOKIE_SESI] ?? '';
+        const hashSesiIni = idSesiIni ? hashSession(idSesiIni, config.secret) : '';
+
+        // Filter token_id ada di query — sesi milik orang lain tidak pernah
+        // ikut terbaca, sekalipun pengenalnya ditebak.
+        const rows = getDb().prepare(
+          'SELECT id FROM sessions WHERE token_id = ? AND expires_at > ?'
+        ).all(pengguna.token_id, Date.now());
+
+        const korban = rows.filter((r) => r.id !== hashSesiIni);
+        if (!korban.length) {
+          return sendJson(res, 200, { ok: true, jumlah: 0,
+            message: 'Tidak ada perangkat lain yang perlu dicabut.' });
+        }
+
+        try {
+          recordEvent({
+            tokenId: pengguna.token_id,
+            action: 'auth_sesi_cabut_semua',
+            outcome: 'ok',
+            ip: clientIp(req),
+            userAgent: String(req.headers?.['user-agent'] ?? '').slice(0, 200),
+            country: clientCountry(req),
+            detail: String(korban.length),
+          });
+        } catch { /* pencatatan gagal bukan alasan membatalkan pencabutan */ }
+
+        const hapus = getDb().prepare('DELETE FROM sessions WHERE id = ?');
+        for (const r of korban) hapus.run(r.id);
+
+        sendJson(res, 200, {
+          ok: true,
+          jumlah: korban.length,
+          message: `${korban.length} perangkat lain dicabut.`,
+        });
+      },
+    },
+
     // ══ TOKEN AKSES ════════════════════════════════════════════════════════════
     // Metadata token milik pengguna (users.token_id): paket, cakupan, masa berlaku.
     //

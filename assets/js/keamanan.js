@@ -308,8 +308,18 @@
 
   function daftarPemuat(panelId, fn) {
     let sudah = false;
-    pemuat[panelId] = async () => {
-      if (sudah) return;
+    // ── KENAPA ADA PARAMETER `paksa` ────────────────────────────────────────
+    // Pemuatan malas menyimpan penanda "sudah pernah dimuat" supaya berpindah
+    // tab tidak memicu permintaan jaringan berulang. Tapi setelah aksi yang
+    // MENGUBAH data di server — mis. mencabut semua sesi lain — memuat ulang
+    // justru yang diinginkan: daftar di layar harus mencerminkan keadaan
+    // server, bukan salinan lama.
+    //
+    // Tanpa `paksa`, satu-satunya cara menyegarkan adalah memuat ulang
+    // halaman — dan pengguna yang baru merasa aman karena mencabut semua
+    // perangkat lain tidak boleh dipaksa memuat ulang untuk melihat hasilnya.
+    pemuat[panelId] = async (paksa = false) => {
+      if (sudah && !paksa) return;
       sudah = true;
       try { await fn(); } catch { sudah = false; }   // gagal → boleh coba lagi
     };
@@ -333,6 +343,57 @@
   }
 
   // ── SESI AKTIF ─────────────────────────────────────────────────────────────
+  //
+  // ── POLA YANG DIIKUTI (GitHub / Google / Stripe "Active sessions") ─────────
+  // Empat hal yang membuat daftar sesi terbaca cepat:
+  //   1. IKON perangkat — mata menemukan "yang mana ponsel" sebelum membaca
+  //   2. META DUA BARIS — lokasi/waktu di baris terpisah dari nama perangkat,
+  //      bukan digabung jadi satu kalimat panjang yang harus diurai
+  //   3. WAKTU RELATIF — "2 menit lalu" jauh lebih berguna daripada tanggal
+  //      absolut saat pertanyaannya "apakah ini baru?"
+  //   4. PERANGKAT INI ditandai NETRAL (abu), bukan kuning — kuning di palet
+  //      ini berarti "perhatikan", padahal perangkat ini justru yang paling
+  //      tidak perlu diperhatikan.
+  const IKON_PERANGKAT = {
+    ponsel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>',
+    tablet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>',
+    desktop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 17v3.5"/></svg>',
+  };
+
+  /** Pilih ikon dari nama perangkat yang sudah diurai server. */
+  function ikonPerangkat(nama) {
+    const s = String(nama || '').toLowerCase();
+    if (s.includes('ios') || s.includes('android')) return IKON_PERANGKAT.ponsel;
+    if (s.includes('ipad') || s.includes('tablet')) return IKON_PERANGKAT.tablet;
+    return IKON_PERANGKAT.desktop;
+  }
+
+  /**
+   * Waktu relatif — "baru saja", "5 menit lalu", "3 hari lalu".
+   *
+   * ── KENAPA INI LEBIH BAIK DARIPADA TANGGAL ────────────────────────────────
+   * Pertanyaan yang membawa pengguna ke daftar ini bukan "kapan tepatnya?"
+   * melainkan "apakah ini baru?". "2 menit lalu" menjawabnya seketika;
+   * "10 Okt 2026, 03.42" memaksa pengguna menghitung sendiri selisihnya.
+   *
+   * Tanggal lengkap tetap disimpan di `title` — kalau pengguna memang butuh
+   * presisi, ia ada di sana tanpa membebani tampilan.
+   */
+  function waktuRelatif(ms) {
+    if (!ms) return '';
+    const detik = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (detik < 60) return 'baru saja';
+    const menit = Math.round(detik / 60);
+    if (menit < 60) return `${menit} menit lalu`;
+    const jam = Math.round(menit / 60);
+    if (jam < 24) return `${jam} jam lalu`;
+    const hari = Math.round(jam / 24);
+    if (hari < 30) return `${hari} hari lalu`;
+    const bulan = Math.round(hari / 30);
+    if (bulan < 12) return `${bulan} bulan lalu`;
+    return `${Math.round(bulan / 12)} tahun lalu`;
+  }
+
   daftarPemuat('panelSesi', async () => {
     const res = await fetch('/api/auth/sesi', { credentials: 'same-origin' });
     if (!res.ok) return;
@@ -341,37 +402,79 @@
 
     const daftar = $('#kamSesi');
     const kosong = $('#kamSesiKosong');
+    const tombolSemua = $('#kamCabutSemua');
     if (!daftar) return;
 
     daftar.innerHTML = '';
-    if (!sesi.length) { if (kosong) kosong.hidden = false; return; }
+    if (!sesi.length) {
+      if (kosong) kosong.hidden = false;
+      if (tombolSemua) tombolSemua.hidden = true;
+      return;
+    }
     if (kosong) kosong.hidden = true;
+
+    /** Hitung sesi lain yang masih bisa dicabut (untuk tombol massal). */
+    const lain = sesi.filter((x) => !x.sekarang && x.pengenal).length;
+    if (tombolSemua) {
+      tombolSemua.hidden = lain === 0;
+      tombolSemua.textContent = `Cabut ${lain} perangkat lain`;
+      tombolSemua.disabled = false;
+    }
 
     for (const x of sesi) {
       const li = document.createElement('li');
-      li.className = 'kam-item';
+      // Kelas tambahan menandai perangkat ini — dipakai CSS untuk latar samar
+      // dan garis kiri, sehingga barisnya terbaca sebagai "kamu di sini"
+      // tanpa perlu membaca lencananya.
+      li.className = 'kam-item kam-item-sesi' + (x.sekarang ? ' is-sekarang' : '');
 
-      const kiri = document.createElement('div');
-      kiri.className = 'kam-item-teks';
+      // ── IKON ────────────────────────────────────────────────────────────────
+      const ikon = document.createElement('span');
+      ikon.className = 'kam-ikon kam-ikon-perangkat';
+      ikon.setAttribute('aria-hidden', 'true');
+      ikon.innerHTML = ikonPerangkat(x.perangkat);
+
+      const isi = document.createElement('div');
+      isi.className = 'kam-item-isi';
 
       const judul = document.createElement('p');
       judul.className = 'kam-item-judul';
-      judul.textContent = x.perangkat || x.user_agent || 'Perangkat tidak dikenal';
+      judul.textContent = x.perangkat || 'Perangkat tidak dikenal';
 
-      const ket = document.createElement('p');
-      ket.className = 'kam-item-ket';
-      ket.textContent = [
-        x.ip, x.negara,
-        x.terakhir_aktif ? 'aktif ' + waktuRingkas(x.terakhir_aktif) : '',
-      ].filter(Boolean).join(' · ');
+      // ── META BARIS 1: lokasi ────────────────────────────────────────────────
+      // Negara dan IP dipisah dari waktu: keduanya menjawab "dari mana?", dan
+      // pertanyaan itu berbeda dari "kapan?". Menggabungnya jadi satu baris
+      // panjang membuat keduanya lebih lambat dibaca.
+      const lokasi = document.createElement('p');
+      lokasi.className = 'kam-item-ket';
+      lokasi.textContent = [x.negara, x.ip].filter(Boolean).join(' · ') || 'Lokasi tidak diketahui';
 
-      kiri.appendChild(judul);
-      kiri.appendChild(ket);
-      li.appendChild(kiri);
+      // ── META BARIS 2: waktu ─────────────────────────────────────────────────
+      const waktu = document.createElement('p');
+      waktu.className = 'kam-item-ket kam-item-ket-waktu';
+      if (x.terakhir_aktif) {
+        const relatif = waktuRelatif(x.terakhir_aktif);
+        // ── KENAPA RELATIF *DAN* ABSOLUT ────────────────────────────────────
+        // Relatif menjawab "apakah ini baru?" — pertanyaan yang membawa
+        // pengguna ke sini. Absolut menjawab "tepatnya kapan?" — yang
+        // dibutuhkan saat ia sudah memutuskan untuk menyelidiki. GitHub
+        // menampilkan keduanya, dan keduanya memang menjawab pertanyaan
+        // berbeda. Menyembunyikan yang absolut di tooltip saja berarti
+        // pengguna ponsel tidak pernah bisa melihatnya.
+        waktu.textContent = x.sekarang
+          ? `Sedang dipakai sekarang · ${waktuRingkas(x.terakhir_aktif)}`
+          : `Terakhir aktif ${relatif} · ${waktuRingkas(x.terakhir_aktif)}`;
+      } else {
+        waktu.textContent = 'Belum pernah dipakai';
+      }
+
+      isi.append(judul, lokasi, waktu);
+      li.append(ikon, isi);
 
       if (x.sekarang) {
+        // Lencana NETRAL, bukan kuning: perangkat ini tidak perlu perhatian.
         const l = document.createElement('span');
-        l.className = 'kam-lencana is-sukses';
+        l.className = 'kam-lencana is-netral';
         l.textContent = 'Perangkat ini';
         li.appendChild(l);
       } else if (x.pengenal) {
@@ -385,37 +488,84 @@
         btn.className = 'kam-hapus';
         btn.textContent = 'Cabut';
         btn.setAttribute('aria-label', `Cabut sesi ${x.perangkat || 'ini'}`);
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          btn.textContent = 'Mencabut...';
-          try {
-            const r = await fetch('/api/auth/sesi/cabut', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              credentials: 'same-origin',
-              body: JSON.stringify({ pengenal: x.pengenal }),
-            });
-            const d = await r.json().catch(() => ({}));
-            if (r.ok) {
-              pesanPanel('#kamPesanSesi', d.message || 'Sesi dicabut.', 'sukses');
-              li.remove();
-              if (!daftar.children.length && kosong) kosong.hidden = false;
-            } else {
-              pesanPanel('#kamPesanSesi', d.message || 'Gagal mencabut sesi.', 'galat');
-              btn.disabled = false;
-              btn.textContent = 'Cabut';
-            }
-          } catch {
-            pesanPanel('#kamPesanSesi', 'Tidak bisa menghubungi server.', 'galat');
-            btn.disabled = false;
-            btn.textContent = 'Cabut';
-          }
-        });
+        btn.addEventListener('click', () => konfirmasiCabutSesi(x, li, daftar, kosong));
         li.appendChild(btn);
       }
       daftar.appendChild(li);
     }
   });
+
+  /**
+   * Konfirmasi sebelum mencabut sesi.
+   *
+   * ── KENAPA PAKAI KONFIRMASI, PADAHAL SEBELUMNYA TIDAK ─────────────────────
+   * Tombol "Cabut" berdiri tepat di samping teks yang bisa disalahbaca, dan
+   * tindakannya tidak bisa dibatalkan — perangkat lain langsung terlempar
+   * keluar. GitHub dan Google sama-sama memakai konfirmasi di sini. Yang
+   * dihindari bukan klik yang salah, tapi klik yang BENAR pada perangkat
+   * yang salah.
+   */
+  function konfirmasiCabutSesi(x, li, daftar, kosong) {
+    const nama = x.perangkat || 'perangkat ini';
+    const tempat = [x.negara, x.ip].filter(Boolean).join(' · ');
+    bukaDialog(
+      `Sesi di ${nama}${tempat ? ` (${tempat})` : ''} akan dicabut. `
+      + 'Perangkat itu harus masuk ulang. Tindakan ini tidak bisa dibatalkan.',
+      async () => {
+        const tombol = $('#kamDialogHapus');
+        tombol.disabled = true;
+        tombol.textContent = 'Mencabut…';
+        try {
+          const r = await fetch('/api/auth/sesi/cabut', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ pengenal: x.pengenal }),
+          });
+          const d = await r.json().catch(() => ({}));
+          if (r.ok) {
+            pesanPanel('#kamPesanSesi', d.message || 'Sesi dicabut.', 'sukses');
+            li.remove();
+            if (!daftar.children.length && kosong) kosong.hidden = false;
+            // Tombol massal ikut menyesuaikan jumlah — kalau tidak, ia
+            // menawarkan "cabut 2 perangkat" padahal tinggal satu.
+            segarkanTombolMassal();
+          } else {
+            pesanPanel('#kamPesanSesi', d.message || 'Gagal mencabut sesi.', 'galat');
+          }
+        } catch {
+          pesanPanel('#kamPesanSesi', 'Tidak bisa menghubungi server.', 'galat');
+        } finally {
+          tombol.disabled = false;
+          tombol.textContent = 'Hapus';   // kembali ke label bawaan dialog
+          tutupDialog();
+        }
+      },
+      { judul: 'Cabut sesi ini?', labelTombol: 'Cabut sesi' },
+    );
+  }
+
+  /**
+   * Segarkan label tombol massal dari jumlah baris yang tersisa di DOM.
+   *
+   * ── KENAPA MENGHITUNG DOM, BUKAN MENYIMPAN ANGKA ──────────────────────────
+   * Angka yang disimpan di variabel harus dijaga sinkron di setiap jalur yang
+   * menghapus baris — dan satu jalur yang terlewat membuat labelnya berbohong.
+   * Menghitung ulang dari DOM selalu benar, dan biayanya nol pada daftar
+   * sependek ini.
+   */
+  function segarkanTombolMassal() {
+    const tombol = $('#kamCabutSemua');
+    if (!tombol) return;
+    const lain = document.querySelectorAll('#kamSesi .kam-item-sesi:not(.is-sekarang)').length;
+    tombol.hidden = lain === 0;
+    tombol.textContent = `Cabut ${lain} perangkat lain`;
+  }
+
+  /** Muat ulang daftar sesi dari server (dipakai setelah aksi massal). */
+  async function muatUlangSesi() {
+    if (pemuat.panelSesi) await pemuat.panelSesi(true);
+  }
 
   // ── TOKEN AKSES ────────────────────────────────────────────────────────────
   daftarPemuat('panelToken', async () => {
@@ -664,6 +814,17 @@
       punyaSandi = Boolean(profil.punya_sandi);
       identitasCache = Array.isArray(data.identitas) ? data.identitas : [];
 
+      // ── ORGANISASI DI MODE LIHAT ──────────────────────────────────────────
+      // Ditampilkan hanya kalau terisi. Pengguna pribadi tidak perlu melihat
+      // baris kosong berlabel "Organisasi —".
+      const barisPerusahaan = $('#kamBarisPerusahaan');
+      const elPerusahaan = $('#kamPerusahaan');
+      if (barisPerusahaan && elPerusahaan) {
+        const ada = Boolean((profil.perusahaan || '').trim());
+        elPerusahaan.textContent = ada ? profil.perusahaan.trim() : '—';
+        barisPerusahaan.hidden = !ada;
+      }
+
       // Simpan untuk mode edit — email ditampilkan tapi tidak bisa diubah.
       profilCache = {
         email: profil.email || '',
@@ -677,6 +838,10 @@
       isi.hidden = false;
       kaki.hidden = false;
 
+      // Ringkasan keamanan dimuat SETELAH panel tampil — ia butuh tiga
+      // permintaan tambahan, dan kegagalannya tidak boleh menahan profil.
+      muatRingkasanKeamanan();
+
     } catch (err) {
       memuat.hidden = true;
       belumMasuk.hidden = false;
@@ -688,6 +853,70 @@
   }
 
   // ── Gambar senarai cara masuk ──────────────────────────────────────────────
+
+  /**
+   * Isi ringkasan keamanan di tab Profil.
+   *
+   * ── KENAPA TIGA PERMINTAAN TERPISAH, BUKAN SATU ────────────────────────────
+   * Ketiganya endpoint yang SUDAH ADA dan sudah dipakai tab masing-masing —
+   * membuat endpoint gabungan berarti menambah kode server hanya untuk
+   * menghemat dua permintaan pada satu panel. Yang lebih penting: kegagalan
+   * satu baris tidak boleh mengosongkan dua baris lainnya, dan itu otomatis
+   * didapat kalau tiap baris punya permintaannya sendiri.
+   *
+   * ── NILAI YANG DITAMPILKAN HARUS NYATA ────────────────────────────────────
+   * Tidak ada angka yang dikarang. Kalau permintaan gagal, selnya tetap "—" —
+   * lebih baik terlihat belum termuat daripada menampilkan angka yang salah di
+   * halaman keamanan.
+   */
+  async function muatRingkasanKeamanan() {
+    const kotak = $('#kamRingkasan');
+    if (!kotak) return;
+    kotak.hidden = false;
+
+    // Setiap baris berdiri sendiri: satu gagal, yang lain tetap terisi.
+    const aman = (p) => p.then((r) => r).catch(() => null);
+
+    const [resIdentitas, resSesi, res2fa] = await Promise.all([
+      aman(fetch('/api/auth/identitas', { credentials: 'same-origin' })),
+      aman(fetch('/api/auth/sesi', { credentials: 'same-origin' })),
+      aman(fetch('/api/auth/2fa/status', { credentials: 'same-origin' })),
+    ]);
+
+    // ── CARA MASUK ──────────────────────────────────────────────────────────
+    const elMasuk = $('#kamRingkasanMasuk');
+    if (elMasuk && resIdentitas?.ok) {
+      try {
+        const d = await resIdentitas.json();
+        // Sandi dihitung sebagai cara masuk kalau akun punya sandi — sama
+        // seperti di gambarSenarai(), supaya kedua angka tidak pernah beda.
+        const jumlah = (Array.isArray(d.identitas) ? d.identitas.length : 0) + (punyaSandi ? 1 : 0);
+        elMasuk.textContent = String(jumlah);
+      } catch { /* biarkan "—" */ }
+    }
+
+    // ── 2FA ─────────────────────────────────────────────────────────────────
+    const el2fa = $('#kamRingkasan2fa');
+    if (el2fa && res2fa?.ok) {
+      try {
+        const d = await res2fa.json();
+        el2fa.textContent = d.aktif ? 'Aktif' : 'Belum aktif';
+        // Warna mengikuti status: kuning = aktif (perlindungan menyala),
+        // redup = belum. Bukan merah — belum mengaktifkan 2FA bukan kesalahan.
+        el2fa.classList.toggle('is-aktif', Boolean(d.aktif));
+      } catch { /* biarkan "—" */ }
+    }
+
+    // ── PERANGKAT AKTIF ─────────────────────────────────────────────────────
+    const elSesi = $('#kamRingkasanSesi');
+    if (elSesi && resSesi?.ok) {
+      try {
+        const d = await resSesi.json();
+        const n = Array.isArray(d.sesi) ? d.sesi.length : 0;
+        elSesi.textContent = String(n);
+      } catch { /* biarkan "—" */ }
+    }
+  }
 
   function gambarSenarai() {
     const senarai = $('#kamSenarai');
@@ -755,7 +984,12 @@
     }
 
     const total = item.length;
-    hitung.textContent = `${total} cara masuk`;
+    // Pill angka, bukan kalimat: "1 cara masuk" tidak muat di sidebar 172px
+    // tanpa membungkus. Kalimat lengkapnya pindah ke title + aria-label —
+    // pembaca layar tetap mendengar keterangan yang utuh.
+    hitung.textContent = String(total);
+    hitung.title = `${total} cara masuk`;
+    hitung.setAttribute('aria-label', `${total} cara masuk`);
 
     // Server menolak menghapus cara masuk terakhir kalau tidak ada sandi.
     // Tombolnya dinonaktifkan lebih dulu supaya pengguna tidak perlu mencoba
@@ -831,7 +1065,23 @@
 
   let aksiDialog = null;
 
-  function bukaDialog(teks, saatHapus) {
+  /**
+   * Buka dialog konfirmasi.
+   *
+   * ── KENAPA JUDUL DAN LABEL TOMBOL IKUT DIKIRIM ─────────────────────────────
+   * Versi pertama hanya menerima teks isi, dan judulnya dipaku di HTML
+   * ("Hapus cara masuk?"). Saat aksi kedua datang — mencabut sesi — dialog itu
+   * akan berbunyi "Hapus cara masuk?" di atas teks tentang perangkat. Judul
+   * yang tidak cocok dengan isinya membuat pengguna ragu apakah ia sedang
+   * mengonfirmasi hal yang benar, dan itu kebingungan terakhir yang
+   * diinginkan pada aksi yang tidak bisa dibatalkan.
+   */
+  function bukaDialog(teks, saatHapus, { judul, labelTombol } = {}) {
+    const elJudul = $('#kamDialogJudul');
+    const elTombol = $('#kamDialogHapus');
+    if (elJudul) elJudul.textContent = judul || 'Hapus cara masuk?';
+    if (elTombol) elTombol.textContent = labelTombol || 'Hapus';
+
     $('#kamDialogTeks').textContent = teks;
     $('#kamDialog').hidden = false;
     aksiDialog = saatHapus;
@@ -1018,6 +1268,58 @@
     $('#btnTambahPasskey')?.addEventListener('click', tambahPasskey);
     $('#kamDialogBatal')?.addEventListener('click', tutupDialog);
     $('#kamDialogHapus')?.addEventListener('click', () => aksiDialog?.());
+
+    // ── CABUT SEMUA PERANGKAT LAIN ─────────────────────────────────────────
+    // Satu aksi untuk situasi panik ("ada perangkat yang tidak saya kenali").
+    // GitHub, Google, dan Stripe semuanya punya tombol ini; mencabut satu per
+    // satu berarti pengguna harus menebak mana yang aman — tepat saat menebak
+    // adalah hal terakhir yang ingin dilakukan.
+    //
+    // Konfirmasi memakai dialog yang sama, dengan judul dan label yang sesuai
+    // aksinya (bukan "Hapus cara masuk?").
+    $('#kamCabutSemua')?.addEventListener('click', () => {
+      const tombol = $('#kamCabutSemua');
+      const jumlah = document.querySelectorAll('#kamSesi .kam-item-sesi:not(.is-sekarang)').length;
+      if (!jumlah) return;
+
+      bukaDialog(
+        `${jumlah} perangkat lain akan dicabut dan harus masuk ulang. `
+        + 'Perangkat yang sedang Anda pakai TIDAK ikut dicabut. '
+        + 'Tindakan ini tidak bisa dibatalkan.',
+        async () => {
+          const hapus = $('#kamDialogHapus');
+          hapus.disabled = true;
+          hapus.textContent = 'Mencabut…';
+          if (tombol) tombol.disabled = true;
+          try {
+            const r = await fetch('/api/auth/sesi/cabut-semua', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              credentials: 'same-origin',
+            });
+            const d = await r.json().catch(() => ({}));
+            if (r.ok) {
+              pesanPanel('#kamPesanSesi', d.message || 'Perangkat lain dicabut.', 'sukses');
+              // Muat ulang daftarnya dari server, bukan menghapus baris satu per
+              // satu di klien: server adalah sumber kebenaran soal sesi mana
+              // yang benar-benar masih ada. Menghapus di klien berarti
+              // menampilkan tebakan.
+              await muatUlangSesi();
+            } else {
+              pesanPanel('#kamPesanSesi', d.message || 'Gagal mencabut sesi lain.', 'galat');
+            }
+          } catch {
+            pesanPanel('#kamPesanSesi', 'Tidak bisa menghubungi server.', 'galat');
+          } finally {
+            hapus.disabled = false;
+            hapus.textContent = 'Hapus';
+            if (tombol) tombol.disabled = false;
+            tutupDialog();
+          }
+        },
+        { judul: 'Cabut semua perangkat lain?', labelTombol: 'Cabut semua' },
+      );
+    });
 
     // Klik latar = batal. Klik di dalam kotak tidak boleh menutup.
     $('#kamDialog')?.addEventListener('click', (e) => {
@@ -1231,6 +1533,21 @@
     const dariHash = location.hash.slice(1);
     const awal = panelDari(dariHash) ? dariHash : tab[0].dataset.panel;
     pilih(awal);
+
+    // ── PETAK RINGKASAN → PINDAH TAB ────────────────────────────────────────
+    // Ringkasan di tab Profil menampilkan status (jumlah cara masuk, 2FA,
+    // perangkat) dan setiap petaknya adalah PINTU ke tab tempat mengubahnya.
+    // Tanpa ini, angkanya hanya memberi tahu ada masalah tanpa jalan ke sana —
+    // dan pengguna harus mencari sendiri tab yang benar.
+    //
+    // Dipasang di dalam initSisi() karena `pilih()` hidup di sini; memanggilnya
+    // dari luar berarti mengekspos state tab ke lingkup global.
+    document.querySelectorAll('.kam-petak[data-panel-tujuan]').forEach((p) => {
+      p.addEventListener('click', () => {
+        const tujuan = p.dataset.panelTujuan;
+        if (panelDari(tujuan)) pilih(tujuan, { fokus: true });
+      });
+    });
   }
 
   // Aman tanpa sesi: querySelector mengembalikan daftar kosong, fungsi

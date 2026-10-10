@@ -140,6 +140,8 @@ async function uji() {
       email: document.querySelector('#kamEmail')?.textContent?.trim(),
       jumlah: document.querySelectorAll('#kamSenarai .kam-item').length,
       hitung: document.querySelector('#kamHitung')?.textContent?.trim(),
+      hitungLabel: document.querySelector('#kamHitung')?.getAttribute('aria-label'),
+      hitungTitle: document.querySelector('#kamHitung')?.getAttribute('title'),
       adaSandi: [...document.querySelectorAll('.kam-item-judul')].some(e => e.textContent.includes('Sandi')),
       tombolTambah: Boolean(document.querySelector('#btnTambahPasskey')),
       kaki: vis('#kamKaki'),
@@ -151,7 +153,18 @@ async function uji() {
   cek('Sandi terdaftar sebagai cara masuk', r3.adaSandi === true);
   cek('Tombol tambah passkey ada', r3.tombolTambah === true);
   cek('Tombol keluar terlihat', r3.kaki === true);
-  cek('Penghitung cara masuk benar', r3.hitung === '1 cara masuk', `dapat: ${r3.hitung}`);
+  // ── KENAPA ANGKANYA SAJA, TAPI KETERANGAN LENGKAP DIPERIKSA ────────────
+  // Sidebar 172px: "1 cara masuk" (68px) tidak muat di samping label
+  // "Keamanan" tanpa membungkus. Sekarang sidebar menampilkan ANGKA saja,
+  // dan kalimat lengkapnya pindah ke aria-label + title.
+  //
+  // Uji ini memeriksa KEDUANYA — kalau hanya angkanya yang diperiksa,
+  // keterangan yang hilang akan lolos tanpa ketahuan, dan pengguna pembaca
+  // layar kehilangan informasi yang dulu ada.
+  cek('Penghitung cara masuk benar', r3.hitung === '1', `dapat: ${r3.hitung}`);
+  cek('Penghitung punya keterangan lengkap untuk pembaca layar',
+    r3.hitungLabel === '1 cara masuk' && r3.hitungTitle === '1 cara masuk',
+    `aria-label="${r3.hitungLabel}", title="${r3.hitungTitle}"`);
 
   console.log('\n══ 4. TAMBAH PASSKEY (authenticator virtual) ══\n');
 
@@ -180,6 +193,8 @@ async function uji() {
       pesanSukses: document.querySelector('#kamPesan')?.classList.contains('is-sukses'),
       jumlah: document.querySelectorAll('#kamSenarai .kam-item').length,
       hitung: document.querySelector('#kamHitung')?.textContent?.trim(),
+      hitungLabel: document.querySelector('#kamHitung')?.getAttribute('aria-label'),
+      hitungTitle: document.querySelector('#kamHitung')?.getAttribute('title'),
       adaPasskey: [...document.querySelectorAll('.kam-item-judul')].some(e => e.textContent.includes('Passkey')),
       tombolAktif: !document.querySelector('#btnTambahPasskey')?.disabled,
       tombolTeks: document.querySelector('#btnTambahPasskey')?.textContent?.trim(),
@@ -189,7 +204,9 @@ async function uji() {
   cek('Passkey berhasil ditambahkan', r4.adaPasskey === true, `pesan: ${r4.pesan}`);
   cek('Pesan sukses ditampilkan', r4.pesanSukses === true, `pesan: ${r4.pesan}`);
   cek('Daftar bertambah jadi 2', r4.jumlah === 2, `jumlah: ${r4.jumlah}`);
-  cek('Penghitung diperbarui', r4.hitung === '2 cara masuk', `dapat: ${r4.hitung}`);
+  cek('Penghitung diperbarui', r4.hitung === '2', `dapat: ${r4.hitung}`);
+  cek('Keterangan penghitung ikut diperbarui', r4.hitungLabel === '2 cara masuk',
+    `aria-label="${r4.hitungLabel}"`);
   // Teks tombol 'Tambah' — bukan 'Tambah passkey'.
   //
   // ── KENAPA DIUBAH ────────────────────────────────────────────────────────
@@ -253,12 +270,16 @@ async function uji() {
     pesan: document.querySelector('#kamPesan')?.textContent?.trim(),
     jumlah: document.querySelectorAll('#kamSenarai .kam-item').length,
     hitung: document.querySelector('#kamHitung')?.textContent?.trim(),
+      hitungLabel: document.querySelector('#kamHitung')?.getAttribute('aria-label'),
+      hitungTitle: document.querySelector('#kamHitung')?.getAttribute('title'),
     adaPasskey: [...document.querySelectorAll('.kam-item-judul')].some(e => e.textContent.includes('Passkey')),
   }));
 
   cek('Passkey terhapus dari daftar', r5c.adaPasskey === false, `pesan: ${r5c.pesan}`);
   cek('Daftar kembali jadi 1', r5c.jumlah === 1, `jumlah: ${r5c.jumlah}`);
-  cek('Penghitung kembali', r5c.hitung === '1 cara masuk', `dapat: ${r5c.hitung}`);
+  cek('Penghitung kembali', r5c.hitung === '1', `dapat: ${r5c.hitung}`);
+  cek('Keterangan penghitung kembali', r5c.hitungLabel === '1 cara masuk',
+    `aria-label="${r5c.hitungLabel}"`);
 
   console.log('\n══ 6. PENJAGAAN CARA MASUK TERAKHIR ══\n');
 
