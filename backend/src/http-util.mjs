@@ -272,9 +272,33 @@ export function ipSamar(ip) {
     return bagian.slice(0, 2).join(':') + ':••••';
   }
 
-  // IPv4: pertahankan dua oktet pertama.
+  // IPv4: pertahankan dua oktet pertama, samarkan dua terakhir.
+  //
+  // ── KENAPA JUMLAH TITIKNYA MENGIKUTI JUMLAH DIGIT ────────────────────────
+  //  103.179.248.92  ->  103.179.•••.••
+  //
+  // Versi sebelumnya memakai SATU titik per oktet (`103.179.•.•`). Bentuknya
+  // lebih pendek dari IP aslinya, sehingga di daftar yang isinya bercampur
+  // IPv4 dan IPv6, kolom IP terlihat bergerigi — panjangnya berubah-ubah
+  // antar baris.
+  //
+  // Menyamakan jumlah titik dengan jumlah digit membuat panjang tampilannya
+  // SAMA dengan IP aslinya. Yang berubah hanya isinya, bukan bentuknya.
+  //
+  // ── CATATAN: INI MEMBOCORKAN JUMLAH DIGIT ────────────────────────────────
+  // Pembaca jadi tahu oktet ketiga punya 3 digit (100-255) dan keempat punya
+  // 2 digit (10-99) — ruang tebakan menyempit dari 256x256 ke sekitar 156x90.
+  //
+  // Ditimbang dan diterima: yang dilindungi halaman ini adalah paparan
+  // sekilas (layar terlihat orang lain, screenshot), bukan serangan
+  // tebak-menebak. Penyerang yang bisa menyempitkan tebakan dari bentuk
+  // masker sudah punya akses ke akunnya — dan kalau sudah begitu, IP-nya
+  // bukan lagi rahasia.
   const o = s.split('.');
-  if (o.length === 4) return `${o[0]}.${o[1]}.•.•`;
+  if (o.length === 4) {
+    const samar = (oktet) => '•'.repeat(String(oktet).length);
+    return `${o[0]}.${o[1]}.${samar(o[2])}.${samar(o[3])}`;
+  }
 
   // Format tak dikenal — kembalikan apa adanya daripada menampilkan
   // sesuatu yang menyesatkan.
