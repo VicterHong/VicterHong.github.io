@@ -205,7 +205,20 @@ export function siapkanTabelPengguna() {
       dibuat_at     INTEGER NOT NULL,
       masuk_terakhir INTEGER,
       gagal_masuk   INTEGER NOT NULL DEFAULT 0,
-      terkunci_sampai INTEGER
+      terkunci_sampai INTEGER,
+      -- ── FOTO PROFIL ───────────────────────────────────────────────────────
+      -- Menyimpan KUNCI objek di R2 (avatar/ID-HASH.webp), bukan URL
+      -- lengkap dan bukan gambar itu sendiri:
+      --
+      --   • Kunci, bukan URL: alamat R2 bisa berubah (domain sendiri, CDN)
+      --     tanpa harus memperbarui setiap baris database.
+      --   • Kunci, bukan data gambar: blob di database akan menggandakan
+      --     penyimpanan dan membuat setiap SELECT pengguna menarik megabyte.
+      --
+      -- Kosong = pengguna belum mengunggah foto. Halaman lalu jatuh ke
+      -- avatar OAuth, lalu ke inisial otomatis — jadi kosong adalah keadaan
+      -- yang sah, bukan data yang hilang.
+      avatar_key    TEXT NOT NULL DEFAULT ''
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_email  ON users(email);
@@ -427,4 +440,41 @@ export function perbaruiProfil(userId, { nama, perusahaan } = {}) {
   if (!info.changes) return { ok: false, pesan: 'Profil tidak ditemukan.' };
 
   return { ok: true, nama: namaBaru, perusahaan: perusahaanBaru };
+}
+
+/**
+ * Simpan kunci avatar pengguna.
+ *
+ * ── KENAPA HANYA KUNCI YANG DISIMPAN DI SINI ────────────────────────────────
+ * Operasi R2 (unggah/hapus) dilakukan modul avatar.mjs SEBELUM fungsi ini
+ * dipanggil. Pemisahan itu disengaja: kalau unggahan gagal, kunci di
+ * database tidak boleh berubah — kalau tidak, baris pengguna menunjuk ke
+ * berkas yang tidak ada, dan halamannya menampilkan gambar rusak.
+ *
+ * Urutannya di handler: unggah ke R2 → baru catat kuncinya di sini.
+ */
+export function simpanKunciAvatar(userId, kunci) {
+  const id = String(userId ?? '');
+  if (!id) return { ok: false, pesan: 'Pengguna tidak dikenal.' };
+
+  const info = getDb()
+    .prepare('UPDATE users SET avatar_key = ? WHERE id = ?')
+    .run(String(kunci ?? '').slice(0, 200), id);
+
+  if (!info.changes) return { ok: false, pesan: 'Profil tidak ditemukan.' };
+  return { ok: true, kunci: String(kunci ?? '') };
+}
+
+/**
+ * Ambil kunci avatar pengguna tanpa memuat seluruh barisnya.
+ *
+ * Dipakai saat MENGHAPUS foto: handler perlu tahu kunci lama untuk dihapus
+ * dari R2, dan mengambil seluruh baris pengguna untuk satu kolom berarti
+ * menarik password_hash serta kolom lain yang tidak dibutuhkan.
+ */
+export function kunciAvatarPengguna(userId) {
+  const row = getDb()
+    .prepare('SELECT avatar_key FROM users WHERE id = ?')
+    .get(String(userId ?? ''));
+  return row?.avatar_key ?? '';
 }

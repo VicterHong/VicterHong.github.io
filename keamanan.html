@@ -241,12 +241,45 @@
                    ikon "gambar rusak" di halaman korporat. -->
               <div class="kam-identitas">
                 <span class="kam-avatar" id="kamAvatar" aria-hidden="true">
-                  <!-- Diisi JS: <img> dari /avatar/<nama>, atau inisial -->
+                  <!-- Diisi JS: <img> dari foto unggahan, /avatar/<nama>, atau inisial -->
                   <span class="kam-avatar-inisial" id="kamAvatarInisial">—</span>
                 </span>
                 <div class="kam-identitas-teks">
                   <p class="kam-identitas-nama" id="kamIdentitasNama">—</p>
                   <p class="kam-identitas-email" id="kamIdentitasEmail">—</p>
+
+                  <!-- ══ GANTI FOTO PROFIL ══════════════════════════════════
+                       ── KENAPA DI BAWAH EMAIL, BUKAN DI ATAS AVATAR ────────
+                       Tombol yang menempel di atas avatar menutupi wajahnya —
+                       tepat bagian yang ingin dilihat pengguna saat memutuskan
+                       foto mana yang dipakai. Menaruhnya di bawah identitas
+                       membuat keduanya terlihat: foto dan tombolnya.
+
+                       ── KENAPA <label> MEMBUNGKUS <input> ──────────────────
+                       Ini yang membuat seluruh teks "Ganti foto" bisa diklik
+                       dan bisa dicapai keyboard TANPA JavaScript. Input
+                       berkas asli disembunyikan secara visual (bukan
+                       `display:none` — itu mengeluarkannya dari urutan tab
+                       di sebagian browser), lalu label meneruskan kliknya.
+
+                       Input TIDAK langsung mengunggah. Ia hanya memilih
+                       berkas; unggahan dimulai setelah pengguna menekan
+                       "Simpan" — supaya ada kesempatan membatalkan. -->
+                  <div class="kam-foto-aksi">
+                    <label class="kam-foto-pilih" for="kamInputFoto" id="kamLabelFoto">
+                      <input type="file" id="kamInputFoto" class="kam-foto-input"
+                             accept="image/jpeg,image/png,image/webp,image/avif">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/>
+                        <circle cx="12" cy="13" r="3.2"/>
+                      </svg>
+                      <span id="kamTeksFoto">Ganti foto</span>
+                    </label>
+                    <button type="button" class="kam-foto-hapus" id="kamHapusFoto" hidden>
+                      Hapus
+                    </button>
+                  </div>
+                  <p class="kam-foto-pesan" id="kamPesanFoto" role="status" aria-live="polite"></p>
                 </div>
               </div>
 

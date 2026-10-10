@@ -120,6 +120,9 @@
   let identitasCache = [];
   let punyaSandi = false;
 
+  /** URL foto profil yang tersimpan di server ('' = belum ada unggahan). */
+  let avatarTersimpan = '';
+
   /** Data profil terakhir — dipakai mode edit untuk mengisi form dan
    *  mengembalikannya kalau pengguna menekan Batal. */
   let profilCache = { email: '', nama: '', perusahaan: '' };
@@ -183,6 +186,235 @@
     kotak.appendChild(img);
   }
 
+  // ── FOTO PROFIL ────────────────────────────────────────────────────────────
+  //
+  // ── URUTAN SUMBER AVATAR (satu arah, tidak saling menggantikan) ────────────
+  //   1. Foto yang DIUNGGAH pengguna   — paling mewakili pilihannya sendiri
+  //   2. Foto dari penyedia OAuth      — lebih baik daripada inisial
+  //   3. Inisial otomatis dari nama    — selalu tersedia, nol penyimpanan
+  //
+  // ── KENAPA UNGGAHAN DIMULAI OLEH TOMBOL "SIMPAN", BUKAN SAAT MEMILIH ──────
+  // Memilih berkas lalu langsung mengunggah berarti pengguna tidak punya
+  // kesempatan membatalkan setelah melihat pratinjaunya. Dengan tombol
+  // Simpan, ada satu langkah sadar di antaranya — dan langkah itu juga
+  // tempat pesan galat muncul, bukan di tempat yang berpindah-pindah.
+  //
+  // ── KENAPA PRATINJAU PAKAI URL.createObjectURL ────────────────────────────
+  // Ia menampilkan gambar LOKAL seketika, tanpa menunggu jaringan. Inilah
+  // "aturan tiga detik": pengguna memutuskan berdasarkan apa yang ia lihat,
+  // dan menunggu unggahan selesai hanya untuk melihat fotonya sendiri adalah
+  // waktu yang terbuang.
+  //
+  // Object URL WAJIB dilepas (revokeObjectURL) saat tidak dipakai lagi —
+  // kalau tidak, blob-nya tertahan di memori selama halaman terbuka.
+  let berkasFotoTerpilih = null;
+  let urlPratinjau = null;
+
+  /** Batas di klien. Server tetap memeriksa ulang — ini hanya agar cepat. */
+  const FOTO_MAKS_BYTE = 4 * 1024 * 1024;
+  const FOTO_MAKS_SISI_MIN = 200;
+
+  function bersihkanPratinjau() {
+    if (urlPratinjau) {
+      URL.revokeObjectURL(urlPratinjau);
+      urlPratinjau = null;
+    }
+  }
+
+  function pesanFoto(teks, jenis = '') {
+    const el = $('#kamPesanFoto');
+    if (!el) return;
+    el.textContent = teks;
+    el.classList.toggle('is-galat', jenis === 'galat');
+    el.classList.toggle('is-sukses', jenis === 'sukses');
+  }
+
+  /**
+   * Pasang gambar pada kotak avatar.
+   *
+   * `sumber` boleh URL (dari server atau object URL) — dan `null` berarti
+   * kembalikan ke inisial. Fungsi ini satu-satunya tempat yang menyentuh
+   * isi kotak avatar, supaya tidak ada dua jalur yang bisa tidak sinkron.
+   */
+  function pasangGambarAvatar(sumber) {
+    const kotak = $('#kamAvatar');
+    const inisial = $('#kamAvatarInisial');
+    if (!kotak) return;
+
+    kotak.querySelector('img')?.remove();
+
+    if (!sumber) {
+      if (inisial) inisial.hidden = false;
+      return;
+    }
+
+    const img = document.createElement('img');
+    img.className = 'kam-avatar-gambar';
+    img.alt = '';                 // dekoratif: nama sudah ada di sebelahnya
+    img.decoding = 'async';
+    img.src = sumber;
+    // Gagal memuat → kembali ke inisial. Tanpa ini, kotak avatar kosong dan
+    // halaman terlihat rusak padahal hanya gambarnya yang gagal.
+    img.addEventListener('error', () => { img.remove(); if (inisial) inisial.hidden = false; });
+    img.addEventListener('load', () => { if (inisial) inisial.hidden = true; });
+    kotak.appendChild(img);
+  }
+
+  /** Terapkan foto dari server (kalau ada) atau jatuh ke inisial. */
+  function terapkanFotoServer(urlFoto, nama, email) {
+    if (urlFoto) {
+      pasangGambarAvatar(urlFoto);
+      return;
+    }
+    // Tidak ada foto unggahan → avatar inisial dari Worker (pola lama).
+    const sumber = (nama || '').trim() || (email || '').split('@')[0] || '?';
+    const img = document.createElement('img');
+    img.className = 'kam-avatar-gambar';
+    img.alt = '';
+    img.decoding = 'async';
+    img.src = '/avatar/' + encodeURIComponent(sumber);
+    const kotak = $('#kamAvatar');
+    const inisial = $('#kamAvatarInisial');
+    kotak?.querySelector('img')?.remove();
+    img.addEventListener('error', () => { img.remove(); if (inisial) inisial.hidden = false; });
+    img.addEventListener('load', () => { if (inisial) inisial.hidden = true; });
+    kotak?.appendChild(img);
+  }
+
+  /**
+   * Baca dimensi gambar di klien untuk menolak yang terlalu kecil SEBELUM
+   * dikirim. Server tetap memeriksa ulang — ini hanya menghemat perjalanan.
+   */
+  function ukuranGambar(file) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const hasil = { lebar: img.naturalWidth, tinggi: img.naturalHeight };
+        URL.revokeObjectURL(url);
+        resolve(hasil);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  async function pilihFoto(file) {
+    if (!file) return;
+
+    // Validasi cepat di klien. Pesan yang sama persis dengan server, supaya
+    // pengguna tidak melihat dua versi berbeda untuk masalah yang sama.
+    if (file.size > FOTO_MAKS_BYTE) {
+      pesanFoto(`Foto terlalu besar — maksimum ${Math.round(FOTO_MAKS_BYTE / 1024 / 1024)} MB.`, 'galat');
+      return;
+    }
+    if (!/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
+      pesanFoto('Format tidak didukung — pakai JPG, PNG, WebP, atau AVIF.', 'galat');
+      return;
+    }
+
+    const ukuran = await ukuranGambar(file);
+    if (ukuran && Math.min(ukuran.lebar, ukuran.tinggi) < FOTO_MAKS_SISI_MIN) {
+      pesanFoto(
+        `Foto terlalu kecil — sisi terpendek minimal ${FOTO_MAKS_SISI_MIN}px `
+        + `(foto Anda ${Math.min(ukuran.lebar, ukuran.tinggi)}px).`,
+        'galat',
+      );
+      return;
+    }
+
+    // Simpan berkasnya, tampilkan pratinjau lokal, dan ubah tombolnya jadi
+    // "Simpan foto" — pengguna melihat persis apa yang akan tersimpan.
+    berkasFotoTerpilih = file;
+    bersihkanPratinjau();
+    urlPratinjau = URL.createObjectURL(file);
+    pasangGambarAvatar(urlPratinjau);
+
+    const teks = $('#kamTeksFoto');
+    if (teks) teks.textContent = 'Simpan foto';
+    $('#kamLabelFoto')?.classList.add('is-ada-perubahan');
+    pesanFoto('Pratinjau — tekan "Simpan foto" untuk menyimpan.', '');
+  }
+
+  async function simpanFoto() {
+    if (!berkasFotoTerpilih) return;
+
+    const label = $('#kamLabelFoto');
+    const teks = $('#kamTeksFoto');
+    const teksAsli = teks?.textContent ?? 'Ganti foto';
+
+    if (teks) teks.textContent = 'Mengunggah…';
+    label?.classList.add('is-sibuk');
+    pesanFoto('Mengunggah dan memproses foto…', '');
+
+    try {
+      const res = await fetch('/api/auth/avatar', {
+        method: 'POST',
+        headers: { 'content-type': berkasFotoTerpilih.type },
+        credentials: 'same-origin',
+        body: berkasFotoTerpilih,
+      });
+      const d = await res.json().catch(() => ({}));
+
+      if (!res.ok || !d.ok) {
+        pesanFoto(d.message || 'Foto tidak bisa diunggah. Coba lagi.', 'galat');
+        return;
+      }
+
+      // Server sudah memproses: dipotong persegi, dikonversi WebP, EXIF
+      // dibuang. Yang ditampilkan sekarang adalah HASIL SUNGGUHAN — bukan
+      // pratinjau lokal. Kalau keduanya berbeda, pengguna melihat yang benar.
+      bersihkanPratinjau();
+      berkasFotoTerpilih = null;
+      pasangGambarAvatar(d.url ? d.url + '?v=' + Date.now() : null);
+      if (d.url) { avatarTersimpan = d.url; }
+
+      if (teks) teks.textContent = 'Ganti foto';
+      label?.classList.remove('is-ada-perubahan');
+      const tombolHapus = $('#kamHapusFoto');
+      if (tombolHapus) tombolHapus.hidden = false;
+
+      pesanFoto(d.message || 'Foto profil diperbarui.', 'sukses');
+    } catch {
+      pesanFoto('Tidak bisa menghubungi server.', 'galat');
+    } finally {
+      label?.classList.remove('is-sibuk');
+      // Kalau gagal, labelnya kembali ke teks semula — tapi hanya kalau
+      // memang tidak ada perubahan tertunda yang menunggu disimpan.
+      if (teks && berkasFotoTerpilih) teks.textContent = 'Simpan foto';
+      else if (teks && !berkasFotoTerpilih) teks.textContent = 'Ganti foto';
+      else if (teks) teks.textContent = teksAsli;
+    }
+  }
+
+  async function hapusFoto() {
+    const tombol = $('#kamHapusFoto');
+    if (tombol) tombol.disabled = true;
+    pesanFoto('Menghapus…', '');
+    try {
+      const res = await fetch('/api/auth/avatar', { method: 'DELETE', credentials: 'same-origin' });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.ok) {
+        pesanFoto(d.message || 'Tidak bisa menghapus foto.', 'galat');
+        return;
+      }
+      avatarTersimpan = '';
+      bersihkanPratinjau();
+      berkasFotoTerpilih = null;
+      // Kembali ke avatar inisial dari Worker.
+      terapkanFotoServer('', $('#kamIdentitasNama')?.textContent, $('#kamIdentitasEmail')?.textContent);
+      if (tombol) tombol.hidden = true;
+      const teks = $('#kamTeksFoto');
+      if (teks) teks.textContent = 'Ganti foto';
+      $('#kamLabelFoto')?.classList.remove('is-ada-perubahan');
+      pesanFoto(d.message || 'Foto profil dihapus.', 'sukses');
+    } catch {
+      pesanFoto('Tidak bisa menghubungi server.', 'galat');
+    } finally {
+      if (tombol) tombol.disabled = false;
+    }
+  }
+
   /** Isi kartu identitas (avatar + nama + email) di panel Profil. */
   function isiIdentitas(nama, email) {
     const n = (nama || '').trim();
@@ -193,7 +425,14 @@
     if (elNama) elNama.textContent = n || e || '—';
     if (elEmail) elEmail.textContent = e || '—';
 
-    gambarAvatar(n, e);
+    // Foto unggahan menang atas avatar inisial. `avatarTersimpan` diisi dari
+    // respons /api/auth/profil — jadi urutan sumbernya ditentukan server,
+    // bukan ditebak klien.
+    terapkanFotoServer(avatarTersimpan, n, e);
+
+    // Tombol "Hapus" hanya masuk akal kalau memang ada foto yang bisa dihapus.
+    const tombolHapus = $('#kamHapusFoto');
+    if (tombolHapus) tombolHapus.hidden = !avatarTersimpan;
   }
 
   // ══ RIWAYAT PEMBELIAN ═══════════════════════════════════════════════════════
@@ -780,6 +1019,9 @@
       if (profil.nama) $('#kamNama').textContent = profil.nama;
 
       // Kartu identitas di atas panel — avatar + nama + email.
+      // `avatarTersimpan` diisi SEBELUM isiIdentitas() dipanggil, karena
+      // fungsi itu memakainya untuk memutuskan foto mana yang ditampilkan.
+      avatarTersimpan = profil.avatar_url || '';
       isiIdentitas(profil.nama, profil.email);
 
       // ── TANGGAL DIBUAT ────────────────────────────────────────────────────────
@@ -1268,6 +1510,38 @@
     $('#btnTambahPasskey')?.addEventListener('click', tambahPasskey);
     $('#kamDialogBatal')?.addEventListener('click', tutupDialog);
     $('#kamDialogHapus')?.addEventListener('click', () => aksiDialog?.());
+
+    // ── FOTO PROFIL ─────────────────────────────────────────────────────────
+    //
+    // ── KENAPA SATU TOMBOL, DUA PERAN ───────────────────────────────────────
+    // Label "Ganti foto" berubah jadi "Simpan foto" setelah berkas dipilih.
+    // Klik pertama membuka pemilih berkas; klik berikutnya MENYIMPAN.
+    //
+    // Alternatifnya adalah dua tombol terpisah ("Pilih" lalu "Simpan"), tapi
+    // itu menambah tombol yang harus dijelaskan di keadaan normal — padahal
+    // hampir semua kunjungan tidak sedang mengganti foto.
+    //
+    // Karena <label> meneruskan kliknya ke <input file>, pemilih berkas
+    // terbuka SENDIRI saat belum ada perubahan. Handler ini hanya mencegat
+    // saat sudah ada berkas yang menunggu disimpan.
+    $('#kamInputFoto')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      // Kosongkan nilainya supaya memilih berkas yang SAMA dua kali tetap
+      // memicu 'change' — tanpa ini, percobaan kedua tidak terjadi apa-apa.
+      e.target.value = '';
+      if (file) pilihFoto(file);
+    });
+
+    $('#kamLabelFoto')?.addEventListener('click', (e) => {
+      // Ada perubahan tertunda → jangan buka pemilih berkas, tapi simpan.
+      if (berkasFotoTerpilih) {
+        e.preventDefault();
+        simpanFoto();
+      }
+      // Kalau tidak ada, biarkan perilaku bawaan <label> membuka pemilih.
+    });
+
+    $('#kamHapusFoto')?.addEventListener('click', hapusFoto);
 
     // ── CABUT SEMUA PERANGKAT LAIN ─────────────────────────────────────────
     // Satu aksi untuk situasi panik ("ada perangkat yang tidak saya kenali").

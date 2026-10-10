@@ -1088,6 +1088,123 @@
   line-height: 1.4;
 }
 
+/* ══ GANTI FOTO PROFIL ═════════════════════════════════════════════════════════
+ *
+ * ── KENAPA TOMBOLNYA KECIL DAN REDUP ────────────────────────────────────────
+ * Mengganti foto bukan tugas yang dikerjakan setiap kunjungan. Tombol besar
+ * berwarna di bawah nama akan bersaing dengan informasi yang justru dicari
+ * pengguna (nama, email) — jadi ukurannya sengaja sekecil teks di sekitarnya,
+ * dan warnanya baru muncul saat disorot.
+ *
+ * Ini pola yang dipakai GitHub: di halaman settings, tombol "Edit" berada
+ * sebagai tautan kecil di samping nama, bukan tombol besar di bawahnya.
+ */
+.kam-foto-aksi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.kam-foto-pilih {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--garis);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--teks-redup);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--durasi-cepat) var(--pegas),
+              border-color var(--durasi-cepat) var(--pegas),
+              background var(--durasi-cepat) var(--pegas);
+}
+
+.kam-foto-pilih:hover {
+  color: var(--teks);
+  border-color: var(--garis-terang);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Fokus keyboard: <input type="file"> di dalam label menerima fokus, jadi
+ * labelnya yang perlu penanda visual — tanpa ini, pengguna keyboard tidak
+ * tahu di mana mereka berada. */
+.kam-foto-input:focus-visible + svg,
+.kam-foto-pilih:has(.kam-foto-input:focus-visible) {
+  outline: 2px solid var(--emas);
+  outline-offset: 2px;
+}
+
+/* Ada perubahan menunggu disimpan → warnai emas, karena tombolnya sekarang
+ * berarti "simpan", bukan "pilih". Perbedaan warna ini yang memberi tahu
+ * pengguna bahwa langkah berikutnya berbeda dari yang tadi. */
+.kam-foto-pilih.is-ada-perubahan {
+  color: var(--emas);
+  border-color: var(--emas-garis);
+  background: var(--emas-redup);
+}
+
+.kam-foto-pilih.is-sibuk {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* ── INPUT BERKAS: DISEMBUNYIKAN SECARA VISUAL, BUKAN `display: none` ───────
+ * `display: none` mengeluarkan input dari urutan tab di sebagian browser,
+ * sehingga pengguna keyboard tidak bisa membuka pemilih berkas sama sekali.
+ * Pola di bawah menyembunyikannya dari mata tapi tetap membuatnya fokusabel —
+ * inilah cara yang dipakai di seluruh web untuk tombol unggah bergaya. */
+.kam-foto-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.kam-foto-hapus {
+  padding: 4px 9px;
+  border: 1px solid var(--garis);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--teks-redup);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color var(--durasi-cepat) var(--pegas),
+              border-color var(--durasi-cepat) var(--pegas),
+              background var(--durasi-cepat) var(--pegas);
+}
+
+.kam-foto-hapus:hover,
+.kam-foto-hapus:focus-visible {
+  color: var(--galat);
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.kam-foto-hapus:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Pesan status: tinggi minimum supaya kemunculannya tidak menggeser tata
+ * letak di bawahnya (menghindari Cumulative Layout Shift). */
+.kam-foto-pesan {
+  margin: 6px 0 0;
+  min-height: 15px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--teks-redup);
+}
+
+.kam-foto-pesan.is-galat { color: var(--galat); }
+.kam-foto-pesan.is-sukses { color: var(--emas); }
+
 /* Di layar sempit, avatar sedikit lebih kecil supaya nama tidak terpotong. */
 @media (max-width: 400px) {
   .kam-avatar { width: 44px; height: 44px; }

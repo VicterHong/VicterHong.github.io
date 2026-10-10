@@ -30,13 +30,22 @@
 import { createHash } from 'node:crypto';
 import { config } from './config.mjs';
 import { getDb } from './db.mjs';
-import { sendJson, setCookie, clientIp, clientCountry, readJson } from './http-util.mjs';
+import { sendJson, setCookie, clientIp, clientCountry, readJson, bacaBodyBiner } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
 // mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
 import { statusTotp } from './totp-service.mjs';
 import { recordEvent } from './audit.mjs';
-import { normalEmail, emailValid, cariPengguna, penggunaById, buatPengguna, perbaruiProfil } from './users.mjs';
+import {
+  normalEmail, emailValid, cariPengguna, penggunaById, buatPengguna, perbaruiProfil,
+  simpanKunciAvatar, kunciAvatarPengguna,
+} from './users.mjs';
+// Foto profil: validasi → proses → simpan ke R2. Dipisah dari media galeri
+// karena aturannya berbeda (potong persegi, batas 4 MB, satu berkas per
+// pengguna) — tapi keduanya berbagi klien R2 yang sama dari media.mjs.
+import {
+  avatarAktif, MAX_AVATAR_BYTES, simpanAvatar, hapusAvatar, ambilAvatar,
+} from './avatar.mjs';
 import { issueToken, tokenProblem } from './tokens.mjs';
 import { checkRateLimit } from './rate-limit.mjs';
 import {
@@ -834,6 +843,17 @@ const ruteProfil = {
       // Apakah akun ini punya sandi? Dipakai halaman keamanan untuk
       // memutuskan apakah cara masuk terakhir boleh dihapus.
       punya_sandi: Boolean(pengguna.password_hash),
+      // ── FOTO PROFIL: URL SIAP PAKAI, ATAU KOSONG ──────────────────────────
+      // Yang dikirim URL-nya, bukan kuncinya. Alasannya: frontend tidak perlu
+      // tahu bentuk kunci di R2, dan kalau bentuk itu berubah (domain sendiri,
+      // CDN di depan, ukuran tambahan) hanya sisi server yang ikut berubah.
+      //
+      // Kosong berarti belum ada foto unggahan — halaman lalu memakai avatar
+      // OAuth atau inisial otomatis. Tiga sumber itu berurutan, bukan
+      // saling menggantikan.
+      avatar_url: pengguna.avatar_key
+        ? `/api/auth/avatar/${encodeURIComponent(String(pengguna.avatar_key).split('/').pop())}`
+        : '',
     });
   },
 };
@@ -1602,6 +1622,195 @@ function ruteSso() {
           jumlah: korban.length,
           message: `${korban.length} perangkat lain dicabut.`,
         });
+      },
+    },
+
+    // ══ FOTO PROFIL ════════════════════════════════════════════════════════════
+    //
+    // ── KENAPA UNGGAHAN LEWAT BACKEND, BUKAN LANGSUNG KE R2 DARI BROWSER ──────
+    // Cara langsung (presigned URL) memang lebih hemat: berkasnya tidak
+    // melewati server. Tapi ia menuntut tiga hal yang belum ada di sini:
+    // kredensial R2 yang bisa menulis harus sampai ke browser, kebijakan
+    // kedaluwarsa URL harus dikelola, dan tidak ada tempat untuk memvalidasi
+    // isi berkas sebelum ia tersimpan.
+    //
+    // Lewat backend, berkas diperiksa DAN diproses dulu (dipotong persegi,
+    // dikonversi WebP, EXIF dihapus). Yang tersimpan di R2 selalu gambar yang
+    // sudah bersih — bukan apa pun yang dikirim klien.
+    //
+    // Batas 4 MB membuat jalur ini aman untuk server Node: satu unggahan
+    // ditampung di memori sebentar, lalu dilepas. Rute lain di layanan ini
+    // (galeri) memakai pola yang sama dengan batas 8 MB.
+    //
+    // ── URUTAN: SIMPAN KE R2 DULU, BARU CATAT KUNCI ───────────────────────────
+    // Kalau urutannya dibalik dan unggahan gagal, baris pengguna menunjuk ke
+    // berkas yang tidak ada — halamannya menampilkan gambar rusak, dan tidak
+    // ada cara memperbaikinya selain mengunggah ulang.
+    {
+      method: 'POST',
+      pattern: '/api/auth/avatar',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        if (!avatarAktif()) {
+          return sendJson(res, 503, { ok: false, error: 'penyimpanan_belum_siap',
+            message: 'Unggahan foto belum dikonfigurasi di server ini.' });
+        }
+
+        // ── BATAS LAJU ──────────────────────────────────────────────────────
+        // Memproses gambar itu mahal (sharp membaca dan meng-encode ulang).
+        // Tanpa batas, satu klien bisa menghabiskan CPU server dengan
+        // mengunggah berulang kali. 10 per 5 menit cukup untuk pemakaian
+        // wajar — termasuk beberapa kali percobaan karena fotonya terlalu
+        // kecil atau formatnya salah.
+        const batas = checkRateLimit(`avatar:${pengguna.id}`, { limit: 10, windowMs: 300_000 });
+        if (!batas.allowed) {
+          return sendJson(res, 429, { ok: false, error: 'terlalu_banyak',
+            message: 'Terlalu banyak unggahan. Coba lagi beberapa menit lagi.' });
+        }
+
+        let buffer;
+        try {
+          buffer = await bacaBodyBiner(req, MAX_AVATAR_BYTES);
+        } catch (err) {
+          return sendJson(res, err.statusCode ?? 400, { ok: false, error: 'unggahan_gagal',
+            message: err.message || 'Berkas tidak bisa dibaca.' });
+        }
+
+        try {
+          const hasil = await simpanAvatar({
+            userId: pengguna.id,
+            kunciLama: kunciAvatarPengguna(pengguna.id),
+            buffer,
+            contentType: req.headers['content-type'],
+          });
+
+          // Baru SETELAH berkas aman di R2.
+          const simpan = simpanKunciAvatar(pengguna.id, hasil.kunci);
+          if (!simpan.ok) {
+            return sendJson(res, 500, { ok: false, error: 'gagal_simpan',
+              message: 'Foto tersimpan tapi profil tidak bisa diperbarui.' });
+          }
+
+          try {
+            recordEvent({
+              action: 'avatar_unggah', outcome: 'ok',
+              detail: `${hasil.hasil.bytesWebp} byte (hemat ${hasil.hemat ?? 0}%)`,
+              ip: clientIp(req),
+            });
+          } catch { /* audit tidak boleh menggagalkan unggahan */ }
+
+          return sendJson(res, 200, {
+            ok: true,
+            message: 'Foto profil diperbarui.',
+            kunci: hasil.kunci,
+            // URL siap pakai dengan penanda versi — frontend memakainya
+            // langsung, dan karena hash-nya ikut, cache lama tidak salah saji.
+            url: `/api/auth/avatar/${encodeURIComponent(hasil.kunci.split('/').pop())}`,
+            bytes: hasil.hasil.bytesWebp,
+            hemat: hasil.hemat ?? 0,
+          });
+        } catch (err) {
+          // Pesan dari validasi/proses sudah ditulis untuk pengguna
+          // ("foto terlalu kecil...", "format tidak didukung...") — teruskan
+          // apa adanya, jangan ganti dengan pesan generik yang tidak menolong.
+          return sendJson(res, err.statusCode ?? 500, {
+            ok: false,
+            error: 'avatar_gagal',
+            message: err.message || 'Foto tidak bisa diproses.',
+          });
+        }
+      },
+    },
+
+    {
+      method: 'DELETE',
+      pattern: '/api/auth/avatar',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const kunci = kunciAvatarPengguna(pengguna.id);
+        if (!kunci) {
+          return sendJson(res, 200, { ok: true, message: 'Tidak ada foto untuk dihapus.' });
+        }
+
+        // ── URUTAN TERBALIK DARI UNGGAH: CATAT DULU, BARU HAPUS BERKAS ──────
+        // Kalau berkas dihapus lebih dulu lalu pembaruan database gagal,
+        // baris pengguna menunjuk ke berkas yang sudah tidak ada — dan
+        // halamannya menampilkan gambar rusak permanen.
+        //
+        // Dengan urutan ini, kegagalan terburuk adalah berkas yatim di R2:
+        // tidak terlihat siapa pun, dan bisa dibersihkan belakangan.
+        const simpan = simpanKunciAvatar(pengguna.id, '');
+        if (!simpan.ok) {
+          return sendJson(res, 500, { ok: false, error: 'gagal_simpan',
+            message: 'Profil tidak bisa diperbarui.' });
+        }
+
+        try {
+          await hapusAvatar(kunci);
+        } catch { /* berkas yatim — tidak menghalangi pengguna */ }
+
+        try {
+          recordEvent({ action: 'avatar_hapus', outcome: 'ok', ip: clientIp(req) });
+        } catch { /* audit tidak boleh menggagalkan operasi */ }
+
+        return sendJson(res, 200, {
+          ok: true,
+          message: 'Foto profil dihapus. Avatar inisial dipakai kembali.',
+        });
+      },
+    },
+
+    {
+      method: 'GET',
+      pattern: '/api/auth/avatar/:berkas',
+      handler: async (req, res, params) => {
+        // ── KENAPA ENDPOINT INI PUBLIK ──────────────────────────────────────
+        // Foto profil muncul di halaman publik (daftar kontributor, testimoni)
+        // dan di tag <img> — yang TIDAK mengirim cookie lintas origin dengan
+        // andal. Menuntut sesi di sini berarti fotonya gagal dimuat di
+        // separuh tempat ia dipakai.
+        //
+        // Yang melindunginya bukan sesi, tapi bentuk kuncinya:
+        // `avatar/<id-acak>-<hash>.webp`. ID pengguna adalah 16 byte acak
+        // (32 karakter hex) dan hash-nya berasal dari isi gambar. Tanpa
+        // mengetahui keduanya, tidak ada cara menebak URL foto seseorang.
+        //
+        // Nama berkas di URL sengaja HANYA nama berkasnya — bukan path
+        // lengkap — supaya tidak ada cara memakai endpoint ini untuk membaca
+        // objek lain di bucket (mis. cadangan database).
+        const nama = String(params?.berkas ?? '');
+        if (!nama || nama.includes('..') || nama.includes('/')) {
+          return sendJson(res, 400, { ok: false, error: 'nama_tidak_valid' });
+        }
+
+        const kunci = `avatar/${nama}`;
+        const obj = await ambilAvatar(kunci).catch(() => null);
+        if (!obj) return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan' });
+
+        // ── CACHE PANJANG, DAN KENAPA AMAN ──────────────────────────────────
+        // Nama berkas memuat hash ISI gambar. Mengganti foto menghasilkan
+        // nama baru, jadi URL ini tidak akan pernah menyajikan gambar yang
+        // salah — cache setahun pun aman. Ini pola content-addressed asset.
+        res.writeHead(200, {
+          'content-type': obj.contentType || 'image/webp',
+          'content-length': obj.buffer.length,
+          'cache-control': 'public, max-age=31536000, immutable',
+          'x-content-type-options': 'nosniff',
+          // Boleh dipakai lintas origin: foto profil wajar tampil di
+          // halaman lain, dan isinya bukan data rahasia.
+          'access-control-allow-origin': '*',
+        });
+        res.end(obj.buffer);
       },
     },
 

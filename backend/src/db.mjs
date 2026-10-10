@@ -621,6 +621,18 @@ function migrate(handle) {
   } catch {
     // Sama seperti di atas.
   }
+
+  // ── FOTO PROFIL ───────────────────────────────────────────────────────────
+  //
+  // Database yang dibuat SEBELUM fitur ini punya tabel users tanpa kolom
+  // avatar_key. Tanpa migrasi, setiap query yang menyebut kolom itu gagal
+  // dengan "no such column" — dan karena query pengguna ada di jalur login,
+  // SELURUH login ikut rusak, bukan hanya fitur fotonya.
+  //
+  // Kolomnya DEFAULT '' (bukan NULL): '' berarti "belum ada foto", dan
+  // itu keadaan yang sah. NULL akan memaksa setiap pembaca memeriksa dua
+  // bentuk kekosongan yang berbeda.
+  addColumn('users', 'avatar_key', "TEXT NOT NULL DEFAULT ''");
 }
 
 /** Database yang sedang terbuka, atau lempar kalau belum dibuka. */

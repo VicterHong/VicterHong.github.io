@@ -298,13 +298,39 @@ const SLUG_PARAMS = new Set(['slug', 'collection', 'name']);
 /** Parameter ID token — formatnya sudah pasti dari tokenId(). */
 const ID_PARAMS = new Set(['id']);
 
-const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
-const TOKEN_ID_RE = /^tok_[a-f0-9]{16}$/;
+/**
+ * Parameter nama berkas avatar.
+ *
+ * ── KENAPA BUTUH POLA SENDIRI, BUKAN SLUG_RE ────────────────────────────────
+ * Nama berkas avatar berbentuk `ID-HASH.webp`:
+ *     cbdb3e5c5ea7a6d8cc193ba11e174a04-6d25b0d5e0.webp
+ *
+ * SLUG_RE (`^[a-z0-9][a-z0-9-]{0,62}$`) menolaknya karena TITIK tidak
+ * termasuk — dan titik itu wajib ada, karena Worker dan browser memakai
+ * ekstensi untuk menentukan Content-Type.
+ *
+ * ── KENAPA POLA INI SEMPIT, BUKAN `.+` ──────────────────────────────────────
+ * Ini satu-satunya parameter di router yang nilainya muncul di PATH objek
+ * penyimpanan. Melonggorkan pola berarti membuka jalan menebak objek lain di
+ * bucket yang sama (mis. `../backups/tokens.db.enc`).
+ *
+ * Pola ini hanya menerima persis bentuk yang DIHASILKAN sistem sendiri:
+ *   • 32 karakter hex (ID pengguna, 16 byte acak)
+ *   • tanda hubung
+ *   • 10 karakter hex (hash isi gambar)
+ *   • ekstensi .webp
+ *
+ * Tidak ada `/`, tidak ada `..`, tidak ada spasi. Apa pun yang tidak persis
+ * berbentuk ini ditolak SEBELUM handler-nya berjalan.
+ */
+const AVATAR_PARAMS = new Set(['berkas']);
+const AVATAR_FILE_RE = /^[a-f0-9]{32}-[a-f0-9]{10}\.webp$/;
 
 /** Validasi nilai parameter sesuai tipenya. */
 function validParam(name, value) {
   if (SLUG_PARAMS.has(name)) return SLUG_RE.test(value);
   if (ID_PARAMS.has(name)) return TOKEN_ID_RE.test(value);
+  if (AVATAR_PARAMS.has(name)) return AVATAR_FILE_RE.test(value);
   // Parameter yang belum dikenal: tolak demi keamanan (default-deny).
   // Kalau nanti ada parameter baru, tambahkan ke salah satu himpunan di atas
   // — jangan diloloskan tanpa pola.
