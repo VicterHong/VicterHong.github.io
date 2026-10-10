@@ -10,7 +10,10 @@
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/tokens.mjs && node --check src/guard.mjs && node --check src/audit.mjs && node --check src/content.mjs && node --check src/config.mjs && node --check src/routes.mjs && node --check src/http-util.mjs && node --check src/admin-cli.mjs",
+    "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/tokens.mjs && node --check src/guard.mjs && node --check src/audit.mjs && node --check src/content.mjs && node --check src/config.mjs && node --check src/routes.mjs && node --check src/http-util.mjs && node --check src/admin-cli.mjs && node --check src/avatar.mjs && node --check src/media.mjs",
     "admin": "node src/admin-cli.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.35.4"
   }
 }

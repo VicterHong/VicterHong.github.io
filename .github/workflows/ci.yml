@@ -22,6 +22,26 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # ── KENAPA npm ci HARUS ADA ─────────────────────────────────────────────
+      # Sebelumnya job ini lulus TANPA menginstal apa pun — uji-ujinya memang
+      # ditulis agar tidak butuh dependensi. Itu bekerja sampai fitur gambar
+      # datang: `sharp` dipakai memproses galeri dan foto profil, dan tanpa ia
+      # terpasang, uji-uji itu di-SKIP diam-diam.
+      #
+      # Uji yang di-skip adalah gerbang yang terbuka: CI tetap hijau padahal
+      # bagian terpenting dari fitur gambar tidak diperiksa sama sekali.
+      #
+      # ── KENAPA npm ci, BUKAN npm install ────────────────────────────────────
+      # `npm ci` memasang PERSIS versi di package-lock.json dan gagal kalau
+      # lockfile tidak sinkron dengan package.json. Itu yang diinginkan di CI:
+      # hasilnya sama dengan yang diuji pengembang, dan ketidaksinkronan
+      # ketahuan di sini, bukan di produksi.
+      - name: Pasang dependensi
+        working-directory: backend
+        run: npm ci
 
       - name: Cek sintaks semua modul
         working-directory: backend
