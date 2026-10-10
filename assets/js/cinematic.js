@@ -239,6 +239,72 @@ export function initClipReveal(selector = '[data-cine-clip]') {
   }, { rootMargin: '0px 0px 10% 0px', threshold: 0.01 });
 
   for (const t of targets) observer.observe(t);
+
+  // ── JARING PENGAMAN: OBSERVER GAGAL ────────────────────────────────────────
+  //
+  // MASALAH YANG DIPECAHKAN
+  // Kalau IntersectionObserver tidak pernah menembakkan callback-nya (bug
+  // browser, halaman dibuka dengan scroll sudah di tengah, elemen dirender
+  // ulang oleh framework), section tetap `opacity: 0.4` dan ter-clip
+  // SELAMANYA. Halaman terlihat "kabur" — bukan hanya tanpa animasi.
+  //
+  // Pemeriksaan dilakukan sekali di 3 detik, bukan loop. Kalau observer
+  // bekerja normal, semua target sudah punya `.cine-clip-in` dan loop ini
+  // tidak melakukan apa-apa.
+  //
+  // KENAPA HANYA YANG SUDAH MASUK VIEWPORT
+  // Memaksa section yang masih jauh di bawah berarti menghilangkan animasinya
+  // untuk pengguna yang belum sampai ke sana. Cukup selamatkan yang terlihat.
+  setTimeout(() => {
+    const batas = window.innerHeight;
+    for (const t of targets) {
+      if (t.classList.contains('cine-clip-in')) continue;
+      if (t.getBoundingClientRect().top < batas) t.classList.add('cine-clip-in');
+    }
+  }, 3000);
+}
+
+// ── 2b. MELAYANG — gerakan organik tanpa JavaScript ───────────────────────────
+/**
+ * Memberi setiap elemen durasi & delay animasi yang BERBEDA, sehingga
+ * gerakannya tidak serempak.
+ *
+ * ── KENAPA HARUS BERBEDA (teknik dari BlackRay.Studio) ───────────────────────
+ * Kalau sepuluh elemen memakai `animation: drift 11s infinite` yang sama,
+ * mereka bergerak SEREMPAK — terlihat seperti robot, bukan seperti benda
+ * yang melayang. Yang membuatnya terasa hidup adalah ketidakseragaman.
+ *
+ * ── KENAPA DELAY NEGATIF ────────────────────────────────────────────────────
+ * `animation-delay: -2s` berarti animasi SUDAH berjalan 2 detik saat elemen
+ * pertama kali dirender. Tanpa ini, semua elemen mulai dari titik yang sama
+ * (0%) dan bergerak seirama sampai delay-nya selesai.
+ *
+ * Delay positif juga bekerja, tapi membuat elemen DIAM dulu sebelum mulai
+ * bergerak — terlihat seperti menunggu, bukan melayang.
+ *
+ * ── NILAI ACAK TAPI DETERMINISTIK ───────────────────────────────────────────
+ * Memakai `Math.random()` akan membuat posisi berubah setiap kali halaman
+ * dimuat. Itu terasa tidak stabil. Sebagai gantinya, durasi diturunkan dari
+ * indeks elemen — selalu sama, tapi tetap tidak seragam.
+ */
+export function initMelayang(selector = '[data-melayang]') {
+  if (prefersReduced()) return;
+
+  const targets = [...document.querySelectorAll(selector)];
+  if (!targets.length) return;
+
+  // Siklus durasi & delay: semuanya berbeda, tidak ada dua yang sama persis.
+  const durasi = [11, 12.4, 9.6, 13, 10.2, 14.1, 8.8, 12.8];
+  const delay = [-2, -6.8, -1.4, -8.2, -4.6, -10.5, -3.2, -7.4];
+
+  targets.forEach((el, i) => {
+    // `i % panjang` membuat pola berulang kalau elemennya lebih dari 8,
+    // tapi karena durasi dan delay bergeser dengan offset berbeda, tidak
+    // ada pasangan yang benar-benar identik.
+    el.style.setProperty('--melayang-dur', `${durasi[i % durasi.length]}s`);
+    el.style.setProperty('--melayang-delay', `${delay[(i * 3) % delay.length]}s`);
+    el.classList.add('melayang-aktif');
+  });
 }
 
 // ── 3. PARALLAX ───────────────────────────────────────────────────────────────
@@ -389,4 +455,5 @@ export function initCinematic() {
   initParallax();
   initTextStagger();
   initHeroFade();
+  initMelayang();        // gerakan organik untuk elemen [data-melayang]
 }

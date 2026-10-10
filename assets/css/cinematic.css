@@ -19,6 +19,29 @@
   opacity: 1;
 }
 
+/* ── JARING PENGAMAN: JS GAGAL DIMUAT ──────────────────────────────────────────
+ *
+ * MASALAH YANG DIPECAHKAN
+ * `[data-cine-clip]` mulai dari `opacity: 0.4`. Kalau JavaScript gagal dimuat
+ * (CDN diblokir, berkas rusak, JS dimatikan pengguna), class `.cine-clip-in`
+ * tidak pernah dipasang — dan 4 section utama tetap 40% transparan SELAMANYA.
+ *
+ * `[data-reveal]` sudah punya jaring pengaman ini sejak awal; `[data-cine-clip]`
+ * tidak. Akibatnya halaman terlihat "kabur" tanpa penjelasan.
+ *
+ * KENAPA `html:not(.js-ready)`
+ * `app.js` memasang `.js-ready` di <html> hanya setelah init berhasil. Tanpa
+ * class itu, kita tahu JS tidak jalan — dan konten harus terlihat apa adanya.
+ *
+ * KENAPA PAKAI `transition: none` JUGA
+ * Kalau JS dimuat lambat (bukan gagal), transisi 1000ms akan terlihat sebagai
+ * kedipan aneh. Mematikannya membuat konten langsung tampil utuh. */
+html:not(.js-ready) [data-cine-clip] {
+  clip-path: none;
+  opacity: 1;
+  transition: none;
+}
+
 /* 2. TEXT STAGGER — kata muncul berurutan */
 .cine-word {
   display: inline-block;
@@ -69,7 +92,57 @@
   width: 100%;
 }
 
-/* 7. Reduced motion — semua efek mati, konten langsung terlihat */
+/* 7. MELAYANG — gerakan organik (teknik dari BlackRay.Studio) ─────────────────
+ *
+ * ── MASALAH YANG DIPECAHKAN ──────────────────────────────────────────────────
+ * Elemen yang diam terasa mati. Tapi memberi SEMUA elemen animasi yang sama
+ * persis justru lebih buruk: mereka bergerak SEREMPAK seperti robot.
+ *
+ * Yang membuat gerakan terasa alami adalah ketidakseragaman — dua benda di
+ * alam tidak pernah bergerak dengan ritme yang sama.
+ *
+ * ── CARA KERJA ───────────────────────────────────────────────────────────────
+ * `--melayang-dur` dan `--melayang-delay` diisi oleh `initMelayang()` di
+ * cinematic.js. Setiap elemen dapat nilai berbeda.
+ *
+ * Delay NEGATIF (mis. `-2s`) berarti animasi sudah berjalan saat elemen
+ * pertama dirender. Jadi tidak ada elemen yang "menunggu giliran" — semuanya
+ * sudah bergerak, seperti benda yang memang sudah melayang sebelum kita lihat.
+ *
+ * ── KENAPA RENTANGNYA KECIL (±6px) ───────────────────────────────────────────
+ * Gerakan besar terasa mabuk dan mengganggu membaca. Yang dibutuhkan hanya
+ * cukup gerakan untuk terasa hidup — bukan pertunjukan.
+ *
+ * ── KENAPA `translate3d` ─────────────────────────────────────────────────────
+ * Nilai Z ketiga memaksa browser memakai GPU layer, sehingga animasinya tidak
+ * memicu perhitungan tata letak ulang setiap frame. */
+@keyframes melayangHalus {
+  0%   { transform: translate3d(-4px, -5px, 0); }
+  100% { transform: translate3d(5px, 4px, 0); }
+}
+
+.melayang-aktif {
+  animation: melayangHalus var(--melayang-dur, 11s) ease-in-out infinite alternate;
+  animation-delay: var(--melayang-delay, 0s);
+  will-change: transform;
+}
+
+/* 8. CATATAN: HOVER SUDAH ADA — TIDAK PERLU DITAMBAH ─────────────────────────
+ *
+ * Prinsip BlackRay (hover 3x lebih cepat dari reveal) sudah terpenuhi:
+ *   .service-card:hover  → transform: translateY(-3px)   [main.css:1397]
+ *   .project:hover       → background + border + shadow  [bento.css:86]
+ *
+ * Sempat dibuat kelas `.kartu-hover-cepat` untuk ini, lalu DIHAPUS setelah
+ * diperiksa: `.project` memakai tilt 3D yang menulis `transform` sendiri,
+ * jadi menambahkan translateY akan saling menimpa. Dan `.service-card`
+ * sudah punya hover yang persis sama.
+ *
+ * Menambah kelas yang tidak dipakai = dead code. Yang sudah bekerja
+ * tidak perlu diganti.
+ */
+
+/* 9. Reduced motion — semua efek mati, konten langsung terlihat */
 @media (prefers-reduced-motion: reduce) {
   [data-cine-clip] {
     clip-path: none !important;
@@ -88,4 +161,11 @@
     transform: none !important;
   }
   .hero-video.is-scrub { opacity: 0.28; }
+
+  /* Melayang: hentikan gerakan, tapi JANGAN sembunyikan elemen.
+     Sebagian orang mengalami pusing/mual dari gerakan di layar. */
+  .melayang-aktif {
+    animation: none !important;
+    transform: none !important;
+  }
 }
