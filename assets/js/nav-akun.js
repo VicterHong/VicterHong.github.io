@@ -160,15 +160,86 @@
     menu.hidden = true;
     menu.setAttribute('role', 'menu');
 
-    // Kepala menu: email lengkap. Nama di tombol mungkin terpotong; email
-    // memberi konfirmasi pasti profil mana yang sedang aktif.
+    // Kepala menu: email lengkap + baris badge. Nama di tombol mungkin
+    // terpotong; email memberi konfirmasi pasti profil mana yang sedang aktif.
+    //
+    // ── KENAPA BADGE ADA DI DALAM KEPALA, BUKAN DI BAWAHNYA ────────────────
+    // Badge paket dan sisa masa berlaku menerangkan AKUN, bukan navigasi. Di
+    // bawah pemisah ia duduk di antara item menu dan ikut terbaca sebagai
+    // salah satu tujuan — padahal ia tidak bisa diklik. Di dalam kepala ia
+    // menempel pada identitas yang diterangkannya: email, lalu keadaannya.
     const kepala = document.createElement('div');
     kepala.className = 'nav-akun-kepala';
-    kepala.textContent = email;
+
+    const kepalaEmail = document.createElement('div');
+    kepalaEmail.className = 'nav-akun-email';
+    kepalaEmail.textContent = email;
+    kepala.appendChild(kepalaEmail);
+
+    // Baris badge: item NON-klik (bukan tautan) — ia menampilkan keadaan,
+    // bukan mengajak ke mana pun. Membuatnya bisa diklik berarti pengguna
+    // menebak-nebak apa yang terjadi.
+    const barisBadge = document.createElement('div');
+    barisBadge.className = 'nav-akun-badge-baris';
+    barisBadge.id = 'navAkunBadge';
+    barisBadge.hidden = true;
+    kepala.appendChild(barisBadge);
+
     menu.appendChild(kepala);
 
-    // Tautan menu. "Profil saya" menuju halaman yang sudah ada (/keamanan),
-    // yang menampilkan profil + cara masuk dalam satu tempat.
+    // ── IKON MENU ──────────────────────────────────────────────────────────
+    //
+    // ── POLA DARI ProfileDropdown (shadcn/21st.dev) ────────────────────────
+    // Setiap item menu punya ikon di kiri. Ikon membuat daftar bisa dipindai
+    // dengan bentuk sebelum teksnya dibaca — mata menemukan "yang ada
+    // kuncinya" lebih cepat daripada membaca empat label.
+    //
+    // SVG inline, bukan pustaka ikon: satu ikon tidak sebanding dengan
+    // memuat berkas eksternal yang menambah satu permintaan jaringan.
+    // Semua memakai viewBox 24 dan stroke 1.7 supaya bobotnya seragam.
+    const IKON = {
+      orang: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>',
+      perisai: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.4 2.9 8.4 7 10 4.1-1.6 7-5.6 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
+      keluar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>',
+    };
+
+    /**
+     * Buat satu baris menu.
+     *
+     * ── KENAPA SATU FUNGSI, BUKAN DUA LOOP TERPISAH ────────────────────────
+     * Item menu punya dua bentuk (tautan dan tombol) tapi anatomi isinya
+     * sama: ikon, label, dan badge opsional di kanan. Menulis dua kali
+     * berarti perubahan pada satu bentuk (mis. jarak ikon) harus diingat di
+     * bentuk yang lain — dan itu jenis kelalaian yang tidak terlihat sampai
+     * keduanya berdampingan.
+     */
+    function buatItem({ teks, ikon, badge, badgeKelas = '' }) {
+      const el = document.createElement('span');
+      el.className = 'nav-akun-isi';
+
+      const kiri = document.createElement('span');
+      kiri.className = 'nav-akun-ikon';
+      kiri.setAttribute('aria-hidden', 'true');
+      kiri.innerHTML = IKON[ikon] || '';
+
+      const label = document.createElement('span');
+      label.className = 'nav-akun-label';
+      label.textContent = teks;
+
+      el.append(kiri, label);
+
+      if (badge) {
+        const b = document.createElement('span');
+        b.className = 'nav-akun-badge' + (badgeKelas ? ' ' + badgeKelas : '');
+        b.textContent = badge;
+        el.appendChild(b);
+      }
+      return el;
+    }
+
+    // ── ITEM MENU ──────────────────────────────────────────────────────────
+    // "Profil saya" menuju halaman yang sudah ada (/keamanan), yang
+    // menampilkan profil + cara masuk dalam satu tempat.
     //
     // ── KENAPA #panelMasuk, BUKAN #cara-masuk ──────────────────────────────
     // Halaman /keamanan menyimpan tab yang sedang dibuka di location.hash,
@@ -176,15 +247,80 @@
     // Tautan lama `/keamanan#cara-masuk` tidak cocok dengan elemen mana pun,
     // jadi halaman jatuh ke tab PERTAMA (Profil) — pengguna mengklik
     // "Cara masuk" tapi mendarat di tab yang salah, tanpa pesan apa pun.
-    for (const [teks, href] of [
-      ['Profil saya', '/keamanan'],
-      ['Cara masuk', '/keamanan#panelMasuk'],
-    ]) {
+    const item = [
+      { teks: 'Profil saya', href: '/keamanan', ikon: 'orang' },
+      { teks: 'Cara masuk', href: '/keamanan#panelMasuk', ikon: 'perisai' },
+    ];
+
+    // ── BADGE DARI DATA NYATA ──────────────────────────────────────────────
+    //
+    // ── KENAPA TIDAK MENIRU "PRO" DAN "Gemini 2.0 Flash" ───────────────────
+    // Contoh aslinya menampilkan paket langganan dan nama model AI. Keduanya
+    // TIDAK ADA di backend ini — menampilkannya berarti mengarang data di
+    // menu yang muncul di SETIAP halaman. Kalau angkanya salah, pengguna
+    // salah paham tentang masa berlaku aksesnya.
+    //
+    // Yang ADA dan berguna: paket token dan tanggal kedaluwarsanya. Keduanya
+    // diambil dari /api/auth/token-saya — endpoint yang sudah dipakai tab
+    // "Token akses". Dimuat SETELAH menu dibuka pertama kali, supaya halaman
+    // tidak menunggu permintaan yang sebagian besar kunjungan tidak butuh.
+    let badgeSudahDimuat = false;
+
+    async function muatBadge() {
+      if (badgeSudahDimuat) return;
+      badgeSudahDimuat = true;
+
+      let t = null;
+      try {
+        const r = await fetch('/api/auth/token-saya', { credentials: 'same-origin' });
+        if (r.ok) t = (await r.json())?.token || null;
+      } catch { /* gagal → menu tetap tampil tanpa badge */ }
+
+      if (!t) return;
+
+      const tempat = document.querySelector('#navAkunBadge');
+      if (!tempat) return;
+
+      // Paket: apa adanya dari backend (mis. "standard", "pro").
+      // Ditampilkan hanya kalau terisi — label kosong lebih buruk daripada
+      // tidak ada label.
+      const paket = String(t.tier || '').trim();
+
+      // Kedaluwarsa: hanya kalau tanggalnya ADA dan masih berlaku.
+      // Token yang sudah lewat tidak ditampilkan sebagai badge hijau.
+      let sisa = '';
+      if (t.kedaluwarsa_pada) {
+        const hari = Math.ceil((t.kedaluwarsa_pada - Date.now()) / 86400000);
+        if (hari > 0) sisa = hari > 30 ? `${Math.round(hari / 30)} bln` : `${hari} hr`;
+      }
+
+      tempat.innerHTML = '';
+      if (paket) {
+        const b = document.createElement('span');
+        b.className = 'nav-akun-badge is-paket';
+        b.textContent = paket;
+        tempat.appendChild(b);
+      }
+      if (sisa) {
+        const b = document.createElement('span');
+        b.className = 'nav-akun-badge is-sisa';
+        b.textContent = sisa;
+        b.title = 'Sisa masa berlaku token';
+        tempat.appendChild(b);
+      }
+
+      // Tidak ada data → sembunyikan barisnya. Baris kosong dengan tinggi
+      // tetap akan terlihat sebagai celah aneh di antara item menu.
+      if (tempat.children.length) tempat.hidden = false;
+      else tempat.remove();
+    }
+
+    for (const x of item) {
       const a = document.createElement('a');
       a.className = 'nav-akun-tautan';
-      a.href = href;
-      a.textContent = teks;
+      a.href = x.href;
       a.setAttribute('role', 'menuitem');
+      a.appendChild(buatItem(x));
       menu.appendChild(a);
     }
 
@@ -198,11 +334,18 @@
     const keluar = document.createElement('button');
     keluar.type = 'button';
     keluar.className = 'nav-akun-keluar';
-    keluar.textContent = 'Keluar';
     keluar.setAttribute('role', 'menuitem');
+    keluar.appendChild(buatItem({ teks: 'Keluar', ikon: 'keluar' }));
     keluar.addEventListener('click', async () => {
       keluar.disabled = true;
-      keluar.textContent = 'Keluar…';
+      // ── KENAPA MENYUNTING LABEL, BUKAN SELURUH TOMBOL ────────────────────
+      // Sebelumnya baris ini `keluar.textContent = 'Keluar…'` — dan itu
+      // MENGHAPUS seluruh isi tombol, termasuk ikonnya. Ikonnya hilang
+      // tepat saat tombolnya sedang sibuk, jadi terlihat seperti berkedip.
+      //
+      // Sekarang hanya teks labelnya yang diganti; ikonnya tetap di tempat.
+      const labelKeluar = keluar.querySelector('.nav-akun-label');
+      if (labelKeluar) labelKeluar.textContent = 'Keluar…';
       try {
         // Endpoint keluar menghapus sesi di server + cookie-nya. Tanpa
         // panggilan ini, cookie tetap ada dan pengguna "masih masuk" setelah
@@ -238,6 +381,15 @@
       const akanBuka = menu.hidden;
       menu.hidden = !akanBuka;
       tombol.setAttribute('aria-expanded', akanBuka ? 'true' : 'false');
+
+      // ── BADGE DIMUAT SAAT MENU DIBUKA, BUKAN SAAT HALAMAN DIMUAT ──────────
+      // Ini satu permintaan jaringan tambahan, dan sebagian besar kunjungan
+      // tidak pernah membuka menu akun. Memuatnya di awal berarti setiap
+      // pengunjung membayar untuk sesuatu yang jarang dipakai.
+      //
+      // Setelah dimuat sekali, hasilnya disimpan — membuka-tutup menu tidak
+      // memicu permintaan baru.
+      if (akanBuka) muatBadge();
     });
 
     // Klik di luar menutup menu. `stopPropagation` di tombol mencegah

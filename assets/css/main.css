@@ -72,6 +72,25 @@
 
 * { box-sizing: border-box; }
 
+/* ── [hidden] DIKUATKAN ───────────────────────────────────────────────────────
+ * Browser sudah menyediakan `[hidden] { display: none }` di stylesheet bawaan.
+ * Tapi aturan bawaan itu ber-bobot paling lemah: satu deklarasi `display` di
+ * stylesheet kita sendiri sudah mengalahkannya.
+ *
+ * Itu bukan teori — menu akun sempat punya celah kosong setinggi 11px di
+ * dalamnya. Penyebabnya `.nav-akun-badge-baris { display: flex }` mengalahkan
+ * `[hidden]` bawaan, jadi baris badge yang ditandai `hidden` TETAP tampil.
+ * Celahnya hanya terlihat pada pengunjung yang belum punya token, karena
+ * hanya mereka yang barisnya tetap kosong.
+ *
+ * `!important` biasanya tanda kode berantakan. Di sini ia melindungi SEMANTIK
+ * HTML (`hidden` berarti tersembunyi) dari gaya presentasi kita sendiri —
+ * persis penggunaan yang tepat.
+ * ───────────────────────────────────────────────────────────────────────────── */
+[hidden] {
+  display: none !important;
+}
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -468,13 +487,16 @@ a { color: inherit; text-decoration: none; }
 }
 
 .nav-akun-kepala {
-  padding: 0.5rem 0.65rem 0.6rem;
+  padding: 0.5rem 0.65rem 0.5rem;
   font-size: 0.8rem;
   color: var(--muted, #9a9a9f);
   border-bottom: 1px solid var(--line);
   margin-bottom: 0.35rem;
-  /* Email panjang dipotong, bukan dibungkus — kepala menu harus tetap
-     satu baris supaya tingginya bisa diprediksi. */
+}
+
+/* Email panjang dipotong, bukan dibungkus — kepala menu harus tetap satu
+ * baris supaya tingginya bisa diprediksi. */
+.nav-akun-email {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -495,6 +517,103 @@ a { color: inherit; text-decoration: none; }
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.15s var(--ease);
+}
+
+/* ══ ISI ITEM MENU: IKON + LABEL + BADGE ══════════════════════════════════════
+ *
+ * ── POLA DARI ProfileDropdown (shadcn/21st.dev) ─────────────────────────────
+ * Ikon di kiri, label di tengah, badge di kanan. Tiga kolom itu membuat
+ * daftar bisa dipindai dari bentuknya sebelum teksnya dibaca.
+ *
+ * ── KENAPA flex + gap, BUKAN grid ───────────────────────────────────────────
+ * Jumlah kolomnya berubah: item tanpa badge hanya punya dua anak. Dengan
+ * `margin-left: auto` pada badge, ia menempel ke kanan berapa pun jumlah
+ * anaknya — tanpa perlu tahu ada badge atau tidak.
+ */
+.nav-akun-isi {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+/* Ikon 16px: cukup untuk dikenali, tidak cukup untuk bersaing dengan teks.
+ * Redup — ikon di sini penanda, bukan hiasan. */
+.nav-akun-ikon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--muted, #9a9a9f);
+  transition: color 0.15s var(--ease);
+}
+
+.nav-akun-ikon svg { width: 100%; height: 100%; display: block; }
+
+/* Ikon ikut menyala saat barisnya disorot — supaya seluruh baris terasa
+ * satu kesatuan, bukan teks yang kebetulan punya ikon di sebelahnya. */
+.nav-akun-tautan:hover .nav-akun-ikon {
+  color: var(--accent);
+}
+
+/* ── KENAPA "KELUAR" PUNYA WARNA IKON SENDIRI ────────────────────────────────
+ * Barisnya berwarna merah muda (#e8a0a0) untuk menandai tindakan yang
+ * mengakhiri sesi. Kalau ikonnya tetap abu (warna bawaan), satu baris punya
+ * DUA warna yang saling bersaing — dan mata membacanya sebagai dua elemen
+ * terpisah, bukan satu tindakan. Ikon mewarisi warna barisnya, di kedua
+ * keadaan (diam dan disorot). */
+.nav-akun-keluar .nav-akun-ikon {
+  color: inherit;
+}
+
+.nav-akun-label { flex: 1; min-width: 0; }
+
+/* ══ BADGE ════════════════════════════════════════════════════════════════════
+ *
+ * ── KENAPA BADGE, BUKAN BARIS DATA TERPISAH ─────────────────────────────────
+ * Paket dan sisa masa berlaku adalah jawaban atas pertanyaan yang muncul saat
+ * pengguna membuka menunya: "akun saya paket apa, masih berlaku sampai kapan?"
+ * Sebagai baris data, keduanya memakan dua baris menu; sebagai badge, satu
+ * baris menjawab keduanya sekaligus.
+ *
+ * ── KENAPA HURUF KECIL SEMUA, BUKAN KAPITAL ─────────────────────────────────
+ * Nilainya datang dari database ("standard", "pro") dan bisa apa saja. Kalau
+ * dipaksa kapital, nilai tak terduga akan terlihat lebih besar dari labelnya
+ * sendiri. Huruf kecil membuat apa pun yang datang tetap terbaca sebagai
+ * keterangan.
+ */
+.nav-akun-badge-baris {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  /* Tanpa padding kiri/kanan: baris ini kini bersarang di dalam kepala menu,
+   * yang sudah punya padding sendiri. Padding ganda akan mendorong badge
+   * menjorok ke kanan dibanding email di atasnya. */
+  margin-top: 0.4rem;
+}
+
+.nav-akun-badge {
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* Paket: aksen emas situs — ini penanda status akun, bukan peringatan. */
+.nav-akun-badge.is-paket {
+  color: var(--accent);
+  background: rgba(245, 197, 66, 0.1);
+  border-color: rgba(245, 197, 66, 0.28);
+}
+
+/* Sisa masa berlaku: netral. Ia keterangan waktu, bukan status. */
+.nav-akun-badge.is-sisa {
+  color: var(--muted, #9a9a9f);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--line);
 }
 
 .nav-akun-tautan:hover,
