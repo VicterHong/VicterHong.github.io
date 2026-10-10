@@ -86,6 +86,27 @@
       .map((k) => k[0].toUpperCase())
       .join('');
 
+    // ── AVATAR: FOTO KALAU ADA, INISIAL KALAU TIDAK ────────────────────────
+    //
+    // ── MASALAH YANG DIPERBAIKI ────────────────────────────────────────────
+    // Header hanya pernah menampilkan INISIAL, bahkan setelah pengguna
+    // mengunggah foto di halaman profil. Fotonya tersimpan, halaman profil
+    // menampilkannya, tapi di setiap halaman lain header tetap menunjukkan
+    // dua huruf — dan pengguna wajar menyimpulkan unggahannya gagal.
+    //
+    // Penyebabnya: fungsi ini membangun tombolnya dari `nama` dan `email`
+    // saja, sementara `avatar_url` yang dikirim server tidak pernah dibaca.
+    //
+    // ── KENAPA INISIAL TETAP DITULIS DI HTML ──────────────────────────────
+    // Foto perlu waktu untuk diunduh. Kalau elemennya kosong selama itu,
+    // header terlihat bolong. Inisial ditulis lebih dulu sebagai lapisan
+    // dasar, lalu foto ditumpuk di atasnya setelah berhasil dimuat.
+    //
+    // Kalau fotonya gagal (jaringan, berkas sudah dihapus), inisialnya
+    // sudah ada di sana — tidak perlu ada penanganan khusus, dan header
+    // tidak pernah terlihat rusak.
+    const urlFoto = String(profil.avatar_url || '').trim();
+
     const bungkus = document.createElement('div');
     // ── NAMA KELAS: nav-akun-dropdown, BUKAN nav-akun ────────────────────────
     // 'nav-akun' sekarang dipakai GRUP HEADER (wadah di kanan navigasi).
@@ -103,6 +124,14 @@
 
     // Avatar + nama + panah. SVG panah ditulis inline supaya tidak perlu
     // memuat ikon tambahan hanya untuk satu tanda.
+    //
+    // ── KENAPA FOTO DITUMPUK, BUKAN MENGGANTIKAN INISIAL ────────────────────
+    // Inisial ada di HTML sejak awal, jadi header TIDAK PERNAH kosong —
+    // bahkan selama foto masih diunduh. Kalau fotonya gagal dimuat, elemen
+    // <img> yang dilepas sendiri, dan inisialnya sudah ada di bawahnya.
+    //
+    // `alt=""` karena avatar ini dekoratif: nama pengguna ada tepat di
+    // sebelahnya, jadi membacakannya dua kali hanya menambah kebisingan.
     tombol.innerHTML = `
       <span class="nav-akun-avatar" aria-hidden="true">${inisial || '·'}</span>
       <span class="nav-akun-nama">${label}</span>
@@ -112,6 +141,19 @@
         <path d="m6 9 6 6 6-6"/>
       </svg>
     `;
+
+    // Foto dipasang SETELAH tombol ada di DOM, supaya kegagalan memuatnya
+    // bisa ditangani dengan melepas elemennya saja.
+    if (urlFoto) {
+      const kotakAvatar = tombol.querySelector('.nav-akun-avatar');
+      const img = document.createElement('img');
+      img.className = 'nav-akun-avatar-gambar';
+      img.alt = '';
+      img.decoding = 'async';
+      img.src = urlFoto;
+      img.addEventListener('error', () => { img.remove(); });
+      kotakAvatar?.appendChild(img);
+    }
 
     const menu = document.createElement('div');
     menu.className = 'nav-akun-menu';

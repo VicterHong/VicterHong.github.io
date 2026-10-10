@@ -389,9 +389,19 @@ a { color: inherit; text-decoration: none; }
   outline-offset: 2px;
 }
 
-/* Avatar inisial. Warna emas dengan teks gelap — konsisten dengan aksen
-   situs, dan kontras teksnya terjamin (bukan emas di atas emas). */
+/* Avatar header. Warna emas dengan teks gelap — konsisten dengan aksen
+   situs, dan kontras teksnya terjamin (bukan emas di atas emas).
+
+   ── DUA SUMBER ISI: INISIAL ATAU FOTO ──────────────────────────────────────
+   Elemen ini selalu berisi INISIAL sebagai lapisan dasar; foto ditumpuk di
+   atasnya saat tersedia. Karena itu ia perlu `position: relative` +
+   `overflow: hidden`: gambar diposisikan absolut mengisi lingkaran, dan
+   `overflow: hidden` + `border-radius` yang memotongnya jadi bulat.
+
+   Tanpa `overflow: hidden`, foto persegi akan menonjol keluar lingkaran —
+   terlihat seperti kotak yang menempel di header. */
 .nav-akun-avatar {
+  position: relative;
   display: grid;
   place-items: center;
   width: 26px;
@@ -402,7 +412,24 @@ a { color: inherit; text-decoration: none; }
   color: #0b0b0c;
   background: var(--accent);
   border-radius: 50%;
+  overflow: hidden;
   flex-shrink: 0;
+}
+
+/* Foto profil: mengisi lingkaran sepenuhnya, di atas inisial.
+ *
+ * `object-fit: cover` — foto sudah dipotong persegi oleh server, tapi ini
+ * tetap diperlukan: kalau nanti ukuran avatar diubah jadi bukan persegi,
+ * fotonya akan dipotong rapi alih-alih gepeng. */
+.nav-akun-avatar-gambar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Latar emas di bawah foto terlihat sebagai cincin tipis di tepi
+   * lengkungan pada beberapa perender. Latar netral menghilangkannya. */
+  background: var(--surface, #131316);
 }
 
 /* Nama bisa panjang (nama lengkap atau email). Dipotong dengan ellipsis
