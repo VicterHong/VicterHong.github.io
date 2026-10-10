@@ -1252,5 +1252,65 @@ function ruteSso() {
         alihkanKe(res, tujuan);
       },
     },
+
+    // ══ RIWAYAT PEMBELIAN ══════════════════════════════════════════════════════
+    //
+    // ── KENAPA ENDPOINT BARU, BUKAN PAKAI /api/pesanan/:id ────────────────────
+    // /api/pesanan/:id ada, tapi TIDAK berautentikasi — siapa pun yang tahu
+    // ID-nya bisa mengambil data pembayaran orang lain. Komentar di endpoint
+    // itu sendiri memperingatkan hal ini.
+    //
+    // Endpoint ini WAJIB punya sesi, dan hanya mengembalikan pembelian yang
+    // EMAIL-nya cocok dengan pengguna yang login. Pencocokan di server, bukan
+    // di klien — tidak ada ID yang bisa ditebak.
+    //
+    // ── KENAPA COCOKKAN LEWAT EMAIL, BUKAN user_id ────────────────────────────
+    // Tabel `payments` tidak punya kolom user_id: pembelian bisa terjadi
+    // SEBELUM akun dibuat (checkout → email token → daftar). Menambah user_id
+    // sekarang berarti migrasi, dan pembelian lama tetap kosong.
+    //
+    // Email adalah kunci yang sudah ada di kedua sisi. Trade-off-nya: kalau
+    // pengguna mengganti email, riwayat lama tidak ikut terbawa. Itu lebih
+    // baik daripada tidak ada riwayat sama sekali.
+    {
+      method: 'GET',
+      pattern: '/api/auth/pembelian',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        // Email dinormalkan: pembelian bisa dibuat dari form checkout yang
+        // tidak menormalkan input, jadi "Budi@Contoh.com" harus cocok dengan
+        // "budi@contoh.com".
+        const email = String(pengguna.email || '').trim().toLowerCase();
+        if (!email) return sendJson(res, 200, { ok: true, pembelian: [] });
+
+        const baris = getDb().prepare(`
+          SELECT id, tier, periode, jumlah, status, dibuat_pada, dibayar_pada, kedaluwarsa_pada
+          FROM payments
+          WHERE LOWER(email) = ?
+          ORDER BY dibuat_pada DESC
+          LIMIT 50
+        `).all(email);
+
+        sendJson(res, 200, {
+          ok: true,
+          pembelian: baris.map((b) => ({
+            id: b.id,
+            tier: b.tier,
+            periode: b.periode,
+            jumlah: b.jumlah,
+            status: b.status,
+            dibuat_pada: b.dibuat_pada,
+            dibayar_pada: b.dibayar_pada,
+            kedaluwarsa_pada: b.kedaluwarsa_pada,
+          })),
+        });
+      },
+    },
+
   ];
 }

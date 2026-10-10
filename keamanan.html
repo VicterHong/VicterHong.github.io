@@ -110,10 +110,40 @@
                   <path d="m9 12 2 2 4-4"/>
                 </svg>
               </span>
-              <span>Cara masuk</span>
+              <span>Keamanan</span>
               <!-- Penghitung di sidebar: pertanyaan "berapa banyak?" muncul
                    saat MEMILIH bagian, bukan saat sudah di dalamnya. -->
               <span class="kam-sisi-hitung" id="kamHitung">—</span>
+            </button>
+
+            <!-- ══ TAB PEMBAYARAN ════════════════════════════════════════════════
+                 ── KENAPA INI BUKAN UI PALSU ────────────────────────────────
+                 Tabel `payments` sudah ada di database sejak dulu (dipakai alur
+                 checkout Midtrans), lengkap dengan tier, periode, jumlah, dan
+                 status. Yang belum ada hanya ENDPOINT yang membacanya untuk
+                 pengguna yang login — dan itu ditambahkan bersamaan dengan tab
+                 ini (/api/auth/pembelian).
+
+                 Jadi tab ini menampilkan DATA NYATA. Kalau pengguna belum
+                 pernah membeli, isinya kosong dengan penjelasan — bukan angka
+                 palsu.
+
+                 ── NAMA: "Pembayaran", BUKAN "Billing" ──────────────────────
+                 "Billing" adalah istilah SaaS berbahasa Inggris untuk
+                 langganan berulang. Yang ada di sini adalah pembelian token
+                 sekali bayar, dan situsnya berbahasa Indonesia. "Pembayaran"
+                 adalah kata yang dipakai pengguna sendiri. -->
+            <button class="kam-sisi-item" type="button" role="tab"
+                    id="tabBayar" aria-selected="false" aria-controls="panelBayar"
+                    data-panel="panelBayar">
+              <span class="kam-sisi-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2.5" y="5" width="19" height="14" rx="2.5"/>
+                  <path d="M2.5 9.5h19"/>
+                  <path d="M6.5 14.5h3"/>
+                </svg>
+              </span>
+              <span>Pembayaran</span>
             </button>
           </nav>
 
@@ -319,6 +349,33 @@
                   Tambah
                 </button>
               </div>
+            </section>
+
+            <!-- ══ PANEL: PEMBAYARAN ═══════════════════════════════════════════════
+                 Menampilkan riwayat pembelian token dari tabel `payments`.
+                 Data nyata — kalau kosong, ditampilkan penjelasan, bukan
+                 angka karangan. -->
+            <section class="kam-blok kam-panel-isi" id="panelBayar"
+                     role="tabpanel" aria-labelledby="tabBayar" hidden>
+              <p class="kam-keterangan">
+                Riwayat pembelian token akses Anda. Token diterbitkan setelah
+                pembayaran terkonfirmasi.
+              </p>
+
+              <!-- Daftar pembelian diisi JS -->
+              <ul class="kam-senarai" id="kamPembelian"></ul>
+
+              <!-- Keadaan kosong -->
+              <div class="kam-kosong" id="kamBayarKosong" hidden>
+                <p class="kam-kosong-judul">Belum ada pembelian</p>
+                <p class="kam-kosong-teks">
+                  Pembelian token akses akan muncul di sini setelah Anda
+                  menyelesaikan checkout.
+                </p>
+                <a class="auth-oauth auth-oauth-lebar" href="/pricing">Lihat paket</a>
+              </div>
+
+              <p class="auth-msg" id="kamPesanBayar" role="status" aria-live="polite"></p>
             </section>
 
           </div>

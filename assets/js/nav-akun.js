@@ -87,7 +87,12 @@
       .join('');
 
     const bungkus = document.createElement('div');
-    bungkus.className = 'nav-akun';
+    // ── NAMA KELAS: nav-akun-dropdown, BUKAN nav-akun ────────────────────────
+    // 'nav-akun' sekarang dipakai GRUP HEADER (wadah di kanan navigasi).
+    // Memakai nama yang sama untuk dua elemen berbeda berarti aturan CSS
+    // grup (margin-left: auto) ikut berlaku pada dropdown — dan dropdown
+    // akan terdorong ke kanan menjauhi tombolnya.
+    bungkus.className = 'nav-akun-dropdown';
 
     const tombol = document.createElement('button');
     tombol.type = 'button';

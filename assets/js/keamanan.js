@@ -196,6 +196,114 @@
     gambarAvatar(n, e);
   }
 
+  // ══ RIWAYAT PEMBELIAN ═══════════════════════════════════════════════════════
+  //
+  // ── KENAPA DIMUAT TERPISAH, BUKAN BERSAMA PROFIL ──────────────────────────
+  // Profil dipakai di SETIAP kunjungan halaman ini. Riwayat pembelian hanya
+  // dilihat sesekali. Memuat keduanya bersamaan berarti setiap pengunjung
+  // menunggu permintaan yang jawabannya jarang dibutuhkan.
+  //
+  // Dimuat saat tab Pembayaran DIBUKA pertama kali — pola "lazy load" yang
+  // dipakai GitHub untuk tab kontribusi dan Stripe untuk riwayat invoice.
+  //
+  // ── KENAPA HANYA SEKALI ───────────────────────────────────────────────────
+  // Setelah dimuat, hasilnya disimpan. Membuka-tutup tab tidak memicu
+  // permintaan baru — data pembelian tidak berubah selama halaman terbuka.
+  let pembelianDimuat = false;
+
+  function rupiah(n) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency', currency: 'IDR', maximumFractionDigits: 0,
+    }).format(Number(n) || 0);
+  }
+
+  /** Label status yang bisa dibaca manusia. */
+  const STATUS_BAYAR = {
+    pending:  { teks: 'Menunggu pembayaran', kelas: 'is-menunggu' },
+    paid:     { teks: 'Dibayar',             kelas: 'is-sukses' },
+    lunas:    { teks: 'Dibayar',             kelas: 'is-sukses' },
+    settlement: { teks: 'Dibayar',           kelas: 'is-sukses' },
+    expired:  { teks: 'Kedaluwarsa',         kelas: 'is-gagal' },
+    gagal:    { teks: 'Gagal',               kelas: 'is-gagal' },
+    deny:     { teks: 'Ditolak',             kelas: 'is-gagal' },
+    cancel:   { teks: 'Dibatalkan',          kelas: 'is-gagal' },
+    refund:   { teks: 'Dikembalikan',        kelas: 'is-gagal' },
+  };
+
+  function tanggalRingkas(ms) {
+    if (!ms) return '';
+    return new Date(ms).toLocaleDateString('id-ID', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  }
+
+  async function muatPembelian() {
+    const daftar = $('#kamPembelian');
+    const kosong = $('#kamBayarKosong');
+    if (!daftar) return;
+
+    // Sudah pernah dimuat → tidak perlu minta lagi.
+    if (pembelianDimuat) return;
+
+    try {
+      const res = await fetch('/api/auth/pembelian', { credentials: 'same-origin' });
+
+      // 401 di sini tidak mungkin terjadi kalau halaman sudah menampilkan
+      // profil — tapi kalau sesi kedaluwarsa di antara dua permintaan,
+      // jangan tampilkan galat merah: cukup biarkan panel kosong.
+      if (!res.ok) return;
+
+      const data = await res.json().catch(() => ({}));
+      const beli = Array.isArray(data.pembelian) ? data.pembelian : [];
+      pembelianDimuat = true;
+
+      daftar.innerHTML = '';
+
+      if (!beli.length) {
+        if (kosong) kosong.hidden = false;
+        return;
+      }
+
+      if (kosong) kosong.hidden = true;
+
+      for (const b of beli) {
+        const li = document.createElement('li');
+        li.className = 'kam-item';
+
+        const st = STATUS_BAYAR[b.status] || { teks: b.status || '—', kelas: '' };
+
+        const kiri = document.createElement('div');
+        kiri.className = 'kam-item-teks';
+
+        const judul = document.createElement('p');
+        judul.className = 'kam-item-judul';
+        judul.textContent = `${b.tier || 'Token'} · ${b.periode || ''}`.trim();
+
+        const ket = document.createElement('p');
+        ket.className = 'kam-item-ket';
+        // Tanggal + jumlah: dua hal yang dicari orang di riwayat pembelian.
+        ket.textContent = [
+          tanggalRingkas(b.dibayar_pada || b.dibuat_pada),
+          rupiah(b.jumlah),
+        ].filter(Boolean).join(' · ');
+
+        kiri.appendChild(judul);
+        kiri.appendChild(ket);
+
+        const lencana = document.createElement('span');
+        lencana.className = 'kam-lencana ' + st.kelas;
+        lencana.textContent = st.teks;
+
+        li.appendChild(kiri);
+        li.appendChild(lencana);
+        daftar.appendChild(li);
+      }
+    } catch {
+      // Gagal memuat bukan keadaan darurat — panel tetap menampilkan
+      // penjelasan kosong. Tidak ada pesan galat yang perlu ditakuti.
+    }
+  }
+
   async function muat() {
     const memuat = $('#kamMemuat');
     const belumMasuk = $('#kamBelumMasuk');
@@ -800,6 +908,13 @@
         p.hidden = !aktif;
         p.classList.toggle('is-aktif', aktif);
       }
+      // ── PEMUATAN MALAS UNTUK TAB PEMBAYARAN ────────────────────────────────
+      // Riwayat pembelian dimuat saat tabnya DIBUKA, bukan saat halaman dimuat.
+      // Profil dipakai setiap kunjungan; riwayat pembelian hanya sesekali.
+      // Memuat keduanya bersamaan berarti semua pengunjung menunggu permintaan
+      // yang jarang dibutuhkan.
+      if (id === 'panelBayar') muatPembelian();
+
       if (history.replaceState) history.replaceState(null, '', '#' + id);
     }
 

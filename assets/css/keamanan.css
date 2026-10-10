@@ -868,3 +868,60 @@
   color: var(--teks-samar);
   text-transform: lowercase;
 }
+
+/* ══ LENCANA STATUS PEMBAYARAN ═════════════════════════════════════════════════
+ *
+ * ── KENAPA WARNA, BUKAN HANYA TEKS ──────────────────────────────────────────
+ * Status pembayaran adalah hal yang dicari pertama kali di riwayat: "sudah
+ * lunas atau belum?" Warna membuat jawabannya terbaca sebelum teksnya dibaca —
+ * dan itu yang dibutuhkan saat memindai daftar.
+ *
+ * ── KENAPA TIDAK PAKAI WARNA MENTAH (merah/hijau terang) ────────────────────
+ * Halaman ini bertema gelap dengan aksen emas. Hijau dan merah terang akan
+ * terlihat seperti peringatan sistem operasi, bukan bagian dari produk.
+ *
+ * Warnanya diturunkan dari palet yang ada: emas untuk berhasil, merah redup
+ * untuk gagal, abu untuk menunggu. Semuanya dengan opasitas rendah supaya
+ * lencananya terbaca sebagai keterangan, bukan tombol.
+ *
+ * ── AKSESIBILITAS: JANGAN ANDALKAN WARNA SAJA ───────────────────────────────
+ * Teksnya tetap ada ("Dibayar", "Menunggu pembayaran"). Warna hanya
+ * mempercepat pembacaan — pengguna yang tidak bisa membedakan warna tetap
+ * mendapat informasi yang sama dari teksnya. Ini syarat WCAG 1.4.1.
+ * ──────────────────────────────────────────────────────────────────────────── */
+.kam-lencana {
+  flex-shrink: 0;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.kam-lencana.is-sukses {
+  color: var(--emas);
+  background: rgba(245, 197, 66, 0.1);
+  border-color: rgba(245, 197, 66, 0.28);
+}
+
+.kam-lencana.is-menunggu {
+  color: var(--teks-redup);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--garis);
+}
+
+.kam-lencana.is-gagal {
+  color: #e88b8b;
+  background: rgba(232, 139, 139, 0.09);
+  border-color: rgba(232, 139, 139, 0.24);
+}
+
+/* Tombol lebar penuh di keadaan kosong — sejajar dengan kartu di atasnya. */
+.auth-oauth-lebar {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 1rem;
+}
