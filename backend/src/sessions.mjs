@@ -15,8 +15,22 @@ function sessionId() {
   return 'sess_' + randomBytes(32).toString('hex');
 }
 
-/** Hash session ID untuk penyimpanan (tidak simpan plaintext session ID). */
-function hashSession(id, secret) {
+/**
+ * Hash session ID untuk penyimpanan (tidak simpan plaintext session ID).
+ *
+ * ── KENAPA DIEKSPOR ─────────────────────────────────────────────────────────
+ * Halaman akun perlu tahu sesi MANA yang sedang dipakai browser ini, supaya
+ * bisa menandainya "Perangkat ini" dan mencegahnya dicabut dari daftar.
+ *
+ * Untuk itu, session_id dari cookie harus di-hash dengan cara yang PERSIS
+ * sama seperti saat pembuatan sesi — kalau tidak, hash-nya tidak akan cocok
+ * dengan kolom `id` dan pencocokan gagal.
+ *
+ * Menyalin logikanya ke berkas lain akan berbahaya: mengubah format hash di
+ * sini (misalnya menambah salt) akan membuat salinannya diam-diam tidak
+ * cocok lagi. Mengekspornya membuat hanya ada SATU definisi.
+ */
+export function hashSession(id, secret) {
   return createHash('sha256').update(`${secret}:${id}`).digest('hex');
 }
 

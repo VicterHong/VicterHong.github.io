@@ -374,6 +374,44 @@
         l.className = 'kam-lencana is-sukses';
         l.textContent = 'Perangkat ini';
         li.appendChild(l);
+      } else if (x.pengenal) {
+        // ── TOMBOL CABUT ────────────────────────────────────────────────────
+        // Instruksi "cabut yang tidak Anda kenali" tidak ada artinya tanpa
+        // tombolnya. Sesi sekarang TIDAK diberi tombol: mencabutnya berarti
+        // pengguna langsung terlempar keluar — untuk itu sudah ada tombol
+        // Keluar, dan jalurnya berbeda.
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'kam-hapus';
+        btn.textContent = 'Cabut';
+        btn.setAttribute('aria-label', `Cabut sesi ${x.perangkat || 'ini'}`);
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = 'Mencabut...';
+          try {
+            const r = await fetch('/api/auth/sesi/cabut', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ pengenal: x.pengenal }),
+            });
+            const d = await r.json().catch(() => ({}));
+            if (r.ok) {
+              pesanPanel('#kamPesanSesi', d.message || 'Sesi dicabut.', 'sukses');
+              li.remove();
+              if (!daftar.children.length && kosong) kosong.hidden = false;
+            } else {
+              pesanPanel('#kamPesanSesi', d.message || 'Gagal mencabut sesi.', 'galat');
+              btn.disabled = false;
+              btn.textContent = 'Cabut';
+            }
+          } catch {
+            pesanPanel('#kamPesanSesi', 'Tidak bisa menghubungi server.', 'galat');
+            btn.disabled = false;
+            btn.textContent = 'Cabut';
+          }
+        });
+        li.appendChild(btn);
       }
       daftar.appendChild(li);
     }
@@ -534,6 +572,26 @@
       daftar.hidden = true;
     }
   });
+
+  /**
+   * Tulis pesan status ke elemen tertentu.
+   *
+   * ── KENAPA BUKAN pesan() YANG SUDAH ADA ────────────────────────────────────
+   * `pesan()` selalu menulis ke #kamPesan — elemen milik panel Keamanan. Tab
+   * lain punya elemen pesannya sendiri (#kamPesanSesi, #kamPesanToken, dst).
+   *
+   * Memakai `pesan()` dari tab lain berarti pesannya muncul di panel yang
+   * TIDAK SEDANG DILIHAT — pengguna menekan "Cabut", tidak terjadi apa-apa di
+   * layar, padahal server sudah mencabut sesinya. Itu jenis kebingungan yang
+   * paling mudah dihindari: pesan harus muncul di panel tempat aksinya terjadi.
+   */
+  function pesanPanel(sel, teks, jenis = '') {
+    const el = $(sel);
+    if (!el) return;
+    el.textContent = teks;
+    el.classList.toggle('is-galat', jenis === 'galat');
+    el.classList.toggle('is-sukses', jenis === 'sukses');
+  }
 
   async function muat() {
     const memuat = $('#kamMemuat');

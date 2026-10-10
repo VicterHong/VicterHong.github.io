@@ -27,10 +27,11 @@
  *      ke akun yang sudah ada → mencegah pengambilalihan akun
  */
 
+import { createHash } from 'node:crypto';
 import { config } from './config.mjs';
 import { getDb } from './db.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, readJson } from './http-util.mjs';
-import { createSession, validateSession, destroySession } from './sessions.mjs';
+import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
 // mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
 import { statusTotp } from './totp-service.mjs';
@@ -980,6 +981,27 @@ const ruteHapusIdentitas = {
  * Alternatifnya mengekspor fungsi internal routes.mjs — itu memperluas
  * permukaan modul yang sudah sangat besar.
  */
+/**
+ * Pengenal sesi turunan untuk ditampilkan ke pengguna.
+ *
+ * ── KENAPA BUKAN `sessions.id` ──────────────────────────────────────────────
+ * `sessions.id` adalah sha256(secret + session_id) — hash dari nilai yang ada
+ * di cookie. Hash tidak bisa dibalik, jadi menampilkannya TIDAK langsung
+ * membahayakan. Tapi itu tetap kunci yang dicocokkan langsung oleh
+ * `validateSession()` saat login: siapa pun yang punya nilai itu bisa
+ * mencoba mengirimnya sebagai cookie. Tidak ada alasan menampilkan kunci
+ * yang dipakai untuk masuk.
+ *
+ * ── KENAPA 8 KARAKTER CUKUP ─────────────────────────────────────────────────
+ * Pengenal ini hanya untuk MEMBEDAKAN sesi di daftar, bukan untuk otentikasi.
+ * Dua sesi berbeda hampir pasti berbeda 8 karakter pertama — dan kalau
+ * kebetulan sama, yang terjadi hanya pengguna mencabut sesi yang salah, lalu
+ * sadar dan mencabut yang benar. Risikonya kecil dan bisa dipulihkan.
+ */
+function pengenalSesi(idHash) {
+  return createHash('sha256').update('tampil:' + String(idHash)).digest('hex').slice(0, 8);
+}
+
 function sesiDariRequest(req) {
   const cookies = parseCookiesLokal(req);
   const sessionId = cookies[COOKIE_SESI] ?? '';
@@ -1372,13 +1394,6 @@ function ruteSso() {
         const pengguna = penggunaDariToken(tokenRow);
         if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
 
-        // ── SESI "SEKARANG" DIKENALI DARI last_seen TERBARU ───────────────────
-        // `sessions.id` disimpan sebagai HASH, jadi nilai di cookie tidak sama
-        // dengan nilai di database — dan hashSession() tidak diekspor.
-        //
-        // Setiap request memperbarui last_seen sesi yang dipakai, jadi sesi
-        // aktif selalu yang paling atas. Ini perkiraan (dua tab bisa sama-sama
-        // terlihat "sekarang"), tapi cukup untuk keperluan tampilan.
         const rows = getDb().prepare(`
           SELECT id, device_fp, ip, country, user_agent, created_at, last_seen, expires_at
           FROM sessions
@@ -1387,13 +1402,31 @@ function ruteSso() {
           LIMIT 20
         `).all(pengguna.token_id, Date.now());
 
-        const terbaru = rows[0]?.last_seen ?? 0;
+        // ── SESI "SEKARANG" DICARI DENGAN MENCOCOKKAN HASH COOKIE ───────────────
+        //
+        // Sebelumnya sesi sekarang dikenali dari last_seen TERBARU. Cara itu
+        // SALAH dalam dua hal:
+        //
+        //   1. `last_seen` hanya diperbarui kalau sudah lewat 60 detik (lihat
+        //      sessions.mjs) — jadi kalau pengguna membuka dua perangkat dalam
+        //      satu menit, keduanya bisa punya last_seen yang sama.
+        //   2. last_seen terbaru belum tentu PERANGKAT INI. Membuka sesi di
+        //      ponsel, lalu melihat daftar di laptop, akan menandai ponsel
+        //      sebagai "perangkat ini".
+        //
+        // Cara yang benar: hitung hash dari session_id yang ADA DI COOKIE
+        // request ini, lalu cari baris yang hash-nya cocok. Itu memang nilai
+        // yang disimpan di kolom `id`, jadi pencocokannya langsung.
+        const cookies = parseCookiesLokal(req);
+        const idSesiIni = cookies[COOKIE_SESI] ?? '';
+        const hashSesiIni = idSesiIni ? hashSession(idSesiIni, config.secret) : '';
 
         sendJson(res, 200, {
           ok: true,
-          sesi: rows.map((r, i) => ({
-            // Hanya yang paling atas DAN paling baru yang ditandai.
-            sekarang: i === 0 && r.last_seen === terbaru,
+          sesi: rows.map((r) => ({
+            // Pengenal pendek untuk tombol cabut — BUKAN kunci masuk.
+            pengenal: pengenalSesi(r.id),
+            sekarang: Boolean(hashSesiIni) && r.id === hashSesiIni,
             perangkat: namaPerangkat(r.user_agent),
             user_agent: String(r.user_agent || '').slice(0, 160),
             ip: r.ip || '',
@@ -1403,6 +1436,103 @@ function ruteSso() {
             kedaluwarsa_pada: r.expires_at,
           })),
         });
+      },
+    },
+
+    // ══ CABUT SESI ══════════════════════════════════════════════════════════════
+    //
+    // ── KENAPA INI HARUS ADA ───────────────────────────────────────────────────
+    // Tab Sesi aktif menulis "Cabut yang tidak Anda kenali" — instruksi itu
+    // tidak ada artinya tanpa tombolnya. Daftar tanpa kemampuan mencabut
+    // membuat pengguna tahu ada penyusup tapi tidak bisa berbuat apa-apa.
+    //
+    // ── KENAPA PAKAI PENGENAL, BUKAN sessions.id LANGSUNG ─────────────────────
+    // `sessions.id` adalah hash yang dipakai `validateSession()` untuk
+    // mencocokkan cookie. Nilainya tidak bisa dibalik, tapi tetap kunci yang
+    // dicocokkan saat masuk — tidak ada alasan mengirimkannya ke browser.
+    //
+    // `pengenalSesi()` menurunkan nilai BARU dari hash itu (sha256 dari
+    // string berbeda), jadi pengenal tidak bisa dipakai untuk masuk walau
+    // bocor. Pencocokan dilakukan di sisi server: pengenal dari klien
+    // dihitung ulang dari setiap baris milik pengguna, lalu dibandingkan.
+    {
+      method: 'POST',
+      pattern: '/api/auth/sesi/cabut',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const body = await readJson(req).catch(() => ({}));
+        const minta = String(body?.pengenal ?? '').trim();
+        if (!minta) {
+          return sendJson(res, 400, { ok: false, error: 'pengenal_kosong',
+            message: 'Pengenal sesi tidak dikirim.' });
+        }
+
+        // ── HANYA SESI MILIK PENGGUNA INI YANG DIPERIKSA ─────────────────────
+        // Filter token_id ada di query, BUKAN di kode setelah pengambilan.
+        // Jadi tidak ada jalur di mana sesi milik orang lain ikut terbaca —
+        // sekalipun pengenalnya ditebak dengan benar.
+        const rows = getDb().prepare(
+          'SELECT id FROM sessions WHERE token_id = ? AND expires_at > ?'
+        ).all(pengguna.token_id, Date.now());
+
+        const cocok = rows.find((r) => pengenalSesi(r.id) === minta);
+        if (!cocok) {
+          return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan',
+            message: 'Sesi itu tidak ada di akun Anda.' });
+        }
+
+        // ── JANGAN IZINKAN MENCABUT SESI YANG SEDANG DIPAKAI ─────────────────
+        // Kalau diizinkan, pengguna menekan "cabut" pada perangkatnya sendiri
+        // dan langsung terlempar keluar tanpa penjelasan. Untuk keluar dari
+        // perangkat ini sudah ada tombol "Keluar" — jalurnya beda.
+        const cookies = parseCookiesLokal(req);
+        const idSesiIni = cookies[COOKIE_SESI] ?? '';
+        const hashSesiIni = idSesiIni ? hashSession(idSesiIni, config.secret) : '';
+        if (cocok.id === hashSesiIni) {
+          return sendJson(res, 400, { ok: false, error: 'sesi_sekarang',
+            message: 'Ini perangkat yang sedang Anda pakai. Gunakan tombol Keluar untuk keluar dari perangkat ini.' });
+        }
+
+        // ── URUTAN PENTING: CATAT DULU, LALU HAPUS ────────────────────────────
+        //
+        // Versi pertama menulis `recordEvent({ aksi: ..., hasil: ... })` —
+        // nama field yang SALAH. recordEvent() mengharapkan `action` dan
+        // `outcome`, jadi keduanya undefined dan SQLite melempar
+        // ERR_INVALID_ARG_TYPE.
+        //
+        // Akibatnya bukan cuma catatan yang hilang: karena penghapusan
+        // dilakukan SEBELUM pencatatan, sesi sudah terhapus saat error
+        // terjadi — lalu handler melempar 500. Klien diberi tahu "gagal"
+        // padahal operasinya berhasil.
+        //
+        // Dua pelajaran:
+        //   1. Nama field harus cocok dengan tanda tangan fungsi.
+        //   2. Operasi yang tidak bisa dibatalkan (DELETE) dikerjakan SETELAH
+        //      hal-hal yang bisa gagal. Kalau pencatatan gagal, sesi masih
+        //      utuh dan pengguna bisa mencoba lagi.
+        //
+        // Pencatatan tetap dibungkus try/catch: audit adalah efek samping,
+        // bukan syarat keberhasilan. Kalau pencatatan gagal, sesi TETAP harus
+        // dicabut — mencabut sesi lebih penting daripada mencatatnya.
+        try {
+          recordEvent({
+            tokenId: pengguna.token_id,
+            action: 'auth_sesi_cabut',
+            outcome: 'ok',
+            ip: clientIp(req),
+            userAgent: String(req.headers?.['user-agent'] ?? '').slice(0, 200),
+            country: clientCountry(req),
+          });
+        } catch { /* pencatatan gagal bukan alasan membatalkan pencabutan */ }
+
+        getDb().prepare('DELETE FROM sessions WHERE id = ?').run(cocok.id);
+
+        sendJson(res, 200, { ok: true, message: 'Sesi dicabut.' });
       },
     },
 
