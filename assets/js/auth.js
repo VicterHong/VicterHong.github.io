@@ -687,6 +687,7 @@
         email,
         sandi,
         device_fp: ambilFingerprint(),
+        perangkat: await deteksiPerangkat(),
         'cf-turnstile-response': tokenTurnstile,
       });
 
@@ -805,6 +806,7 @@
         sandi: sandiMasuk,
         code: kode,
         device_fp: ambilFingerprint(),
+        perangkat: await deteksiPerangkat(),
         'cf-turnstile-response': turnstileToken,
       });
 
@@ -1122,6 +1124,72 @@
    *
    *  Sengaja TIDAK memakai canvas/audio fingerprint — itu invasif dan
    *  mudah berubah saat browser update, menghasilkan positif palsu. */
+  /**
+   * Deteksi perangkat — Client Hints + sinyal layar, bukan User-Agent saja.
+   *
+   * ── MASALAH YANG DIPECAHKAN ────────────────────────────────────────────────
+   * User-Agent TIDAK BISA DIPERCAYA untuk menentukan perangkat. Kasus nyata
+   * yang terjadi di produksi:
+   *
+   *   Chrome Android mode "Desktop site" mengubah UA-nya jadi
+   *     (X11; Linux x86_64) ... Safari
+   *   sehingga Android HILANG dan sesi tertulis "Chrome di Linux" padahal
+   *   penggunanya di ponsel.
+   *
+   * ── SOLUSI ─────────────────────────────────────────────────────────────────
+   * `navigator.userAgentData` (Client Hints, RFC 8942) memberi platform yang
+   * TIDAK berubah saat mode desktop aktif.
+   *
+   * Untuk browser yang belum mendukungnya (Firefox, Safari), dipakai sinyal
+   * LAYAR yang tidak bisa dipalsukan lewat UA sama sekali:
+   *   • `screen.width`  — lebar layar sebenarnya
+   *   • `maxTouchPoints` — ada tidaknya layar sentuh
+   *
+   * ── KENAPA DIKIRIM KE SERVER ───────────────────────────────────────────────
+   * `screen.width` dan `maxTouchPoints` tidak ada di header HTTP. Server tidak
+   * punya cara lain mendapatkannya. Jadi klien menghitung, lalu mengirim hasil.
+   *
+   * @returns {Promise<{jenis: string, platform: string, model: string}>}
+   */
+  async function deteksiPerangkat() {
+    const LABEL = {
+      Android: 'Android', iOS: 'iOS', 'Chrome OS': 'ChromeOS',
+      Windows: 'Windows', macOS: 'macOS', Linux: 'Linux',
+    };
+
+    // ── Sinyal layar: tidak bisa dipalsukan lewat User-Agent ──
+    const lebar = Math.min(screen.width || 9999, window.innerWidth || 9999);
+    const sentuh = (navigator.maxTouchPoints || 0) > 0;
+    let dariLayar = 'komputer';
+    if (lebar < 768 && sentuh) dariLayar = 'ponsel';
+    else if (lebar < 1200 && sentuh) dariLayar = 'tablet';
+
+    // ── Client Hints: sumber paling akurat ──
+    const ch = navigator.userAgentData;
+    if (ch && ch.platform) {
+      let model = '';
+      try {
+        // `model` adalah hint entropy tinggi — browser boleh menolak.
+        const hi = await ch.getHighEntropyValues(['model']);
+        model = hi.model || '';
+      } catch { /* ditolak — lanjut tanpa model */ }
+
+      let jenis;
+      if (ch.mobile) {
+        jenis = dariLayar === 'komputer' ? 'tablet' : dariLayar;
+      } else {
+        // Platform desktop TAPI layar kecil + sentuh = kemungkinan besar
+        // Android mode "Desktop site" — justru kasus yang dilaporkan.
+        jenis = (dariLayar === 'ponsel' && ch.platform === 'Android') ? 'ponsel' : dariLayar;
+      }
+
+      return { jenis, platform: LABEL[ch.platform] || ch.platform, model };
+    }
+
+    // ── Cadangan: sinyal layar saja ──
+    return { jenis: dariLayar, platform: '', model: '' };
+  }
+
   function ambilFingerprint() {
     const bagian = [
       navigator.userAgent,

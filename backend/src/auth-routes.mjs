@@ -166,7 +166,7 @@ function tujuanAman(nilai) {
  * Token yang dibuat di sini memakai tier 'standard' dan proyek default,
  * sama seperti pendaftaran mandiri — bukan jalur istimewa.
  */
-function buatSesiUntuk(res, req, pengguna, { tujuan = '/' } = {}) {
+function buatSesiUntuk(res, req, pengguna, { tujuan = '/', hints = {} } = {}) {
   let tokenRow = getDb()
     .prepare('SELECT * FROM tokens WHERE id = ?')
     .get(pengguna.token_id);
@@ -198,6 +198,7 @@ function buatSesiUntuk(res, req, pengguna, { tujuan = '/' } = {}) {
   // Kalau tidak disimpan sekarang, ia hilang — dan halaman Sesi aktif harus
   // melakukan lookup eksternal setiap kali dibuka untuk mendapatkannya lagi.
   const geo = clientGeo(req);
+  const det = deteksiDariBody(hints);
 
   const sesi = createSession({
     tokenId: tokenRow.id,
@@ -210,6 +211,9 @@ function buatSesiUntuk(res, req, pengguna, { tujuan = '/' } = {}) {
     wilayah: geo.wilayah,
     asn: geo.asn,
     zonaWaktu: geo.zonaWaktu,
+    platform: det.platform,
+    model: det.model,
+    jenis: det.jenis,
     durationHours: config.sessionDurationHours,
     maxDevices: tokenRow.max_devices ?? config.maxDevices,
   });
@@ -480,7 +484,7 @@ function ruteCallback(provider) {
     if (!hasil.pengguna) return gagalKe(res, '/sign-in', 'akun_tidak_ditemukan');
 
     // ── Sesi + cookie ───────────────────────────────────────────────────────
-    const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe });
+    const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: body });
 
     recordEvent({
       projectSlug: '', action: 'auth_oauth_masuk',
@@ -799,7 +803,7 @@ const rutePasskeyMasukSelesai = {
 
     tandaiDipakai(idn.id, hasil.signCountBaru);
 
-    const { tujuan } = buatSesiUntuk(res, req, pengguna, { tujuan: '/' });
+    const { tujuan } = buatSesiUntuk(res, req, pengguna, { tujuan: '/', hints: body });
 
     recordEvent({
       projectSlug: '', action: 'auth_passkey_masuk', outcome: 'ok',
@@ -1028,6 +1032,33 @@ const ruteHapusIdentitas = {
  * kebetulan sama, yang terjadi hanya pengguna mencabut sesi yang salah, lalu
  * sadar dan mencabut yang benar. Risikonya kecil dan bisa dipulihkan.
  */
+/**
+ * Ambil hasil deteksi perangkat yang dikirim klien.
+ *
+ * ── KENAPA DARI BODY, BUKAN HEADER ──────────────────────────────────────────
+ * `Sec-CH-UA-Platform` memang header, tapi hanya memuat platform. Yang lebih
+ * berguna — model perangkat dan sinyal layar — tidak ada di header HTTP.
+ *
+ * `screen.width` dan `maxTouchPoints` HANYA bisa dibaca dari JavaScript, dan
+ * keduanya sinyal yang paling sulit dipalsukan: User-Agent bisa ditulis ulang
+ * sesuka hati, tapi lebar layar harus cocok dengan perangkat sebenarnya.
+ *
+ * ── VALIDASI ────────────────────────────────────────────────────────────────
+ * Nilai dari klien tidak dipercaya begitu saja: `jenis` harus salah satu dari
+ * tiga nilai yang dikenal, dan teks dipotong 40 karakter.
+ */
+function deteksiDariBody(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const d = b.perangkat && typeof b.perangkat === 'object' ? b.perangkat : {};
+
+  const jenis = String(d.jenis || '');
+  return {
+    jenis: ['ponsel', 'tablet', 'komputer'].includes(jenis) ? jenis : '',
+    platform: String(d.platform || '').trim().slice(0, 40),
+    model: String(d.model || '').trim().slice(0, 40),
+  };
+}
+
 function pengenalSesi(idHash) {
   return createHash('sha256').update('tampil:' + String(idHash)).digest('hex').slice(0, 8);
 }
@@ -1093,7 +1124,22 @@ function parseCookiesLokal(req) {
  * Urutan pengecekan penting: iPad modern melaporkan diri sebagai "Macintosh"
  * di User-Agent-nya (Safari desktop mode), jadi iPad harus dicek SEBELUM Mac.
  */
-function jenisPerangkat(ua) {
+function jenisPerangkat(ua, hints = {}) {
+  // ── PRIORITAS 1: DETEKSI DARI KLIEN (Client Hints + sinyal layar) ──────────
+  //
+  // Ini satu-satunya sumber yang BENAR saat User-Agent menipu. Kasus nyata:
+  // Chrome Android mode "Desktop site" mengubah UA-nya jadi `X11; Linux
+  // x86_64`, sehingga UA saja menyimpulkan "komputer" padahal ponsel.
+  //
+  // Client Hints (`Sec-CH-UA-Platform`) TIDAK ikut berubah saat mode itu
+  // aktif — dan `screen.width` + `maxTouchPoints` tidak bisa dipalsukan
+  // lewat UA sama sekali.
+  const j = String(hints.jenis || '');
+  if (j === 'ponsel' || j === 'tablet' || j === 'komputer') return j;
+
+  // ── PRIORITAS 2: TEBAK DARI USER-AGENT (cadangan) ─────────────────────────
+  // Dipakai kalau klien lama tidak mengirim deteksi, atau request datang dari
+  // alat yang bukan browser.
   const s = String(ua || '');
   if (!s) return 'komputer';
   if (/iPad|Tablet|PlayBook|Silk/i.test(s)) return 'tablet';
@@ -1103,12 +1149,17 @@ function jenisPerangkat(ua) {
   return 'komputer';
 }
 
-function namaPerangkat(ua) {
+function namaPerangkat(ua, hints = {}) {
   const s = String(ua || '');
-  if (!s) return '';
 
-  // Browser: urutan penting — Edge dan Opera menyamar sebagai Chrome,
-  // jadi keduanya harus dicek lebih dulu.
+  // ── BROWSER: dari User-Agent ──────────────────────────────────────────────
+  // Browser TIDAK punya Client Hint yang setara — `Sec-CH-UA` memberi merek
+  // ("Google Chrome"), tapi tidak memberi nama yang bisa ditampilkan untuk
+  // SEMUA browser. UA tetap sumber terbaik untuk bagian ini, dan UA browser
+  // tidak berubah saat mode desktop aktif (hanya bagian OS yang berubah).
+  //
+  // Urutan penting: Edge dan Opera menyamar sebagai Chrome, jadi keduanya
+  // harus dicek lebih dulu.
   let browser = '';
   if (/Edg\//.test(s)) browser = 'Edge';
   else if (/OPR\/|Opera/.test(s)) browser = 'Opera';
@@ -1116,15 +1167,40 @@ function namaPerangkat(ua) {
   else if (/Chrome\//.test(s)) browser = 'Chrome';
   else if (/Safari\//.test(s)) browser = 'Safari';
 
-  let os = '';
-  if (/iPhone|iPad|iPod/.test(s)) os = 'iOS';
-  else if (/Android/.test(s)) os = 'Android';
-  else if (/Windows/.test(s)) os = 'Windows';
-  else if (/Mac OS X|Macintosh/.test(s)) os = 'macOS';
-  else if (/Linux/.test(s)) os = 'Linux';
+  // ── OS: DETEKSI KLIEN MENANG, UA CADANGAN ─────────────────────────────────
+  //
+  // ── KENAPA UA TIDAK BISA DIPERCAYA UNTUK OS ───────────────────────────────
+  // Chrome Android mode "Desktop site" mengubah UA dari
+  //     (Linux; Android 14; Pixel 8) ... Mobile Safari
+  // menjadi
+  //     (X11; Linux x86_64) ... Safari
+  //
+  // Android-nya HILANG. UA saja menyimpulkan "Linux" — dan itu yang membuat
+  // sesi di produksi tertulis "Chrome di Linux" padahal penggunanya di ponsel.
+  //
+  // Client Hints (`Sec-CH-UA-Platform`) tidak ikut berubah: ia tetap
+  // melaporkan "Android". Itu sebabnya deteksi klien diprioritaskan.
+  let os = String(hints.platform || '');
+  if (!os) {
+    if (/iPhone|iPad|iPod/.test(s)) os = 'iOS';
+    else if (/Android/.test(s)) os = 'Android';
+    else if (/Windows/.test(s)) os = 'Windows';
+    else if (/Mac OS X|Macintosh/.test(s)) os = 'macOS';
+    else if (/Linux/.test(s)) os = 'Linux';
+  }
 
-  if (browser && os) return `${browser} di ${os}`;
-  return browser || os || '';
+  // ── MODEL PERANGKAT: HANYA DARI CLIENT HINTS ──────────────────────────────
+  // UA tidak pernah memuat model yang bisa diandalkan ("Pixel 8" hanya muncul
+  // di sebagian browser). Client Hints memberinya lewat getHighEntropyValues().
+  //
+  // Ditampilkan sebagai pelengkap HANYA kalau ada — "Chrome di Android
+  // (Pixel 8)" lebih berguna daripada "Chrome di Android" saja saat pengguna
+  // punya beberapa perangkat Android.
+  const model = String(hints.model || '').trim();
+
+  const dasar = browser && os ? `${browser} di ${os}` : (browser || os || '');
+  if (dasar && model) return `${dasar} · ${model}`;
+  return dasar;
 }
 
 function penggunaDariToken(tokenRow) {
@@ -1355,7 +1431,7 @@ function ruteSso() {
         if (!hasil.pengguna) return gagalKe(res, '/sign-in', 'akun_tidak_ditemukan');
 
         // ── Sesi + cookie ────────────────────────────────────────────────────
-        const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe });
+        const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: body });
 
         recordEvent({
           projectSlug: '', action: 'auth_sso_masuk',
@@ -1448,7 +1524,7 @@ function ruteSso() {
 
         const rows = getDb().prepare(`
           SELECT id, device_fp, ip, country, user_agent, kota, wilayah, asn, zona_waktu,
-                 created_at, last_seen, expires_at
+                 platform, model, jenis, created_at, last_seen, expires_at
           FROM sessions
           WHERE token_id = ? AND expires_at > ?
           ORDER BY last_seen DESC
@@ -1481,10 +1557,15 @@ function ruteSso() {
             pengenal: pengenalSesi(r.id),
             sekarang: Boolean(hashSesiIni) && r.id === hashSesiIni,
 
-            perangkat: namaPerangkat(r.user_agent),
+            // ── NAMA PERANGKAT: DETEKSI KLIEN MENANG ATAS UA ──────────────
+            // `r.platform` dan `r.model` berasal dari Client Hints + sinyal
+            // layar yang dikirim klien. Keduanya TIDAK ikut berubah saat
+            // Chrome Android mode "Desktop site" aktif — sedangkan UA berubah
+            // jadi "X11; Linux x86_64" dan kehilangan jejak Android-nya.
+            perangkat: namaPerangkat(r.user_agent, { platform: r.platform, model: r.model }),
             // Dipakai UI untuk memilih ikon. Selalu salah satu dari tiga
             // nilai, tidak pernah kosong — supaya UI tidak perlu menebak.
-            jenis: jenisPerangkat(r.user_agent),
+            jenis: jenisPerangkat(r.user_agent, { jenis: r.jenis }),
 
             // ── IP TERSAMAR, BUKAN IP PENUH ─────────────────────────────────
             // IP penuh TETAP tersimpan di kolom `sessions.ip` — itu yang

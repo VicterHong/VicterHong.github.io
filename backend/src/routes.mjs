@@ -389,6 +389,45 @@ export function matchPath(pattern, pathname) {
  * SHA-256 di sini bukan untuk kerahasiaan (kunci tidak pernah disimpan
  * sebagai hash) — hanya untuk menyeragamkan panjang sebelum dibandingkan.
  */
+/**
+ * Ambil hasil deteksi perangkat yang dikirim klien.
+ *
+ * ── KENAPA DARI BODY, BUKAN DARI HEADER ──────────────────────────────────────
+ * `Sec-CH-UA-Platform` memang header, tapi nilainya terbatas pada platform
+ * saja. Yang lebih berguna — model perangkat dan sinyal layar — tidak ada di
+ * header HTTP sama sekali.
+ *
+ * `screen.width` dan `maxTouchPoints` HANYA bisa dibaca dari JavaScript.
+ * Keduanya juga sinyal yang paling sulit dipalsukan: User-Agent bisa ditulis
+ * ulang sesuka hati, tapi lebar layar dan jumlah titik sentuh harus cocok
+ * dengan perangkat yang benar-benar dipakai.
+ *
+ * Jadi klien menghitung, lalu mengirim hasilnya bersama request masuk.
+ *
+ * ── VALIDASI, KARENA INI DATANG DARI LUAR ────────────────────────────────────
+ * Nilai dari klien TIDAK dipercaya begitu saja:
+ *   • `jenis` harus salah satu dari tiga nilai yang dikenal
+ *   • `platform` dan `model` dipotong 40 karakter (batas nama wajar)
+ *   • Semua opsional — request tanpa deteksi tetap bekerja
+ *
+ * Tanpa validasi, satu request bisa menulis nilai apa pun ke database.
+ */
+function deteksiDariBody(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const d = b.perangkat && typeof b.perangkat === 'object' ? b.perangkat : {};
+
+  const jenis = String(d.jenis || '');
+  const platform = String(d.platform || '').trim().slice(0, 40);
+  const model = String(d.model || '').trim().slice(0, 40);
+
+  return {
+    // Kosong = pakai tebakan dari User-Agent (lihat jenisPerangkat()).
+    jenis: ['ponsel', 'tablet', 'komputer'].includes(jenis) ? jenis : '',
+    platform,
+    model,
+  };
+}
+
 function isAdmin(req) {
   const key = req.headers['x-admin-key'];
   if (typeof key !== 'string' || key.length === 0) return false;
@@ -1103,6 +1142,9 @@ export const routes = [
 
       // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
       const geo = clientGeo(req);
+      // Deteksi perangkat dari klien — Client Hints + sinyal layar. Ini yang
+      // BENAR saat User-Agent menipu (mis. Chrome Android mode desktop).
+      const det = deteksiDariBody(body);
       const session = createSession({
         tokenId: row.id,
         secret: config.secret,
@@ -1114,6 +1156,9 @@ export const routes = [
         wilayah: geo.wilayah,
         asn: geo.asn,
         zonaWaktu: geo.zonaWaktu,
+        platform: det.platform,
+        model: det.model,
+        jenis: det.jenis,
         durationHours: config.sessionDurationHours,
         maxDevices: row.max_devices ?? config.maxDevices,
       });
@@ -1268,6 +1313,9 @@ export const routes = [
 
       // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
       const geo = clientGeo(req);
+      // Deteksi perangkat dari klien — Client Hints + sinyal layar. Ini yang
+      // BENAR saat User-Agent menipu (mis. Chrome Android mode desktop).
+      const det = deteksiDariBody(body);
       const session = createSession({
         tokenId: row.id,
         secret: config.secret,
@@ -1279,6 +1327,9 @@ export const routes = [
         wilayah: geo.wilayah,
         asn: geo.asn,
         zonaWaktu: geo.zonaWaktu,
+        platform: det.platform,
+        model: det.model,
+        jenis: det.jenis,
         durationHours: config.sessionDurationHours,
         maxDevices: row.max_devices ?? config.maxDevices,
       });
@@ -1560,6 +1611,7 @@ export const routes = [
 
       // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
       const geo = clientGeo(req);
+      const det = deteksiDariBody(body);
       const session = createSession({
         tokenId: tokenRow.id,
         secret: config.secret,
@@ -1571,6 +1623,9 @@ export const routes = [
         wilayah: geo.wilayah,
         asn: geo.asn,
         zonaWaktu: geo.zonaWaktu,
+        platform: det.platform,
+        model: det.model,
+        jenis: det.jenis,
         durationHours: config.sessionDurationHours,
         maxDevices: tokenRow.max_devices ?? config.maxDevices,
       });
@@ -1662,6 +1717,7 @@ export const routes = [
 
       // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
       const geo = clientGeo(req);
+      const det = deteksiDariBody(body);
       const session = createSession({
         tokenId: tokenRow.id, secret: config.secret,
         deviceFp: String(body.device_fp ?? '').slice(0, 200),
@@ -1671,6 +1727,9 @@ export const routes = [
         wilayah: geo.wilayah,
         asn: geo.asn,
         zonaWaktu: geo.zonaWaktu,
+        platform: det.platform,
+        model: det.model,
+        jenis: det.jenis,
         durationHours: config.sessionDurationHours,
         maxDevices: tokenRow.max_devices ?? config.maxDevices,
       });
@@ -2473,6 +2532,10 @@ export const routes = [
           wilayah: r.wilayah || '',
           asn: r.asn || '',
           zona_waktu: r.zona_waktu || '',
+          // Deteksi perangkat dari klien — ini yang benar saat UA menipu.
+          platform: r.platform || '',
+          model: r.model || '',
+          jenis: r.jenis || '',
           user_agent: String(r.user_agent || '').slice(0, 300),
           dibuat_pada: r.created_at,
           terakhir_aktif: r.last_seen,

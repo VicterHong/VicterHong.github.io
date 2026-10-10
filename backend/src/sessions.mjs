@@ -41,6 +41,7 @@ export function hashSession(id, secret) {
 export function createSession({
   tokenId, secret, deviceFp = '', ip = '', country = '', userAgent = '',
   kota = '', wilayah = '', asn = '', zonaWaktu = '',
+  platform = '', model = '', jenis = '',
   durationHours = 24, maxDevices = null,
 }) {
   const id = sessionId();
@@ -75,12 +76,14 @@ export function createSession({
       INSERT INTO sessions (
         id, token_id, device_fp, ip, country, user_agent,
         kota, wilayah, asn, zona_waktu,
+        platform, model, jenis,
         created_at, last_seen, expires_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       hashSession(id, secret), tokenId, deviceFp, ip, country, userAgent,
       kota, wilayah, asn, zonaWaktu,
+      platform, model, jenis,
       at, at, expiresAt,
     );
   });

@@ -56,7 +56,28 @@ CREATE TABLE IF NOT EXISTS sessions (
   user_agent  TEXT NOT NULL DEFAULT '',
   created_at  INTEGER NOT NULL,
   last_seen   INTEGER NOT NULL,
-  expires_at  INTEGER NOT NULL
+  expires_at  INTEGER NOT NULL,
+
+  -- ══ GEOGRAFI (dari header Cloudflare) ══════════════════════════════════════
+  -- Disimpan saat sesi dibuat: data ini hanya tersedia selama request
+  -- berlangsung, dan halaman Sesi aktif dibuka jauh setelahnya.
+  kota        TEXT NOT NULL DEFAULT '',
+  wilayah     TEXT NOT NULL DEFAULT '',
+  asn         TEXT NOT NULL DEFAULT '',
+  zona_waktu  TEXT NOT NULL DEFAULT '',
+
+  -- ══ DETEKSI PERANGKAT (dari klien) ═════════════════════════════════════════
+  --
+  -- ── KENAPA DISIMPAN, PADAHAL UA SUDAH ADA ────────────────────────────────
+  -- User-Agent TIDAK BISA DIPERCAYA untuk menentukan OS. Kasus nyata: Chrome
+  -- Android mode "Desktop site" mengubah UA jadi X11; Linux x86_64 --
+  -- Android hilang sepenuhnya, dan UA saja menyimpulkan "Linux desktop".
+  --
+  -- Kolom ini menyimpan hasil deteksi dari klien (Client Hints + layar)
+  -- yang TIDAK ikut berubah saat mode itu aktif.
+  platform    TEXT NOT NULL DEFAULT '',
+  model       TEXT NOT NULL DEFAULT '',
+  jenis       TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_id);
@@ -538,6 +559,9 @@ function migrate(handle) {
   addColumn('sessions', 'wilayah', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'asn', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'zona_waktu', "TEXT NOT NULL DEFAULT ''");
+  addColumn('sessions', 'platform', "TEXT NOT NULL DEFAULT ''");
+  addColumn('sessions', 'model', "TEXT NOT NULL DEFAULT ''");
+  addColumn('sessions', 'jenis', "TEXT NOT NULL DEFAULT ''");
 
   // A8: status moderasi komentar.
   // Baris LAMA diisi 'approved' — komentar yang sudah tayang sebelum
