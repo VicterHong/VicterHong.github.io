@@ -2410,6 +2410,78 @@ export const routes = [
     }),
   },
 
+  // ══ SESI AKTIF — IP PENUH (ADMIN) ══════════════════════════════════════════
+  //
+  // ── KENAPA ENDPOINT INI ADA ───────────────────────────────────────────────
+  // Halaman Sesi aktif milik pengguna menerima IP TERSAMAR (`103.179.•.•`),
+  // karena halaman itu bisa dibuka di tempat yang terlihat orang lain.
+  //
+  // Tapi admin butuh IP PENUH untuk pekerjaan yang sah:
+  //   • menyelidiki insiden ("dari mana sesi ini sebenarnya?")
+  //   • memverifikasi laporan abuse ke penyedia
+  //   • mencocokkan dengan log firewall atau log tunnel
+  //   • memastikan dua sesi benar-benar dari jaringan yang sama
+  //
+  // Masking yang tidak bisa ditembus sama sekali akan memaksa admin menggali
+  // database langsung — dan pekerjaan rutin kehilangan jejak audit di API.
+  //
+  // ── DIKUNCI DENGAN ADMIN_KEY ──────────────────────────────────────────────
+  // Sama seperti endpoint admin lain: header `x-admin-key`, dibandingkan
+  // dengan timingSafeEqual. Tanpa kunci yang benar, endpoint ini menjawab 401
+  // tanpa membocorkan apakah ada data atau tidak.
+  {
+    method: 'GET',
+    pattern: '/api/admin/sesi',
+    handler: safe(async (req, res, params, url) => {
+      if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+
+      // Filter opsional: token tertentu, atau semua sesi aktif.
+      const tokenId = url?.searchParams.get('token') ?? null;
+      const batas = Math.min(Number(url?.searchParams.get('limit') ?? 200), 1000);
+
+      const KOLOM = `
+        SELECT s.id, s.token_id, s.ip, s.country, s.kota, s.wilayah, s.asn,
+               s.zona_waktu, s.user_agent, s.created_at, s.last_seen, s.expires_at,
+               t.project_slug, t.issued_to
+        FROM sessions s
+        LEFT JOIN tokens t ON t.id = s.token_id
+      `;
+
+      const rows = tokenId
+        ? getDb().prepare(`${KOLOM} WHERE s.token_id = ? AND s.expires_at > ?
+                           ORDER BY s.last_seen DESC LIMIT ?`)
+            .all(tokenId, Date.now(), batas)
+        : getDb().prepare(`${KOLOM} WHERE s.expires_at > ?
+                           ORDER BY s.last_seen DESC LIMIT ?`)
+            .all(Date.now(), batas);
+
+      sendJson(res, 200, {
+        ok: true,
+        count: rows.length,
+        // ── IP PENUH, TANPA MASKER ──────────────────────────────────────────
+        // Ini satu-satunya tempat IP lengkap dikirim lewat API. Dilindungi
+        // admin key, dan sengaja TIDAK ada versi tersamar di sini — admin
+        // yang sudah terautentikasi memang butuh nilai aslinya.
+        sesi: rows.map((r) => ({
+          id: r.id,
+          token_id: r.token_id,
+          project: r.project_slug || '',
+          issued_to: r.issued_to || '',
+          ip: r.ip || '',
+          negara: r.country || '',
+          kota: r.kota || '',
+          wilayah: r.wilayah || '',
+          asn: r.asn || '',
+          zona_waktu: r.zona_waktu || '',
+          user_agent: String(r.user_agent || '').slice(0, 300),
+          dibuat_pada: r.created_at,
+          terakhir_aktif: r.last_seen,
+          kedaluwarsa_pada: r.expires_at,
+        })),
+      });
+    }),
+  },
+
   {
     method: 'GET',
     pattern: '/api/admin/audit',

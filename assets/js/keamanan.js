@@ -714,41 +714,6 @@
   }
 
   /**
-   * Samarkan alamat IP agar tidak terbaca penuh.
-   *
-   * ── KENAPA DISAMARKAN ──────────────────────────────────────────────────────
-   * Halaman sesi sering dibuka di tempat yang bisa dilihat orang lain: kantor,
-   * kafe, layar bersama saat rapat. Alamat IP penuh adalah data yang bisa
-   * dipakai untuk melacak — dan yang dibutuhkan pengguna untuk MEMASTIKAN
-   * sebuah sesi biasanya cukup bagian awalnya saja.
-   *
-   * ── KENAPA BUKAN DISEMBUNYIKAN TOTAL ───────────────────────────────────────
-   * Membandingkan "apakah IP ini sama dengan yang saya ingat?" adalah cara
-   * utama pengguna memastikan sesi miliknya. Menyembunyikannya sepenuhnya
-   * menghapus kemampuan itu.
-   *
-   * Bagian awal dipertahankan karena itu yang membedakan antar jaringan;
-   * bagian akhir (yang menunjuk perangkat spesifik) disamarkan.
-   *
-   * IPv4: 103.179.248.92  → 103.179.•.• 
-   * IPv6: 2001:448a:80d2:: → 2001:448a:•
-   */
-  function ipSamar(ip) {
-    const s = String(ip || '').trim();
-    if (!s) return '';
-    // IPv6 dikenali dari titik dua. Hanya dua blok pertama yang ditampilkan —
-    // sisanya menunjuk ke perangkat spesifik.
-    if (s.includes(':')) {
-      const bagian = s.split(':').filter(Boolean);
-      if (bagian.length <= 2) return bagian.join(':');
-      return bagian.slice(0, 2).join(':') + ':••••';
-    }
-    const o = s.split('.');
-    if (o.length === 4) return `${o[0]}.${o[1]}.•.•`;
-    return s;
-  }
-
-  /**
    * Susun lokasi dari data Cloudflare.
    *
    * ── KENAPA "Perkiraan" DISEBUT DI UI ───────────────────────────────────────
@@ -835,9 +800,14 @@
         isi.append(barisMeta('lokasi', `Perkiraan lokasi: ${lok}`));
       }
 
-      const ipTeks = ipSamar(x.ip);
-      if (ipTeks) {
-        isi.append(barisMeta('globe', `Alamat IP: ${ipTeks}`));
+      // ── IP SUDAH TERSAMAR DARI SERVER ─────────────────────────────────────
+      // Masking dilakukan di backend (`ipSamar()` di http-util.mjs), bukan di
+      // sini. Alasannya: masking di frontend tidak melindungi apa pun — IP
+      // penuhnya tetap ada di respons HTTP dan bisa dibaca lewat DevTools.
+      //
+      // Yang tidak dikirim tidak bisa bocor.
+      if (x.ip) {
+        isi.append(barisMeta('globe', `Alamat IP: ${x.ip}`));
       }
 
       // ── ASN: HANYA KALAU ADA ───────────────────────────────────────────────

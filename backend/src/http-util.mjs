@@ -229,6 +229,59 @@ export function clientCountry(req) {
 }
 
 /**
+ * Samarkan alamat IP untuk ditampilkan ke pengguna biasa.
+ *
+ * ── KENAPA DI SERVER, BUKAN DI JAVASCRIPT ───────────────────────────────────
+ * Sebelumnya masking dilakukan di frontend: API mengirim IP penuh, lalu
+ * JavaScript memotongnya sebelum ditampilkan. Itu BUKAN perlindungan — IP
+ * aslinya tetap ada di respons HTTP, dan siapa pun yang membuka DevTools →
+ * Network bisa membacanya utuh.
+ *
+ * Masking di server berarti data yang tidak boleh dilihat pengguna TIDAK
+ * PERNAH meninggalkan server. Yang tidak dikirim tidak bisa bocor.
+ *
+ * ── IP PENUH TETAP TERSIMPAN ────────────────────────────────────────────────
+ * Kolom `sessions.ip` dan `access_events.ip` tetap berisi alamat lengkap.
+ * Itu disengaja: IP penuh dibutuhkan untuk
+ *   • audit keamanan (dari mana serangan berasal)
+ *   • korelasi insiden (apakah dua sesi dari jaringan yang sama)
+ *   • verifikasi dengan penyedia (laporan abuse)
+ *   • admin panel
+ *
+ * Yang berubah hanya APA YANG DIKIRIM KE PENGGUNA, bukan apa yang disimpan.
+ *
+ * ── BENTUK MASKER ───────────────────────────────────────────────────────────
+ * IPv4  103.179.248.92      → 103.179.•.•    (dua oktet awal dipertahankan)
+ * IPv6  2001:448a:80d2:...  → 2001:448a:•••• (dua blok awal dipertahankan)
+ *
+ * Bagian awal dipertahankan karena itu yang mengidentifikasi JARINGAN —
+ * yang dibutuhkan pengguna untuk memastikan "apakah ini jaringan saya?".
+ * Bagian akhir menunjuk perangkat spesifik, jadi disamarkan.
+ *
+ * @param {string} ip
+ * @returns {string} — IP tersamar, atau string kosong kalau input kosong
+ */
+export function ipSamar(ip) {
+  const s = String(ip || '').trim();
+  if (!s) return '';
+
+  // IPv6 dikenali dari titik dua.
+  if (s.includes(':')) {
+    const bagian = s.split(':').filter(Boolean);
+    if (bagian.length <= 2) return bagian.join(':');
+    return bagian.slice(0, 2).join(':') + ':••••';
+  }
+
+  // IPv4: pertahankan dua oktet pertama.
+  const o = s.split('.');
+  if (o.length === 4) return `${o[0]}.${o[1]}.•.•`;
+
+  // Format tak dikenal — kembalikan apa adanya daripada menampilkan
+  // sesuatu yang menyesatkan.
+  return s;
+}
+
+/**
  * Data geografi dari header Cloudflare.
  *
  * ── KENAPA DARI HEADER, BUKAN DARI API GEO ─────────────────────────────────

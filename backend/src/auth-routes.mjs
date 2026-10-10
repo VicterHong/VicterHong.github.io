@@ -30,7 +30,7 @@
 import { createHash } from 'node:crypto';
 import { config } from './config.mjs';
 import { getDb } from './db.mjs';
-import { sendJson, setCookie, clientIp, clientCountry, clientGeo, readJson, bacaBodyBiner } from './http-util.mjs';
+import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
 // mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
@@ -1486,7 +1486,16 @@ function ruteSso() {
             // nilai, tidak pernah kosong — supaya UI tidak perlu menebak.
             jenis: jenisPerangkat(r.user_agent),
 
-            ip: r.ip || '',
+            // ── IP TERSAMAR, BUKAN IP PENUH ─────────────────────────────────
+            // IP penuh TETAP tersimpan di kolom `sessions.ip` — itu yang
+            // dipakai untuk audit, korelasi insiden, dan laporan abuse.
+            //
+            // Tapi yang DIKIRIM ke browser adalah versi tersamar. Masking di
+            // frontend tidak cukup: IP aslinya tetap ada di respons HTTP dan
+            // bisa dibaca lewat DevTools → Network.
+            //
+            // Yang tidak dikirim tidak bisa bocor.
+            ip: ipSamar(r.ip),
             negara: r.country || '',
             // Kota/wilayah dari Cloudflare. Kosong untuk sesi lama yang
             // dibuat sebelum kolom ini ada — UI menampilkannya sebagai
@@ -1937,7 +1946,16 @@ function ruteSso() {
           aktivitas: rows.map((r) => ({
             aksi: r.action || '',
             hasil: r.outcome || '',
-            ip: r.ip || '',
+            // ── IP TERSAMAR, BUKAN IP PENUH ─────────────────────────────────
+            // IP penuh TETAP tersimpan di kolom `sessions.ip` — itu yang
+            // dipakai untuk audit, korelasi insiden, dan laporan abuse.
+            //
+            // Tapi yang DIKIRIM ke browser adalah versi tersamar. Masking di
+            // frontend tidak cukup: IP aslinya tetap ada di respons HTTP dan
+            // bisa dibaca lewat DevTools → Network.
+            //
+            // Yang tidak dikirim tidak bisa bocor.
+            ip: ipSamar(r.ip),
             negara: r.country || '',
             detail: String(r.detail || '').slice(0, 200),
             pada: r.at,
