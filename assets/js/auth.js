@@ -1485,7 +1485,42 @@
           btn.hidden = false;
           btn.disabled = false;
           btn.removeAttribute('title');
-          btn.addEventListener('click', () => { window.location.href = p.url; });
+          btn.addEventListener('click', async () => {
+            // ── SIMPAN DETEKSI PERANGKAT SEBELUM NAVIGASI ──────────────────
+            //
+            // ── KENAPA HARUS SEBELUM NAVIGASI ──────────────────────────────
+            // `window.location.href` adalah navigasi biasa — JavaScript
+            // TIDAK bisa menempelkan header kustom ke request itu.
+            //
+            // Akibatnya callback OAuth tiba tanpa data perangkat, dan sesi
+            // jatuh ke tebakan User-Agent — yang salah untuk Chrome Android
+            // mode "Desktop site".
+            //
+            // Cookie ikut terbawa otomatis saat browser redirect balik ke
+            // situs ini. Jadi nilainya disimpan DULU ke cookie, lalu backend
+            // membacanya saat callback.
+            //
+            // ── KENAPA COOKIE, BUKAN localStorage ──────────────────────────
+            // `localStorage` hanya bisa dibaca JavaScript — server tidak
+            // pernah melihatnya. Cookie ikut di setiap request HTTP, termasuk
+            // redirect yang tidak melewati JavaScript.
+            //
+            // ── UMUR 10 MENIT ──────────────────────────────────────────────
+            // Cukup untuk menyelesaikan login di penyedia identitas. Lebih
+            // lama dari itu, nilainya kemungkinan sudah basi.
+            try {
+              const d = await deteksiPerangkat();
+              const nilai = encodeURIComponent(JSON.stringify(d));
+              // `SameSite=Lax` supaya cookie IKUT saat redirect balik dari
+              // domain penyedia identitas — `Strict` akan memblokirnya.
+              document.cookie = `vivastic_perangkat=${nilai}; path=/; max-age=600; SameSite=Lax`;
+            } catch {
+              // Gagal menyimpan bukan alasan membatalkan login — sesi tetap
+              // dibuat, hanya tanpa data perangkat.
+            }
+
+            window.location.href = p.url;
+          });
         } else {
           // Belum dikonfigurasi → sembunyikan sepenuhnya.
           btn.hidden = true;

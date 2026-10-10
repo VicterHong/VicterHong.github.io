@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   wilayah     TEXT NOT NULL DEFAULT '',
   asn         TEXT NOT NULL DEFAULT '',
   zona_waktu  TEXT NOT NULL DEFAULT '',
+  -- Nama ISP/organisasi dari Cloudflare (cf.asOrganization).
+  org         TEXT NOT NULL DEFAULT '',
 
   -- ══ DETEKSI PERANGKAT (dari klien) ═════════════════════════════════════════
   --
@@ -559,6 +561,7 @@ function migrate(handle) {
   addColumn('sessions', 'wilayah', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'asn', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'zona_waktu', "TEXT NOT NULL DEFAULT ''");
+  addColumn('sessions', 'org', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'platform', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'model', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'jenis', "TEXT NOT NULL DEFAULT ''");

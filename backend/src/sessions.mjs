@@ -40,7 +40,7 @@ export function hashSession(id, secret) {
  */
 export function createSession({
   tokenId, secret, deviceFp = '', ip = '', country = '', userAgent = '',
-  kota = '', wilayah = '', asn = '', zonaWaktu = '',
+  kota = '', wilayah = '', asn = '', zonaWaktu = '', org = '',
   platform = '', model = '', jenis = '',
   durationHours = 24, maxDevices = null,
 }) {
@@ -75,14 +75,14 @@ export function createSession({
     getDb().prepare(`
       INSERT INTO sessions (
         id, token_id, device_fp, ip, country, user_agent,
-        kota, wilayah, asn, zona_waktu,
+        kota, wilayah, asn, zona_waktu, org,
         platform, model, jenis,
         created_at, last_seen, expires_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       hashSession(id, secret), tokenId, deviceFp, ip, country, userAgent,
-      kota, wilayah, asn, zonaWaktu,
+      kota, wilayah, asn, zonaWaktu, org,
       platform, model, jenis,
       at, at, expiresAt,
     );

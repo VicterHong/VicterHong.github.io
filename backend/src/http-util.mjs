@@ -360,6 +360,12 @@ export function clientGeo(req) {
     zonaWaktu: ambilDua('x-geo-timezone', 'cf-timezone'),
     // Negara ikut dibaca di sini supaya satu sumber untuk semua geo.
     negara: ambilDua('x-geo-country', 'cf-ipcountry'),
+    // ── NAMA ISP / ORGANISASI ───────────────────────────────────────────────
+    // Cloudflare mengirim ini di `cf.asOrganization` (mis. "PT Telkom
+    // Indonesia"). Nomor ASN saja ("9341") tidak berarti apa-apa bagi
+    // kebanyakan orang — yang berguna adalah tahu ISP mana yang dipakai,
+    // karena itulah yang membedakan "WiFi rumah" dari "hotel" atau "kantor".
+    org: ambilDua('x-geo-org', 'cf-asorganization'),
   };
 }
 

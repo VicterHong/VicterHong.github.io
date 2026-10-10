@@ -810,11 +810,23 @@
         isi.append(barisMeta('globe', `Alamat IP: ${x.ip}`));
       }
 
-      // ── ASN: HANYA KALAU ADA ───────────────────────────────────────────────
-      // Nomor ASN telanjang ("7713") tidak berarti apa-apa bagi kebanyakan
-      // orang. Yang berguna adalah fakta bahwa ada PENYEDIA yang teridentifikasi
-      // — itu yang membedakan "rumah saya" dari "jaringan publik".
-      if (x.asn) {
+      // ── JARINGAN: NAMA ISP LEBIH BERGUNA DARIPADA NOMOR ASN ───────────────
+      //
+      // ── KENAPA NAMA ISP DULUAN ─────────────────────────────────────────────
+      // Nomor ASN telanjang ("AS9341") tidak berarti apa-apa bagi pengguna
+      // biasa — bahkan bagi yang teknis, ia harus mencarinya dulu.
+      //
+      // Nama ISP menjawab pertanyaan sebenarnya: "apakah ini jaringan saya?"
+      // "PT Telkom Indonesia" langsung dikenali; "AS9341" tidak.
+      //
+      // Nomor ASN tetap ditampilkan sebagai pelengkap KECIL — berguna saat
+      // pengguna ingin melaporkan atau mencari tahu lebih lanjut.
+      const namaIsp = String(x.org || '').trim();
+      if (namaIsp) {
+        isi.append(barisMeta('sinyal', `Jaringan: ${namaIsp}${x.asn ? ` (AS${x.asn})` : ''}`));
+      } else if (x.asn) {
+        // Nama ISP tidak tersedia (Cloudflare tidak mengirimnya) — tampilkan
+        // nomor ASN saja daripada tidak menampilkan apa pun.
         isi.append(barisMeta('sinyal', `Jaringan: AS${x.asn}`));
       }
 

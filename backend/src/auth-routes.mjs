@@ -211,6 +211,7 @@ function buatSesiUntuk(res, req, pengguna, { tujuan = '/', hints = {} } = {}) {
     wilayah: geo.wilayah,
     asn: geo.asn,
     zonaWaktu: geo.zonaWaktu,
+    org: geo.org,
     platform: det.platform,
     model: det.model,
     jenis: det.jenis,
@@ -1072,12 +1073,47 @@ function clientHints(req) {
     const v = req.headers[nama];
     return typeof v === 'string' ? v.trim().slice(0, maks) : '';
   };
-  const jenis = ambil('x-device-jenis', 20);
-  return {
-    jenis: ['ponsel', 'tablet', 'komputer'].includes(jenis) ? jenis : '',
+
+  const jenisHeader = ambil('x-device-jenis', 20);
+  const dariHeader = {
+    jenis: ['ponsel', 'tablet', 'komputer'].includes(jenisHeader) ? jenisHeader : '',
     platform: ambil('x-device-platform'),
     model: ambil('x-device-model'),
   };
+
+  // ── KALAU HEADER KOSONG, BACA COOKIE ────────────────────────────────────────
+  //
+  // ── KENAPA COOKIE DIPERLUKAN ────────────────────────────────────────────────
+  // Callback OAuth datang sebagai REDIRECT dari penyedia identitas. Redirect
+  // tidak bisa membawa header kustom — jadi `X-Device-*` tidak ada di sini.
+  //
+  // Klien menyimpan deteksi ke cookie SEBELUM meninggalkan situs, dan cookie
+  // ikut terbawa otomatis saat browser kembali. Itu satu-satunya jalur yang
+  // bekerja untuk navigasi.
+  //
+  // ── URUTAN: HEADER DULU ─────────────────────────────────────────────────────
+  // Header lebih baru daripada cookie (cookie dibuat sebelum pengguna pergi
+  // ke penyedia, header dibuat saat request). Kalau keduanya ada, header
+  // menang.
+  if (dariHeader.jenis && dariHeader.platform) return dariHeader;
+
+  const cookies = parseCookiesLokal(req);
+  const mentah = cookies.vivastic_perangkat || '';
+  if (!mentah) return dariHeader;
+
+  try {
+    const d = JSON.parse(decodeURIComponent(mentah));
+    const jenisCookie = String(d.jenis || '').slice(0, 20);
+    return {
+      // Nilai dari cookie TETAP divalidasi — sumbernya dari luar.
+      jenis: ['ponsel', 'tablet', 'komputer'].includes(jenisCookie) ? jenisCookie : dariHeader.jenis,
+      platform: dariHeader.platform || String(d.platform || '').trim().slice(0, 40),
+      model: dariHeader.model || String(d.model || '').trim().slice(0, 40),
+    };
+  } catch {
+    // Cookie rusak atau bukan JSON — abaikan, jangan gagalkan login.
+    return dariHeader;
+  }
 }
 
 function deteksiDariBody(body) {
@@ -1557,7 +1593,7 @@ function ruteSso() {
 
         const rows = getDb().prepare(`
           SELECT id, device_fp, ip, country, user_agent, kota, wilayah, asn, zona_waktu,
-                 platform, model, jenis, created_at, last_seen, expires_at
+                 platform, model, jenis, org, created_at, last_seen, expires_at
           FROM sessions
           WHERE token_id = ? AND expires_at > ?
           ORDER BY last_seen DESC
@@ -1618,6 +1654,8 @@ function ruteSso() {
             wilayah: r.wilayah || '',
             // Nomor ASN telanjang ("7713"). UI menambahkan awalan "AS".
             asn: r.asn || '',
+            // Nama ISP dari Cloudflare (mis. "PT Telkom Indonesia").
+            org: r.org || '',
             zona_waktu: r.zona_waktu || '',
 
             dibuat_pada: r.created_at,
