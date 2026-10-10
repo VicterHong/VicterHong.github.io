@@ -70,8 +70,8 @@ for (const f of files) {
 console.log(`  CSS: ${files.length} berkas · ${totalAsli} → ${totalMin} byte ` +
   `(hemat ${100 - Math.round((totalMin / totalAsli) * 100)}%)`);
 
-// ── 3. Salin SEMUA berkas kecuali CSS dan HTML ───────────────────────────────
-// Pendekatan daftar-putih: apa pun yang bukan .css/.html disalin apa adanya.
+// ── 3. Salin SEMUA berkas kecuali CSS, JS, dan HTML ─────────────────────────
+// Pendekatan daftar-putih: apa pun yang bukan .css/.js/.html disalin apa adanya.
 // Ini lebih aman daripada daftar-hitam — berkas baru otomatis ikut.
 const LEWATI_DIR = new Set(['node_modules', '.git', '.github', '.wrangler', 'dist',
   'backend', 'workers', 'scripts', 'design', 'tests', 'docs', '.hermes']);
@@ -88,8 +88,9 @@ function salin(dir, rel = '') {
       salin(full, relPath);
       continue;
     }
-    // CSS ditangani di langkah 2, HTML di langkah 4
+    // CSS ditangani di langkah 2, JS di langkah 2b, HTML di langkah 4
     if (entry.name.endsWith('.css') || entry.name.endsWith('.html')) continue;
+    if (entry.name.endsWith('.js')) continue;
     // Berkas yang tidak perlu ikut deploy
     if (/^(package|package-lock|yarn|tsconfig|wrangler|eslint|prettier|commitlint|greptile)/.test(entry.name)) continue;
 
@@ -99,14 +100,122 @@ function salin(dir, rel = '') {
 }
 salin(ROOT);
 
-// ── 4. Tulis ulang HTML: .css → .min.css ─────────────────────────────────────
+// ── 3b. Minifikasi JS ───────────────────────────────────────────────────────
+//
+// ── KENAPA JS IKUT DIMINIFIKASI, PADAHAL DULU TIDAK ─────────────────────────
+// CSS sudah diminifikasi sejak awal; JS hanya DISALIN apa adanya. Akibatnya
+// 36% dari berkas JS yang dikirim ke browser adalah komentar — termasuk
+// penjelasan panjang yang ditulis untuk PEMBACA KODE, bukan untuk pengunjung.
+// Yang diukur: auth.js 93 KB → 24 KB, keamanan.js 64 KB → 23 KB.
+//
+// ── KENAPA ESBUILD, BUKAN TERSER ATAU YANG LAIN ─────────────────────────────
+// esbuild sudah dipakai untuk CSS di langkah 2 — tidak menambah dependensi
+// baru. Ia juga TIDAK mengubah nama variabel di dalam fungsi dengan cara yang
+// merusak (mangle hanya lokal), jadi kode yang mengandalkan `document`
+// querySelector dan nama properti tetap bekerja.
+//
+// ── YANG TIDAK DILAKUKAN: BUNDLING ──────────────────────────────────────────
+// Berkas TIDAK digabung. Setiap halaman memuat hanya skrip yang dibutuhkannya,
+// dan menggabungkan semuanya akan memaksa setiap halaman mengunduh kode
+// halaman lain. Yang dilakukan hanya minifikasi per-berkas.
+const jsDir = join(ROOT, 'assets', 'js');
+const jsFiles = [];
+(function kumpulkan(dir) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) kumpulkan(full);
+    else if (e.name.endsWith('.js')) jsFiles.push(full);
+  }
+})(jsDir);
+
+let totalJsAsli = 0, totalJsMin = 0;
+const petaJs = new Map();   // 'assets/js/x.js' → 'assets/js/x.min.js'
+
+// ── KENAPA PATH IMPORT DI DALAM JS JUGA DITULIS ULANG ───────────────────────
+// 36 import antar-berkas memakai path relatif (`from './astra.js'`). Setelah
+// minifikasi, berkasnya bernama `astra.min.js` — jadi import lama menunjuk
+// berkas yang TIDAK ADA, dan seluruh halaman mati dengan 404 di konsol.
+//
+// Yang diperbaiki bukan hanya HTML (yang memuat skrip tingkat atas), tapi juga
+// rujukan DI DALAM JS. Keduanya harus konsisten, kalau tidak modulnya putus.
+function tulisUlangImportJs(isi) {
+  let hasil = isi;
+  for (const [asli, min] of petaJs) {
+    // Ambil nama berkas saja — import memakai path relatif ('./astra.js'),
+    // bukan path dari root ('assets/js/astra.js').
+    const namaAsli = asli.split('/').pop();
+    const namaMin = min.split('/').pop();
+
+    // ── KENAPA PAKAI REGEX, BUKAN .split().join() ──────────────────────────
+    // `split('./app.js')` juga cocok di dalam `./nav-app.js` — dan hasilnya
+    // `./nav-app.min.js` yang TIDAK ADA. Pencocokan harus pada batas path:
+    // karakter sebelum nama berkas adalah `/` atau awal string.
+    //
+    // `(^|[/'"])` menangkap batasnya, `(?=[/'"])` memastikan nama berkasnya
+    // berakhir tepat di sana (bukan lanjutan seperti `app.js.map`).
+    const re = new RegExp(`(^|[/'"])${namaAsli.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(?=[/'"])`, 'g');
+    hasil = hasil.replace(re, `$1${namaMin}`);
+  }
+  return hasil;
+}
+
+// Minifikasi berjalan dalam dua tahap: pertama semua berkas diminifikasi,
+// lalu SEMUA hasilnya ditulis ulang importnya. Satu lintasan tidak cukup —
+// saat memproses app.js, peta belum memuat berkas yang belum diproses.
+const hasilJs = [];
+for (const src of jsFiles) {
+  const isi = readFileSync(src);
+  totalJsAsli += isi.length;
+
+  let hasil;
+  try {
+    // `--loader=js` berlaku untuk stdin, sama seperti pola CSS di atas.
+    hasil = execFileSync('npx', ['esbuild', '--minify', '--loader=js'], {
+      input: isi,
+      maxBuffer: 20 * 1024 * 1024,
+    });
+  } catch {
+    // Gagal minifikasi → pakai berkas asli. Situs tetap jalan; yang hilang
+    // hanya penghematan. Lebih baik daripada deploy gagal karena satu berkas.
+    console.error(`  ⚠ gagal minifikasi ${src}, memakai asli`);
+    hasil = isi;
+  }
+
+  const relAsli = 'assets/js/' + src.slice(jsDir.length + 1).replace(/\\/g, '/');
+  const relMin = relAsli.replace(/\.js$/, '.min.js');
+  petaJs.set(relAsli, relMin);
+  hasilJs.push({ relMin, hasil });
+}
+
+// Lintasan kedua: tulis ulang import, lalu tulis berkasnya.
+for (const { relMin, hasil } of hasilJs) {
+  const akhir = tulisUlangImportJs(hasil.toString('utf8'));
+  const tujuan = join(DIST, relMin);
+  mkdirSync(dirname(tujuan), { recursive: true });
+  writeFileSync(tujuan, akhir);
+  totalJsMin += Buffer.byteLength(akhir);
+}
+
+console.log(`  JS : ${jsFiles.length} berkas · ${totalJsAsli} → ${totalJsMin} byte ` +
+  `(hemat ${100 - Math.round((totalJsMin / totalJsAsli) * 100)}%)`);
+
+// ── 4. Tulis ulang HTML: .css → .min.css, .js → .min.js ─────────────────────
 const htmlFiles = readdirSync(ROOT).filter((f) => f.endsWith('.html'));
 let nHtml = 0;
 
 function prosesHtml(isi) {
-  // Ganti setiap rujukan ke berkas CSS yang ada di peta.
+  // Ganti setiap rujukan ke berkas CSS/JS yang ada di peta.
   // Hanya yang benar-benar ada di peta — CDN dan berkas luar tidak disentuh.
+  //
+  // ── URUTAN PENTING: JS SEBELUM CSS ────────────────────────────────────────
+  // Peta JS memuat 'assets/js/x.js' → 'assets/js/x.min.js'. Peta CSS memuat
+  // 'assets/css/y.css' → 'assets/css/y.min.css'. Keduanya tidak tumpang
+  // tindih, jadi urutannya tidak masalah untuk hasil — tapi JS didahulukan
+  // supaya berkas .min.js yang BARU dibuat tidak ikut diproses ulang.
   let hasil = isi;
+  for (const [asli, min] of petaJs) {
+    hasil = hasil.split(asli).join(min);
+  }
   for (const [asli, min] of peta) {
     hasil = hasil.split(asli).join(min);
   }
