@@ -1,0 +1,77 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# WATCHDOG CPU — turunkan beban otomatis saat server jenuh
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# ── KENAPA SERVICE + TIMER, BUKAN DAEMON ─────────────────────────────────────
+#
+# Daemon yang terus hidup memakai RAM SELAMANYA — bahkan saat tidak ada masalah.
+# Server ini 1 core dengan RAM 5.8 GB; menambah proses permanen berisiko
+# mendorong Linux OOM killer membunuh salah satu layanan produksi.
+#
+# Pola service+timer: proses hanya hidup ~2 detik setiap 5 menit, lalu mati.
+# RAM saat diam: nol. Ini pola yang sama dipakai portfolio-monitor.service
+# yang sudah ada di server ini.
+#
+# ── KENAPA ONSHOT, BUKAN SIMPLE ──────────────────────────────────────────────
+#
+# Type=oneshot: systemd tahu proses ini memang selesai setelah keluar, bukan
+# dianggap "gagal" lalu di-restart berulang.
+#
+# ── KENAPA 5 MENIT ───────────────────────────────────────────────────────────
+#
+# Watchdog membutuhkan 3 cek berturut-turut sebelum bertindak (lihat komentar
+# di watchdog-cpu.sh). Dengan timer 5 menit, artinya beban harus tinggi selama
+# ~15 menit sebelum ada tindakan.
+#
+# Interval lebih pendek berarti lebih responsif, tapi juga lebih banyak
+# bangun-tidur proses. 5 menit sudah cukup: masalah beban yang bertahan
+# 15 menit pasti tertangkap.
+# ══════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=Watchdog CPU — bersihkan proses yatim saat beban tinggi bertahan
+Documentation=file:/home/ubuntu/.portfolio-token/watchdog-cpu.sh
+
+# Jangan jalan sebelum sistem benar-benar siap — pada awal boot, load memang
+# tinggi karena banyak layanan start bersamaan. Itu normal, bukan masalah.
+After=multi-user.target network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+Environment=HOME=/home/ubuntu
+
+# Path absolut — systemd tidak memakai PATH shell. Tanpa ini `pstree`, `ps`,
+# dan `systemctl` tidak ditemukan dan script gagal senyap.
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+ExecStart=/bin/bash /home/ubuntu/.portfolio-token/watchdog-cpu.sh
+
+# ── BATAS SUMBER DAYA ────────────────────────────────────────────────────────
+#
+# Watchdog yang memakai terlalu banyak sumber daya adalah kontradiksi.
+# Batas ini menjaga agar ia tidak pernah menjadi masalah yang ia coba cegah.
+#
+# CPUQuota=25%   : di server 1 core, maksimal seperempat core
+# MemoryMax=64M  : script bash + pstree jauh di bawah ini
+# TimeoutStartSec: script butuh ~6 detik (2 detik sampling + 5 detik tunggu kill)
+CPUQuota=25%
+MemoryMax=64M
+TimeoutStartSec=60
+
+# ── KEAMANAN ─────────────────────────────────────────────────────────────────
+#
+# Script ini membunuh proses, jadi ia perlu izin itu — tapi TIDAK lebih.
+# ProtectHome=read-only mencegahnya memodifikasi file di luar area kerjanya.
+# NoNewPrivileges mencegahnya menaikkan hak akses.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+# Script perlu menulis status ke /home/ubuntu/.portfolio-token/watchdog
+ReadWritePaths=/home/ubuntu/.portfolio-token/watchdog
+
+[Install]
+WantedBy=multi-user.target

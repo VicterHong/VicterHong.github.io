@@ -1,0 +1,34 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# TIMER WATCHDOG CPU — jalankan pemeriksaan setiap 5 menit
+# ══════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=Jalankan watchdog CPU setiap 5 menit
+Documentation=file:/home/ubuntu/.portfolio-token/watchdog-cpu.sh
+
+[Timer]
+# ── ONSECBOOT: jalan 2 menit setelah boot ────────────────────────────────────
+#
+# Delay 2 menit disengaja. Pada saat boot, load memang tinggi karena semua
+# layanan start bersamaan — itu normal. Menjalankan watchdog terlalu cepat
+# berisiko salah membaca kondisi normal sebagai masalah.
+OnBootSec=2min
+
+# ── ONSYSTEMUP: setiap 5 menit setelah itu ───────────────────────────────────
+OnUnitActiveSec=5min
+
+# ── PERSISTENT ───────────────────────────────────────────────────────────────
+#
+# Kalau server mati saat jadwalnya tiba, jalankan segera setelah hidup.
+# Berguna untuk server yang sering restart.
+Persistent=true
+
+# ── RANDOMIZEDDELAY: hindari bertabrakan dengan timer lain ───────────────────
+#
+# Server ini punya beberapa timer (portfolio-monitor, portfolio-security-alert).
+# Delay acak 30 detik mencegah semuanya bangun di detik yang sama dan
+# menciptakan lonjakan beban buatan.
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target
