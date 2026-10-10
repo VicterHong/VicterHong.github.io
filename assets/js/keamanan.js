@@ -43,13 +43,24 @@
 
   // ── Ikon per jenis ─────────────────────────────────────────────────────────
   //
-  // SVG inline, bukan pustaka ikon: satu ikon tidak sebanding dengan memuat
-  // berkas eksternal yang menambah satu permintaan jaringan.
+  // ── SUMBER: PHOSPHOR, BUKAN GAMBAR SENDIRI ─────────────────────────────────
+  // Jalur SVG di bawah diambil apa adanya dari @phosphor-icons/core@2.1.1
+  // (lisensi MIT). Sebelumnya ketiga ikon ini digambar manual — hasilnya
+  // stroke-width dan proporsi yang berbeda dari ikon lain di halaman yang
+  // sama, sehingga terbaca seperti berasal dari dua desainer berbeda.
+  //
+  // ── KENAPA INLINE, BUKAN MEMUAT BERKAS ═════════════════════════════════════
+  // Berkas ini dimuat sebagai <script> biasa, bukan ES module — jadi ia tidak
+  // bisa `import`. Menyalin jalurnya ke sini adalah satu-satunya cara memakai
+  // Phosphor tanpa mengubah cara halaman memuat skripnya.
+  //
+  // Alternatifnya (memuat phosphor.js terpisah) berarti satu permintaan
+  // jaringan tambahan hanya untuk tiga ikon. Tidak sebanding.
   const IKON = {
-    kunci: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 .51.19.97.5 1.32V16a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2.68c.31-.35.5-.81.5-1.32a2 2 0 0 0-2-2Z"/><path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9Z"/></svg>',
-    kunciSandi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 7.5 19 4M18 6l2 2M9.5 14.5 12 17l-2 2-2.5-2.5M8 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>',
-    perisai: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.4 2.9 8.4 7 10 4.1-1.6 7-5.6 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
-    orang: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>',
+    kunci: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm40-104a40,40,0,1,0-65.94,30.44L88.68,172.77A8,8,0,0,0,96,184h64a8,8,0,0,0,7.32-11.23l-13.38-30.33A40.14,40.14,0,0,0,168,112ZM136.68,143l11,25.05H108.27l11-25.05A8,8,0,0,0,116,132.79a24,24,0,1,1,24,0A8,8,0,0,0,136.68,143Z"/></svg>',
+    kunciSandi: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M48,56V200a8,8,0,0,1-16,0V56a8,8,0,0,1,16,0Zm92,54.5L120,117V96a8,8,0,0,0-16,0v21L84,110.5a8,8,0,0,0-5,15.22l20,6.49-12.34,17a8,8,0,1,0,12.94,9.4l12.34-17,12.34,17a8,8,0,1,0,12.94-9.4l-12.34-17,20-6.49A8,8,0,0,0,140,110.5ZM246,115.64A8,8,0,0,0,236,110.5L216,117V96a8,8,0,0,0-16,0v21l-20-6.49a8,8,0,0,0-4.95,15.22l20,6.49-12.34,17a8,8,0,1,0,12.94,9.4l12.34-17,12.34,17a8,8,0,1,0,12.94-9.4l-12.34-17,20-6.49A8,8,0,0,0,246,115.64Z"/></svg>',
+    perisai: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z"/></svg>',
+    orang: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/></svg>',
   };
 
   function ikonUntuk(identitas) {
@@ -305,18 +316,18 @@
     // Validasi cepat di klien. Pesan yang sama persis dengan server, supaya
     // pengguna tidak melihat dua versi berbeda untuk masalah yang sama.
     if (file.size > FOTO_MAKS_BYTE) {
-      pesanFoto(`Foto terlalu besar — maksimum ${Math.round(FOTO_MAKS_BYTE / 1024 / 1024)} MB.`, 'galat');
+      pesanFoto(`Foto terlalu besar. Maksimum ${Math.round(FOTO_MAKS_BYTE / 1024 / 1024)} MB.`, 'galat');
       return;
     }
     if (!/^image\/(jpeg|png|webp|avif)$/.test(file.type)) {
-      pesanFoto('Format tidak didukung — pakai JPG, PNG, WebP, atau AVIF.', 'galat');
+      pesanFoto('Format tidak didukung. Pakai JPG, PNG, WebP, atau AVIF.', 'galat');
       return;
     }
 
     const ukuran = await ukuranGambar(file);
     if (ukuran && Math.min(ukuran.lebar, ukuran.tinggi) < FOTO_MAKS_SISI_MIN) {
       pesanFoto(
-        `Foto terlalu kecil — sisi terpendek minimal ${FOTO_MAKS_SISI_MIN}px `
+        `Foto terlalu kecil. Sisi terpendek minimal ${FOTO_MAKS_SISI_MIN}px `
         + `(foto Anda ${Math.min(ukuran.lebar, ukuran.tinggi)}px).`,
         'galat',
       );
@@ -333,7 +344,7 @@
     const teks = $('#kamTeksFoto');
     if (teks) teks.textContent = 'Simpan foto';
     $('#kamLabelFoto')?.classList.add('is-ada-perubahan');
-    pesanFoto('Pratinjau — tekan "Simpan foto" untuk menyimpan.', '');
+    pesanFoto('Pratinjau. Tekan "Simpan foto" untuk menyimpan.', '');
   }
 
   async function simpanFoto() {
@@ -594,9 +605,9 @@
   //      ini berarti "perhatikan", padahal perangkat ini justru yang paling
   //      tidak perlu diperhatikan.
   const IKON_PERANGKAT = {
-    ponsel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>',
-    tablet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>',
-    desktop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 17v3.5"/></svg>',
+    ponsel: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16ZM72,64H184V192H72Zm8-32h96a8,8,0,0,1,8,8v8H72V40A8,8,0,0,1,80,32Zm96,192H80a8,8,0,0,1-8-8v-8H184v8A8,8,0,0,1,176,224Z"/></svg>',
+    tablet: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M192,24H64A24,24,0,0,0,40,48V208a24,24,0,0,0,24,24H192a24,24,0,0,0,24-24V48A24,24,0,0,0,192,24ZM56,72H200V184H56Zm8-32H192a8,8,0,0,1,8,8v8H56V48A8,8,0,0,1,64,40ZM192,216H64a8,8,0,0,1-8-8v-8H200v8A8,8,0,0,1,192,216Z"/></svg>',
+    desktop: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24h72v16H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16H136V200h72a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40ZM48,56H208a8,8,0,0,1,8,8v80H40V64A8,8,0,0,1,48,56ZM208,184H48a8,8,0,0,1-8-8V160H216v16A8,8,0,0,1,208,184Z"/></svg>',
   };
 
   /** Pilih ikon dari nama perangkat yang sudah diurai server. */

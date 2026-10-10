@@ -64,7 +64,24 @@
  * 720px dihitung dari kebutuhan: sidebar 150 + garis 1 + panel 420 +
  * padding 64 + gap 24 = 659px, sisa ~60px. Tidak sampai baris teks
  * melewati 75 karakter — batas di mana mata kehilangan awal baris. */
-.auth-scene { max-width: min(720px, 100%); }
+/* ── LEBAR 820px (dari 720) ──────────────────────────────────────────────────
+ *
+ * ── KENAPA DILEBARKAN ───────────────────────────────────────────────────────
+ * Pada 720px, panel konten berhenti di ~60% lebar viewport desktop dan
+ * menyisakan ruang kosong besar di kanan. Halaman terbaca "miring kiri" —
+ * seluruh bobot visual menumpuk di satu sisi.
+ *
+ * 820px memberi ruang untuk tiga kartu ringkasan keamanan berjajar tanpa
+ * terasa sesak, dan menyeimbangkan halaman pada viewport 1280-1440px.
+ *
+ * ── KENAPA TIDAK LEBIH LEBAR ────────────────────────────────────────────────
+ * Di atas ~880px, baris data ("Nama lengkap" → nilainya) jadi terlalu
+ * berjauhan: mata harus melompat jauh untuk menghubungkan label dengan
+ * nilainya. Itu melelahkan untuk daftar yang isinya pendek-pendek.
+ *
+ * 820px adalah titik di mana baris masih terbaca sebagai satu unit, tapi
+ * halaman sudah terasa penuh. */
+.auth-scene { max-width: min(820px, 100%); }
 .auth-card-lebar { width: 100%; }
 
 /* ── Status pemuatan ─────────────────────────────────────────────────────────*/
