@@ -2134,42 +2134,37 @@ function ruteSso() {
       },
     },
 
-    // ══ NOTIFIKASI KEAMANAN ════════════════════════════════════════════════════
+    // ══ PREFERENSI NOTIFIKASI ══════════════════════════════════════════════════
     //
-    // ── BEDANYA DENGAN /api/auth/aktivitas ─────────────────────────────────────
+    // ── KOREKSI PENTING ───────────────────────────────────────────────────────
     //
-    // Keduanya membaca tabel `access_events` yang sama. Yang berbeda: APA yang
-    // diambil dan bagaimana diurutkan.
+    // Versi pertama endpoint ini mengembalikan DAFTAR PERISTIWA dari tabel
+    // `access_events` — log keamanan. Itu SALAH MEMBACA referensi: yang
+    // dimaksud "Notifications" di HorizonX adalah PREFERENSI (toggle: email
+    // apa saja yang mau diterima), bukan daftar peristiwa.
     //
-    //   Aktivitas  → semua aksi, urut lama→baru (kronologi)
-    //   Notifikasi → hanya yang penting, urut baru→lama (yang terbaru dulu)
+    // Daftar peristiwa sudah punya tempatnya sendiri: tab Aktivitas.
+    // Endpoint ini sekarang melayani preferensi.
     //
-    // ── KENAPA DISARING, BUKAN SEMUA ──────────────────────────────────────────
+    // ── KENAPA HANYA TIGA ─────────────────────────────────────────────────────
     //
-    // Tabel itu berisi 636 baris dan terus bertambah. Membaca semuanya untuk
-    // mencari "apakah ada yang aneh?" melelahkan — dan justru saat lelah, hal
-    // penting terlewat.
+    // Setiap preferensi adalah janji: "kalau Anda nyalakan, kami akan
+    // mengirimnya." Menambah toggle yang tidak ada pengirimnya berarti
+    // berbohong ke pengguna — dan itu lebih buruk daripada tidak ada toggle.
     //
-    // Yang disaring: peristiwa yang mengubah KEAMANAN akun —
-    //   • masuk (perangkat/lokasi baru)
-    //   • keluar
-    //   • sesi dicabut
-    //   • sandi dibuat/diubah/dihapus
-    //   • 2FA diaktifkan/dinonaktifkan
-    //   • passkey ditambah/dihapus
-    //   • token diterbitkan/dicabut
+    // Tiga ini sudah punya pengirimnya (atau akan segera):
+    //   produk     → pengumuman fitur baru
+    //   pembayaran → invoice, konfirmasi, pengingat perpanjangan
+    //   promosi    → penawaran, update partner
     //
-    // Yang TIDAK disaring masuk: aksi rutin seperti membaca profil atau
-    // memuat daftar sesi. Itu bukan peristiwa keamanan.
+    // ── KENAPA 'push' TIDAK ADA DI SINI ───────────────────────────────────────
     //
-    // ── KENAPA DIBATASI 30, BUKAN 40 SEPERTI AKTIVITAS ────────────────────────
-    //
-    // Notifikasi dimaksudkan untuk dibaca, bukan ditelusuri. 30 peristiwa
-    // terakhir sudah mencakup berminggu-minggu aktivitas normal. Kalau pengguna
-    // butuh lebih, tab Aktivitas ada untuk itu.
+    // Push notification butuh Service Worker + izin browser. Itu pekerjaan
+    // tersendiri, dan menampilkan toggle yang tidak berfungsi hanya akan
+    // membingungkan. Ditambahkan saat fiturnya benar-benar ada.
     {
       method: 'GET',
-      pattern: '/api/auth/notifikasi',
+      pattern: '/api/auth/preferensi-notifikasi',
       handler: async (req, res) => {
         const tokenRow = sesiDariRequest(req);
         if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
@@ -2177,46 +2172,71 @@ function ruteSso() {
         const pengguna = penggunaDariToken(tokenRow);
         if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
 
-        // ── FILTER DENGAN AWALAN AKSI ─────────────────────────────────────────
-        //
-        // Aksi di `access_events` memakai awalan yang konsisten:
-        // `auth_*` untuk peristiwa autentikasi.
-        //
-        // Filter ini SENGAJA memakai daftar awalan, bukan daftar aksi lengkap.
-        // Alasannya: aksi baru bisa ditambahkan kapan saja (mis. `auth_passkey_hapus`
-        // di masa depan). Dengan awalan, aksi baru otomatis ikut — tanpa perlu
-        // mengubah query ini.
-        //
-        // Yang dikecualikan secara eksplisit: aksi yang hanya MEMBACA data.
-        // `auth_sesi_daftar` misalnya — itu dipanggil setiap kali tab Sesi
-        // dibuka, dan memunculkannya di notifikasi hanya jadi noise.
-        const rows = getDb().prepare(`
-          SELECT action, outcome, ip, country, user_agent, detail, at
-          FROM access_events
-          WHERE token_id = ?
-            AND action LIKE 'auth_%'
-            AND action NOT LIKE '%_daftar'
-            AND action NOT LIKE '%_lihat'
-            AND action NOT LIKE '%_baca'
-          ORDER BY at DESC, id DESC
-          LIMIT 30
-        `).all(pengguna.token_id);
+        const row = getDb().prepare(`
+          SELECT notif_produk, notif_pembayaran, notif_promosi
+          FROM users WHERE token_id = ?
+        `).get(pengguna.token_id);
 
+        // Kalau baris tidak ada (token lama tanpa user), kembalikan default —
+        // bukan galat. Pengguna tetap bisa membuka tabnya.
         sendJson(res, 200, {
           ok: true,
-          notifikasi: rows.map((r) => ({
-            aksi: r.action || '',
-            hasil: r.outcome || '',
-            ip: ipSamar(r.ip),
-            negara: r.country || '',
-            // User-Agent dipotong: yang dibutuhkan hanya "perangkat apa",
-            // bukan seluruh string 200 karakter. Pemotongan di server berarti
-            // data yang tidak perlu tidak pernah dikirim ke browser.
-            perangkat: String(r.user_agent || '').slice(0, 120),
-            detail: String(r.detail || '').slice(0, 200),
-            pada: r.at,
-          })),
+          preferensi: {
+            // `!== 0` bukan `=== 1`: kolom INTEGER bisa berisi nilai apa pun,
+            // dan yang kita maksud "aktif" adalah "bukan nol eksplisit".
+            // Ini juga menangani NULL dari baris lama.
+            produk: row ? row.notif_produk !== 0 : true,
+            pembayaran: row ? row.notif_pembayaran !== 0 : true,
+            promosi: row ? row.notif_promosi === 1 : false,
+          },
         });
+      },
+    },
+
+    {
+      method: 'POST',
+      pattern: '/api/auth/preferensi-notifikasi',
+      handler: async (req, res) => {
+        const tokenRow = sesiDariRequest(req);
+        if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const pengguna = penggunaDariToken(tokenRow);
+        if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+        const body = await readJson(req).catch(() => ({}));
+
+        // ── HANYA TERIMA KUNCI YANG DIKENAL ───────────────────────────────────
+        //
+        // Tanpa daftar putih, klien bisa mengirim `{admin: true}` dan — kalau
+        // suatu saat query dibangun dari kunci body — itu jadi celah.
+        //
+        // Di sini query dibangun dari daftar TETAP di bawah, jadi secara teknis
+        // aman. Tapi daftar putih tetap dipakai: ia membuat niatnya eksplisit,
+        // dan mencegah bug saat kode ini disalin ke tempat lain.
+        const KUNCI = ['produk', 'pembayaran', 'promosi'];
+        const kolom = {
+          produk: 'notif_produk',
+          pembayaran: 'notif_pembayaran',
+          promosi: 'notif_promosi',
+        };
+
+        const set = [];
+        const nilai = [];
+        for (const k of KUNCI) {
+          if (!(k in body)) continue;
+          // `!!` menormalkan apa pun jadi boolean, lalu disimpan sebagai 0/1.
+          set.push(`${kolom[k]} = ?`);
+          nilai.push(body[k] ? 1 : 0);
+        }
+
+        if (!set.length) {
+          return sendJson(res, 400, { ok: false, error: 'tidak_ada_perubahan' });
+        }
+
+        nilai.push(pengguna.token_id);
+        getDb().prepare(`UPDATE users SET ${set.join(', ')} WHERE token_id = ?`).run(...nilai);
+
+        sendJson(res, 200, { ok: true, pesan: 'Preferensi disimpan.' });
       },
     },
 

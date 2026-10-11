@@ -635,14 +635,60 @@
             <section class="kam-blok kam-panel-isi" id="panelNotif"
                      role="tabpanel" aria-labelledby="tabNotif" hidden>
               <p class="kam-keterangan">
-                Peristiwa keamanan akun Anda. Yang terbaru di atas. Kalau ada
-                yang tidak Anda kenali, segera ganti sandi dan cabut sesinya.
+                Pilih email apa saja yang ingin Anda terima. Perubahan tersimpan
+                otomatis.
               </p>
-              <ul class="kam-senarai kam-reveal" id="kamNotifikasi"></ul>
-              <div class="kam-kosong" id="kamNotifikasiKosong" hidden>
-                <p class="kam-kosong-judul">Belum ada notifikasi</p>
-                <p class="kam-kosong-teks">Peristiwa keamanan akan muncul di sini.</p>
-              </div>
+
+              <!-- ══ PREFERENSI EMAIL ════════════════════════════════════════════
+                   ── KENAPA TOGGLE, BUKAN CHECKBOX ──────────────────────────────
+                   Toggle menyiratkan "berlaku sekarang" — tanpa tombol simpan.
+                   Checkbox menyiratkan "akan disimpan nanti".
+
+                   Karena setiap perubahan langsung dikirim ke server, toggle
+                   adalah bentuk yang jujur. Checkbox akan membuat pengguna
+                   mencari tombol Simpan yang tidak ada.
+
+                   ── KENAPA PEMBAYARAN TANPA TOGGLE ─────────────────────────────
+                   Invoice dan konfirmasi pembayaran bukan promosi — pengguna
+                   berhak menerimanya. Menyediakan toggle untuk mematikannya
+                   hanya akan menimbulkan tiket dukungan ("saya tidak dapat
+                   bukti bayar"). Ditampilkan sebagai baris informasi. -->
+              <ul class="kam-senarai kam-senarai-pref" id="kamPrefNotif">
+                <li class="kam-pref" data-kunci="produk">
+                  <div class="kam-pref-teks">
+                    <p class="kam-pref-judul">Produk &amp; fitur baru</p>
+                    <p class="kam-pref-ket">Pengumuman template dan fitur baru.</p>
+                  </div>
+                  <button class="kam-toggle" type="button" role="switch"
+                          aria-checked="false" aria-label="Produk dan fitur baru">
+                    <span class="kam-toggle-knob"></span>
+                  </button>
+                </li>
+
+                <li class="kam-pref" data-kunci="promosi">
+                  <div class="kam-pref-teks">
+                    <p class="kam-pref-judul">Promosi</p>
+                    <p class="kam-pref-ket">Penawaran dan kabar dari mitra.</p>
+                  </div>
+                  <button class="kam-toggle" type="button" role="switch"
+                          aria-checked="false" aria-label="Promosi">
+                    <span class="kam-toggle-knob"></span>
+                  </button>
+                </li>
+
+                <!-- Baris informasi: tidak bisa dimatikan. -->
+                <li class="kam-pref is-tetap">
+                  <div class="kam-pref-teks">
+                    <p class="kam-pref-judul">Email pembayaran</p>
+                    <p class="kam-pref-ket">
+                      Invoice, konfirmasi bayar, dan pengingat perpanjangan.
+                      Selalu dikirim.
+                    </p>
+                  </div>
+                  <span class="kam-lencana">Wajib</span>
+                </li>
+              </ul>
+
               <p class="auth-msg" id="kamPesanNotif" role="status" aria-live="polite"></p>
             </section>
 

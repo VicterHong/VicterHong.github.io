@@ -558,6 +558,36 @@ function migrate(handle) {
   // dipulihkan. UI menanganinya dengan "Lokasi tidak diketahui" alih-alih
   // mengarang nilai.
   addColumn('sessions', 'kota', "TEXT NOT NULL DEFAULT ''");
+
+  // ── PREFERENSI NOTIFIKASI ─────────────────────────────────────────────────
+  //
+  // ── KENAPA DISIMPAN DI TABEL users, BUKAN TABEL TERPISAH ─────────────────
+  //
+  // Ini tiga nilai boolean milik pengguna. Tabel terpisah berarti satu JOIN
+  // tambahan untuk setiap pembacaan — dan tidak ada manfaatnya, karena
+  // hubungannya satu-ke-satu.
+  //
+  // Kalau nanti bertambah jadi 20 preferensi, barulah tabel terpisah masuk
+  // akal. Sekarang: tiga kolom di tabel yang sudah dibaca setiap login.
+  //
+  // ── KENAPA DEFAULT 1 UNTUK DUA, 0 UNTUK SATU ─────────────────────────────
+  //
+  //   produk    = 1 (aktif)  → pengguna BARU memang ingin tahu fitur baru
+  //   pembayaran= 1 (aktif)  → ini transaksional; mematikannya berbahaya
+  //                            (pengguna tidak dapat invoice-nya)
+  //   promosi   = 0 (mati)   → email promosi HARUS opt-in, bukan opt-out.
+  //                            Mengaktifkannya diam-diam adalah praktik yang
+  //                            melanggar GDPR dan merusak kepercayaan.
+  //
+  // ── KENAPA PEMBAYARAN TIDAK BISA DIMATIKAN DI UI ─────────────────────────
+  //
+  // Kolomnya ada (supaya bisa dimatikan manual oleh admin kalau perlu), tapi
+  // toggle-nya tidak ditampilkan. Alasannya: invoice dan konfirmasi
+  // pembayaran bukan promosi — pengguna berhak mendapatkannya, dan
+  // menyembunyikannya hanya akan menimbulkan tiket dukungan.
+  addColumn('users', 'notif_produk', 'INTEGER NOT NULL DEFAULT 1');
+  addColumn('users', 'notif_pembayaran', 'INTEGER NOT NULL DEFAULT 1');
+  addColumn('users', 'notif_promosi', 'INTEGER NOT NULL DEFAULT 0');
   addColumn('sessions', 'wilayah', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'asn', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'zona_waktu', "TEXT NOT NULL DEFAULT ''");

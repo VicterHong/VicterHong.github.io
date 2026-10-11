@@ -1896,3 +1896,143 @@
 /* ── PENGHITUNG DI TAB ────────────────────────────────────────────────────────
    Sama seperti penghitung di tab Keamanan — pakai gaya yang sudah ada supaya
    konsisten. Tidak ada aturan baru yang perlu ditulis. */
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PREFERENSI NOTIFIKASI — toggle
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA TOGGLE, BUKAN CHECKBOX ────────────────────────────────────────────
+
+   Toggle menyiratkan "berlaku sekarang" — tanpa tombol simpan. Checkbox
+   menyiratkan "akan disimpan nanti".
+
+   Karena setiap perubahan langsung dikirim ke server, toggle adalah bentuk
+   yang jujur. Checkbox akan membuat pengguna mencari tombol Simpan yang tidak
+   ada.
+
+   ── KENAPA 44px LEBARNYA ─────────────────────────────────────────────────────
+
+   44px adalah ukuran minimum target sentuh yang direkomendasikan Apple dan
+   Google. Toggle yang lebih kecil dari itu sulit ditekan dengan jempol — dan
+   salah tekan pada toggle berarti preferensi berubah tanpa disengaja.
+
+   ── KENAPA WARNA EMAS SAAT AKTIF ─────────────────────────────────────────────
+
+   Emas adalah warna aksen VIVASTIC. Menggunakan warna merek sendiri untuk
+   keadaan "aktif" membuat toggle terasa bagian dari situs, bukan komponen
+   bawaan browser.
+
+   ── KENAPA TRANSISI 0.2s, BUKAN 0.15s ───────────────────────────────────────
+
+   Gerakan knob dari kiri ke kanan butuh waktu untuk terbaca sebagai gerakan.
+   0.15s terasa seperti lompatan; 0.3s terasa lambat. 0.2s ada di antaranya.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.kam-senarai-pref {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.kam-pref {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  /* Garis pemisah ANTAR item, bukan di atas item pertama — supaya tidak ada
+     garis menggantung di bawah judul panel. */
+  border-bottom: 1px solid var(--garis);
+}
+
+.kam-pref:last-child { border-bottom: 0; }
+
+.kam-pref-teks {
+  flex: 1;
+  min-width: 0;
+}
+
+.kam-pref-judul {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--teks);
+}
+
+.kam-pref-ket {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--teks-samar);
+}
+
+/* Baris yang tidak bisa diubah — latar sedikit berbeda menandakan statusnya
+   berbeda dari baris yang bisa di-toggle. */
+.kam-pref.is-tetap { opacity: 0.75; }
+
+/* ── TOGGLE ───────────────────────────────────────────────────────────────────
+ *
+ * ── KENAPA PAKAI `aria-checked`, BUKAN CLASS ────────────────────────────────
+ * Tombol ini punya `role="switch"` dan `aria-checked`. CSS membaca atribut itu
+ * langsung — jadi TIDAK ADA dua sumber kebenaran yang bisa tidak sinkron.
+ *
+ * Kalau memakai class `.is-aktif`, JS harus mengubah DUA hal (atribut ARIA dan
+ * class). Kalau salah satu terlupa, tampilan dan pembaca layar jadi berbeda.
+ *
+ * ── KENAPA KNOB PAKAI `transform`, BUKAN `left` ─────────────────────────────
+ * `transform` tidak memicu perhitungan tata letak ulang — hanya komposisi.
+ * `left` memicu reflow setiap frame animasi.
+ *
+ * Untuk satu toggle bedanya tidak terasa. Untuk 20 toggle di halaman yang sama,
+ * itu 20 reflow per frame. */
+.kam-toggle {
+  flex: 0 0 auto;
+  position: relative;
+  width: 44px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background-color 0.2s var(--pegas, ease);
+}
+
+.kam-toggle[aria-checked="true"] {
+  background: var(--emas, #f5c542);
+}
+
+.kam-toggle:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.kam-toggle:focus-visible {
+  outline: 2px solid var(--emas, #f5c542);
+  outline-offset: 2px;
+}
+
+.kam-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  /* Bayangan tipis: knob putih di latar terang perlu pemisah supaya tidak
+     terlihat menyatu dengan track-nya. */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s var(--pegas, ease);
+}
+
+/* 44px - 3px (kiri) - 3px (kanan) - 20px (lebar knob) = 18px jarak geser */
+.kam-toggle[aria-checked="true"] .kam-toggle-knob {
+  transform: translateX(18px);
+}
+
+/* ── HORMATI PREFERENSI PENGGUNA ──────────────────────────────────────────────
+   Toggle tetap berubah warna saat diklik — hanya gerakan knob yang dimatikan. */
+@media (prefers-reduced-motion: reduce) {
+  .kam-toggle,
+  .kam-toggle-knob { transition: none !important; }
+}
