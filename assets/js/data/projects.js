@@ -166,8 +166,8 @@ export const projects = [
       { title: 'Privasi dijaga', detail: 'Kunci sesi tidak pernah ditulis ke log, dua lapis penjaga mencegahnya bocor. Kosakata log tertutup: teks keluarga tidak pernah masuk journal.' },
     ],
     metrics: [
-      { label: 'tes otomatis', value: '1196' },
-      { label: 'berkas uji', value: '140' },
+      { label: 'tes otomatis', value: '1197' },
+      { label: 'berkas uji', value: '141' },
       { label: 'RAM saat jalan', value: '72 MB' },
     ],
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
