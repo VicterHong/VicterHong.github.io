@@ -168,13 +168,41 @@
   scrollbar-color: var(--line) transparent;
 }
 
-/* ── Tombol buka-tutup: HANYA untuk mobile ────────────────────────────────────
-   Di desktop daftar isi sudah terlihat penuh di sidebar — tombol dan lapisan
-   gelap tidak punya fungsi di sana, dan pembaca layar akan menemukan kontrol
-   yang membuka sesuatu yang sudah terbuka.
+/* ══ PERBAIKAN: BILAH STICKY DI HALAMAN PANDUAN ═══════════════════════════════
+ *
+ * ── MASALAH (terukur di produksi 390px) ─────────────────────────────────────
+ * `main.css` punya `body { overflow-x: hidden }`. Itu mematikan `position:
+ * sticky` untuk SEMUA anak body — spec CSS: elemen sticky menempel pada
+ * *scroll container terdekat*, dan `overflow-x: hidden` membuat body jadi
+ * scroll container sendiri (dengan tinggi konten penuh, bukan viewport).
+ * Akibatnya sticky tidak punya ruang untuk "menempel" dan ikut tergulir.
+ *
+ * ── PERCOBAAN YANG GAGAL: `overflow-x: clip` ────────────────────────────────
+ * Teori: `clip` memotong tanpa membuat scroll container. Kenyataannya TIDAK —
+ * spec CSS menghitung `overflow-y: visible` sebagai `auto` ketika `overflow-x`
+ * bukan `visible`. Body tetap jadi scroll container, dan `scrollTo()` tidak
+ * bergerak sama sekali (terukur: scrollY tetap 0 setelah scrollTo(0, 1200)).
+ *
+ * ── YANG DIPAKAI: `position: fixed` ─────────────────────────────────────────
+ * Sama seperti Claude Code Docs — header mereka `position: fixed`, bukan
+ * sticky. `fixed` tidak peduli parent: ia selalu menempel ke viewport.
+ * Satu-satunya ongkosnya: elemen keluar dari alur, jadi konten perlu
+ * `padding-top` setinggi bilah supaya tidak tertutup.
+ *
+ * Tinggi bilah diukur dari CSS (61px: 44px tombol + 2×0.5rem padding + 1px
+ * border) dan dipakai konsisten di `--docs-bilah-h` supaya tidak ada angka
+ * ajaib yang tersebar.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/* CATATAN: JANGAN ubah overflow body di sini. Percobaan `overflow-x: clip`
+   membuat halaman tidak bisa digeser sama sekali — lihat penjelasan di atas. */
+
+/* ── Bilah navigasi & tombol: HANYA untuk mobile ─────────────────────────────
+   Di desktop daftar isi sudah terlihat penuh di sidebar — bilah, tombol, dan
+   lapisan gelap tidak punya fungsi di sana, dan pembaca layar akan menemukan
+   kontrol yang membuka sesuatu yang sudah terbuka.
    Disembunyikan di sini, dimunculkan kembali di @media (max-width: 900px). */
-.toc-toggle { display: none; }
-.docs-nav-buka { display: none; }
+.docs-bilah { display: none; }
 .docs-nav-scrim { display: none; }
 .toc::-webkit-scrollbar { width: 4px; }
 .toc::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
@@ -596,38 +624,6 @@
    * bagian bisa diklik untuk melompat.
    * ────────────────────────────────────────────────────────────────────────── */
 
-  /* Tombol pemicu — satu baris di atas konten. */
-  .docs-nav-buka {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    width: 100%;
-    min-height: 48px;
-    padding: 0.75rem 0.9rem;
-    margin-bottom: 1.25rem;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--bg-card);
-    color: var(--text);
-    font: inherit;
-    font-size: 0.88rem;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
-  }
-  .docs-nav-buka:hover { border-color: var(--accent); }
-  .docs-nav-buka:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-  /* Jumlah bagian di kanan — memberi tahu isinya ada berapa. */
-  .docs-nav-buka-jumlah {
-    margin-left: auto;
-    color: var(--text-dim);
-    font-weight: 500;
-    font-size: 0.8rem;
-  }
-
   /* Lapisan gelap di belakang panel. */
   .docs-nav-scrim {
     position: fixed;
@@ -639,6 +635,152 @@
     transition: opacity 0.22s ease, visibility 0.22s ease;
   }
   .docs-nav-scrim.is-tampil { opacity: 1; visibility: visible; }
+
+  /* ══ BILAH NAVIGASI FIXED ════════════════════════════════════════════════════
+   *
+   * ── KENAPA FIXED, BUKAN STICKY ──────────────────────────────────────────────
+   * Diukur di Claude Code Docs: tombol Navigation mereka tetap di y=64 saat
+   * scrollY=800 — header-nya `position: fixed`.
+   *
+   * `sticky` TIDAK BISA dipakai di halaman ini: `main.css` punya
+   * `body { overflow-x: hidden }`, yang membuat body jadi scroll container
+   * dan mematikan sticky untuk semua anaknya. Percobaan `overflow-x: clip`
+   * juga gagal — body tetap jadi scroll container dan halaman tidak bisa
+   * digeser sama sekali (terukur: scrollY tetap 0).
+   *
+   * `fixed` tidak peduli parent. Ongkosnya: elemen keluar dari alur, jadi
+   * `.docs-page` perlu padding-top setinggi bilah. Tinggi itu dijadikan
+   * variabel supaya tidak ada angka ajaib yang tersebar di dua tempat.
+   *
+   * Posisi `top: var(--docs-header-h)` — di bawah header situs yang juga
+   * fixed. Nilai itu diukur dari main.css; kalau tidak ada, fallback 0
+   * (bilah menempel paling atas).
+   * ────────────────────────────────────────────────────────────────────────── */
+  .docs-bilah {
+    position: fixed;
+    top: var(--docs-header-h, 0px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    height: var(--docs-bilah-h);
+    padding: 0.5rem 1.25rem;
+    background: rgba(10, 10, 12, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Konten digeser turun setinggi bilah — tanpa ini, bagian atas konten
+     tertutup bilah yang keluar dari alur. */
+  .docs-page {
+    padding-top: calc(var(--docs-bilah-h) + 3rem);
+  }
+
+  /* Tombol buka daftar isi — mengisi sisa lebar. */
+  .docs-bilah-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--bg-card);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+  .docs-bilah-nav:hover { border-color: var(--accent); }
+  .docs-bilah-nav:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* Teks label dipotong dengan elipsis kalau sempit — jumlah bagian tetap
+     terlihat karena ia yang memberi informasi. */
+  .docs-bilah-nav > span:not(.docs-bilah-jumlah) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .docs-bilah-jumlah {
+    margin-left: auto;
+    flex: 0 0 auto;
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.76rem;
+  }
+
+  /* ── Tombol titik tiga ──────────────────────────────────────────────────── */
+  .docs-bilah-aksi { position: relative; flex: 0 0 auto; }
+
+  .docs-bilah-titiktiga {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;                /* target sentuh WCAG 2.5.5 */
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--bg-card);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .docs-bilah-titiktiga:hover { border-color: var(--accent); }
+  .docs-bilah-titiktiga:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .docs-bilah-titiktiga[aria-expanded="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* ── Menu aksi ─────────────────────────────────────────────────────────────
+     Muncul dari tombolnya, rata kanan. `position: absolute` relatif ke
+     .docs-bilah-aksi supaya selalu menempel ke tombolnya. */
+  .docs-aksi-menu {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    z-index: 50;
+    min-width: 210px;
+    padding: 0.35rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-card);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  .docs-aksi-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.65rem;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+  }
+  .docs-aksi-item:hover { background: var(--bg-soft); }
+  .docs-aksi-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  .docs-aksi-item svg { flex: 0 0 auto; color: var(--text-dim); }
 
   /* ── Panel geser ──────────────────────────────────────────────────────────
      `position: fixed` + `transform` supaya animasinya murah (tidak memicu
@@ -678,9 +820,10 @@
     .toc, .docs-nav-scrim { transition: none; }
   }
 
-  /* Judul kecil di atas panel — memberi konteks "ini daftar isi halaman". */
+  /* Judul panel — dibaca dari data-attribute karena CSS tidak bisa membaca
+     variabel JS. `attr()` pada `content` didukung di semua browser modern. */
   .toc::before {
-    content: 'Daftar isi';
+    content: attr(data-judul-panel);
     display: block;
     margin-bottom: 0.75rem;
     padding-bottom: 0.65rem;
@@ -807,3 +950,130 @@
    dipakai bersama oleh halaman utama dan panduan supaya perilakunya sama
    persis. Halaman panduan tidak butuh penyesuaian tambahan: panel sudah
    solid (#0f0f12) sehingga video di belakangnya tidak mengganggu. */
+
+/* ══ BREADCRUMB — PENANDA POSISI PEMBACA ══════════════════════════════════════
+ *
+ * Pola dari Claude Code Docs: baris kecil "Panduan › Memulai" di bawah judul.
+ *
+ * ── KENAPA PERLU DI HALAMAN YANG CUMA 7 BAGIAN ──────────────────────────────
+ * Halaman ini panjang (lebih dari 700 baris HTML). Pembaca yang menggulir
+ * cepat — atau datang dari tautan #anchor — tidak tahu sedang di bagian mana.
+ * Daftar isi menjawab itu, tapi di mobile ia tersembunyi di balik tombol.
+ * Breadcrumb menjawabnya tanpa perlu membuka apa pun.
+ *
+ * Bagian kanannya diisi JS dari heading yang sedang terlihat (lihat
+ * docs.js §2). Tanpa JS, teks awalnya "Memulai" tetap masuk akal.
+ * ────────────────────────────────────────────────────────────────────────── */
+.docs-crumb {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1.1rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.docs-crumb-akar {
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.docs-crumb-akar:hover { color: var(--text); }
+.docs-crumb-akar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.docs-crumb-pisah {
+  color: var(--text-dim);
+  opacity: 0.6;
+  user-select: none;
+}
+
+/* Bagian aktif: teks penuh, bukan aksen — posisi bukan aksi. */
+.docs-crumb-kini {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ══ KEPALA PANEL NAVIGASI — PEMILIH BAHASA ═══════════════════════════════════
+ *
+ * Pola dari Claude Code Docs: panel dibuka dengan kontrol dulu, baru daftar.
+ * Di Claude ada pemilih bahasa + pemilih section.
+ *
+ * ── KENAPA BAHASA, BUKAN SECTION ────────────────────────────────────────────
+ * Situs ini sudah punya struktur section yang jelas (7 bagian bernomor) —
+ * pemilih section akan menduplikasi daftar di bawahnya. Bahasa tidak: istilah
+ * teknis di panduan ini memang sering dibaca dalam bahasa Inggris, dan
+ * pengunjung yang lebih nyaman dengan antarmuka Inggris perlu jalan keluar
+ * tanpa meninggalkan halaman.
+ *
+ * Pemilih ini HANYA mengubah label antarmuka (tombol, judul panel), bukan isi
+ * panduan — menerjemahkan seluruh isi bukan lingkup halaman ini.
+ * ────────────────────────────────────────────────────────────────────────── */
+.toc-kepala {
+  /* Padding atas lebih besar dari samping: panel dibuka dari atas, jadi
+     ruang napas di situ yang paling terasa. */
+  padding: 0 0 0.9rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.toc-bahasa {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.toc-bahasa-label {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Pembungkus select — panah SVG ditumpuk di kanan karena <select> bawaan
+   tidak bisa diganti panahnya sendiri di semua browser. */
+.toc-bahasa-pilih {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toc-bahasa-select {
+  width: 100%;
+  min-height: 44px;                 /* target sentuh WCAG 2.5.5 */
+  padding: 0.55rem 2.2rem 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  /* Tampilan bawaan browser dihapus supaya konsisten dengan sisa UI. */
+  -webkit-appearance: none;
+  appearance: none;
+}
+.toc-bahasa-select:hover { border-color: var(--accent); }
+.toc-bahasa-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Panah: tidak menerima klik — klik harus sampai ke <select> di bawahnya. */
+.toc-bahasa-panah {
+  position: absolute;
+  right: 0.75rem;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+/* Di desktop panel adalah sidebar biasa — pemilih bahasa tetap berguna,
+   tapi jarak atasnya disesuaikan karena tidak ada ruang "buka panel". */
+@media (min-width: 901px) {
+  .toc-kepala { padding-top: 0.25rem; }
+}

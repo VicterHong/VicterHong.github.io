@@ -182,6 +182,168 @@ import { icon, iconHtml } from './icons.js';
     else if (mq.addListener) mq.addListener(tanganiLebar);
   }
 
+  // ── 1c. Pemilih bahasa antarmuka ───────────────────────────────────────────
+  //
+  // ── KENAPA HANYA LABEL, BUKAN ISI ───────────────────────────────────────────
+  // Menerjemahkan seluruh panduan berarti dua salinan konten yang harus
+  // dirawat bersamaan — dan versi yang tertinggal akan menyesatkan. Yang
+  // diterjemahkan di sini hanya label ANTARMUKA (tombol, judul panel,
+  // placeholder pencarian), yang jumlahnya kecil dan stabil.
+  //
+  // Pilihan disimpan di localStorage supaya tidak perlu dipilih ulang tiap
+  // kunjungan. Kalau penyimpanan diblokir (mode privat), halaman tetap
+  // berfungsi — pilihan hanya tidak bertahan.
+  var KAMUS = {
+    id: {
+      buka: 'Daftar isi',
+      tutup: 'Tutup daftar isi',
+      kepalaPanel: 'Daftar isi',
+      bahasaLabel: 'Bahasa',
+      cari: 'Cari topik…',
+      bagian: 'bagian'
+    },
+    en: {
+      buka: 'Table of contents',
+      tutup: 'Close table of contents',
+      kepalaPanel: 'Table of contents',
+      bahasaLabel: 'Language',
+      cari: 'Search topics…',
+      bagian: 'sections'
+    }
+  };
+
+  var pilihBahasa = document.getElementById('docsBahasa');
+
+  function terapkanBahasa(kode) {
+    var k = KAMUS[kode] || KAMUS.id;
+
+    if (navBuka) {
+      var labelBuka = navBuka.querySelector('span:not(.docs-bilah-jumlah)');
+      if (labelBuka) labelBuka.textContent = k.buka;
+      navBuka.setAttribute('aria-label', k.buka);
+    }
+    if (navScrim) navScrim.setAttribute('aria-label', k.tutup);
+    if (labelJumlah) labelJumlah.textContent = bagianUntukJumlah + ' ' + k.bagian;
+
+    var labelBahasa = toc.querySelector('.toc-bahasa-label');
+    if (labelBahasa) labelBahasa.textContent = k.bahasaLabel;
+
+    var inputCari = document.getElementById('docSearch');
+    if (inputCari) inputCari.placeholder = k.cari;
+
+    // Judul panel (::before) dibaca CSS dari atribut data — CSS tidak bisa
+    // membaca variabel JS.
+    toc.dataset.judulPanel = k.kepalaPanel;
+
+    document.documentElement.lang = kode;
+  }
+
+  if (pilihBahasa) {
+    var bahasaTersimpan = null;
+    try { bahasaTersimpan = localStorage.getItem('docsBahasa'); } catch (e) { /* mode privat */ }
+
+    if (bahasaTersimpan && KAMUS[bahasaTersimpan]) {
+      pilihBahasa.value = bahasaTersimpan;
+      terapkanBahasa(bahasaTersimpan);
+    }
+
+    pilihBahasa.addEventListener('change', function () {
+      terapkanBahasa(pilihBahasa.value);
+      try { localStorage.setItem('docsBahasa', pilihBahasa.value); } catch (e) { /* abaikan */ }
+    });
+  }
+
+  // ── 1d. Menu aksi (titik tiga) ─────────────────────────────────────────────
+  //
+  // Pola dari Claude Code Docs ("More actions"). Isinya aksi halaman yang
+  // jarang dipakai — ditaruh di balik satu tombol supaya tidak memenuhi layar,
+  // tapi tetap ada saat dibutuhkan.
+  //
+  // Menu ditutup dengan cara yang sama seperti panel: klik di luar, Escape.
+  // Tanpa itu, menu menggantung dan menghalangi konten di bawahnya.
+  var aksiBtn = document.getElementById('docsAksi');
+  var aksiMenu = document.getElementById('docsAksiMenu');
+
+  if (aksiBtn && aksiMenu) {
+    var tutupMenu = function () {
+      aksiMenu.hidden = true;
+      aksiBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    aksiBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var terbuka = !aksiMenu.hidden;
+      if (terbuka) {
+        tutupMenu();
+      } else {
+        aksiMenu.hidden = false;
+        aksiBtn.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    // Klik di luar menu menutupnya. Listener di document, bukan di menu —
+    // klik pada elemen mana pun selain menu harus menutup.
+    document.addEventListener('click', function (e) {
+      if (!aksiMenu.hidden && !aksiMenu.contains(e.target) && e.target !== aksiBtn) {
+        tutupMenu();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !aksiMenu.hidden) {
+        e.preventDefault();
+        tutupMenu();
+        aksiBtn.focus();
+      }
+    });
+
+    // ── Aksi: salin tautan ────────────────────────────────────────────────────
+    var btnSalin = document.getElementById('docsSalinTautan');
+    if (btnSalin) {
+      btnSalin.addEventListener('click', function () {
+        var url = location.href;
+        var teksAsli = btnSalin.textContent.trim();
+        var selesai = function () {
+          btnSalin.textContent = 'Tautan disalin';
+          setTimeout(function () { btnSalin.textContent = teksAsli; tutupMenu(); }, 1200);
+        };
+        // Clipboard API butuh konteks aman (HTTPS) dan izin. Kalau gagal,
+        // fallback ke prompt supaya pengguna tetap bisa menyalin manual.
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(selesai, function () {
+            window.prompt('Salin tautan ini:', url);
+            tutupMenu();
+          });
+        } else {
+          window.prompt('Salin tautan ini:', url);
+          tutupMenu();
+        }
+      });
+    }
+
+    // ── Aksi: cetak ───────────────────────────────────────────────────────────
+    // CSS sudah punya @media print yang menyembunyikan navigasi — lihat
+    // bagian "print" di docs.css.
+    var btnCetak = document.getElementById('docsCetak');
+    if (btnCetak) {
+      btnCetak.addEventListener('click', function () {
+        tutupMenu();
+        window.print();
+      });
+    }
+
+    // ── Aksi: kembali ke atas ─────────────────────────────────────────────────
+    // `behavior: 'smooth'` dihormati browser; kalau pengguna memilih gerak
+    // minimum, browser otomatis melompat tanpa animasi.
+    var btnKeAtas = document.getElementById('docsKeAtas');
+    if (btnKeAtas) {
+      btnKeAtas.addEventListener('click', function () {
+        tutupMenu();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  }
+
   // ── 1b. Buka-tutup bagian ──────────────────────────────────────────────────
   //
   // Tombol + aria-expanded, bukan <details>: <details> tidak bisa dibuat
@@ -217,8 +379,25 @@ import { icon, iconHtml } from './icons.js';
     });
   });
 
-  // ── 2. Sorot bagian yang sedang dibaca ────────────────────────────────────
+  // ── 2. Sorot bagian yang sedang dibaca + perbarui breadcrumb ──────────────
   var links = toc.querySelectorAll('.toc-link');
+  var crumbKini = document.getElementById('docsCrumbKini');
+
+  /** Ambil judul bagian (h2) dari sebuah id heading. */
+  function judulBagian(id) {
+    var h = content.querySelector('h2[id="' + id + '"]');
+    if (h) return h.textContent.replace(/^\s*\d+\s*/, '').trim();
+    // Heading adalah h3 — ambil h2 terdekat sebelumnya.
+    var h3 = content.querySelector('h3[id="' + id + '"]');
+    if (!h3) return '';
+    var semuaH2 = Array.prototype.slice.call(content.querySelectorAll('h2[id]'));
+    var sebelumnya = null;
+    semuaH2.forEach(function (h2) {
+      if (h2.compareDocumentPosition(h3) & Node.DOCUMENT_POSITION_FOLLOWING) sebelumnya = h2;
+    });
+    return sebelumnya ? sebelumnya.textContent.replace(/^\s*\d+\s*/, '').trim() : '';
+  }
+
   if (links.length && 'IntersectionObserver' in window) {
     var byId = {};
     links.forEach(function (l) { byId[l.getAttribute('href').slice(1)] = l; });
@@ -230,6 +409,12 @@ import { icon, iconHtml } from './icons.js';
         if (e.isIntersecting) {
           links.forEach(function (l) { l.classList.remove('is-active'); });
           link.classList.add('is-active');
+
+          // Perbarui breadcrumb — pembaca tahu sedang di bagian mana.
+          if (crumbKini) {
+            var nama = judulBagian(e.target.id);
+            if (nama) crumbKini.textContent = nama;
+          }
 
           // Auto-buka bagian yang sedang dibaca. Tanpa ini, pengunjung yang
           // menggulir ke bagian 4 melihat semua tertutup dan tidak tahu

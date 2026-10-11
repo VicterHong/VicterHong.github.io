@@ -97,6 +97,21 @@
       Cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.
       Ditulis untuk pengguna dan tim teknis, bukan pemasaran.
     </p>
+
+    <!-- ══ BREADCRUMB ═══════════════════════════════════════════════════════
+         Pola dari Claude Code Docs: menunjukkan posisi pembaca dalam
+         hierarki. Di halaman ini hierarkinya dangkal (Panduan › bagian),
+         jadi breadcrumb-nya mengikuti bagian yang sedang dibaca —
+         diisi oleh JS saat bagian aktif berubah.
+
+         Kenapa perlu: halaman ini panjang (7 bagian). Tanpa penanda posisi,
+         pembaca yang menggulir cepat tidak tahu sedang di mana. -->
+    <nav class="docs-crumb" aria-label="Posisi halaman">
+      <a class="docs-crumb-akar" href="/docs">Panduan</a>
+      <span class="docs-crumb-pisah" aria-hidden="true">›</span>
+      <span class="docs-crumb-kini" id="docsCrumbKini">Memulai</span>
+    </nav>
+
     <div class="docs-search-wrap">
       <svg class="docs-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="11" cy="11" r="8"></circle>
@@ -115,29 +130,110 @@
 
   <div class="docs-layout">
 
-    <!-- ══ TOMBOL BUKA NAVIGASI (mobile) ═════════════════════════════════════
-         Pola dari dokumentasi Claude/Stripe/Vercel: di layar kecil, daftar isi
-         tidak memakan ruang halaman — ia disembunyikan di balik tombol ini,
-         dan muncul sebagai panel geser dari kiri saat ditekan.
+    <!-- ══ BILAH NAVIGASI STICKY (mobile) ════════════════════════════════════
+         Pola dari Claude Code Docs: bilah tipis yang MENEMPEL di atas saat
+         halaman digeser, berisi tombol buka daftar isi + tombol aksi.
 
-         Tombol ini HANYA terlihat di <900px (CSS). Di desktop, daftar isi
-         sudah berdiri sendiri di kolom kiri — tombol tidak punya fungsi. -->
-    <button class="docs-nav-buka" id="docsNavBuka" type="button"
-            aria-label="Buka daftar isi" aria-expanded="false" aria-controls="toc">
-      <svg viewBox="0 0 20 20" width="16" height="16" fill="none"
-           stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-           aria-hidden="true">
-        <path d="M3 5h14M3 10h14M3 15h9"/>
-      </svg>
-      <span>Daftar isi</span>
-      <span class="docs-nav-buka-jumlah" id="docsNavJumlah"></span>
-    </button>
+         ── KENAPA STICKY, BUKAN DI ALUR HALAMAN ─────────────────────────────
+         Versi sebelumnya menaruh tombol "Daftar isi" di atas konten. Begitu
+         pembaca menggeser 800px ke bawah, tombolnya hilang — untuk pindah
+         bagian ia harus menggeser balik ke atas dulu. Diukur di Claude Code
+         Docs: tombol Navigation mereka tetap di y=64 saat scrollY=800.
+         Itu perilaku yang benar: navigasi harus selalu satu ketukan jauhnya.
+
+         Bilah ini HANYA terlihat di <900px. Di desktop, daftar isi sudah
+         berdiri sendiri di kolom kiri. -->
+    <div class="docs-bilah" id="docsBilah">
+      <button class="docs-bilah-nav" id="docsNavBuka" type="button"
+              aria-label="Buka daftar isi" aria-expanded="false" aria-controls="toc">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none"
+             stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+             aria-hidden="true">
+          <path d="M3 5h14M3 10h14M3 15h9"/>
+        </svg>
+        <span>Daftar isi</span>
+        <span class="docs-bilah-jumlah" id="docsNavJumlah"></span>
+      </button>
+
+      <!-- ── TOMBOL TITIK TIGA ────────────────────────────────────────────────
+           Pola dari Claude Code Docs ("More actions"). Isinya aksi halaman
+           yang jarang dipakai: salin tautan, cetak, lihat sumber. Ditaruh di
+           balik satu tombol supaya tidak memenuhi layar — tapi tetap ada saat
+           dibutuhkan. -->
+      <div class="docs-bilah-aksi">
+        <button class="docs-bilah-titiktiga" id="docsAksi" type="button"
+                aria-label="Aksi halaman" aria-expanded="false" aria-haspopup="true"
+                aria-controls="docsAksiMenu">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <circle cx="4" cy="10" r="1.6"/>
+            <circle cx="10" cy="10" r="1.6"/>
+            <circle cx="16" cy="10" r="1.6"/>
+          </svg>
+        </button>
+
+        <div class="docs-aksi-menu" id="docsAksiMenu" role="menu" hidden>
+          <button class="docs-aksi-item" type="button" role="menuitem" id="docsSalinTautan">
+            <svg viewBox="0 0 20 20" width="15" height="15" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M8.5 11.5a3.5 3.5 0 0 0 5 0l2.5-2.5a3.5 3.5 0 0 0-5-5L9.8 5.2"/>
+              <path d="M11.5 8.5a3.5 3.5 0 0 0-5 0L4 11a3.5 3.5 0 0 0 5 5l1.2-1.2"/>
+            </svg>
+            Salin tautan halaman
+          </button>
+          <button class="docs-aksi-item" type="button" role="menuitem" id="docsCetak">
+            <svg viewBox="0 0 20 20" width="15" height="15" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 8V3h8v5M6 14H4V8h12v6h-2M6 12h8v5H6z"/>
+            </svg>
+            Cetak panduan
+          </button>
+          <button class="docs-aksi-item" type="button" role="menuitem" id="docsKeAtas">
+            <svg viewBox="0 0 20 20" width="15" height="15" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                 stroke-linejoin="round" aria-hidden="true">
+              <path d="M10 16V4M5 9l5-5 5 5"/>
+            </svg>
+            Kembali ke atas
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Lapisan gelap di belakang panel. Menutup panel saat ditekan —
          perilaku standar drawer; pengguna tidak perlu mencari tombol X. -->
     <div class="docs-nav-scrim" id="docsNavScrim" aria-hidden="true"></div>
 
-    <nav class="toc" id="toc" aria-label="Daftar isi"></nav>
+    <nav class="toc" id="toc" aria-label="Daftar isi" data-judul-panel="Daftar isi">
+      <!-- ══ KEPALA PANEL ═══════════════════════════════════════════════════
+           Pola dari Claude Code Docs: panel dibuka dengan kontrol, bukan
+           langsung daftar. Di Claude ada pemilih bahasa + pemilih section;
+           di sini pemilih bahasa (situs ini dwibahasa untuk istilah teknis)
+           dan tombol tutup yang jelas.
+
+           Konten daftar isi sendiri diisi JS dari heading halaman —
+           lihat docs.js. -->
+      <div class="toc-kepala">
+        <div class="toc-bahasa">
+          <label class="toc-bahasa-label" for="docsBahasa">Bahasa</label>
+          <div class="toc-bahasa-pilih">
+            <select class="toc-bahasa-select" id="docsBahasa"
+                    aria-label="Pilih bahasa antarmuka">
+              <option value="id" selected>Indonesia</option>
+              <option value="en">English</option>
+            </select>
+            <svg class="toc-bahasa-panah" viewBox="0 0 12 12" width="12" height="12"
+                 fill="none" stroke="currentColor" stroke-width="1.6"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 4.5L6 7.5L9 4.5"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daftar bagian diisi JS di sini. -->
+    </nav>
 
     <div class="doc-content" id="docContent">
 
