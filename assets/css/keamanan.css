@@ -847,42 +847,130 @@
 
 .kam-tata {
   display: grid;
-  /* 172px, bukan 150px: label terpanjang ("Verifikasi 2 langkah") butuh ~120px
-   * teks + ikon + padding. Di 150px ia membungkus jadi DUA baris — satu-satunya
-   * item yang tingginya 56px sementara enam lainnya 36px, dan ritme vertikal
-   * sidebar patah. Melebarkan 22px jauh lebih murah daripada menyingkat nama
-   * bagian yang sudah jelas. */
-  grid-template-columns: 172px 1fr;
+  /* ── TAB HORIZONTAL, BUKAN SIDEBAR ─────────────────────────────────────────
+   *
+   * Versi sebelumnya: sidebar vertikal 172px di kiri, konten di kanan.
+   *
+   * Sekarang: satu kolom — tab di ATAS, konten di bawahnya.
+   *
+   * ── KENAPA DIUBAH ──────────────────────────────────────────────────────────
+   *
+   * 1. RUANG. Di ponsel, sidebar 172px memakan 45% lebar layar. Kontennya
+   *    terhimpit jadi kolom sempit, dan tabel/daftar jadi sulit dibaca.
+   *    Tab horizontal memberi konten LEBAR PENUH.
+   *
+   * 2. POLA YANG DIKENAL. HorizonX, GitHub, Stripe, dan Vercel semuanya
+   *    memakai tab horizontal dengan underline. Pengguna sudah tahu cara
+   *    memakainya — tidak perlu mempelajari tata letak baru.
+   *
+   * 3. LEBIH BANYAK TAB. Sidebar vertikal dengan 8+ tab mulai terasa panjang.
+   *    Tab horizontal bisa di-scroll, dan ruangnya tidak terbatas.
+   *
+   * ── KENAPA SATU KOLOM ──────────────────────────────────────────────────────
+   * `grid-template-columns: 1fr` (bukan `172px 1fr`). Tab dan konten kini
+   * bertumpuk vertikal, bukan berdampingan.
+   */
+  grid-template-columns: 1fr;
   gap: 0;
   align-items: start;
 }
 
-/* Padding atas 4px: menyelaraskan item pertama dengan judul panel di kanan.
- * Tanpa itu, item sidebar terlihat 6px lebih tinggi dari judulnya. */
+/* ── TAB: HORIZONTAL + UNDERLINE ──────────────────────────────────────────────
+ *
+ * ── KENAPA SCROLL, BUKAN WRAP ────────────────────────────────────────────────
+ * Kalau tab dibiarkan membungkus ke baris kedua, tinggi bar-nya berubah-ubah
+ * tergantung jumlah tab — dan konten di bawahnya ikut bergeser. Scroll
+ * horizontal menjaga tinggi TETAP, jadi konten tidak pernah melompat.
+ *
+ * `-webkit-overflow-scrolling: touch` memberi scroll dengan momentum di iOS,
+ * terasa seperti scroll native, bukan tersendat.
+ *
+ * ── KENAPA SCROLLBAR DISEMBUNYIKAN ───────────────────────────────────────────
+ * Scrollbar di bar tab membuatnya terlihat seperti elemen yang bisa di-scroll
+ * — mengalihkan perhatian dari fungsinya sebagai navigasi. Pengguna tetap bisa
+ * scroll dengan sentuhan; scrollbar hanya visual.
+ */
 .kam-sisi {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 16px 0 0;
-  border-right: 1px solid var(--garis);
+  flex-direction: row;
+  gap: 4px;
+  padding: 0;
+  /* Garis bawah tipis di seluruh lebar bar — underline tab aktif menempel
+     di atasnya, jadi terlihat seperti satu garis yang bersambung. */
+  border-bottom: 1px solid var(--garis);
+  border-right: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  /* Tab tidak boleh menyusut — kalau menyusut, labelnya terpotong. */
+  flex-wrap: nowrap;
 }
+
+.kam-sisi::-webkit-scrollbar { display: none; }
 
 .kam-sisi-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
+  gap: 7px;
+  /* ── KENAPA `width: auto` SEKARANG ──────────────────────────────────────────
+   * Di sidebar vertikal, setiap item melebar penuh (`width: 100%`) supaya
+   * bidang kliknya seragam dan rapi.
+   *
+   * Di tab horizontal, `width: 100%` justru salah: tab pertama akan memakan
+   * seluruh lebar bar. `auto` membuat tiap tab selebar isinya — itu yang
+   * membuatnya terbaca sebagai tab.
+   *
+   * `flex-shrink: 0` mencegah tab menyusut saat ruang sempit; tanpa itu label
+   * terpotong di tengah kata. */
+  width: auto;
+  flex-shrink: 0;
+  padding: 10px 12px;
   border: 0;
-  border-radius: 7px;
+  /* Radius di ATAS saja — sudut bawah menempel garis bar, dan sudut membulat
+     di sana akan terlihat seperti celah. */
+  border-radius: 7px 7px 0 0;
   background: transparent;
   color: var(--teks-redup);
   font: inherit;
   font-size: 13px;
   text-align: left;
   cursor: pointer;
+  /* Underline untuk tab aktif: elemen semu, bukan border — supaya bisa
+     dianimasikan melebar dari tengah. */
+  position: relative;
   transition: background-color 0.16s var(--ease, ease), color 0.16s var(--ease, ease);
 }
+
+/* ── UNDERLINE TAB AKTIF ──────────────────────────────────────────────────────
+ *
+ * ── KENAPA ELEMEN SEMU, BUKAN `border-bottom` ────────────────────────────────
+ * `border-bottom` tidak bisa dianimasikan melebar dari tengah — ia muncul
+ * seketika. Dengan elemen semu + `transform: scaleX()`, garisnya TUMBUH dari
+ * tengah saat tab dipilih.
+ *
+ * `transform-origin: center` (bawaan) yang membuatnya tumbuh dari tengah,
+ * bukan dari kiri.
+ *
+ * ── KENAPA 2px, BUKAN 1px ────────────────────────────────────────────────────
+ * Bar-nya sendiri punya `border-bottom: 1px` abu-abu. Kalau underline tab juga
+ * 1px, ia tenggelam ke dalam garis itu dan tidak terlihat sebagai penanda.
+ * 2px membuatnya jelas menonjol.
+ *
+ * `bottom: -1px` menempelkannya TEPAT di atas garis bar, sehingga keduanya
+ * terlihat seperti satu garis bersambung. */
+.kam-sisi-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--teks);
+  transform: scaleX(0);
+  transition: transform 0.2s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.kam-sisi-item.is-aktif::after { transform: scaleX(1); }
 
 /* Label tidak boleh membungkus. Satu item dua baris membuat tinggi baris
  * tidak seragam dan posisi aktif sulit dipindai dari sudut mata — dan itu
@@ -900,7 +988,16 @@
  * aktif terlihat dari sudut mata tanpa membaca. Itu yang dibutuhkan saat
  * berpindah bagian berkali-kali. */
 .kam-sisi-item.is-aktif {
-  background: rgba(255, 255, 255, 0.08);
+  /* ── KENAPA LATAR DIHAPUS ─────────────────────────────────────────────────
+   * Di sidebar vertikal, latar abu menandai item aktif — dan itu benar, karena
+   * tidak ada penanda lain yang jelas di daftar vertikal.
+   *
+   * Di tab horizontal, underline 2px SUDAH jadi penanda. Menambah latar abu
+   * membuatnya jadi dua penanda untuk hal yang sama — dan bar-nya terlihat
+   * ramai, seperti deretan tombol, bukan tab.
+   *
+   * Hanya warna teks yang berubah: dari redup ke terang. */
+  background: transparent;
   color: var(--teks);
 }
 
@@ -952,7 +1049,17 @@
 /* ── Panel ────────────────────────────────────────────────────────────────────
  * Padding kiri 24px: jarak dari garis pemisah ke isi. Lebih lega dari jarak
  * antar-item (12px) supaya batas kolom terbaca jelas. */
-.kam-panel { padding-left: 24px; min-width: 0; }
+.kam-panel {
+  /* ── PADDING ATAS, BUKAN KIRI ─────────────────────────────────────────────
+   * Di tata letak sidebar, panel ada di KANAN sidebar — jadi butuh
+   * `padding-left: 24px` untuk memberi jarak.
+   *
+   * Di tata letak tab horizontal, panel ada di BAWAH tab — jadi jaraknya
+   * vertikal. `padding-left` yang tersisa hanya membuat konten menjorok ke
+   * kanan tanpa alasan. */
+  padding: 24px 0 0;
+  min-width: 0;
+}
 
 /* `min-width: 0` penting: tanpa itu, isi panjang (email, nama perangkat)
  * memaksa kolom melebar dan merusak grid. Item grid punya `min-width: auto`
@@ -1713,3 +1820,79 @@
     animation: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   IKON NOTIFIKASI — penanda jenis peristiwa
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA IKON PER JENIS, BUKAN SATU IKON SERAGAM ──────────────────────────
+
+   Daftar notifikasi dibaca cepat — pengguna mencari "ada yang aneh?". Ikon per
+   jenis membuat mata bisa memindai LEBIH DULU sebelum membaca teksnya.
+
+   Ikon seragam untuk semua jenis memaksa pengguna membaca setiap baris satu
+   per satu. Dengan ikon berbeda, "yang mana yang masuk?" terjawab sekilas.
+
+   ── KENAPA WARNA MENGIKUTI JENIS ────────────────────────────────────────────
+
+   Warna bukan dekorasi di sini — ia menandai TINGKAT KEPENTINGAN:
+
+     emas  → peristiwa yang mengubah cara masuk (sandi, 2FA, passkey, SSO)
+     redup → peristiwa rutin (masuk, keluar)
+
+   Perubahan cara masuk adalah yang paling perlu diperiksa: kalau sandi diubah
+   dan itu bukan Anda, akun sedang diambil alih.
+
+   ── KENAPA LATAR BERWARNA, BUKAN HANYA IKON ─────────────────────────────────
+
+   Ikon 18px dengan warna saja terlalu kecil untuk dipindai dari sudut mata.
+   Latar lingkaran 32px memberi bidang warna yang cukup terlihat — tanpa
+   mengambil ruang lebih dari yang diperlukan.
+
+   ── KENAPA 32px ─────────────────────────────────────────────────────────────
+
+   Lebih kecil dari 28px, ikonnya tenggelam di antara teks. Lebih besar dari
+   36px, ia mulai mendominasi baris dan terlihat seperti avatar, bukan penanda.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.kam-item-ikon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  /* Warna default: redup. Varian di bawah menimpanya. */
+  color: var(--teks-redup);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Peristiwa rutin — masuk, keluar. Warna netral: tidak perlu perhatian. */
+.kam-item-ikon.is-masuk,
+.kam-item-ikon.is-keluar {
+  color: var(--teks-redup);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Peristiwa yang mengubah cara masuk — sandi, 2FA, passkey.
+   Emas menarik perhatian tanpa terasa seperti peringatan galat. */
+.kam-item-ikon.is-kunci {
+  color: var(--emas);
+  background: rgba(245, 197, 66, 0.1);
+}
+
+/* Sesi dicabut — perlu diperiksa, tapi bukan galat. */
+.kam-item-ikon.is-cabut {
+  color: #fb923c;
+  background: rgba(251, 146, 60, 0.1);
+}
+
+/* Token — terkait akses API, netral tapi berbeda dari login. */
+.kam-item-ikon.is-token {
+  color: var(--teks-redup);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── PENGHITUNG DI TAB ────────────────────────────────────────────────────────
+   Sama seperti penghitung di tab Keamanan — pakai gaya yang sudah ada supaya
+   konsisten. Tidak ada aturan baru yang perlu ditulis. */

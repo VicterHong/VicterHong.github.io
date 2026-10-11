@@ -1059,6 +1059,135 @@
     }
   });
 
+  // ── NOTIFIKASI ─────────────────────────────────────────────────────────────
+  //
+  // ── KENAPA IKON PER JENIS, BUKAN SATU IKON SERAGAM ─────────────────────────
+  //
+  // Daftar notifikasi dibaca dengan cepat — pengguna mencari "ada yang aneh?".
+  // Ikon per jenis membuat mata bisa memindai LEBIH DULU sebelum membaca:
+  // "yang mana yang masuk?" — dan ikon login berbeda dari ikon sandi diubah.
+  //
+  // Ikon seragam untuk semua jenis memaksa pengguna membaca setiap baris.
+  //
+  // ── KENAPA WARNA IKON MENGIKUTI JENIS ──────────────────────────────────────
+  //
+  // Warna bukan dekorasi di sini — ia menandai TINGKAT KEPENTINGAN:
+  //   emas  → peristiwa yang mengubah cara masuk (sandi, 2FA, passkey)
+  //   abu   → peristiwa rutin (masuk, keluar)
+  //
+  // Perubahan cara masuk adalah yang paling perlu diperiksa: kalau sandi
+  // diubah dan itu bukan Anda, akun sedang diambil alih.
+  const IKON_NOTIF = {
+    masuk: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M141.66,133.66l-40,40a8,8,0,0,1-11.32-11.32L116.69,136H24a8,8,0,0,1,0-16h92.69L90.34,93.66a8,8,0,0,1,11.32-11.32l40,40A8,8,0,0,1,141.66,133.66ZM200,32H136a8,8,0,0,0,0,16h56V208H136a8,8,0,0,0,0,16h64a8,8,0,0,0,8-8V40A8,8,0,0,0,200,32Z"/></svg>',
+    keluar: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M112,216a8,8,0,0,1-8,8H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32h56a8,8,0,0,1,0,16H48V208h56A8,8,0,0,1,112,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L196.69,120H104a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,221.66,122.34Z"/></svg>',
+    kunci: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"/></svg>',
+    cabut: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM173.66,98.34a8,8,0,0,1,0,11.32L139.31,144l34.35,34.34a8,8,0,0,1-11.32,11.32L128,155.31l-34.34,34.35a8,8,0,0,1-11.32-11.32L116.69,144,82.34,109.66a8,8,0,0,1,11.32-11.32L128,132.69l34.34-34.35A8,8,0,0,1,173.66,98.34Z"/></svg>',
+    token: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M216.57,39.43A80,80,0,0,0,83.91,120.78L28.69,176A15.86,15.86,0,0,0,24,187.31V216a16,16,0,0,0,16,16H72a8,8,0,0,0,8-8V208H96a8,8,0,0,0,8-8V184h16a8,8,0,0,0,5.66-2.34l9.56-9.57A79.73,79.73,0,0,0,160,176h.1A80,80,0,0,0,216.57,39.43ZM224,98.1c-1.09,34.09-29.75,61.86-63.89,61.9H160a63.7,63.7,0,0,1-23.65-4.51,8,8,0,0,0-8.84,1.68L116.69,168H96a8,8,0,0,0-8,8v16H72a8,8,0,0,0-8,8v16H40V187.31l58.83-58.82a8,8,0,0,0,1.68-8.84A63.72,63.72,0,0,1,96,95.92c0-34.14,27.81-62.8,61.9-63.89A64,64,0,0,1,224,98.1ZM192,76a12,12,0,1,1-12-12A12,12,0,0,1,192,76Z"/></svg>',
+  };
+
+  // Kata kunci di nama aksi → jenis ikon. Diperiksa berurutan, yang pertama
+  // cocok dipakai. Urutan penting: "passkey_masuk" harus cocok dengan `masuk`
+  // SEBELUM `passkey` diperiksa — kalau terbalik, ia dapat ikon kunci padahal
+  // peristiwanya login.
+  const JENIS_NOTIF = [
+    [['masuk', 'login'], 'masuk'],
+    [['keluar', 'logout'], 'keluar'],
+    [['cabut', 'revoke', 'hapus'], 'cabut'],
+    [['token'], 'token'],
+    [['sandi', 'password', '2fa', 'totp', 'passkey', 'sso'], 'kunci'],
+  ];
+
+  function jenisNotif(aksi) {
+    const a = String(aksi || '').toLowerCase();
+    for (const [kata, jenis] of JENIS_NOTIF) {
+      if (kata.some((k) => a.includes(k))) return jenis;
+    }
+    return 'masuk';
+  }
+
+  // Nama aksi teknis → kalimat yang bisa dibaca. Sama seperti tab Aktivitas,
+  // tapi di sini ditambah aksi yang khusus muncul sebagai notifikasi.
+  const AKSI_NOTIF = {
+    auth_masuk: 'Masuk ke akun',
+    auth_daftar: 'Akun dibuat',
+    auth_keluar: 'Keluar dari akun',
+    auth_oauth_masuk: 'Masuk lewat penyedia',
+    auth_sso_masuk: 'Masuk lewat SSO',
+    auth_passkey_masuk: 'Masuk dengan passkey',
+    auth_passkey_tambah: 'Passkey ditambahkan',
+    auth_passkey_hapus: 'Passkey dihapus',
+    auth_sesi_cabut: 'Sesi dicabut',
+    auth_sandi_ubah: 'Sandi diubah',
+    auth_sandi_buat: 'Sandi dibuat',
+    auth_sandi_hapus: 'Sandi dihapus',
+    auth_2fa_aktif: 'Verifikasi 2 langkah diaktifkan',
+    auth_2fa_nonaktif: 'Verifikasi 2 langkah dinonaktifkan',
+    token_validate: 'Token divalidasi',
+    token_revoke: 'Token dicabut',
+  };
+
+  daftarPemuat('panelNotif', async () => {
+    const res = await fetch('/api/auth/notifikasi', { credentials: 'same-origin' });
+    if (!res.ok) return;
+    const d = await res.json().catch(() => ({}));
+    const notif = Array.isArray(d.notifikasi) ? d.notifikasi : [];
+
+    const daftar = $('#kamNotifikasi');
+    const kosong = $('#kamNotifikasiKosong');
+    const hitung = $('#kamHitungNotif');
+    if (!daftar) return;
+
+    // Penghitung di tab: berapa peristiwa yang ada. Berguna saat tab belum
+    // dibuka — pengguna tahu ada sesuatu tanpa harus mengklik.
+    if (hitung) hitung.textContent = notif.length || '0';
+
+    daftar.innerHTML = '';
+    if (!notif.length) { if (kosong) kosong.hidden = false; return; }
+    if (kosong) kosong.hidden = true;
+
+    for (const n of notif) {
+      const li = document.createElement('li');
+      li.className = 'kam-item';
+
+      const jenis = jenisNotif(n.aksi);
+
+      // Ikon di kiri — mata memindai ikon lebih dulu daripada teks.
+      const ikon = document.createElement('span');
+      ikon.className = `kam-item-ikon is-${jenis}`;
+      ikon.setAttribute('aria-hidden', 'true');
+      ikon.innerHTML = IKON_NOTIF[jenis] || IKON_NOTIF.masuk;
+      li.appendChild(ikon);
+
+      const kiri = document.createElement('div');
+      kiri.className = 'kam-item-teks';
+
+      const judul = document.createElement('p');
+      judul.className = 'kam-item-judul';
+      judul.textContent = AKSI_NOTIF[n.aksi] || n.aksi || 'Peristiwa keamanan';
+
+      const ket = document.createElement('p');
+      ket.className = 'kam-item-ket';
+      // Perangkat dipakai kalau ada — lebih berguna daripada IP sendirian
+      // saat pertanyaannya "ini saya atau bukan?".
+      ket.textContent = [waktuRingkas(n.pada), n.perangkat, n.ip, n.negara]
+        .filter(Boolean).join(' · ');
+
+      kiri.appendChild(judul);
+      kiri.appendChild(ket);
+      li.appendChild(kiri);
+
+      // Lencana hanya untuk hasil yang BUKAN keberhasilan — sama seperti tab
+      // Aktivitas. Daftar penuh lencana hijau tidak menambah informasi.
+      if (n.hasil && n.hasil !== 'ok' && n.hasil !== 'sukses') {
+        const l = document.createElement('span');
+        l.className = 'kam-lencana is-gagal';
+        l.textContent = n.hasil;
+        li.appendChild(l);
+      }
+      daftar.appendChild(li);
+    }
+  });
+
   // ── 2FA ────────────────────────────────────────────────────────────────────
   daftarPemuat('panel2fa', async () => {
     const res = await fetch('/api/auth/2fa/status', { credentials: 'same-origin' });
