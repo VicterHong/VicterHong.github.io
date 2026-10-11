@@ -571,6 +571,36 @@ function observeReveals() {
     }
   }, { rootMargin: '0px 0px 10% 0px', threshold: 0.01 });
   targets.forEach((t) => observer.observe(t));
+
+  // ── BUG YANG DIPERBAIKI: GATE CLOUDFLARE MENAHAN REVEAL ─────────────────────
+  //
+  // `cf-gate.css` menyetel `body.cf-gated > *:not(#cf-gate) { display: none }`
+  // selama gerbang verifikasi aktif.
+  //
+  // Elemen `display: none` TIDAK PERNAH memicu IntersectionObserver — browser
+  // tidak menghitung posisinya sama sekali. Karena fungsi ini jalan SEBELUM
+  // gate dibuka, tidak ada satu pun dari 9 elemen `[data-reveal]` yang pernah
+  // dapat callback.
+  //
+  // Terukur: `dataRevealAktif: 0/9` setelah gate dibuka, padahal tinggi
+  // halaman normal (9173px). Artinya judul section — "Tentang", "Proyek",
+  // "Layanan", "Mari bicara" — TIDAK PERNAH MUNCUL di halaman utama.
+  //
+  // Perbaikan: saat gate dibuka, periksa ulang elemen yang belum terlihat dan
+  // tampilkan yang sudah masuk viewport. Tidak perlu observer baru — cukup
+  // pemeriksaan sekali, karena sisanya akan ditangani observer yang sama
+  // begitu elemennya benar-benar terlihat saat digulir.
+  document.addEventListener('cf-gate:lulus', () => {
+    const tinggiLayar = window.innerHeight;
+    for (const t of targets) {
+      if (t.classList.contains('is-visible')) continue;
+      const kotak = t.getBoundingClientRect();
+      if (kotak.top < tinggiLayar && kotak.height > 0) {
+        t.classList.add('is-visible');
+        observer.unobserve(t);
+      }
+    }
+  }, { once: true });
 }
 
 // ── KEPALA SAAT DIGULIR ────────────────────────────────────────────────────────

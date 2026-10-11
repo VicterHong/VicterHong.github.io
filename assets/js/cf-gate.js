@@ -317,6 +317,26 @@
   function revealPage() {
     document.documentElement.classList.remove('cf-gating');
     if (document.body) document.body.classList.remove('cf-gated');
+
+    // ── KENAPA EVENT INI PERLU ─────────────────────────────────────────────────
+    //
+    // BUG YANG DIPERBAIKI: selama gate aktif, `body.cf-gated > *:not(#cf-gate)`
+    // menyetel `display: none` pada seluruh isi halaman.
+    //
+    // Elemen yang `display: none` TIDAK PERNAH memicu IntersectionObserver —
+    // browser tidak menghitung posisinya sama sekali. Jadi semua observer yang
+    // didaftarkan SEBELUM gate dibuka tidak akan pernah mendapat callback untuk
+    // elemen itu, walaupun nanti sudah terlihat.
+    //
+    // Akibatnya 15 elemen `[data-reveal]` dan `[data-cine-words]` tetap
+    // `opacity: 0` SELAMANYA — konten halaman utama tidak pernah muncul.
+    //
+    // Terukur: `dataRevealAktif: 0/9` dan `cineWordsAktif: 0/6` setelah gate
+    // dibuka, padahal tinggi halaman normal (9173px).
+    //
+    // Event ini memberi tahu kode lain bahwa halaman baru saja terlihat, supaya
+    // mereka bisa mengamati ulang elemen yang tadi terlewat.
+    document.dispatchEvent(new CustomEvent('cf-gate:lulus'));
   }
 
   /** Isi placeholder di dalam gate: nama host + Ray ID. */

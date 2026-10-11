@@ -367,6 +367,38 @@ export function initTextStagger(selector = '[data-cine-words]') {
     el.classList.add('cine-words-pending');
     observer.observe(el);
   }
+
+  // ── BUG YANG DIPERBAIKI: GATE CLOUDFLARE MENAHAN STAGGER ───────────────────
+  //
+  // Sama seperti `observeReveals()` di app.js: selama gate aktif,
+  // `body.cf-gated > *:not(#cf-gate) { display: none }` menyembunyikan seluruh
+  // isi halaman — dan elemen `display: none` tidak pernah memicu
+  // IntersectionObserver.
+  //
+  // Terukur: `cineWordsAktif: 0/6` setelah gate dibuka. Artinya judul hero
+  // ("Saya membangun alat yang membuat perangkat lama berguna kembali") dan
+  // semua judul section tetap terpecah jadi kata-kata yang `opacity: 0` —
+  // judulnya TIDAK PERNAH MUNCUL.
+  //
+  // Perbaikan: saat gate dibuka, selesaikan stagger untuk elemen yang sudah
+  // masuk viewport. `cine-words-pending` dilepas dan `cine-words-in` dipasang —
+  // transisi CSS yang mengurus sisanya.
+  document.addEventListener('cf-gate:lulus', () => {
+    const tinggiLayar = window.innerHeight;
+    for (const el of targets) {
+      if (el.classList.contains('cine-words-in')) continue;
+      const kotak = el.getBoundingClientRect();
+      if (kotak.top < tinggiLayar && kotak.height > 0) {
+        const words = splitWords(el);
+        words.forEach((w, i) => {
+          w.style.transitionDelay = `${Math.min(i * 55, 500)}ms`;
+        });
+        el.classList.remove('cine-words-pending');
+        el.classList.add('cine-words-in');
+        observer.unobserve(el);
+      }
+    }
+  }, { once: true });
 }
 
 // ── 5. HERO FADE ──────────────────────────────────────────────────────────────

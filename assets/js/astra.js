@@ -42,6 +42,38 @@ export function initStagger(root = document) {
   }, { rootMargin: '0px 0px 8% 0px', threshold: 0.01 });
 
   for (const g of groups) observer.observe(g);
+
+  // ── BUG YANG DIPERBAIKI: GATE CLOUDFLARE MENAHAN STAGGER ─────────────────
+  //
+  // Sama seperti `observeReveals()` di app.js dan `initTextStagger()` di
+  // cinematic.js: selama gate Cloudflare aktif,
+  // `body.cf-gated > *:not(#cf-gate) { display: none }` menyembunyikan
+  // seluruh isi halaman.
+  //
+  // Elemen `display: none` TIDAK PERNAH memicu IntersectionObserver — browser
+  // tidak menghitung posisinya. Karena fungsi ini jalan sebelum gate dibuka,
+  // daftar layanan (`[data-stagger]`) tidak pernah dapat callback — dan
+  // kartu-kartunya tetap `opacity: 0`.
+  //
+  // Perbaikan: saat gate dibuka, jalankan stagger untuk grup yang sudah masuk
+  // viewport.
+  document.addEventListener('cf-gate:lulus', () => {
+    const tinggiLayar = window.innerHeight;
+    for (const g of groups) {
+      const kotak = g.getBoundingClientRect();
+      if (kotak.top >= tinggiLayar || kotak.height === 0) continue;
+
+      const children = [...g.children];
+      // Lewati kalau sudah pernah dijalankan.
+      if (children.every((c) => c.classList.contains('astra-in'))) continue;
+
+      children.forEach((child, i) => {
+        child.style.transitionDelay = `${Math.min(i * 90, 480)}ms`;
+        child.classList.add('astra-in');
+      });
+      observer.unobserve(g);
+    }
+  }, { once: true });
 }
 
 // ── 2. MAGNETIC BUTTON ────────────────────────────────────────────────────────
