@@ -477,8 +477,74 @@
           </button>
 
           <p class="auth-msg" id="msgToken" role="status" aria-live="polite"></p>
-        </form>
-      </section>
+          </form>
+          </section>
+
+          <!-- ══ PANEL PEMULIHAN — AKUN DALAM MASA TENGGANG ═════════════════════════
+           ── KENAPA PANEL INI ADA ────────────────────────────────────────────────
+           Pengguna yang akunnya dinonaktifkan TIDAK BISA LOGIN — dan itu
+           memang disengaja. Tapi tanpa panel ini, mereka melihat pesan galat
+           biasa ("Akun ini tidak aktif") dan tidak tahu bahwa:
+
+             • Akunnya BELUM terhapus — hanya nonaktif
+             • Masih ada waktu untuk membatalkan
+             • Ada tombol untuk melakukannya
+
+           Fitur pemulihan yang tidak terlihat sama saja dengan tidak ada.
+           Pengguna akan menghubungi dukungan, atau lebih buruk, mengira
+           akunnya sudah hilang permanen.
+
+           ── KENAPA DIPISAH DARI PANEL MASUK ──────────────────────────────────
+           Alur masuk dan alur pemulihan punya dua langkah berbeda: yang satu
+           mengecek sandi, yang satu mengecek kode email. Menggabungkannya
+           dalam satu form berarti pengguna melihat kolom sandi yang tidak
+           berguna untuk mereka.
+
+           ── KENAPA TIDAK MENYEBUT APAKAH EMAIL TERDAFTAR ─────────────────────
+           Panel ini muncul SETELAH server menjawab `menunggu_hapus: true`.
+           Jadi tidak ada kebocoran: pengguna hanya melihatnya kalau emailnya
+           memang punya akun yang menunggu dihapus. -->
+          <section class="auth-panel" id="panel-pulih" data-panel="pulih">
+
+          <h1 class="auth-panel-title">Pulihkan akun Anda</h1>
+          <p class="auth-panel-desc" id="pulihKeterangan">
+          Akun ini sedang menunggu penghapusan. Anda masih bisa memulihkannya.
+          </p>
+
+          <!-- Sisa waktu — diisi JS -->
+          <div class="auth-pulih-waktu" id="pulihWaktu" hidden>
+          <span class="auth-pulih-angka" id="pulihSisaHari">—</span>
+          <span class="auth-pulih-label">hari lagi sebelum dihapus permanen</span>
+          </div>
+
+          <!-- ── LANGKAH 1: MINTA KODE ──────────────────────────────────────────── -->
+          <div id="pulihLangkah1">
+          <p class="auth-panel-desc">
+            Kami akan mengirim kode 6 digit ke email Anda untuk memastikan
+            ini benar-benar Anda.
+          </p>
+          <button type="button" class="auth-submit" id="btnPulihMinta">
+            Kirim kode pemulihan
+          </button>
+          </div>
+
+          <!-- ── LANGKAH 2: MASUKKAN KODE ───────────────────────────────────────── -->
+          <form class="auth-form" id="formPulih" autocomplete="off" novalidate hidden>
+          <label class="auth-label" for="inpPulihKode">Kode 6 digit</label>
+          <input class="auth-input" id="inpPulihKode" type="text"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" placeholder="000000">
+          <button type="submit" class="auth-submit" id="btnPulihKonfirmasi">
+            Pulihkan akun
+          </button>
+          </form>
+
+          <p class="auth-msg" id="msgPulih" role="status" aria-live="polite"></p>
+
+          <button type="button" class="auth-oauth auth-pulih-batal" id="btnPulihBatal">
+          Batal — kembali ke halaman masuk
+          </button>
+          </section>
 
       <!-- ══ Panel: TOTP (2FA) ══════════════════════════════════════════════
            Muncul hanya kalau akun ini punya 2FA aktif. Server memutuskan

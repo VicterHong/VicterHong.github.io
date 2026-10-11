@@ -547,3 +547,64 @@ export function akunSiapHapusOtomatis() {
            AND dihapus_pada <= ?)
   `).all(batasOtomatis);
 }
+
+/**
+ * Bolehkah email ini meminta kode pembatalan?
+ *
+ * ── CELAH YANG DIPERBAIKI ───────────────────────────────────────────────────
+ *
+ * Pengguna yang akunnya dinonaktifkan TIDAK BISA LOGIN — dan itu disengaja.
+ * Tapi ada masalah berantai yang membuat pembatalan mustahil:
+ *
+ *   1. Minta hapus → sesi DICABUT semua (semua perangkat keluar)
+ *   2. Akun jadi `menunggu_hapus` → login DITOLAK
+ *   3. Untuk membatalkan butuh KODE
+ *   4. Kode dikirim lewat `/akun/hapus-mulai` — yang BUTUH SESI
+ *   5. Sesi sudah dicabut → tidak bisa minta kode → TIDAK BISA MEMBATALKAN
+ *
+ * Fitur pembatalannya ada, tapi jalannya tertutup rapat.
+ *
+ * ── KENAPA FUNGSI INI TERPISAH DARI ENDPOINT ────────────────────────────────
+ *
+ * Aturannya ("siapa yang boleh minta kode") harus bisa diuji tanpa HTTP.
+ * Endpoint hanya menangani request/response; keputusan ada di sini.
+ *
+ * ── KENAPA JAWABANNYA HARUS SERAGAM ─────────────────────────────────────────
+ *
+ * Endpoint ini TIDAK butuh sesi — artinya siapa pun bisa memanggilnya dengan
+ * email apa pun. Kalau jawabannya berbeda untuk "email terdaftar" vs "tidak
+ * terdaftar", endpoint ini jadi alat untuk MEMETAKAN email mana yang punya
+ * akun di sini.
+ *
+ * Karena itu: email tak dikenal, akun aktif, dan akun `siap_hapus` semuanya
+ * menjawab `boleh: false` — sama persis.
+ */
+export function cekKodePembatalan(email) {
+  const pengguna = getDb()
+    .prepare('SELECT id, email, nama, status, dihapus_pada FROM users WHERE email = ?')
+    .get(String(email || '').trim().toLowerCase());
+
+  // ── HANYA `menunggu_hapus` YANG BOLEH ─────────────────────────────────────
+  //
+  // • Akun aktif       → tidak ada yang perlu dibatalkan
+  // • Akun siap_hapus  → sudah disetujui admin; membatalkannya berarti
+  //                      menimpa keputusan manusia, dan itu butuh admin,
+  //                      bukan tombol di halaman masuk
+  // • Email tak dikenal → tidak ada
+  if (!pengguna || pengguna.status !== 'menunggu_hapus') {
+    return { boleh: false };
+  }
+
+  // Akun yang masa tenggangnya sudah habis tidak bisa dibatalkan — ia sedang
+  // dalam antrean penghapusan permanen.
+  if (sisaHariHapus(pengguna.dihapus_pada) === 0) {
+    return { boleh: false, kedaluwarsa: true };
+  }
+
+  return {
+    boleh: true,
+    id: pengguna.id,
+    nama: pengguna.nama || '',
+    sisa_hari: sisaHariHapus(pengguna.dihapus_pada),
+  };
+}

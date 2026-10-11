@@ -722,6 +722,47 @@
           return;
         }
 
+        // ── AKUN DALAM MASA TENGGANG → TAWARKAN PEMULIHAN ────────────────────
+        //
+        // ── KENAPA BUKAN PESAN GALAT BIASA ──────────────────────────────────
+        //
+        // Sandinya BENAR — pengguna memang pemilik akun. Yang terjadi adalah
+        // akunnya sedang menunggu dihapus, dan ia masih bisa membatalkannya.
+        //
+        // Kalau kita tampilkan "Email atau sandi salah", pengguna akan mencoba
+        // sandi lain berkali-kali sampai akunnya terkunci — padahal sandinya
+        // benar sejak awal.
+        //
+        // Kalau kita tampilkan "Akun tidak aktif. Hubungi admin.", pengguna
+        // mengira akunnya sudah hilang dan menghubungi dukungan — padahal ada
+        // tombol yang bisa ia tekan sendiri.
+        //
+        // Server sudah mengirim `menunggu_hapus: true` + `sisa_hari`, jadi
+        // kita punya semua yang dibutuhkan untuk menawarkan pemulihan.
+        if (hasil.isi?.menunggu_hapus) {
+          sembunyikanSaranDaftar();
+          pesan(msgMasuk, '');
+          getar(kartu);
+
+          // Panel pemulihan menggantikan form masuk — pengguna tidak perlu
+          // mengetik email lagi.
+          if (typeof window.__bukaPulih === 'function') {
+            window.__bukaPulih(email, hasil.isi.sisa_hari);
+          } else {
+            // Jaring pengaman: kalau panel gagal dimuat, minimal pengguna
+            // tahu apa yang terjadi dan apa yang bisa dilakukan.
+            pesan(msgMasuk,
+              `Akun ini menunggu dihapus dalam ${hasil.isi.sisa_hari} hari. `
+              + 'Masukkan sandi Anda lalu ikuti langkah pemulihan.', 'galat');
+          }
+
+          if (turnstileWidgetId !== null && window.turnstile) {
+            window.turnstile.reset(turnstileWidgetId);
+            turnstileToken = '';
+          }
+          return;
+        }
+
         // Kegagalan lain (sandi salah, rate limit, Turnstile) → pesan biasa.
         sembunyikanSaranDaftar();
         pesan(msgMasuk, pesanGalat(hasil, 'Email atau sandi salah.'), 'galat');
@@ -2218,6 +2259,194 @@
     }
   }
 
+
+  // ══ PEMULIHAN AKUN DALAM MASA TENGGANG ════════════════════════════════════
+  //
+  // ── CELAH YANG DIPERBAIKI ──────────────────────────────────────────────────
+  //
+  // Pengguna yang akunnya dinonaktifkan tidak bisa login — dan itu disengaja.
+  // Tapi ada masalah berantai:
+  //
+  //   1. Minta hapus → sesi DICABUT semua
+  //   2. Status jadi menunggu_hapus → login DITOLAK
+  //   3. Untuk membatalkan butuh KODE
+  //   4. Kode dikirim lewat /akun/hapus-mulai — yang BUTUH SESI
+  //   5. Sesi sudah dicabut → TIDAK BISA MEMBATALKAN
+  //
+  // Fitur pembatalannya ada, tapi jalannya tertutup rapat.
+  //
+  // ── ALUR YANG BENAR ────────────────────────────────────────────────────────
+  //
+  //   1. Pengguna masukkan email + sandi seperti biasa
+  //   2. Server jawab 403 dengan menunggu_hapus: true
+  //   3. auth.js memunculkan panel pemulihan (BUKAN pesan galat biasa)
+  //   4. Pengguna minta kode → /akun/minta-kode-batal (TANPA sesi)
+  //   5. Kode masuk → /akun/batal-hapus → akun kembali aktif
+  //
+  // ── KENAPA SANDINYA TETAP DIPERIKSA ────────────────────────────────────────
+  //
+  // Panel pemulihan muncul SETELAH sandi diverifikasi. Jadi yang bisa memulai
+  // pemulihan hanyalah orang yang tahu sandinya — bukan siapa pun yang menebak
+  // alamat emailnya.
+  //
+  // Kode email adalah lapisan KEDUA, bukan satu-satunya.
+  function initPulih() {
+    const panel = $('#panel-pulih');
+    if (!panel) return;
+
+    const l1 = $('#pulihLangkah1');
+    const form = $('#formPulih');
+    const inpKode = $('#inpPulihKode');
+    const msg = $('#msgPulih');
+
+    // ── EMAIL DISIMPAN SAAT PANEL DIBUKA ──────────────────────────────────────
+    //
+    // Panel ini dipakai untuk satu email saja: yang baru dimasukkan pengguna di
+    // form masuk. Menyimpannya di variabel berarti tidak perlu menanyakan lagi
+    // — dan tidak ada risiko pengguna mengetik email yang berbeda di sini.
+    let emailPulih = '';
+
+    function pesanPulih(teks, jenis = '') {
+      if (!msg) return;
+      msg.textContent = teks;
+      msg.classList.toggle('is-galat', jenis === 'galat');
+      msg.classList.toggle('is-sukses', jenis === 'sukses');
+    }
+
+    /**
+     * Buka panel pemulihan untuk email tertentu.
+     *
+     * Dipanggil dari handler login saat server menjawab `menunggu_hapus`.
+     */
+    window.__bukaPulih = function (email, sisaHari) {
+      emailPulih = String(email || '');
+      pesanPulih('');
+
+      if (l1) l1.hidden = false;
+      if (form) form.hidden = true;
+      if (inpKode) inpKode.value = '';
+
+      // Tampilkan sisa waktu — angka konkret lebih meyakinkan daripada
+      // "segera". Pengguna perlu tahu ia masih punya waktu.
+      const kotak = $('#pulihWaktu');
+      const angka = $('#pulihSisaHari');
+      if (kotak && angka && Number.isFinite(Number(sisaHari))) {
+        angka.textContent = String(sisaHari);
+        kotak.hidden = false;
+      } else if (kotak) {
+        kotak.hidden = true;
+      }
+
+      pindahPanel('pulih');
+      setTimeout(() => $('#btnPulihMinta')?.focus(), 50);
+    };
+
+    // ── LANGKAH 1: MINTA KODE ─────────────────────────────────────────────────
+    async function mintaKode() {
+      const btn = $('#btnPulihMinta');
+      if (btn) btn.disabled = true;
+      pesanPulih('Mengirim kode…');
+
+      try {
+        const res = await fetch('/api/auth/akun/minta-kode-batal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailPulih }),
+        });
+        const d = await res.json().catch(() => ({}));
+
+        // ── KENAPA TIDAK MEMERIKSA `d.ok` SAJA ────────────────────────────────
+        //
+        // Endpoint ini SELALU menjawab ok: true — bahkan untuk email tak
+        // dikenal. Itu disengaja: jawaban yang berbeda akan membocorkan email
+        // mana yang terdaftar.
+        //
+        // Yang menentukan langkah berikutnya adalah `terkirim`.
+        if (d.terkirim) {
+          if (l1) l1.hidden = true;
+          if (form) form.hidden = false;
+          pesanPulih(d.pesan || 'Kode terkirim. Periksa email Anda.', 'sukses');
+          setTimeout(() => inpKode?.focus(), 50);
+        } else {
+          pesanPulih(d.pesan || 'Kode tidak bisa dikirim. Coba lagi.', 'galat');
+        }
+      } catch {
+        pesanPulih('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    $('#btnPulihMinta')?.addEventListener('click', mintaKode);
+
+    // ── LANGKAH 2: KONFIRMASI ─────────────────────────────────────────────────
+    async function konfirmasi(e) {
+      e?.preventDefault();
+      const kode = (inpKode?.value || '').trim();
+
+      if (!/^\d{6}$/.test(kode)) {
+        pesanPulih('Kode harus 6 angka.', 'galat');
+        inpKode?.focus();
+        return;
+      }
+
+      const btn = $('#btnPulihKonfirmasi');
+      if (btn) btn.disabled = true;
+      pesanPulih('Memulihkan akun…');
+
+      try {
+        const res = await fetch('/api/auth/akun/batal-hapus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailPulih, kode }),
+        });
+        const d = await res.json().catch(() => ({}));
+
+        if (!res.ok || !d.ok) {
+          pesanPulih(d.message || 'Kode tidak cocok. Coba lagi.', 'galat');
+          inpKode?.focus();
+          inpKode?.select();
+          return;
+        }
+
+        // ── BERHASIL ──────────────────────────────────────────────────────────
+        //
+        // Akun kembali aktif. Arahkan ke halaman masuk dengan email terisi,
+        // supaya pengguna tinggal memasukkan sandi.
+        //
+        // ── KENAPA TIDAK LANGSUNG MASUKKAN MEREKA ─────────────────────────────
+        //
+        // Kode pembatalan membuktikan kepemilikan EMAIL, bukan kepemilikan
+        // akun. Sandi tetap harus dimasukkan — dan itu memang benar: kalau
+        // seseorang menguasai email korban tapi tidak sandinya, ia tidak boleh
+        // mendapat sesi penuh hanya dengan membatalkan penghapusan.
+        pesanPulih(d.pesan || 'Akun dipulihkan. Silakan masuk.', 'sukses');
+        setTimeout(() => {
+          location.href = '/sign-in?email=' + encodeURIComponent(emailPulih) + '&dipulihkan=1';
+        }, 1500);
+
+      } catch {
+        pesanPulih('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    form?.addEventListener('submit', konfirmasi);
+
+    // Hanya angka — kolomnya sudah inputmode="numeric".
+    inpKode?.addEventListener('input', () => {
+      inpKode.value = inpKode.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    // ── BATAL ─────────────────────────────────────────────────────────────────
+    $('#btnPulihBatal')?.addEventListener('click', () => {
+      pesanPulih('');
+      pindahPanel('masuk');
+      setTimeout(() => $('#inpEmailMasuk')?.focus(), 50);
+    });
+  }
+
   function init() {
     pasangTilt();
     pasangOtp();
@@ -2225,6 +2454,7 @@
     siapkanPasskey();
     tanganiGalatOauth();
     pasangIngatEmail();
+    initPulih();
 
     // ── DUKUNGAN location.hash UNTUK PILIH PANEL ─────────────────────────────
     //

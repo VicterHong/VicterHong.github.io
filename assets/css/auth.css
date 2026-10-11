@@ -2058,3 +2058,68 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   background: rgba(245, 197, 66, 0.13);
   border-color: var(--emas);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PANEL PEMULIHAN — akun dalam masa tenggang
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA SISA HARI DITONJOLKAN ────────────────────────────────────────────
+
+   "Akun Anda akan dihapus" tanpa angka membuat pengguna panik dan bertindak
+   terburu-buru. Angka konkret ("25 hari lagi") mengubahnya dari ancaman
+   menjadi tenggat yang bisa dikelola.
+
+   ── KENAPA LATAR KUNING, BUKAN MERAH ────────────────────────────────────────
+
+   Merah berarti "bahaya, jangan lanjut". Di sini keadaannya berbeda: akun
+   BELUM hilang, dan ada tombol untuk menyelamatkannya.
+
+   Kuning berarti "perhatikan" — sesuai dengan situasinya, dan tidak membuat
+   pengguna merasa sudah terlambat.
+
+   ── KENAPA TOMBOL BATAL DI BAWAH, TERPISAH ──────────────────────────────────
+
+   Aksi utama ("Pulihkan akun") dan jalan keluar ("Batal") harus jelas berbeda.
+   Menaruh keduanya berdampingan membuat salah klik lebih mungkin — dan salah
+   klik di sini berarti keluar dari alur pemulihan. */
+
+.auth-pulih-waktu {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(245, 197, 66, 0.08);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+}
+
+.auth-pulih-angka {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--emas, #f5c542);
+  font-variant-numeric: tabular-nums;
+}
+
+.auth-pulih-label {
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: var(--teks-redup, #b8b8b8);
+}
+
+.auth-pulih-batal {
+  margin-top: 20px;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Di ponsel, angka dan label ditumpuk — "25" dan "hari lagi..." berdampingan
+   terlalu sempit untuk dibaca nyaman. */
+@media (max-width: 420px) {
+  .auth-pulih-waktu {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .auth-pulih-angka { font-size: 1.4rem; }
+}

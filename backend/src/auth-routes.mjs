@@ -63,7 +63,7 @@ import { getDb, transaction } from './db.mjs';
 // Dua salinan aturan berarti keduanya bisa menyimpang — dan yang menyimpang
 // baru ketahuan saat ada pengguna yang akunnya terhapus padahal masih
 // berlangganan.
-import { adaLanggananAktif, nonaktifkanAkun } from './purge-akun.mjs';
+import { adaLanggananAktif, nonaktifkanAkun, cekKodePembatalan } from './purge-akun.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
@@ -2379,6 +2379,29 @@ function ruteSso() {
         // ── KIRIM KODE LEWAT EMAIL ─────────────────────────────────────────────
         let terkirim = false;
         try {
+          // ── KENAPA DYNAMIC IMPORT, BUKAN IMPORT DI ATAS FILE ─────────────────
+          //
+          // ── BUG YANG DIPERBAIKI ───────────────────────────────────────────────
+          //
+          // Versi sebelumnya memanggil `kirimEmailResetSandi(...)` TANPA
+          // mengimportnya sama sekali. Yang terjadi:
+          //
+          //   ReferenceError: kirimEmailResetSandi is not defined
+          //
+          // Error itu ditelan oleh try/catch di sekitarnya, jadi kegagalannya
+          // SENYAP — pengguna melihat "email gagal terkirim" dan tidak tahu
+          // kenapa. Di produksi dengan SMTP aktif pun, email TIDAK AKAN PERNAH
+          // terkirim.
+          //
+          // ── KENAPA DINAMIS ────────────────────────────────────────────────────
+          //
+          // `routes.mjs` juga memakai dynamic import untuk modul ini (lihat
+          // baris 1849). Alasannya: email.mjs memuat konfigurasi SMTP yang
+          // berat, dan hanya sebagian kecil request yang benar-benar mengirim
+          // email. Static import berarti SEMUA request membayar biaya itu.
+          //
+          // Pola yang sama dipakai di sini supaya konsisten.
+          const { kirimEmailResetSandi } = await import('./email.mjs');
           const r = await kirimEmailResetSandi({ ke: pengguna.email, token: kode, nama: pengguna.nama });
           terkirim = Boolean(r?.ok);
         } catch (err) {
@@ -2621,6 +2644,111 @@ function ruteSso() {
         sendJson(res, 200, {
           ok: true,
           pesan: 'Penghapusan dibatalkan. Akun Anda kembali aktif — silakan masuk.',
+        });
+      },
+    },
+
+
+    // ══ MINTA KODE PEMBATALAN (TANPA SESI) ══════════════════════════════════════
+    //
+    // ── KENAPA ENDPOINT INI HARUS TANPA SESI ────────────────────────────────────
+    //
+    // Pengguna yang akunnya dinonaktifkan SUDAH TIDAK PUNYA SESI — semuanya
+    // dicabut saat penghapusan diminta. Dan login ditolak karena statusnya
+    // bukan 'aktif'.
+    //
+    // Jadi kalau endpoint ini butuh sesi, pembatalan MUSTAHIL. Fiturnya ada,
+    // tapi jalannya tertutup rapat — dan masa tenggang jadi sekadar
+    // memperlambat penghapusan, bukan memberi jalan pulang.
+    //
+    // ── KENAPA AMAN TANPA SESI ──────────────────────────────────────────────────
+    //
+    //   1. Kode dikirim ke EMAIL pemilik akun. Penyerang yang memanggil
+    //      endpoint ini tidak menerimanya.
+    //   2. Jawaban SERAGAM untuk semua email (lihat cekKodePembatalan) —
+    //      tidak bisa dipakai memetakan email terdaftar.
+    //   3. Hanya berfungsi untuk akun `menunggu_hapus`. Akun aktif tidak
+    //      terganggu sama sekali.
+    //   4. Rate limit yang sudah ada berlaku untuk endpoint /api/auth/*.
+    //   5. Tanpa kode yang benar, tidak ada perubahan apa pun.
+    {
+      method: 'POST',
+      pattern: '/api/auth/akun/minta-kode-batal',
+      handler: async (req, res) => {
+        const body = await readJson(req).catch(() => ({}));
+        const email = normalEmail(String(body.email || ''));
+
+        if (!email) {
+          return sendJson(res, 400, { ok: false, error: 'email_kosong', message: 'Email wajib diisi.' });
+        }
+
+        const cek = cekKodePembatalan(email);
+
+        // ── JAWABAN SERAGAM ───────────────────────────────────────────────────
+        //
+        // Baik email tak dikenal maupun akun aktif mendapat jawaban yang sama.
+        // Kalau dibedakan, endpoint ini jadi alat memetakan email terdaftar.
+        //
+        // Pesannya tetap memberi tahu pengguna apa yang harus dilakukan,
+        // tanpa membocorkan apakah emailnya ada.
+        if (!cek.boleh) {
+          return sendJson(res, 200, {
+            ok: true,
+            terkirim: false,
+            pesan: 'Kalau email itu punya akun yang menunggu dihapus, kami sudah mengirim kodenya. '
+              + 'Periksa kotak masuk Anda.',
+          });
+        }
+
+        // ── BUAT + SIMPAN KODE ────────────────────────────────────────────────
+        const kode = String(randomInt(0, 1000000)).padStart(6, '0');
+        const hash = createHash('sha256').update(`${kode}:${email}`).digest('hex');
+        const kedaluwarsa = Date.now() + 15 * 60 * 1000;
+
+        getDb().prepare('DELETE FROM password_resets WHERE user_id = ?').run(cek.id);
+        getDb().prepare(`
+          INSERT INTO password_resets (user_id, token_hash, dibuat_at, kedaluwarsa)
+          VALUES (?, ?, ?, ?)
+        `).run(cek.id, hash, Date.now(), kedaluwarsa);
+
+        // ── KIRIM EMAIL ───────────────────────────────────────────────────────
+        let terkirim = false;
+        try {
+          // Dynamic import — lihat penjelasan di endpoint hapus-mulai.
+          const { kirimEmailResetSandi } = await import('./email.mjs');
+          const r = await kirimEmailResetSandi({ ke: email, token: kode, nama: cek.nama });
+          terkirim = Boolean(r?.ok);
+        } catch (err) {
+          console.warn('[batal-hapus] email gagal:', err?.message ?? err);
+        }
+
+        // ── KODE DI LOG KALAU EMAIL GAGAL ─────────────────────────────────────
+        //
+        // Tanpa ini pengguna terjebak: tidak menerima email, tidak bisa
+        // membatalkan, dan akunnya terhapus dalam 30 hari.
+        //
+        // HANYA dicatat kalau email benar-benar gagal.
+        if (!terkirim) {
+          console.warn(`[batal-hapus] KODE MANUAL untuk ${email}: ${kode}`);
+        }
+
+        recordEvent({
+          tokenId: null,
+          action: 'akun_batal_diminta',
+          outcome: terkirim ? 'ok' : 'email_gagal',
+          ip: clientIp(req), userAgent: req.headers['user-agent'] || '',
+          country: clientCountry(req),
+          detail: `kode pembatalan untuk akun menunggu_hapus (sisa ${cek.sisa_hari} hari)`,
+        });
+
+        sendJson(res, 200, {
+          ok: true,
+          terkirim,
+          pesan: terkirim
+            ? `Kode dikirim ke ${email}. Berlaku 15 menit.`
+            : 'Kode dibuat, tapi email gagal terkirim. Hubungi dukungan.',
+          kedaluwarsa,
+          sisa_hari: cek.sisa_hari,
         });
       },
     },
