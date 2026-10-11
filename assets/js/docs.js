@@ -108,6 +108,53 @@ import { icon, iconHtml } from './icons.js';
     toc.appendChild(frag);
   }
 
+  // ── 1a. Tombol buka-tutup untuk MOBILE ─────────────────────────────────────
+  //
+  // ── KENAPA DIBUAT DI JS, BUKAN DI HTML ──────────────────────────────────────
+  // Tombol ini hanya berguna di layar kecil (CSS menyembunyikannya di
+  // ≥900px). Menaruhnya di HTML berarti desktop ikut memuat elemen yang
+  // tidak pernah terlihat — dan pembaca layar desktop akan menemukan
+  // tombol "Di halaman ini" yang membuka daftar yang sudah terlihat.
+  //
+  // Dibuat di sini: desktop tidak tahu tombol ini ada.
+  //
+  // ── KENAPA TERTUTUP SECARA DEFAULT DI MOBILE ────────────────────────────────
+  // Daftar 7 baris memakan 315px (37% tinggi layar 390px) sebelum konten
+  // pertama terlihat. Tertutup: 48px. Pengunjung yang ingin melompat ke
+  // bagian lain tetap bisa — satu ketukan. Yang membaca dari atas tidak
+  // membayar ongkos ruang itu.
+  if (toc.querySelector('.toc-bagian')) {
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'toc-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', 'toc');
+
+    var label = document.createElement('span');
+    label.className = 'toc-toggle-label';
+    label.textContent = 'Di halaman ini';
+    toggle.appendChild(label);
+
+    // Jumlah bagian — memberi tahu ada berapa, tanpa perlu membuka.
+    var jumlahBagian = toc.querySelectorAll('.toc-bagian').length;
+    var jumlah = document.createElement('span');
+    jumlah.className = 'toc-toggle-jumlah';
+    jumlah.textContent = jumlahBagian + ' bagian';
+    toggle.appendChild(jumlah);
+
+    var panahToggle = document.createElement('span');
+    panahToggle.className = 'toc-toggle-panah';
+    panahToggle.setAttribute('aria-hidden', 'true');
+    toggle.appendChild(panahToggle);
+
+    toggle.addEventListener('click', function () {
+      var terbuka = toc.classList.toggle('is-terbuka');
+      toggle.setAttribute('aria-expanded', terbuka ? 'true' : 'false');
+    });
+
+    toc.insertBefore(toggle, toc.firstChild);
+  }
+
   // ── 1b. Buka-tutup bagian ──────────────────────────────────────────────────
   //
   // Tombol + aria-expanded, bukan <details>: <details> tidak bisa dibuat
