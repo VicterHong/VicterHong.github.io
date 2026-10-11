@@ -692,6 +692,58 @@
               <p class="auth-msg" id="kamPesanNotif" role="status" aria-live="polite"></p>
             </section>
 
+            <!-- ══ DANGER ZONE — DI LUAR TAB ═══════════════════════════════════
+                 ── KENAPA DI LUAR SISTEM TAB ────────────────────────────────────
+                 "Hapus akun" bukan bagian dari satu tab tertentu — ia berlaku
+                 untuk SELURUH akun. Menaruhnya di dalam tab (mis. Keamanan)
+                 membuatnya tersembunyi saat pengguna membuka tab lain, dan
+                 pengguna yang mencari fitur ini harus menebak tab mana.
+
+                 Dengan ditaruh di bawah panel, ia SELALU terlihat — dan itu
+                 memang yang diinginkan: keputusan sebesar ini sebaiknya tidak
+                 mudah dilewatkan.
+
+                 ── KENAPA DI PALING BAWAH ───────────────────────────────────────
+                 Halaman dibaca dari atas ke bawah. Yang paling bawah adalah
+                 yang paling terakhir dilihat — dan untuk aksi merusak, itu
+                 urutan yang benar: pengguna harus MELEWATI semua pengaturan
+                 lain sebelum mencapainya.
+
+                 GitHub, Stripe, dan Google menempatkannya sama: paling bawah.
+
+                 ── KENAPA TERPISAH DARI PANEL LAIN ──────────────────────────────
+                 `#kamIsi` (pembungkus panel) disembunyikan saat belum login.
+                 Danger Zone ditaruh di LUARNYA supaya markup-nya tidak ikut
+                 tersembunyi bersama panel — dan JS bisa mengelolanya sendiri
+                 berdasarkan status login. -->
+            <section class="kam-danger" id="kamDanger" hidden>
+              <div class="kam-danger-kepala">
+                <span class="kam-danger-ikon" aria-hidden="true">
+                  <svg viewBox="0 0 256 256" fill="currentColor" width="20" height="20" aria-hidden="true" focusable="false"><path d="M236.8,188.09,149.35,36.22a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z"/></svg>
+                </span>
+                <div>
+                  <h3 class="kam-danger-judul">Zona berbahaya</h3>
+                  <p class="kam-danger-ket">Tindakan permanen pada data akun Anda.</p>
+                </div>
+              </div>
+
+              <div class="kam-danger-baris">
+                <div class="kam-danger-teks">
+                  <p class="kam-danger-nama">Hapus akun</p>
+                  <p class="kam-danger-detail">
+                    Menghapus akun dan seluruh data pribadi Anda secara permanen.
+                    Riwayat pembelian, cara masuk, dan pengaturan akan hilang dan
+                    <strong>tidak bisa dikembalikan</strong>.
+                  </p>
+                </div>
+                <button class="btn btn-bahaya" type="button" id="kamHapusAkun">
+                  Hapus akun
+                </button>
+              </div>
+
+              <p class="auth-msg" id="kamPesanDanger" role="status" aria-live="polite"></p>
+            </section>
+
           </div>
         </div>
 
@@ -727,6 +779,73 @@
       <button class="auth-oauth" type="button" id="kamDialogBatal">Batal</button>
       <button class="auth-oauth auth-oauth-bahaya" type="button" id="kamDialogHapus">Hapus</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ DIALOG HAPUS AKUN ══════════════════════════════════════════════════════
+     ── KENAPA DIALOG TERPISAH, BUKAN PAKAI YANG SUDAH ADA ────────────────────
+     Dialog di atas (`#kamDialog`) hanya punya judul, teks, dan dua tombol.
+     Hapus akun butuh INPUT — kolom kode 6 digit — dan itu tidak muat di
+     struktur itu tanpa menambah kondisi rumit.
+
+     Dialog terpisah lebih jelas: satu dialog, satu tujuan.
+
+     ── KENAPA DUA LANGKAH DI DALAM DIALOG YANG SAMA ──────────────────────────
+     Langkah 1: tombol "Kirim kode" → server kirim kode ke email.
+     Langkah 2: kolom kode muncul → pengguna memasukkan kode → "Hapus permanen".
+
+     Kalau masing-masing langkah punya dialog sendiri, pengguna melihat dialog
+     menutup lalu membuka lagi — terasa seperti dua alur terpisah, padahal ini
+     satu proses.
+
+     ── KENAPA `aria-describedby` ─────────────────────────────────────────────
+     Pembaca layar akan membacakan peringatan sebelum tombolnya. Tanpa itu,
+     pengguna tunanetra bisa menekan "Hapus permanen" tanpa pernah mendengar
+     bahwa tindakan ini tidak bisa dibatalkan. -->
+<div class="kam-dialog" id="kamDialogHapusAkun" hidden>
+  <div class="kam-dialog-latar" data-tutup="1"></div>
+  <div class="kam-dialog-kotak" role="dialog" aria-modal="true"
+       aria-labelledby="kamHapusJudul" aria-describedby="kamHapusPeringatan">
+    <h3 class="kam-dialog-judul" id="kamHapusJudul">Hapus akun permanen?</h3>
+
+    <p class="kam-dialog-teks" id="kamHapusPeringatan">
+      Tindakan ini <strong>tidak bisa dibatalkan</strong>. Seluruh data pribadi
+      Anda — riwayat pembelian, cara masuk, pengaturan — akan dihapus permanen.
+    </p>
+
+    <!-- Langkah 1: kirim kode -->
+    <div id="kamHapusLangkah1">
+      <p class="kam-dialog-teks">
+        Kami akan mengirim kode 6 digit ke email Anda untuk memastikan ini
+        benar-benar Anda.
+      </p>
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamHapusBatal">Batal</button>
+        <button class="auth-oauth auth-oauth-bahaya" type="button" id="kamHapusKirimKode">
+          Kirim kode
+        </button>
+      </div>
+    </div>
+
+    <!-- Langkah 2: masukkan kode (muncul setelah kode terkirim) -->
+    <div id="kamHapusLangkah2" hidden>
+      <label class="kam-hapus-label" for="kamHapusKode">Kode verifikasi</label>
+      <input class="kam-hapus-input" id="kamHapusKode" type="text"
+             inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" placeholder="000000" aria-describedby="kamHapusBantuan">
+      <p class="kam-hapus-bantuan" id="kamHapusBantuan">
+        Kode berlaku 15 menit. Tidak menerima email?
+        <button class="kam-hapus-tautan" type="button" id="kamHapusKirimUlang">Kirim ulang</button>
+      </p>
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamHapusBatal2">Batal</button>
+        <button class="auth-oauth auth-oauth-bahaya" type="button" id="kamHapusKonfirmasi">
+          Hapus permanen
+        </button>
+      </div>
+    </div>
+
+    <p class="auth-msg" id="kamHapusPesan" role="status" aria-live="polite"></p>
   </div>
 </div>
 

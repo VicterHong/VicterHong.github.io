@@ -2364,6 +2364,194 @@
     panel.classList.add('kam-masuk');
   }
 
+  // ══ DANGER ZONE — HAPUS AKUN ═══════════════════════════════════════════════
+  //
+  // ── KENAPA DUA LANGKAH ─────────────────────────────────────────────────────
+  //
+  // Menghapus akun tidak bisa dibatalkan. Satu klik salah berarti kehilangan
+  // akses selamanya.
+  //
+  // Langkah 1: minta kode → server kirim 6 digit ke email
+  // Langkah 2: masukkan kode → akun dihapus
+  //
+  // ── KENAPA KODE EMAIL, BUKAN KETIK NAMA ────────────────────────────────────
+  //
+  // Pola umum meminta pengguna mengetik nama akun. Itu mencegah klik tidak
+  // sengaja, TAPI tidak mencegah:
+  //   • Seseorang memakai perangkat bersama yang masih login
+  //   • Sesi yang dicuri
+  //
+  // Kode email membuktikan pengguna masih menguasai EMAIL-nya — bukan hanya
+  // perangkat yang kebetulan masih login.
+  //
+  // ── KENAPA TAMPILKAN DANGER ZONE HANYA SAAT LOGIN ──────────────────────────
+  //
+  // Seksi ini ada di luar `#kamIsi` (lihat komentar di HTML), jadi JS yang
+  // menentukan tampil-tidaknya. Kalau belum login, tidak ada akun untuk
+  // dihapus — menampilkan tombolnya hanya membingungkan.
+  function initDanger() {
+    const seksi = $('#kamDanger');
+    const tombol = $('#kamHapusAkun');
+    if (!seksi || !tombol) return;
+
+    // Tampilkan hanya kalau pengguna sudah login.
+    // `initDanger` dipanggil setelah data pengguna dimuat, jadi kita bisa
+    // membaca keberadaan tombol "Keluar" sebagai penanda login.
+    const keluar = document.querySelector('a[href="/api/auth/keluar"], #kamKeluar');
+    if (keluar) seksi.hidden = false;
+
+    const dlg = $('#kamDialogHapusAkun');
+    const l1 = $('#kamHapusLangkah1');
+    const l2 = $('#kamHapusLangkah2');
+    const inpKode = $('#kamHapusKode');
+    const pesan = $('#kamHapusPesan');
+    if (!dlg) return;
+
+    /** Kembalikan dialog ke langkah 1 — dipakai saat dibuka dan ditutup. */
+    function resetDialog() {
+      if (l1) l1.hidden = false;
+      if (l2) l2.hidden = true;
+      if (inpKode) inpKode.value = '';
+      if (pesan) { pesan.textContent = ''; pesan.className = 'auth-msg'; }
+    }
+
+    function buka() {
+      resetDialog();
+      dlg.hidden = false;
+      // Fokus ke tombol pertama — supaya pengguna keyboard tidak tersesat
+      // di belakang dialog.
+      setTimeout(() => $('#kamHapusKirimKode')?.focus(), 50);
+    }
+
+    function tutup() {
+      dlg.hidden = true;
+      resetDialog();
+      // Kembalikan fokus ke tombol yang membuka dialog.
+      tombol.focus();
+    }
+
+    function pesanDanger(teks, jenis = '') {
+      if (!pesan) return;
+      pesan.textContent = teks;
+      pesan.classList.toggle('is-galat', jenis === 'galat');
+      pesan.classList.toggle('is-sukses', jenis === 'sukses');
+    }
+
+    // ── BUKA / TUTUP ─────────────────────────────────────────────────────────
+    tombol.addEventListener('click', buka);
+
+    for (const id of ['#kamHapusBatal', '#kamHapusBatal2']) {
+      $(id)?.addEventListener('click', tutup);
+    }
+
+    // Klik latar gelap = tutup. `data-tutup="1"` ada di elemen latar.
+    dlg.querySelector('[data-tutup]')?.addEventListener('click', tutup);
+
+    // Escape menutup dialog — pola standar untuk modal.
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); tutup(); }
+    });
+
+    // ── LANGKAH 1: KIRIM KODE ────────────────────────────────────────────────
+    async function kirimKode() {
+      const btn = $('#kamHapusKirimKode') || $('#kamHapusKirimUlang');
+      if (btn) { btn.disabled = true; btn.classList.add('is-memuat'); }
+      pesanDanger('Mengirim kode…');
+
+      try {
+        const res = await fetch('/api/auth/akun/hapus-mulai', {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+        const d = await res.json().catch(() => ({}));
+
+        if (!res.ok || !d.ok) {
+          pesanDanger(d.message || 'Tidak bisa mengirim kode. Coba lagi.', 'galat');
+          return;
+        }
+
+        // Pindah ke langkah 2.
+        if (l1) l1.hidden = true;
+        if (l2) l2.hidden = false;
+        pesanDanger(d.pesan || 'Kode terkirim. Periksa email Anda.', 'sukses');
+        setTimeout(() => inpKode?.focus(), 50);
+
+      } catch {
+        pesanDanger('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+      } finally {
+        if (btn) { btn.disabled = false; btn.classList.remove('is-memuat'); }
+      }
+    }
+
+    $('#kamHapusKirimKode')?.addEventListener('click', kirimKode);
+    $('#kamHapusKirimUlang')?.addEventListener('click', kirimKode);
+
+    // ── LANGKAH 2: KONFIRMASI ────────────────────────────────────────────────
+    async function konfirmasi() {
+      const kode = (inpKode?.value || '').trim();
+
+      // Validasi klien — umpan balik cepat. Server memvalidasi ULANG.
+      if (!/^\d{6}$/.test(kode)) {
+        pesanDanger('Kode harus 6 angka.', 'galat');
+        inpKode?.focus();
+        return;
+      }
+
+      const btn = $('#kamHapusKonfirmasi');
+      if (btn) { btn.disabled = true; btn.classList.add('is-memuat'); }
+      pesanDanger('Menghapus akun…');
+
+      try {
+        const res = await fetch('/api/auth/akun/hapus', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kode }),
+        });
+        const d = await res.json().catch(() => ({}));
+
+        if (!res.ok || !d.ok) {
+          pesanDanger(d.message || 'Tidak bisa menghapus akun. Coba lagi.', 'galat');
+          // Kalau kodenya kedaluwarsa, kembali ke langkah 1 supaya pengguna
+          // bisa minta kode baru — tanpa menutup dialog.
+          if (d.error === 'kode_kedaluwarsa') {
+            if (l1) l1.hidden = false;
+            if (l2) l2.hidden = true;
+          }
+          return;
+        }
+
+        // ── BERHASIL ──────────────────────────────────────────────────────────
+        // Akun sudah tidak ada. Tampilkan pesan sukses singkat, lalu alihkan
+        // ke beranda. Tidak perlu menutup dialog — halaman akan berganti.
+        pesanDanger('Akun Anda sudah dihapus. Mengalihkan…', 'sukses');
+        setTimeout(() => { location.href = '/'; }, 1500);
+
+      } catch {
+        pesanDanger('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+      } finally {
+        if (btn) { btn.disabled = false; btn.classList.remove('is-memuat'); }
+      }
+    }
+
+    $('#kamHapusKonfirmasi')?.addEventListener('click', konfirmasi);
+
+    // Enter di kolom kode = konfirmasi. Pengguna yang mengetik 6 digit lalu
+    // menekan Enter mengharapkan aksinya jalan.
+    inpKode?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); konfirmasi(); }
+    });
+
+    // Hanya angka yang diterima — huruf diabaikan tanpa pesan galat, karena
+    // kolomnya sudah `inputmode="numeric"`.
+    inpKode?.addEventListener('input', () => {
+      inpKode.value = inpKode.value.replace(/\D/g, '').slice(0, 6);
+    });
+  }
+
+  initDanger();
+
+
   // Aman tanpa sesi: querySelector mengembalikan daftar kosong, fungsi
   // berhenti di baris pertama.
   initSisi();

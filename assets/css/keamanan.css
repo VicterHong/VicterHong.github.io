@@ -2036,3 +2036,215 @@
   .kam-toggle,
   .kam-toggle-knob { transition: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DANGER ZONE — hapus akun
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA LATAR MERAH MUDA, BUKAN BORDER MERAH ─────────────────────────────
+
+   Border merah hanya menandai TEPI — dan mata sering melewatkannya saat
+   memindai halaman. Latar berwarna menandai SELURUH area, jadi terlihat
+   bahkan dari sudut mata.
+
+   HorizonX, GitHub, dan Stripe memakai pendekatan yang sama: latar merah
+   sangat muda (bukan merah pekat), supaya tidak terasa seperti galat sistem.
+
+   ── KENAPA MERAH MUDA, BUKAN MERAH TERANG ───────────────────────────────────
+
+   Merah terang di seluruh area terlalu agresif — pengguna merasa ada yang
+   rusak. Yang dibutuhkan: "hati-hati", bukan "bahaya".
+
+   ── KENAPA TERPISAH DARI PANEL LAIN ─────────────────────────────────────────
+
+   Jarak 32px dari elemen di atasnya. Pemisahan visual ini yang membuat
+   Danger Zone terbaca sebagai bagian tersendiri — bukan kelanjutan dari
+   pengaturan di atasnya.
+
+   ── KENAPA TOMBOL MERAH PEKAT, BUKAN OUTLINE ────────────────────────────────
+
+   Tombol outline pada aksi merusak terasa ambigu — "apakah ini penting?"
+   Tombol merah pekat tidak meninggalkan keraguan.
+
+   Sekaligus: ini satu-satunya tombol merah pekat di seluruh halaman. Karena
+   itu ia menonjol — dan memang harus.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.kam-danger {
+  margin-top: 32px;
+  padding: 20px;
+  border-radius: var(--radius-kartu, 12px);
+  /* Latar merah sangat muda — 6% dari warna bahaya. Cukup terlihat sebagai
+     zona berbeda, tidak cukup untuk terasa seperti galat sistem. */
+  background: rgba(248, 113, 113, 0.06);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.kam-danger-kepala {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.kam-danger-ikon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.kam-danger-judul {
+  margin: 0 0 3px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f87171;
+}
+
+.kam-danger-ket {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--teks-samar);
+}
+
+.kam-danger-baris {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(248, 113, 113, 0.15);
+}
+
+.kam-danger-teks {
+  flex: 1;
+  min-width: 0;
+}
+
+.kam-danger-nama {
+  margin: 0 0 4px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--teks);
+}
+
+.kam-danger-detail {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--teks-samar);
+}
+
+.kam-danger-detail strong {
+  color: var(--teks-redup);
+  font-weight: 600;
+}
+
+/* ── TOMBOL MERAH ─────────────────────────────────────────────────────────────
+   Satu-satunya tombol merah pekat di seluruh halaman. */
+.btn-bahaya {
+  flex: 0 0 auto;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #fff;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.16s ease;
+}
+
+.btn-bahaya:hover { background: #b91c1c; }
+.btn-bahaya:active { background: #991b1b; }
+
+.btn-bahaya:focus-visible {
+  outline: 2px solid #f87171;
+  outline-offset: 2px;
+}
+
+.btn-bahaya:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ── DI PONSEL: TOMBOL DI BAWAH, BUKAN DI SAMPING ─────────────────────────────
+   Di layar sempit, tombol di samping teks membuat keduanya terhimpit —
+   teksnya membungkus jadi banyak baris, tombolnya terpotong.
+
+   Ditumpuk vertikal, keduanya dapat lebar penuh. */
+@media (max-width: 560px) {
+  .kam-danger-baris {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .btn-bahaya { width: 100%; text-align: center; }
+}
+
+/* ── KOLOM KODE DI DIALOG ─────────────────────────────────────────────────────
+   ── KENAPA `letter-spacing` LEBAR ────────────────────────────────────────────
+   Kode 6 digit dibaca satu per satu saat mengetik ulang dari email. Jarak
+   antar-angka yang lebar membuat setiap digit mudah dibedakan — dan membantu
+   pengguna mengecek apakah ia salah ketik.
+
+   ── KENAPA `text-align: center` ──────────────────────────────────────────────
+   Kode yang dipusatkan terasa seperti "sesuatu yang dimasukkan", bukan kolom
+   teks biasa. */
+.kam-hapus-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--teks-redup);
+}
+
+.kam-hapus-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-input, 8px);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--teks);
+  font: inherit;
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4em;
+  text-align: center;
+  transition: border-color 0.16s ease;
+}
+
+.kam-hapus-input::placeholder {
+  color: var(--teks-samar);
+  letter-spacing: 0.4em;
+}
+
+.kam-hapus-input:focus {
+  outline: 0;
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
+}
+
+.kam-hapus-bantuan {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: var(--teks-samar);
+}
+
+.kam-hapus-tautan {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--emas, #f5c542);
+  font: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.kam-hapus-tautan:hover { color: var(--emas-terang, #f7d77a); }
