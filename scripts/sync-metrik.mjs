@@ -108,6 +108,27 @@ function bacaRam(service) {
   }
 }
 
+/**
+ * Bulatkan RAM ke langkah 8 MB.
+ *
+ * ── KENAPA DIBULATKAN ───────────────────────────────────────────────────────
+ *
+ * RAM layanan berfluktuasi beberapa MB dari detik ke detik (diukur: 60, 72, 73
+ * MB dalam satu menit). Tanpa pembulatan, setiap pemeriksaan melihat "perubahan"
+ * dan memicu deploy — padahal tidak ada yang benar-benar berubah.
+ *
+ * Dengan langkah 8 MB, angkanya hanya bergerak saat ada perubahan NYATA
+ * (fitur baru, cache tumbuh). Ini juga lebih jujur untuk portofolio: "~72 MB"
+ * lebih tepat daripada "73 MB" yang basi dalam semenit.
+ *
+ * Portofolio MINA sudah memakai gaya ini: "~25 MB".
+ */
+function bulatkanRam(mb) {
+  if (mb === null) return null;
+  const LANGKAH = 8;
+  return Math.max(LANGKAH, Math.round(mb / LANGKAH) * LANGKAH);
+}
+
 // ── BACA DATA SEKARANG ────────────────────────────────────────────────────────
 
 let isi = readFileSync(DATA_FILE, 'utf8');
@@ -115,7 +136,7 @@ const perubahan = [];
 
 for (const [slug, sumber] of Object.entries(SUMBER)) {
   const tes = hitungTes(sumber);
-  const ram = bacaRam(sumber.service);
+  const ram = bulatkanRam(bacaRam(sumber.service));
 
   // Cari blok proyek dengan slug ini, lalu blok metrics di dalamnya.
   const awalSlug = isi.indexOf(`slug: '${slug}'`);
