@@ -284,7 +284,7 @@
                    Hanya yang BELUM ada di kartu identitas: kapan akun dibuat.
                    Itu informasi yang memang dicari orang di halaman akun, dan
                    tidak muncul di tempat lain. -->
-              <dl class="kam-daftar" id="kamProfilLihat">
+              <dl class="kam-daftar kam-reveal" id="kamProfilLihat">
                 <div class="kam-baris">
                   <dt>Dibuat</dt>
                   <dd id="kamDibuat">—</dd>
@@ -430,7 +430,7 @@
                 satunya tidak menghapus profil. Ia hanya menutup jalan itu.
               </p>
 
-              <ul class="kam-senarai" id="kamSenarai"></ul>
+              <ul class="kam-senarai kam-reveal" id="kamSenarai"></ul>
 
               <!-- Tambah passkey -->
               <!-- ══ TAMBAH PASSKEY ═══════════════════════════════════════════════
@@ -479,7 +479,7 @@
               </p>
 
               <!-- Daftar pembelian diisi JS -->
-              <ul class="kam-senarai" id="kamPembelian"></ul>
+              <ul class="kam-senarai kam-reveal" id="kamPembelian"></ul>
 
               <!-- Keadaan kosong -->
               <div class="kam-kosong" id="kamBayarKosong" hidden>
@@ -525,7 +525,7 @@
                 </button>
               </div>
 
-              <ul class="kam-senarai kam-senarai-sesi" id="kamSesi"></ul>
+              <ul class="kam-senarai kam-senarai-sesi kam-reveal" id="kamSesi"></ul>
               <div class="kam-kosong" id="kamSesiKosong" hidden>
                 <p class="kam-kosong-judul">Tidak ada sesi aktif</p>
                 <p class="kam-kosong-teks">Sesi akan muncul di sini saat Anda masuk.</p>
@@ -541,7 +541,7 @@
                 ditampilkan sekali saat diterbitkan. Setelah itu tidak bisa
                 dilihat lagi, termasuk oleh kami.
               </p>
-              <dl class="kam-daftar" id="kamTokenDaftar"></dl>
+              <dl class="kam-daftar kam-reveal" id="kamTokenDaftar"></dl>
               <div class="kam-kosong" id="kamTokenKosong" hidden>
                 <p class="kam-kosong-judul">Belum ada token</p>
                 <p class="kam-kosong-teks">Token diterbitkan setelah pembelian terkonfirmasi.</p>
@@ -556,7 +556,7 @@
                 Catatan aktivitas akun Anda. Kalau ada yang tidak Anda kenali,
                 cabut sesinya di tab Sesi aktif.
               </p>
-              <ul class="kam-senarai" id="kamAktivitas"></ul>
+              <ul class="kam-senarai kam-reveal" id="kamAktivitas"></ul>
               <div class="kam-kosong" id="kamAktivitasKosong" hidden>
                 <p class="kam-kosong-judul">Belum ada aktivitas</p>
                 <p class="kam-kosong-teks">Catatan akan muncul di sini setelah akun dipakai.</p>
@@ -576,7 +576,7 @@
                 <span class="kam-lencana" id="kamLencana2fa">—</span>
                 <p class="kam-status2fa-teks" id="kamTeks2fa"></p>
               </div>
-              <dl class="kam-daftar" id="kamDaftar2fa" hidden></dl>
+              <dl class="kam-daftar kam-reveal" id="kamDaftar2fa" hidden></dl>
               <p class="auth-msg" id="kamPesan2fa" role="status" aria-live="polite"></p>
             </section>
 

@@ -1429,3 +1429,145 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SISTEM REVEAL — adaptasi dari HorizonX.so
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── APA YANG DIADAPTASI ──────────────────────────────────────────────────────
+
+   HorizonX memakai pola TIGA KELAS yang dipasang JavaScript berurutan:
+
+     .is-armed     → elemen disiapkan (tersembunyi, siap beranimasi)
+     .is-revealed  → elemen ditampilkan (transisi berjalan)
+     .is-settled   → bersihkan will-change (setelah selesai)
+
+   ── KENAPA TIGA FASE, BUKAN DUA ──────────────────────────────────────────────
+
+   Versi naif hanya punya dua: sembunyi → tampil. Masalahnya, elemen yang
+   disembunyikan SEBELUM JavaScript jalan akan BERKEDIP — terlihat sebentar,
+   lalu hilang, lalu muncul lagi. Kedipan itu terasa seperti bug.
+
+   Dengan `.is-armed`, JavaScript menandai elemen SEBELUM menyembunyikannya.
+   Kalau JS gagal dimuat, tidak ada `.is-armed` — dan elemen tetap terlihat.
+   Fail-open, bukan fail-closed: kegagalan JS tidak boleh menyembunyikan konten.
+
+   ── KENAPA .is-settled PENTING ───────────────────────────────────────────────
+
+   `will-change: transform` memberi tahu browser "elemen ini akan berubah",
+   dan browser membuat LAYER GPU terpisah untuk elemen itu.
+
+   Kalau dibiarkan selamanya, 50 elemen = 50 layer GPU = memori terbuang
+   sia-sia. `.is-settled` menghapus `will-change` setelah animasi selesai.
+
+   Ini detail yang sering dilewatkan — kebanyakan implementasi memasang
+   `will-change` dan lupa membersihkannya.
+
+   ── KENAPA DELAY DIHITUNG, BUKAN DITULIS SATU-SATU ──────────────────────────
+
+   Cara umum: `.item:nth-child(1) { delay: 24ms }` ... `.item:nth-child(10)`.
+   Itu TERBATAS 10 item dan harus diedit setiap kali daftar bertambah.
+
+   HorizonX menghitung dari `--reveal-index` yang diisi JavaScript:
+
+     transition-delay: calc(var(--reveal-index, 0) * var(--reveal-stagger));
+
+   Satu aturan menangani berapa pun jumlah item — 5, 50, atau 500.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Jarak gerak masuk. 14px cukup untuk terasa bergerak, tidak cukup untuk
+     terasa "melompat". HorizonX memakai angka yang sama. */
+  --kam-reveal-jarak: 14px;
+
+  /* Durasi. 0.26s terasa responsif tanpa terasa tergesa. */
+  --kam-reveal-durasi: 0.26s;
+
+  /* Jeda antar item. 24ms = terasa berurutan, tidak terasa lambat.
+     Diukur HorizonX: 18ms (rapat), 24ms (default), 30ms (renggang). */
+  --kam-reveal-jeda: 24ms;
+}
+
+/* ── KEPADATAN ────────────────────────────────────────────────────────────────
+   Tiga varian siap pakai. `--rapat` untuk daftar panjang, `--renggang` untuk
+   item besar yang perlu waktu diproses mata. */
+.kam-reveal--rapat    { --kam-reveal-jeda: 18ms; }
+.kam-reveal--renggang { --kam-reveal-jeda: 30ms; }
+
+/* ── FASE 1: ARMED — elemen disembunyikan ─────────────────────────────────────
+   Hanya berlaku kalau `.is-armed` sudah dipasang JS. Tanpa itu, elemen tetap
+   terlihat — inilah jaring pengaman kalau JS gagal. */
+.kam-reveal.is-armed > * {
+  opacity: 0;
+  transform: translate3d(0, var(--kam-reveal-jarak), 0);
+  transition:
+    opacity var(--kam-reveal-durasi) var(--pegas),
+    transform var(--kam-reveal-durasi) var(--pegas);
+  transition-delay: calc(var(--kam-reveal-index, 0) * var(--kam-reveal-jeda));
+}
+
+/* ── ARAH GERAK ───────────────────────────────────────────────────────────────
+   Default masuk dari bawah. Varian arah untuk kasus lain. */
+.kam-reveal--atas.is-armed > * {
+  transform: translate3d(0, calc(var(--kam-reveal-jarak) * -1), 0);
+}
+.kam-reveal--kiri.is-armed > * {
+  transform: translate3d(var(--kam-reveal-jarak), 0, 0);
+}
+.kam-reveal--kanan.is-armed > * {
+  transform: translate3d(calc(var(--kam-reveal-jarak) * -1), 0, 0);
+}
+
+/* ── FASE 2: REVEALED — elemen ditampilkan ────────────────────────────────────
+   `will-change` dipasang DI SINI, bukan di keadaan awal. Memasangnya sebelum
+   animasi berarti browser membuat layer GPU untuk elemen yang belum bergerak. */
+.kam-reveal.is-armed.is-revealed > * {
+  opacity: 1;
+  transform: translate(0);
+  will-change: transform, opacity;
+}
+
+/* ── FASE 3: SETTLED — bersihkan will-change ──────────────────────────────────
+   Setelah animasi selesai, layer GPU tidak diperlukan lagi. Menghapusnya
+   mengembalikan memori ke browser.
+
+   `will-change: auto` (bukan `none`) adalah nilai standar untuk "kembali
+   ke perilaku bawaan browser". */
+.kam-reveal.is-armed.is-settled > * {
+  will-change: auto;
+}
+
+/* ── VARIAN SETTLE — gerak lebih halus ────────────────────────────────────────
+   Untuk elemen yang SUDAH di layar dan hanya perlu "menetap", bukan masuk
+   dari luar. Jarak lebih kecil (8px), durasi sedikit lebih pendek. */
+.kam-reveal--menetap {
+  --kam-reveal-jarak: 8px;
+  --kam-reveal-durasi: 0.24s;
+}
+
+/* ── HALAMAN MASUK ────────────────────────────────────────────────────────────
+   Untuk transisi antar-tab: seluruh panel masuk sebagai satu kesatuan,
+   bukan item per item. Dipakai saat berpindah tab di halaman profil. */
+.kam-masuk {
+  animation: kamMasuk var(--kam-reveal-durasi) var(--pegas) both;
+}
+
+@keyframes kamMasuk {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to   { opacity: 1; transform: translate(0); }
+}
+
+/* ── HORMATI PREFERENSI PENGGUNA ──────────────────────────────────────────────
+   Sebagian orang mengalami pusing atau mual dari gerakan di layar.
+   `prefers-reduced-motion` adalah cara mereka memberi tahu sistem.
+
+   Elemen harus tetap TERLIHAT — hanya gerakannya yang dimatikan.
+   Menyembunyikannya akan membuat halaman kosong. */
+@media (prefers-reduced-motion: reduce) {
+  .kam-reveal.is-armed > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .kam-masuk { animation: none !important; }
+}

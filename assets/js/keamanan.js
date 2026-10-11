@@ -1913,6 +1913,9 @@
         const aktif = p.id === id;
         p.hidden = !aktif;
         p.classList.toggle('is-aktif', aktif);
+        // Panel yang baru dibuka diberi animasi masuk. Tanpa ini, tab berganti
+        // secara mendadak — terasa seperti halaman rusak, bukan berpindah bagian.
+        if (aktif) animasiPanel(p);
       }
       // ── PEMUATAN MALAS ───────────────────────────────────────────────────────
       // Isi tab dimuat saat tabnya DIBUKA, bukan saat halaman dimuat. Profil
@@ -1965,9 +1968,143 @@
     });
   }
 
+  // ══ SISTEM REVEAL — adaptasi dari HorizonX.so ══════════════════════════════
+  //
+  // ── APA YANG DILAKUKAN ────────────────────────────────────────────────────
+  //
+  // Memberi `--kam-reveal-index` ke setiap anak elemen `.kam-reveal`, lalu
+  // memasang `.is-armed` → `.is-revealed` → `.is-settled` berurutan.
+  //
+  // CSS yang menghitung delay dari indeks itu. JavaScript tidak menyentuh
+  // opacity atau transform sama sekali.
+  //
+  // ── KENAPA TIGA FASE ──────────────────────────────────────────────────────
+  //
+  // `.is-armed` dipasang SEBELUM menyembunyikan. Kalau JS gagal dimuat, class
+  // itu tidak pernah ada — dan CSS tidak menyembunyikan apa pun. Konten tetap
+  // terlihat.
+  //
+  // `.is-settled` membersihkan `will-change` setelah animasi selesai. Tanpa
+  // itu, setiap elemen mempertahankan layer GPU-nya selamanya.
+  //
+  // ── JEBAKAN YANG DITEMUKAN SAAT UJI (penting) ─────────────────────────────
+  //
+  // Versi pertama memakai `requestAnimationFrame` ganda untuk memicu transisi.
+  // Itu POLA YANG SALAH untuk kasus ini.
+  //
+  // Diuji: `requestAnimationFrame` TIDAK PERNAH JALAN di browser headless —
+  // `document.timeline.currentTime` tetap 0 dan callback-nya tidak pernah
+  // dipanggil. Akibatnya `.is-revealed` tidak pernah dipasang, dan seluruh
+  // isi panel tersembunyi SELAMANYA (opacity: 0).
+  //
+  // Yang membuatnya berbahaya: di browser normal rAF jalan, jadi masalahnya
+  // tidak terlihat saat pengujian manual. Tapi rAF juga tidak jalan saat tab
+  // di-background, saat halaman di-prerender, dan di beberapa mode hemat daya.
+  //
+  // ── PERBAIKAN: TIMER, DENGAN rAF SEBAGAI PERCEPATAN ───────────────────────
+  //
+  // `setTimeout` SELALU jalan — di headless, di tab background, di mana pun.
+  // Jadi ia dipakai sebagai penggerak utama.
+  //
+  // `requestAnimationFrame` tetap dipakai kalau tersedia, tapi hanya sebagai
+  // cara untuk memicu LEBIH CEPAT (satu frame vs satu timer tick). Kalau rAF
+  // tidak jalan, timer yang mengambil alih.
+  //
+  // Ditambah jaring pengaman terakhir: setelah 1 detik, SEMUA wadah dipaksa
+  // terlihat — apa pun yang terjadi. Lebih baik kehilangan animasi daripada
+  // kehilangan konten.
+  function initReveal(akar = document) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const wadah = akar.querySelectorAll('.kam-reveal');
+    if (!wadah.length) return;
+
+    function tampilkan(w) {
+      // Idempoten: dipanggil dari rAF DAN timer, jadi harus aman dijalankan
+      // dua kali.
+      if (w.classList.contains('is-revealed')) return;
+      w.classList.add('is-revealed');
+
+      const n = w.children.length;
+      const gaya = getComputedStyle(w);
+      const jeda = parseFloat(gaya.getPropertyValue('--kam-reveal-jeda')) || 24;
+      const durasi = parseFloat(gaya.getPropertyValue('--kam-reveal-durasi')) || 0.26;
+      const tunggu = (durasi + (n * jeda) / 1000) * 1000 + 100;
+
+      setTimeout(() => w.classList.add('is-settled'), tunggu);
+    }
+
+    for (const w of wadah) {
+      const anak = w.children;
+      for (let i = 0; i < anak.length; i++) {
+        anak[i].style.setProperty('--kam-reveal-index', i);
+      }
+
+      w.classList.add('is-armed');
+
+      // Penggerak utama: timer. Selalu jalan.
+      // 32ms ≈ dua frame pada 60fps — cukup untuk browser menerapkan
+      // `.is-armed` sebelum transisi dipicu.
+      const timer = setTimeout(() => tampilkan(w), 32);
+
+      // Percepatan: kalau rAF tersedia, pakai itu dan batalkan timer.
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            clearTimeout(timer);
+            tampilkan(w);
+          });
+        });
+      }
+    }
+
+    // ── JARING PENGAMAN TERAKHIR ─────────────────────────────────────────────
+    //
+    // Kalau apa pun di atas gagal (rAF aneh, timer diblokir, browser tidak
+    // standar), setelah 1 detik semua wadah dipaksa terlihat.
+    //
+    // Ini bukan kehati-hatian berlebihan: kegagalannya adalah KONTEN HILANG,
+    // bukan sekadar animasi tidak jalan. Kehilangan konten jauh lebih buruk
+    // daripada kehilangan animasi.
+    setTimeout(() => {
+      for (const w of wadah) {
+        if (!w.classList.contains('is-revealed')) {
+          w.classList.add('is-revealed', 'is-settled');
+        }
+      }
+    }, 1000);
+  }
+
+  // ══ TRANSISI MASUK PANEL — saat ganti tab ═════════════════════════════════
+  //
+  // Panel yang baru dibuka diberi animasi masuk. Tanpa ini, tab berganti
+  // secara mendadak — terasa seperti halaman yang rusak, bukan berpindah
+  // bagian.
+  //
+  // ── KENAPA `animation`, BUKAN `transition` ────────────────────────────────
+  //
+  // Transisi butuh keadaan awal dan akhir yang berbeda. Panel yang baru
+  // dibuka langsung tampil dengan keadaan akhir — tidak ada "sebelum" untuk
+  // ditransisikan.
+  //
+  // `animation` dengan `both` menjalankan keyframes dari awal setiap kali
+  // class dipasang ulang, jadi tidak butuh keadaan awal.
+  function animasiPanel(panel) {
+    if (!panel) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    panel.classList.remove('kam-masuk');
+    // Memaksa reflow supaya class bisa dipasang ulang dan animasinya
+    // benar-benar dijalankan dari awal, bukan diabaikan karena class
+    // sudah ada.
+    void panel.offsetWidth;
+    panel.classList.add('kam-masuk');
+  }
+
   // Aman tanpa sesi: querySelector mengembalikan daftar kosong, fungsi
   // berhenti di baris pertama.
   initSisi();
+  initReveal();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
