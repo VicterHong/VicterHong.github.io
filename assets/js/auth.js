@@ -579,7 +579,21 @@
       turnstileWidgetId = window.turnstile.render(slot, {
         sitekey: kunci,
         theme: 'dark',
-        size: 'flexible',
+        // ── UKURAN WIDGET DIPILIH BERDASARKAN LEBAR LAYAR ────────────────────
+        //
+        // Turnstile 'flexible' mengisi lebar container, TAPI punya lantai
+        // keras 300px. Kalau slot lebih sempit dari itu, widget tetap
+        // dirender 300px dan `overflow: hidden` memotong tepi kanannya —
+        // logo "CLOUDFLARE" dan tautan "Privasi • Bantuan" hilang separuh.
+        //
+        // Setelah padding diperbaiki (auth.css), slot di layar ≥350px
+        // sudah ≥300px. Tapi layar 320-350px (masih banyak dipakai) tetap
+        // kekurangan ruang, dan di situ 'compact' (150px) jauh lebih baik
+        // daripada widget terpotong.
+        //
+        // Ambang 350px dipilih dari hitungan: 350 − 24 (main) − 24 (kartu)
+        // = 302px, tepat di atas lantai 300px. Di bawah itu → compact.
+        size: window.innerWidth < 350 ? 'compact' : 'flexible',
         // ── WIDGET TERLIHAT, TAPI TIDAK MENGHALANGI ───────────────────────────
         // 'always' supaya pengguna melihat verifikasi sedang berjalan.
         // Tapi tombol Sign in TIDAK ditahan — lihat catatan di bawah.

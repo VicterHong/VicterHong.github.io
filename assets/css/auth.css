@@ -1710,34 +1710,65 @@ select.auth-input {
   .auth-otp-cell { font-size: 18px; border-radius: 8px; }
 }
 
+/* ══ LAYAR SEMPIT: KURANGI PADDING AGAR WIDGET TURNSTILE TIDAK TERPOTONG ═══════
+ *
+ * ── MASALAH YANG DIPERBAIKI DI SINI ─────────────────────────────────────────
+ * Turnstile dengan size='flexible' punya lebar MINIMUM 300px. Kalau slot
+ * lebih sempit dari itu, widget tetap dirender 300px dan `overflow: hidden`
+ * memotongnya di tepi kanan — persis seperti yang terlihat di ponsel:
+ * logo "CLOUDFLARE" dan tautan "Privasi • Bantuan" terpotong.
+ *
+ * ── HITUNGAN DI PONSEL 360px (sebelum perbaikan) ────────────────────────────
+ *   lebar layar           360px
+ *   − padding .auth-main   40px  (20px kiri + 20px kanan) ← TIDAK PERNAH DIKURANGI
+ *   − padding .auth-card   28px  (14px kiri + 14px kanan, dari @media ≤380px)
+ *   ────────────────────────────
+ *   ruang untuk widget    292px  ← KURANG 8px dari minimum 300px
+ *
+ * Padding .auth-main memang sengaja tidak diubah sebelumnya — tapi itu keliru:
+ * di layar sempit, 20px margin halaman itu kemewahan yang memakan ruang widget.
+ *
+ * ── PERBAIKANNYA ────────────────────────────────────────────────────────────
+ * Di ≤400px, padding .auth-main dikurangi 20px → 12px, dan di ≤380px padding
+ * kartu 14px → 12px. Hasilnya:
+ *
+ *   360px: 360 − 24 − 24 = 312px  ✅ cukup (margin 12px)
+ *   375px: 375 − 24 − 24 = 327px  ✅
+ *   390px: 390 − 24 − 24 = 342px  ✅
+ *
+ * Di bawah 350px widget masih bisa terpotong sedikit — itu batas keras
+ * Turnstile (300px minimum), bukan lagi masalah padding. Untuk layar
+ * seperti itu, JS memilih size='compact' (150px) — lihat auth.js.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 400px) {
+  /* Margin halaman 20px → 12px. Ini yang memberi ruang bagi widget 300px. */
+  .auth-main { padding: 24px 12px; }
+}
+
+@media (max-width: 380px) {
+  /* Kartu 14px → 12px. Menyisakan 312px di layar 360px untuk widget. */
+  .auth-card { padding: 20px 12px; }
+}
+
 /* ══ LAYAR SANGAT SEMPIT (≤380px) ═════════════════════════════════════════════
  *
- * ── MASALAHNYA ──
- * Widget Turnstile punya lebar MINIMUM 300px dan tidak mau mengecil di
- * bawah itu. Di layar 360px:
+ * Aturan padding untuk layar sempit sudah ditetapkan di blok sebelumnya
+ * (@media ≤400px dan ≤380px, tepat setelah aturan 460px). Blok ini hanya
+ * menangani sisa penyesuaian tipografi/ruang untuk layar ≤380px.
  *
- *   lebar layar           360px
- *   − margin halaman       40px  (20px kiri + 20px kanan)
- *   ────────────────────────────
- *   ruang tersedia        320px
- *   − padding kartu        40px  (20px kiri + 20px kanan)
- *   ────────────────────────────
- *   ruang untuk widget    280px  ← KURANG dari 300px yang dibutuhkan
+ * ── HITUNGAN AKHIR SETELAH PERBAIKAN PADDING ────────────────────────────────
+ *   layar 360px − main 24px − kartu 24px = 312px  ✅ widget 300px muat
+ *   layar 375px − main 24px − kartu 24px = 327px  ✅
+ *   layar 390px − main 24px − kartu 24px = 342px  ✅
  *
- * Kekurangan 20px itu membuat widget MENDORONG kolom form melebar, lalu
- * kartu, lalu seluruh halaman — muncul scroll horizontal. Itulah "miring"
- * yang terlihat: halaman jadi lebih lebar dari layar, dan semuanya bergeser.
- *
- * ── PERBAIKANNYA: KURANGI PADDING DI LAYAR SEMPIT ──
- * Padding kartu 20px → 16px, dan margin halaman ikut menyesuaikan. Itu
- * memberi tambahan 16px ruang, cukup untuk widget 300px di layar 360px.
- *
- * Di layar 320px masih kurang sedikit — untuk itu `max-width` + `overflow`
- * pada `.auth-turnstile` jadi jaring pengaman (widget terpotong di tepi,
- * bukan merusak seluruh tata letak).
+ * Di bawah 350px, JS memilih size='compact' (150px) — batas keras Turnstile
+ * adalah 300px untuk mode flexible, dan itu tidak bisa dilawan dengan padding.
  * ────────────────────────────────────────────────────────────────────────── */
+
 @media (max-width: 380px) {
-  .auth-card { padding: 20px 14px; }
+  .auth-title { font-size: 21px; }
+  .auth-sub { font-size: 13px; }
 }
 
 /* ══ Hormati preferensi pengurangan gerak ══════════════════════════════════
