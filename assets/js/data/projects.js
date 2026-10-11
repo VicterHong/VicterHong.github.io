@@ -117,8 +117,7 @@ export const projects = [
     ],
     metrics: [
       { label: 'tes otomatis', value: '231' },
-      { label: 'RAM saat jalan', value: '~25 MB' },
-      { label: 'lisensi', value: 'MIT' },
+      { label: 'berkas uji', value: '4' },
     ],
     stack: ['Python', 'HMAC-SHA256', 'stdlib only', 'Telegram', 'Discord'],
     repo: 'https://github.com/VicterHong/mina-remote-control',
@@ -169,8 +168,7 @@ export const projects = [
     metrics: [
       { label: 'tes otomatis', value: '1196' },
       { label: 'berkas uji', value: '140' },
-      { label: 'kelas anti-ban', value: '14' },
-      { label: 'RAM saat jalan', value: '73 MB' },
+      { label: 'RAM saat jalan', value: '60 MB' },
     ],
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
