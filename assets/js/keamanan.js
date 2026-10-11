@@ -1831,7 +1831,20 @@
       const hasil = await res.json().catch(() => ({}));
 
       if (!res.ok || !hasil.ok) {
-        pesanProfil(hasil.message || 'Tidak bisa menyimpan. Coba lagi.', 'galat');
+        // ── PESAN GALAT DARI SERVER ──────────────────────────────────────────
+        //
+        // Server bisa menolak dengan pesan yang LEBIH SPESIFIK daripada teks
+        // cadangan di sini: "Nama sudah dipakai", "Sesi kedaluwarsa", dst.
+        // Pesan itu dipakai kalau ada; teks cadangan hanya untuk kasus server
+        // tidak mengirim pesan sama sekali.
+        //
+        // Toast juga dipakai di sini — bukan hanya di `catch`. Alasannya:
+        // kegagalan dari SERVER (401, 409, 500) sama-sama perlu terbaca walau
+        // pengguna berpindah tab. Versi pertama hanya memasang toast di
+        // `catch`, sehingga kegagalan server tidak pernah memunculkan toast.
+        const pesanGalat = hasil.message || 'Tidak bisa menyimpan. Coba lagi.';
+        pesanProfil(pesanGalat, 'galat');
+        toast(pesanGalat, 'galat');
         return;
       }
 
@@ -1850,6 +1863,19 @@
 
       pesanProfil('Profil diperbarui.', 'sukses');
 
+      // ── KENAPA JUGA PAKAI TOAST ────────────────────────────────────────────
+      //
+      // Pesan inline di atas hidup di dalam panel Profil. Kalau pengguna
+      // langsung pindah ke tab lain, pesan itu tidak pernah terbaca — dan
+      // pengguna tidak yakin simpanannya jadi.
+      //
+      // Toast hidup di lapisan mengambang, jadi ia tetap terlihat walau
+      // pengguna sudah pindah tab.
+      //
+      // Keduanya dipakai, bukan salah satu: pesan inline menegaskan DI MANA
+      // perubahan terjadi, toast memastikan pesannya sampai.
+      toast('Profil diperbarui.', 'sukses');
+
       // Kembali ke mode lihat setelah jeda singkat, supaya pesan "berhasil"
       // sempat terbaca. Langsung menutup form membuat pengguna tidak yakin
       // simpanannya jadi.
@@ -1857,6 +1883,8 @@
 
     } catch {
       pesanProfil('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+      // Galat tidak hilang sendiri — pengguna harus sempat membacanya.
+      toast('Tidak bisa menghubungi server. Coba lagi.', 'galat');
     } finally {
       if (tombol) { tombol.disabled = false; tombol.classList.remove('is-memuat'); }
     }
@@ -2073,6 +2101,129 @@
         }
       }
     }, 1000);
+  }
+
+  // ══ TOAST — notifikasi mengambang ══════════════════════════════════════════
+  //
+  // ── KENAPA PERLU, PADAHAL SUDAH ADA pesan() ──────────────────────────────
+  //
+  // `pesan()` menulis ke `#kamPesan` — elemen DI DALAM panel Keamanan.
+  //
+  // Itu benar untuk konfirmasi yang berkaitan dengan isi panel. Tapi ada aksi
+  // yang pesannya tidak boleh hilang saat pengguna berpindah tab: menyimpan
+  // profil, misalnya. Kalau pesannya di dalam panel Profil dan pengguna
+  // langsung pindah ke tab Sesi, pesan itu tidak pernah terbaca.
+  //
+  // Toast hidup di lapisan `--z-float` (100) — di atas panel, tidak
+  // terpengaruh perpindahan tab.
+  //
+  // ── KENAPA HANYA SATU TOAST ──────────────────────────────────────────────
+  //
+  // Dua toast bertumpuk membuat keduanya sulit dibaca. Kalau toast baru muncul
+  // saat yang lama masih tampil, yang lama diganti — bukan ditambah. Pesan
+  // terbaru selalu yang paling relevan.
+  let toastSekarang = null;
+  let timerToast = null;
+
+  const IKON_TOAST = {
+    sukses: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"/></svg>',
+    galat: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"/></svg>',
+    info: '<svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/></svg>',
+  };
+
+  /**
+   * Tampilkan notifikasi mengambang.
+   *
+   * @param {string} teks   Isi pesan.
+   * @param {string} jenis  'sukses' | 'galat' | 'info'
+   * @param {number} durasi Berapa ms sebelum hilang sendiri (0 = tidak hilang).
+   */
+  function toast(teks, jenis = 'info', durasi = 4000) {
+    if (!teks) return;
+
+    // ── GANTI, BUKAN TUMPUK ──────────────────────────────────────────────────
+    // Toast lama dihapus seketika (tanpa animasi keluar) supaya yang baru
+    // tidak menunggu. Dua toast bertumpuk sulit dibaca.
+    if (toastSekarang) {
+      toastSekarang.remove();
+      toastSekarang = null;
+    }
+    if (timerToast) {
+      clearTimeout(timerToast);
+      timerToast = null;
+    }
+
+    // ── WADAH DIBUAT SEKALI ──────────────────────────────────────────────────
+    // Dibuat saat toast pertama dipanggil, bukan di HTML. Alasannya: kalau
+    // ditaruh di HTML, ia ada di setiap halaman — termasuk yang tidak pernah
+    // memunculkan toast. Satu elemen kosong yang tidak dipakai.
+    let wadah = document.querySelector('.kam-toast-wadah');
+    if (!wadah) {
+      wadah = document.createElement('div');
+      wadah.className = 'kam-toast-wadah';
+      // `role="status"` + `aria-live="polite"`: pembaca layar membacakan
+      // pesannya tanpa menghentikan apa yang sedang dibaca. Untuk galat yang
+      // lebih mendesak, `alert` akan menghentikan — terlalu kasar untuk
+      // konfirmasi simpan.
+      wadah.setAttribute('role', 'status');
+      wadah.setAttribute('aria-live', 'polite');
+      document.body.append(wadah);
+    }
+
+    const el = document.createElement('div');
+    el.className = `kam-toast is-${jenis}`;
+
+    const ikon = document.createElement('span');
+    ikon.className = 'kam-toast-ikon';
+    // Ikon dibuat dari literal yang kita tulis sendiri — bukan dari input
+    // pengguna. Karena itu `innerHTML` aman di sini.
+    ikon.innerHTML = IKON_TOAST[jenis] || IKON_TOAST.info;
+
+    const isi = document.createElement('span');
+    isi.className = 'kam-toast-teks';
+    // `textContent`, bukan `innerHTML`: pesan bisa berisi teks dari server.
+    isi.textContent = teks;
+
+    const tutup = document.createElement('button');
+    tutup.className = 'kam-toast-tutup';
+    tutup.type = 'button';
+    tutup.setAttribute('aria-label', 'Tutup notifikasi');
+    tutup.innerHTML = '<svg viewBox="0 0 256 256" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/></svg>';
+    tutup.addEventListener('click', () => hilangkanToast(el));
+
+    el.append(ikon, isi, tutup);
+    wadah.append(el);
+    toastSekarang = el;
+
+    // ── HILANG SENDIRI ───────────────────────────────────────────────────────
+    // Pesan galat TIDAK hilang sendiri — pengguna harus sempat membacanya.
+    // Prinsip yang sama dipakai `pesan()`.
+    if (jenis !== 'galat' && durasi > 0) {
+      timerToast = setTimeout(() => hilangkanToast(el), durasi);
+    }
+  }
+
+  function hilangkanToast(el) {
+    if (!el || el.classList.contains('is-keluar')) return;
+    el.classList.add('is-keluar');
+
+    // ── KENAPA PAKAI `animationend`, BUKAN TIMER ─────────────────────────────
+    // Durasi animasi keluar didefinisikan di CSS. Kalau timer di JS menebak
+    // angkanya, keduanya bisa tidak sinkron saat CSS diubah.
+    //
+    // Ditambah jaring pengaman 400ms: kalau `animationend` tidak fire (animasi
+    // dimatikan pengguna, tab di-background), elemen tetap dibersihkan.
+    // Tanpa ini, toast yang "sudah hilang" tetap ada di DOM selamanya.
+    let selesai = false;
+    const bersihkan = () => {
+      if (selesai) return;
+      selesai = true;
+      el.remove();
+      if (toastSekarang === el) toastSekarang = null;
+    };
+
+    el.addEventListener('animationend', bersihkan, { once: true });
+    setTimeout(bersihkan, 400);
   }
 
   // ══ TRANSISI MASUK PANEL — saat ganti tab ═════════════════════════════════

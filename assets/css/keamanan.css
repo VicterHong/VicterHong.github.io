@@ -1571,3 +1571,145 @@
   }
   .kam-masuk { animation: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   TOAST — notifikasi mengambang
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA TOAST, PADAHAL SUDAH ADA PESAN INLINE ─────────────────────────────
+
+   Pesan inline (`#kamPesan`) hidup DI DALAM panel. Itu benar untuk konfirmasi
+   yang berkaitan dengan isi panel — "Cara masuk dihapus", "Foto diperbarui".
+
+   Tapi ada aksi yang pesannya TIDAK BOLEH hilang saat pengguna berpindah tab:
+   menyimpan profil, misalnya. Kalau pesannya di dalam panel Profil dan pengguna
+   langsung pindah ke tab Sesi, pesan itu tidak pernah terbaca.
+
+   Toast hidup di lapisan `--z-float` (100) — di atas panel, tidak terpengaruh
+   perpindahan tab.
+
+   ── KENAPA DI POJOK KANAN ATAS, BUKAN TENGAH ─────────────────────────────────
+
+   Notifikasi di tengah layar menutupi konten yang sedang dibaca — dan itu
+   mengganggu tepat saat pengguna ingin melanjutkan pekerjaannya.
+
+   Pojok kanan atas adalah tempat yang sudah dipelajari pengguna dari sistem
+   operasi (notifikasi desktop, email baru). Tidak perlu diajari.
+
+   Di ponsel, posisinya jadi kanan atas juga — bukan bawah — supaya tidak
+   tertutup keyboard saat pengguna sedang mengetik.
+
+   ── KENAPA TIDAK BOLEH DITUMPUK ──────────────────────────────────────────────
+
+   Dua toast bertumpuk membuat keduanya sulit dibaca. Kalau toast baru muncul
+   saat yang lama masih tampil, yang lama diganti — bukan ditambah.
+
+   Pesan terbaru selalu yang paling relevan.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.kam-toast-wadah {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: var(--z-float, 100);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Wadah tidak menghalangi klik — hanya toast-nya yang bisa diklik. */
+  pointer-events: none;
+  /* Di ponsel, jangan sampai melebar penuh — sisakan napas di kiri. */
+  max-width: min(360px, calc(100vw - 32px));
+}
+
+.kam-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 9px);
+  background: var(--bg-card, #16161a);
+  border: 1px solid var(--line, #26262c);
+  color: var(--text, #f4f4f6);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  /* Bayangan: toast harus terlihat "mengambang" di atas konten, bukan
+     menempel di dalamnya. Tanpa bayangan, ia terlihat seperti bagian
+     dari halaman. */
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+
+  animation: kamToastMasuk 0.24s var(--pegas, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* Warna tepi kiri menandai jenis pesan. Tepi, bukan seluruh latar —
+   latar penuh berwarna akan terlalu mencolok untuk notifikasi kecil. */
+.kam-toast.is-sukses { border-left: 3px solid #4ade80; }
+.kam-toast.is-galat  { border-left: 3px solid #f87171; }
+.kam-toast.is-info   { border-left: 3px solid var(--accent, #f5c542); }
+
+.kam-toast-ikon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+.kam-toast.is-sukses .kam-toast-ikon { color: #4ade80; }
+.kam-toast.is-galat  .kam-toast-ikon { color: #f87171; }
+.kam-toast.is-info   .kam-toast-ikon { color: var(--accent, #f5c542); }
+
+.kam-toast-teks {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kam-toast-tutup {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-faint, #8a8a94);
+  cursor: pointer;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.kam-toast-tutup:hover {
+  color: var(--text, #f4f4f6);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── MASUK ────────────────────────────────────────────────────────────────────
+   Geser dari kanan + sedikit membesar. Gerak horizontal terasa "datang dari
+   luar layar" — lebih tepat untuk notifikasi daripada gerak vertikal, yang
+   terasa seperti elemen yang sudah ada di halaman. */
+@keyframes kamToastMasuk {
+  from { opacity: 0; transform: translateX(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* ── KELUAR ───────────────────────────────────────────────────────────────────
+   Lebih cepat dari masuk (0.18s vs 0.24s). Umpan balik harus cepat; animasi
+   masuk boleh lambat. Prinsip yang sama dipakai di seluruh sistem animasi. */
+.kam-toast.is-keluar {
+  animation: kamToastKeluar 0.18s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+@keyframes kamToastKeluar {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(16px) scale(0.97); }
+}
+
+/* ── HORMATI PREFERENSI PENGGUNA ──────────────────────────────────────────────
+   Toast tetap muncul dan tetap terbaca — hanya gerakannya yang dimatikan. */
+@media (prefers-reduced-motion: reduce) {
+  .kam-toast,
+  .kam-toast.is-keluar {
+    animation: none !important;
+  }
+}
