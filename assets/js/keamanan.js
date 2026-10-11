@@ -556,6 +556,18 @@
   // sering dibuka.
   const pemuat = {};
 
+  // ── KENAPA SATU PANEL BOLEH PUNYA BANYAK PEMUAT ──────────────────────────
+  //
+  // Sebelumnya `pemuat[panelId]` menyimpan SATU fungsi. Itu cukup selama
+  // setiap panel hanya memuat satu hal.
+  //
+  // Setelah 2FA dipindah jadi baris di dalam tab Keamanan, panel itu punya
+  // DUA sumber data: daftar cara masuk DAN status 2FA. Kalau tetap satu slot,
+  // pendaftaran kedua menimpa yang pertama — dan daftar cara masuk tidak
+  // pernah dimuat.
+  //
+  // Bug seperti ini diam: tidak ada galat, hanya bagian yang tidak muncul.
+  // Sekarang tiap panel menyimpan DAFTAR pemuat.
   function daftarPemuat(panelId, fn) {
     let sudah = false;
     // ── KENAPA ADA PARAMETER `paksa` ────────────────────────────────────────
@@ -568,11 +580,14 @@
     // Tanpa `paksa`, satu-satunya cara menyegarkan adalah memuat ulang
     // halaman — dan pengguna yang baru merasa aman karena mencabut semua
     // perangkat lain tidak boleh dipaksa memuat ulang untuk melihat hasilnya.
-    pemuat[panelId] = async (paksa = false) => {
+    const muat = async (paksa = false) => {
       if (sudah && !paksa) return;
       sudah = true;
       try { await fn(); } catch { sudah = false; }   // gagal → boleh coba lagi
     };
+
+    if (!pemuat[panelId]) pemuat[panelId] = [];
+    pemuat[panelId].push(muat);
   }
 
   /** Format tanggal + jam ringkas. */
@@ -944,7 +959,9 @@
 
   /** Muat ulang daftar sesi dari server (dipakai setelah aksi massal). */
   async function muatUlangSesi() {
-    if (pemuat.panelSesi) await pemuat.panelSesi(true);
+    if (pemuat.panelSesi) {
+      for (const muat of pemuat.panelSesi) await muat(true);
+    }
   }
 
   // ── TOKEN AKSES ────────────────────────────────────────────────────────────
@@ -1172,7 +1189,16 @@
   }
 
   // ── 2FA ────────────────────────────────────────────────────────────────────
-  daftarPemuat('panel2fa', async () => {
+  // ── STATUS 2FA — DIDAFTARKAN KE panelMasuk (tab Keamanan) ──────────────────
+  //
+  // Dulu ini `daftarPemuat('panel2fa', ...)` karena 2FA punya tab sendiri.
+  // Setelah mengikuti HorizonX, 2FA jadi BARIS di dalam tab Keamanan — jadi
+  // pemuatnya didaftarkan ke `panelMasuk`.
+  //
+  // Panel itu sekarang punya DUA pemuat (daftar cara masuk + status 2FA).
+  // Itulah kenapa `daftarPemuat` diubah menyimpan daftar, bukan satu fungsi:
+  // dengan versi lama, pendaftaran ini akan MENIMPA pemuat cara masuk.
+  daftarPemuat('panelMasuk', async () => {
     const res = await fetch('/api/auth/2fa/status', { credentials: 'same-origin' });
     if (!res.ok) return;
     const d = await res.json().catch(() => ({}));
@@ -1180,15 +1206,45 @@
     const lencana = $('#kamLencana2fa');
     const teks = $('#kamTeks2fa');
     const daftar = $('#kamDaftar2fa');
+    const tombol = $('#kamAktifkan2fa');
 
     if (lencana) {
       lencana.className = 'kam-lencana ' + (d.aktif ? 'is-sukses' : 'is-menunggu');
       lencana.textContent = d.aktif ? 'Aktif' : 'Belum aktif';
     }
+
+    // ── KENAPA TEKSNYA RINGKAS (ikuti HorizonX) ──────────────────────────────
+    //
+    // Versi pertama memakai kalimat panjang ("Akun Anda terlindungi kode 6
+    // digit dari aplikasi authenticator"). Itu penjelasan, bukan status —
+    // dan baris pengaturan dibaca dengan mata yang memindai, bukan membaca.
+    //
+    // HorizonX memakai satu baris pendek: "Not enabled" / "Enabled since
+    // 12 Jan 2026". Status dulu, detail teknis menyusul di bawah kalau aktif.
+    //
+    // Kalimat penjelasan tidak hilang — ia pindah ke `title` (muncul saat
+    // kursor berhenti) dan tetap dibaca pembaca layar.
     if (teks) {
       teks.textContent = d.aktif
-        ? 'Akun Anda terlindungi kode 6 digit dari aplikasi authenticator.'
-        : 'Aktifkan verifikasi dua langkah saat masuk berikutnya untuk keamanan tambahan.';
+        ? `Aktif sejak ${waktuRingkas(d.dibuat_pada, { jam: false })}`
+        : 'Tambahkan lapisan keamanan kedua saat masuk.';
+      teks.title = d.aktif
+        ? 'Setiap kali masuk, Anda memasukkan kode 6 digit dari aplikasi authenticator.'
+        : 'Setelah aktif, sandi yang bocor saja tidak cukup untuk masuk.';
+    }
+
+    // ── TOMBOL BERUBAH SESUAI STATUS ─────────────────────────────────────────
+    //
+    // "Aktifkan" tidak masuk akal kalau 2FA sudah aktif — pengguna akan
+    // mengkliknya dan bertanya-tanya kenapa tidak terjadi apa-apa.
+    //
+    // Saat aktif, tombolnya jadi "Kelola" dan mengarah ke halaman masuk,
+    // tempat kode cadangan bisa dilihat dan 2FA bisa dimatikan.
+    if (tombol) {
+      tombol.textContent = d.aktif ? 'Kelola' : 'Aktifkan';
+      tombol.title = d.aktif
+        ? 'Lihat kode cadangan atau matikan verifikasi 2 langkah'
+        : 'Aktifkan verifikasi 2 langkah';
     }
 
     // Detail teknis hanya ditampilkan kalau 2FA memang aktif — kalau belum,
@@ -2025,6 +2081,17 @@
     }
 
     muat();
+
+    // ── KENAPA initDanger() DI SINI ───────────────────────────────────────────
+    //
+    // `init()` adalah tempat semua listener dipasang setelah DOM siap.
+    // Sebelumnya `initDanger()` dipanggil di luar `init()` — jadi ia berjalan
+    // tanpa terikat pada urutan inisialisasi mana pun.
+    //
+    // Ditaruh di akhir: ia membaca `/api/auth/profil` untuk menentukan apakah
+    // Danger Zone perlu ditampilkan, dan permintaan itu tidak boleh menunda
+    // pemuatan data profil yang utama.
+    initDanger();
   }
 
   // ══ NAVIGASI SIDEBAR ══════════════════════════════════════════════════════
@@ -2062,8 +2129,12 @@
       // dipakai setiap kunjungan; tab lain hanya sesekali. Memuat semuanya
       // bersamaan berarti setiap pengunjung menunggu permintaan yang jarang
       // dibutuhkan.
-      if (pemuat[id]) pemuat[id]();
-      else if (id === 'panelBayar') muatPembelian();
+      // Pemuat kini berupa DAFTAR per panel (satu panel bisa punya beberapa
+      // sumber data). Dijalankan berurutan, dan satu yang gagal tidak
+      // menghentikan sisanya — tiap `muat` sudah menangani galatnya sendiri.
+      if (pemuat[id]) {
+        for (const muat of pemuat[id]) muat();
+      } else if (id === 'panelBayar') muatPembelian();
 
       if (history.replaceState) history.replaceState(null, '', '#' + id);
     }
@@ -2394,11 +2465,28 @@
     const tombol = $('#kamHapusAkun');
     if (!seksi || !tombol) return;
 
-    // Tampilkan hanya kalau pengguna sudah login.
-    // `initDanger` dipanggil setelah data pengguna dimuat, jadi kita bisa
-    // membaca keberadaan tombol "Keluar" sebagai penanda login.
-    const keluar = document.querySelector('a[href="/api/auth/keluar"], #kamKeluar');
-    if (keluar) seksi.hidden = false;
+    // ── KENAPA TIDAK BISA LAGI MEMBACA `#kamKeluar` ───────────────────────────
+    //
+    // Versi pertama mencari `a[href="/api/auth/keluar"], #kamKeluar` sebagai
+    // penanda login. Dua-duanya TIDAK ADA di halaman ini — jadi `keluar` selalu
+    // null, dan Danger Zone TIDAK PERNAH ditampilkan. Bug yang tidak terlihat
+    // karena tidak ada galat: seksinya hanya tetap `hidden` selamanya.
+    //
+    // Halaman ini menentukan login dari `/api/auth/profil` → 401 (lihat pemuat
+    // panelProfil). Sumber yang sama dipakai di sini supaya tidak ada dua
+    // definisi "sudah masuk?" yang bisa berbeda.
+    //
+    // ── KENAPA `hidden` DIBUKA DI SINI, BUKAN DI initSisi() ───────────────────
+    //
+    // Danger Zone sekarang ada DI DALAM panel Keamanan (mengikuti HorizonX).
+    // Panel itu sendiri `hidden` sampai tabnya dibuka — jadi tidak ada gunanya
+    // menampilkan seksi ini lebih awal.
+    //
+    // Pemeriksaannya tetap dijalankan sekali saat halaman dimuat: kalau
+    // pengguna sudah masuk, seksinya siap sebelum tab dibuka.
+    fetch('/api/auth/profil', { credentials: 'same-origin' })
+      .then((res) => { if (res.ok) seksi.hidden = false; })
+      .catch(() => { /* biarkan tersembunyi — bukan keadaan darurat */ });
 
     const dlg = $('#kamDialogHapusAkun');
     const l1 = $('#kamHapusLangkah1');
@@ -2548,9 +2636,6 @@
       inpKode.value = inpKode.value.replace(/\D/g, '').slice(0, 6);
     });
   }
-
-  initDanger();
-
 
   // Aman tanpa sesi: querySelector mengembalikan daftar kosong, fungsi
   // berhenti di baris pertama.

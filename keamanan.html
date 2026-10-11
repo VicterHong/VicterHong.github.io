@@ -169,17 +169,6 @@
               <span>Aktivitas</span>
             </button>
 
-            <!-- STATUS 2FA saja. Alur mengaktifkan ada di halaman masuk —
-                 tidak diduplikasi. -->
-            <button class="kam-sisi-item" type="button" role="tab"
-                    id="tab2fa" aria-selected="false" aria-controls="panel2fa"
-                    data-panel="panel2fa">
-              <span class="kam-sisi-ikon" aria-hidden="true">
-                <svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z"/></svg>
-              </span>
-              <span>Verifikasi 2 langkah</span>
-            </button>
-
             <!-- ══ TAB NOTIFIKASI ════════════════════════════════════════════════
                  ── KENAPA TAB INI ADA ────────────────────────────────────────────
                  Tabel `access_events` sudah mencatat 636 baris aksi nyata —
@@ -388,7 +377,20 @@
                     <span class="kam-petak-nilai" id="kamRingkasanMasuk">—</span>
                     <span class="kam-petak-label">Cara masuk</span>
                   </button>
-                  <button type="button" class="kam-petak" data-panel-tujuan="panel2fa">
+                  <!-- ── KENAPA MENUNJUK KE panelMasuk, BUKAN panel2fa ────────
+                       2FA dulu punya tab sendiri (`panel2fa`). Setelah
+                       restrukturisasi mengikuti HorizonX, ia jadi BARIS di
+                       dalam tab Keamanan — panelnya tidak ada lagi.
+
+                       Kalau tetap menunjuk `panel2fa`, `panelDari()` mengembalikan
+                       null dan kliknya tidak melakukan apa-apa: pintasan mati.
+                       JS-nya aman (tidak crash), tapi pengguna mengklik dan
+                       tidak terjadi apa-apa — itu lebih buruk dari tidak ada
+                       pintasan sama sekali.
+
+                       Diarahkan ke `panelMasuk` (= tab Keamanan), tempat
+                       status 2FA sekarang terlihat. -->
+                  <button type="button" class="kam-petak" data-panel-tujuan="panelMasuk">
                     <span class="kam-petak-nilai" id="kamRingkasan2fa">—</span>
                     <span class="kam-petak-label">Verifikasi 2 langkah</span>
                   </button>
@@ -499,6 +501,82 @@
                   Tambah
                 </button>
               </div>
+            
+              <!-- ══ VERIFIKASI 2 LANGKAH — BARIS DI DALAM TAB KEAMANAN ═════════
+                   ── KENAPA BARIS, BUKAN TAB TERPISAH (ikuti HorizonX) ────────
+                   Sebelumnya 2FA punya tab sendiri. Itu berlebihan: isinya
+                   hanya satu status + satu tombol.
+
+                   HorizonX, GitHub, dan Google semuanya menaruh 2FA sebagai
+                   BARIS di dalam halaman Security — karena ia satu dari
+                   beberapa pengaturan keamanan, bukan bagian tersendiri.
+
+                   Tab terpisah untuk satu baris memaksa pengguna berpindah
+                   halaman hanya untuk melihat status. -->
+
+              <div class="kam-baris-setting">
+                <span class="kam-setting-ikon" aria-hidden="true">
+                  <svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z"/></svg>
+                </span>
+                <div class="kam-setting-teks">
+                  <p class="kam-setting-judul">Verifikasi 2 langkah</p>
+                  <!-- Status diisi JS: "Belum aktif" / "Aktif sejak ..." -->
+                  <p class="kam-setting-ket" id="kamTeks2fa">Memuat…</p>
+                </div>
+                <span class="kam-lencana" id="kamLencana2fa">—</span>
+                <a class="auth-oauth" href="/sign-in#2fa" id="kamAktifkan2fa">Aktifkan</a>
+              </div>
+
+              <!-- Detail teknis 2FA — hanya muncul kalau aktif. -->
+              <dl class="kam-daftar kam-reveal" id="kamDaftar2fa" hidden></dl>
+
+              <p class="auth-msg" id="kamPesan2fa" role="status" aria-live="polite"></p>
+
+              <!-- ══ ZONA BERBAHAYA — DI DALAM TAB KEAMANAN ═══════════════════════
+                   ── KENAPA DIPINDAH KE SINI (ikuti HorizonX) ─────────────────
+                   Sebelumnya ditaruh di luar sistem tab, paling bawah halaman.
+
+                   Setelah melihat HorizonX, ternyata pola yang lebih baik:
+                   Danger Zone ada DI DALAM tab Security.
+
+                   Alasannya: "hapus akun" adalah tindakan KEAMANAN — ia satu
+                   keluarga dengan sandi, email, dan 2FA. Menaruhnya di tab
+                   yang sama membuat pengguna menemukannya saat sedang mengurus
+                   keamanan, bukan saat kebetulan menggulir ke bawah.
+
+                   GitHub, Stripe, dan Google juga begitu.
+
+                   ── KENAPA TETAP DI PALING BAWAH TAB ─────────────────────────
+                   Paling akhir dilihat = harus dilewati dulu. Untuk aksi
+                   merusak, itu urutan yang benar. -->
+              <div class="kam-danger" id="kamDanger" hidden>
+                <div class="kam-danger-kepala">
+                  <span class="kam-danger-ikon" aria-hidden="true">
+                    <svg viewBox="0 0 256 256" fill="currentColor" width="20" height="20" aria-hidden="true" focusable="false"><path d="M236.8,188.09,149.35,36.22a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z"/></svg>
+                  </span>
+                  <div>
+                    <h3 class="kam-danger-judul">Zona berbahaya</h3>
+                    <p class="kam-danger-ket">Tindakan permanen pada data akun Anda.</p>
+                  </div>
+                </div>
+
+                <div class="kam-danger-baris">
+                  <div class="kam-danger-teks">
+                    <p class="kam-danger-nama">Hapus akun</p>
+                    <p class="kam-danger-detail">
+                      Menghapus akun dan seluruh data pribadi Anda secara permanen.
+                      Riwayat pembelian, cara masuk, dan pengaturan akan hilang dan
+                      <strong>tidak bisa dikembalikan</strong>.
+                    </p>
+                  </div>
+                  <button class="btn btn-bahaya" type="button" id="kamHapusAkun">
+                    Hapus
+                  </button>
+                </div>
+
+                <p class="auth-msg" id="kamPesanDanger" role="status" aria-live="polite"></p>
+              </div>
+
             </section>
 
             <!-- ══ PANEL: PEMBAYARAN ═══════════════════════════════════════════════
@@ -599,21 +677,6 @@
             </section>
 
             <!-- STATUS saja. Alur mengaktifkan ada di halaman masuk. -->
-            <section class="kam-blok kam-panel-isi" id="panel2fa"
-                     role="tabpanel" aria-labelledby="tab2fa" hidden>
-              <p class="kam-keterangan">
-                Verifikasi dua langkah menambahkan kode 6 digit dari aplikasi
-                authenticator setiap kali Anda masuk. Sandi yang bocor saja
-                tidak cukup untuk masuk.
-              </p>
-              <div class="kam-status2fa" id="kamStatus2fa">
-                <span class="kam-lencana" id="kamLencana2fa">—</span>
-                <p class="kam-status2fa-teks" id="kamTeks2fa"></p>
-              </div>
-              <dl class="kam-daftar kam-reveal" id="kamDaftar2fa" hidden></dl>
-              <p class="auth-msg" id="kamPesan2fa" role="status" aria-live="polite"></p>
-            </section>
-
             <!-- ══ PANEL: NOTIFIKASI ══════════════════════════════════════════
                  ── DARI MANA DATANYA ─────────────────────────────────────────
                  Tabel `access_events` — sudah berisi 636 baris aksi nyata.

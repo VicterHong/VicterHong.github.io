@@ -29,7 +29,14 @@
 
 import { createHash } from 'node:crypto';
 import { config } from './config.mjs';
-import { getDb } from './db.mjs';
+// ── KENAPA `transaction` DIIMPORT, BUKAN `db.transaction()` ────────────────
+// `node:sqlite` TIDAK punya method `.transaction()` — itu API better-sqlite3.
+// Memanggilnya melempar "db.transaction is not a function" yang baru ketahuan
+// saat endpoint benar-benar dijalankan (HTTP 500 di uji pertama).
+//
+// Helper-nya ada di db.mjs sebagai fungsi terpisah: BEGIN → fn() → COMMIT,
+// dan ROLLBACK kalau fn() melempar.
+import { getDb, transaction } from './db.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
@@ -2451,18 +2458,56 @@ function ruteSso() {
         // Anak dulu, induk terakhir. Kalau salah satu gagal, semuanya dibatalkan
         // — tidak ada data setengah terhapus.
         const db = getDb();
-        const hapusSemua = db.transaction(() => {
+        const hapusSemua = () => transaction(() => {
           const email = pengguna.email;
           const uid = pengguna.id;
-          const tid = pengguna.token_id;
+
+          // ── KENAPA SEMUA TOKEN, BUKAN HANYA SATU ──────────────────────────────
+          //
+          // Versi pertama memakai `pengguna.token_id` — SATU token saja.
+          //
+          // Itu kerentanan nyata: satu pengguna bisa punya BANYAK token (satu
+          // per perangkat, satu per integrasi API). Menghapus akun dengan satu
+          // token berarti sesi di perangkat LAIN tetap hidup — akunnya hilang,
+          // tapi orang yang memegang perangkat itu masih bisa masuk.
+          //
+          // Ditemukan saat uji end-to-end: 2 sesi akun uji SELAMAT dari
+          // penghapusan karena token_id-nya berbeda dari users.token_id.
+          //
+          // Sekarang: kumpulkan SEMUA token yang terhubung ke pengguna ini.
+          const semuaToken = new Set();
+
+          if (pengguna.token_id) semuaToken.add(pengguna.token_id);
+
+          for (const r of getDb().prepare(
+            'SELECT id FROM tokens WHERE issued_to = ?'
+          ).all(email)) {
+            if (r.id) semuaToken.add(r.id);
+          }
+
+          // ── KENAPA TIDAK ADA QUERY KE auth_identities ─────────────────────────
+          //
+          // Sempat saya tambahkan `SELECT token_id FROM auth_identities` — dan
+          // itu AKAN GAGAL: tabel itu tidak punya kolom `token_id` (diperiksa
+          // lewat PRAGMA table_info).
+          //
+          // Karena semuanya berjalan dalam satu transaksi, satu query gagal
+          // berarti SELURUH penghapusan dibatalkan — pengguna melihat pesan
+          // galat padahal datanya utuh. Kegagalan yang lebih baik daripada
+          // data setengah terhapus, tapi tetap gagal.
+          //
+          // Dua sumber di atas sudah cukup: users.token_id menangkap token
+          // utama, tokens.issued_to menangkap sisanya lewat email.
+
+          const tid = pengguna.token_id || [...semuaToken][0] || '';
 
           // ── DATA PRIBADI ──────────────────────────────────────────────────────
           db.prepare('DELETE FROM auth_identities WHERE user_id = ?').run(uid);
-          db.prepare('DELETE FROM device_fingerprints WHERE token_id = ?').run(tid);
-          db.prepare('DELETE FROM sessions WHERE token_id = ?').run(tid);
+          for (const t of semuaToken) db.prepare('DELETE FROM device_fingerprints WHERE token_id = ?').run(t);
+          for (const t of semuaToken) db.prepare('DELETE FROM sessions WHERE token_id = ?').run(t);
           db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(uid);
-          db.prepare('DELETE FROM revocations WHERE token_id = ?').run(tid);
-          db.prepare('DELETE FROM consents WHERE token_id = ?').run(tid);
+          for (const t of semuaToken) db.prepare('DELETE FROM revocations WHERE token_id = ?').run(t);
+          for (const t of semuaToken) db.prepare('DELETE FROM consents WHERE token_id = ?').run(t);
           db.prepare('DELETE FROM payments WHERE email = ?').run(email);
           db.prepare('DELETE FROM sales_leads WHERE email = ?').run(email);
 
@@ -2503,13 +2548,13 @@ function ruteSso() {
           //
           // Ini pola yang sama dipakai sistem audit korporat: catatannya
           // tetap ada, identitasnya diputus.
-          db.prepare('UPDATE access_events SET token_id = NULL WHERE token_id = ?').run(tid);
+          for (const t of semuaToken) db.prepare('UPDATE access_events SET token_id = NULL WHERE token_id = ?').run(t);
 
           // ── ANALYTICS & WEB_VITALS ────────────────────────────────────────────
           //
           // Metrik tidak mengandung data pribadi selain token_id. Dilepas juga
           // supaya tidak ada sisa kaitan ke akun yang sudah tidak ada.
-          db.prepare('UPDATE analytics_events SET token_id = NULL WHERE token_id = ?').run(tid);
+          for (const t of semuaToken) db.prepare('UPDATE analytics_events SET token_id = NULL WHERE token_id = ?').run(t);
         });
 
         try {
@@ -2524,7 +2569,18 @@ function ruteSso() {
         // Akun sudah tidak ada. Cookie yang tersisa akan gagal validasi, tapi
         // lebih bersih kalau langsung dihapus — supaya browser tidak menyimpan
         // cookie yang tidak berguna.
-        setCookie(res, 'sesi', '', { maxAge: 0, path: '/' });
+        // ── KENAPA COOKIE_SESI, BUKAN STRING 'sesi' ───────────────────────────
+        //
+        // Versi pertama menulis `setCookie(res, 'sesi', ...)` — nama cookie
+        // yang TIDAK PERNAH ADA di aplikasi ini. Cookie sesi yang sebenarnya
+        // bernama `portfolio_session` (lihat konstanta COOKIE_SESI di atas).
+        //
+        // Akibatnya: cookie yang benar TIDAK terhapus. Pengguna melihat akun
+        // "sudah dihapus", tapi browser masih menyimpan cookie sesi lama —
+        // dan permintaan berikutnya membawa cookie itu.
+        //
+        // Memakai konstanta berarti nama cookie hanya didefinisikan SEKALI.
+        setCookie(res, COOKIE_SESI, '', { maxAge: 0, path: '/' });
 
         // Catat SETELAH penghapusan, tanpa token_id (akun sudah tidak ada).
         recordEvent({

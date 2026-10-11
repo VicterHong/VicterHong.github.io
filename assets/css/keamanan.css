@@ -2248,3 +2248,102 @@
 }
 
 .kam-hapus-tautan:hover { color: var(--emas-terang, #f7d77a); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   BARIS PENGATURAN — ikon kiri · teks tengah · tombol kanan
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA POLA INI (ikuti HorizonX) ────────────────────────────────────────
+
+   Halaman pengaturan dibaca dengan MATA MEMINDAI, bukan membaca kalimat.
+   Pengguna mencari: "di mana 2FA?" — lalu "aktif atau tidak?"
+
+   Susunan yang menjawab itu dalam satu pandangan:
+
+     [ikon]  Judul              [lencana]  [tombol]
+             Status singkat
+
+   • Ikon kiri  → penanda visual, memudahkan melompat antar baris
+   • Judul      → APA pengaturannya
+   • Status     → KEADAANNYA sekarang (satu baris, bukan paragraf)
+   • Lencana    → penguat status (Aktif / Belum aktif)
+   • Tombol     → APA yang bisa dilakukan
+
+   ── KENAPA STATUS DI BAWAH JUDUL, BUKAN DI SAMPING ─────────────────────────
+
+   Judul dan status adalah satu kesatuan: "Verifikasi 2 langkah → Belum aktif".
+   Menaruh status di kanan jauh membuat mata harus menyeberang lebar layar
+   untuk menghubungkan keduanya.
+
+   ── KENAPA LENCANA DAN TOMBOL DI KANAN ──────────────────────────────────────
+
+   Keduanya menjawab pertanyaan yang sama — "apa yang bisa saya lakukan?" —
+   jadi keduanya dikelompokkan. Mata memindai kolom kanan saja untuk tahu
+   mana yang perlu tindakan.
+
+   ── KENAPA PAKAI `flex-wrap` ────────────────────────────────────────────────
+
+   Di layar sempit, lencana + tombol tidak muat di samping teks. Dengan
+   `flex-wrap`, keduanya turun ke baris berikutnya — tanpa media query, tanpa
+   tata letak rusak.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.kam-baris-setting {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--garis);
+}
+
+/* Baris pertama tidak perlu garis atas — ia sudah dipisahkan oleh jarak dari
+   elemen sebelumnya. */
+.kam-baris-setting:first-of-type { border-top: 0; }
+
+.kam-setting-ikon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--teks-redup);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.kam-setting-teks {
+  flex: 1;
+  min-width: 0;   /* tanpa ini, teks panjang mendorong tombol keluar layar */
+}
+
+.kam-setting-judul {
+  margin: 0 0 3px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--teks);
+}
+
+.kam-setting-ket {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--teks-samar);
+}
+
+/* Tombol di kanan tidak ikut meregang. */
+.kam-baris-setting > .auth-oauth,
+.kam-baris-setting > .kam-lencana {
+  flex: 0 0 auto;
+}
+
+/* ── DI PONSEL ────────────────────────────────────────────────────────────────
+   Ikon dan teks tetap sebaris (ikon kecil tidak menghimpit), tapi lencana dan
+   tombol turun ke bawah dengan lebar penuh supaya mudah ditekan. */
+@media (max-width: 560px) {
+  .kam-baris-setting > .auth-oauth {
+    width: 100%;
+    text-align: center;
+    margin-top: 4px;
+  }
+}
