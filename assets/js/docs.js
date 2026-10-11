@@ -108,51 +108,78 @@ import { icon, iconHtml } from './icons.js';
     toc.appendChild(frag);
   }
 
-  // ── 1a. Tombol buka-tutup untuk MOBILE ─────────────────────────────────────
+  // ── 1a. PANEL NAVIGASI GESER untuk MOBILE ──────────────────────────────────
   //
-  // ── KENAPA DIBUAT DI JS, BUKAN DI HTML ──────────────────────────────────────
-  // Tombol ini hanya berguna di layar kecil (CSS menyembunyikannya di
-  // ≥900px). Menaruhnya di HTML berarti desktop ikut memuat elemen yang
-  // tidak pernah terlihat — dan pembaca layar desktop akan menemukan
-  // tombol "Di halaman ini" yang membuka daftar yang sudah terlihat.
+  // ── POLA (dari dokumentasi Claude/Stripe/Vercel) ────────────────────────────
+  // Di layar kecil, daftar isi tidak memakan ruang halaman. Ia disembunyikan
+  // dan muncul sebagai panel yang meluncur dari kiri saat tombol ditekan.
   //
-  // Dibuat di sini: desktop tidak tahu tombol ini ada.
+  // Tiga cara menutup — semua yang wajar dicoba pengguna:
+  //   1. Tekan lapisan gelap di belakang panel
+  //   2. Tekan Escape
+  //   3. Pilih satu tautan (panel menutup sendiri supaya tujuan langsung terlihat)
   //
-  // ── KENAPA TERTUTUP SECARA DEFAULT DI MOBILE ────────────────────────────────
-  // Daftar 7 baris memakan 315px (37% tinggi layar 390px) sebelum konten
-  // pertama terlihat. Tertutup: 48px. Pengunjung yang ingin melompat ke
-  // bagian lain tetap bisa — satu ketukan. Yang membaca dari atas tidak
-  // membayar ongkos ruang itu.
-  if (toc.querySelector('.toc-bagian')) {
-    var toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'toc-toggle';
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-controls', 'toc');
+  // Fokus keyboard dikembalikan ke tombol pemicu saat panel ditutup — tanpa
+  // itu, pengguna keyboard tersesat di elemen yang sudah tidak terlihat.
+  var navBuka = document.getElementById('docsNavBuka');
+  var navScrim = document.getElementById('docsNavScrim');
 
-    var label = document.createElement('span');
-    label.className = 'toc-toggle-label';
-    label.textContent = 'Di halaman ini';
-    toggle.appendChild(label);
+  if (navBuka && navScrim) {
+    var bagianUntukJumlah = toc.querySelectorAll('.toc-bagian').length;
+    var labelJumlah = document.getElementById('docsNavJumlah');
+    if (labelJumlah && bagianUntukJumlah) {
+      labelJumlah.textContent = bagianUntukJumlah + ' bagian';
+    }
 
-    // Jumlah bagian — memberi tahu ada berapa, tanpa perlu membuka.
-    var jumlahBagian = toc.querySelectorAll('.toc-bagian').length;
-    var jumlah = document.createElement('span');
-    jumlah.className = 'toc-toggle-jumlah';
-    jumlah.textContent = jumlahBagian + ' bagian';
-    toggle.appendChild(jumlah);
+    var bukaPanel = function () {
+      toc.classList.add('is-terbuka');
+      navScrim.classList.add('is-tampil');
+      navBuka.setAttribute('aria-expanded', 'true');
+      // Kunci scroll halaman selama panel terbuka — kalau tidak, halaman di
+      // belakang ikut bergeser saat pengguna menggeser panel.
+      document.body.style.overflow = 'hidden';
+    };
 
-    var panahToggle = document.createElement('span');
-    panahToggle.className = 'toc-toggle-panah';
-    panahToggle.setAttribute('aria-hidden', 'true');
-    toggle.appendChild(panahToggle);
+    var tutupPanel = function (kembalikanFokus) {
+      toc.classList.remove('is-terbuka');
+      navScrim.classList.remove('is-tampil');
+      navBuka.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+      if (kembalikanFokus) navBuka.focus();
+    };
 
-    toggle.addEventListener('click', function () {
-      var terbuka = toc.classList.toggle('is-terbuka');
-      toggle.setAttribute('aria-expanded', terbuka ? 'true' : 'false');
+    navBuka.addEventListener('click', function () {
+      if (toc.classList.contains('is-terbuka')) {
+        tutupPanel(true);
+      } else {
+        bukaPanel();
+      }
     });
 
-    toc.insertBefore(toggle, toc.firstChild);
+    navScrim.addEventListener('click', function () { tutupPanel(true); });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && toc.classList.contains('is-terbuka')) {
+        e.preventDefault();
+        tutupPanel(true);
+      }
+    });
+
+    // Pilih tautan → panel menutup supaya tujuan langsung terlihat.
+    // Tidak mengembalikan fokus ke tombol: pengguna sedang menuju konten,
+    // memindahkan fokus ke tombol akan membatalkan lompatannya.
+    toc.addEventListener('click', function (e) {
+      var tautan = e.target.closest('a');
+      if (tautan && toc.classList.contains('is-terbuka')) tutupPanel(false);
+    });
+
+    // Layar diperbesar ke ukuran desktop saat panel terbuka → bersihkan
+    // keadaan, kalau tidak `body.overflow = hidden` ikut terbawa dan
+    // halaman desktop tidak bisa digeser.
+    var mq = window.matchMedia('(min-width: 901px)');
+    var tanganiLebar = function (e) { if (e.matches) tutupPanel(false); };
+    if (mq.addEventListener) mq.addEventListener('change', tanganiLebar);
+    else if (mq.addListener) mq.addListener(tanganiLebar);
   }
 
   // ── 1b. Buka-tutup bagian ──────────────────────────────────────────────────

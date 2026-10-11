@@ -115,6 +115,28 @@
 
   <div class="docs-layout">
 
+    <!-- ══ TOMBOL BUKA NAVIGASI (mobile) ═════════════════════════════════════
+         Pola dari dokumentasi Claude/Stripe/Vercel: di layar kecil, daftar isi
+         tidak memakan ruang halaman — ia disembunyikan di balik tombol ini,
+         dan muncul sebagai panel geser dari kiri saat ditekan.
+
+         Tombol ini HANYA terlihat di <900px (CSS). Di desktop, daftar isi
+         sudah berdiri sendiri di kolom kiri — tombol tidak punya fungsi. -->
+    <button class="docs-nav-buka" id="docsNavBuka" type="button"
+            aria-label="Buka daftar isi" aria-expanded="false" aria-controls="toc">
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="none"
+           stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+           aria-hidden="true">
+        <path d="M3 5h14M3 10h14M3 15h9"/>
+      </svg>
+      <span>Daftar isi</span>
+      <span class="docs-nav-buka-jumlah" id="docsNavJumlah"></span>
+    </button>
+
+    <!-- Lapisan gelap di belakang panel. Menutup panel saat ditekan —
+         perilaku standar drawer; pengguna tidak perlu mencari tombol X. -->
+    <div class="docs-nav-scrim" id="docsNavScrim" aria-hidden="true"></div>
+
     <nav class="toc" id="toc" aria-label="Daftar isi"></nav>
 
     <div class="doc-content" id="docContent">

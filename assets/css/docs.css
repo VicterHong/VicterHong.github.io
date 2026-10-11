@@ -169,11 +169,13 @@
 }
 
 /* ── Tombol buka-tutup: HANYA untuk mobile ────────────────────────────────────
-   Di desktop daftar isi sudah terlihat penuh di sidebar — tombol "Di halaman
-   ini" tidak punya fungsi di sana, dan pembaca layar akan menemukan kontrol
+   Di desktop daftar isi sudah terlihat penuh di sidebar — tombol dan lapisan
+   gelap tidak punya fungsi di sana, dan pembaca layar akan menemukan kontrol
    yang membuka sesuatu yang sudah terbuka.
    Disembunyikan di sini, dimunculkan kembali di @media (max-width: 900px). */
 .toc-toggle { display: none; }
+.docs-nav-buka { display: none; }
+.docs-nav-scrim { display: none; }
 .toc::-webkit-scrollbar { width: 4px; }
 .toc::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
 .toc::-webkit-scrollbar-track { background: transparent; }
@@ -568,66 +570,44 @@
   .docs-page { padding: 3rem 1.25rem 4rem; }
   .docs-layout { grid-template-columns: 1fr; gap: 0; }
 
-  /* ══ NAVIGASI MOBILE: ACCORDION VERTIKAL, BUKA-TUTUP ═════════════════════════
+  /* ══ NAVIGASI MOBILE: PANEL GESER DARI KIRI ═══════════════════════════════════
    *
    * ── MASALAH YANG DIPERBAIKI (terukur di produksi 390px) ─────────────────────
-   * Versi sebelumnya: baris chip yang di-scroll horizontal.
+   * Versi pertama: baris chip yang di-scroll horizontal.
    *
    *   total lebar chip     888px
    *   terlihat di layar    358px
    *   ─────────────────────────────
    *   TERSEMBUNYI          530px  ← 60% navigasi tidak terlihat
    *
-   * Tinggi chip juga tidak konsisten: "01 Memulai" 38px (satu baris),
-   * "02 Menggunakan Token" 60px (dua baris karena teks membungkus).
-   * Deretan bergerigi — sulit dipindai mata.
+   * Versi kedua: accordion vertikal penuh (7 baris × 45px = 315px = 37% layar)
+   * sebelum konten pertama terlihat. Tidak terpotong, tapi terlalu mahal.
    *
-   * ── KENAPA BUKAN SCROLL HORIZONTAL ──────────────────────────────────────────
-   * Navigasi yang butuh digeser menyembunyikan tujuannya sendiri. Pengunjung
-   * tidak tahu ada 7 bagian; yang terlihat hanya 3, dan itu pun terpotong di
-   * tepi. Cue gradient hanya menandakan "masih ada", bukan "ada 4 lagi".
+   * ── YANG DIPAKAI SEKARANG (pola dokumentasi Claude/Stripe/Vercel) ───────────
+   * Daftar isi DISEMBUNYIKAN dari alur halaman dan muncul sebagai PANEL GESER
+   * dari kiri saat tombol "Daftar isi" ditekan:
    *
-   * ── KENAPA SEKARANG BISA DITUTUP ────────────────────────────────────────────
-   * Accordion vertikal penuh (7 baris × 45px = 315px) memang tidak lagi
-   * terpotong, tapi memakan 37% tinggi layar sebelum konten pertama terlihat.
-   * Di ponsel itu terlalu mahal.
+   *   - Tertutup: halaman langsung menampilkan konten (tombol = satu baris 48px)
+   *   - Terbuka : panel 300px meluncur dari kiri, bisa DIGESER (scroll) kalau
+   *               isinya lebih panjang dari layar
+   *   - Menutup : tekan lapisan gelap, tekan Escape, atau pilih satu tautan
    *
-   * Dokumentasi Stripe/Vercel/Linear/Anthropic menyelesaikannya dengan cara
-   * yang sama: di layar kecil, daftar isi DISEMBUNYIKAN di balik satu tombol
-   * ringkas — "Di halaman ini" — dan dibuka hanya saat diminta. Konten
-   * langsung terlihat; navigasi tetap satu ketukan jauhnya.
-   *
-   * Tertutup: satu baris 48px. Terbuka: daftar penuh seperti sebelumnya.
+   * Ini yang diminta: navigasi bisa dibuka, isinya bisa digeser, dan tiap
+   * bagian bisa diklik untuk melompat.
    * ────────────────────────────────────────────────────────────────────────── */
-  .toc {
-    position: static;
-    max-height: none;
-    flex-direction: column;
-    gap: 0;
-    padding: 0;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    overflow: visible;
-    -webkit-mask-image: none;
-    mask-image: none;
-    padding-right: 0;
-    background: var(--bg-card);
-  }
 
-  /* ── Tombol buka-tutup ────────────────────────────────────────────────────
-     Satu baris: label "Di halaman ini" + jumlah bagian + chevron.
-     Ini yang terlihat saat tertutup — 48px, bukan 315px. */
-  .toc-toggle {
+  /* Tombol pemicu — satu baris di atas konten. */
+  .docs-nav-buka {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.55rem;
     width: 100%;
     min-height: 48px;
     padding: 0.75rem 0.9rem;
-    border: 0;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--line);
     border-radius: 10px;
-    background: transparent;
+    background: var(--bg-card);
     color: var(--text);
     font: inherit;
     font-size: 0.88rem;
@@ -635,37 +615,82 @@
     text-align: left;
     cursor: pointer;
   }
-  .toc-toggle:hover { background: var(--bg-soft); }
-  .toc-toggle:focus-visible {
+  .docs-nav-buka:hover { border-color: var(--accent); }
+  .docs-nav-buka:focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: -2px;
+    outline-offset: 2px;
   }
-
-  /* Label kecil di kiri: "Di halaman ini" */
-  .toc-toggle-label { flex: 1; }
-
-  /* Jumlah bagian — konteks singkat tanpa membuka daftar. */
-  .toc-toggle-jumlah {
+  /* Jumlah bagian di kanan — memberi tahu isinya ada berapa. */
+  .docs-nav-buka-jumlah {
+    margin-left: auto;
     color: var(--text-dim);
     font-weight: 500;
     font-size: 0.8rem;
   }
 
-  /* Chevron: sama seperti .toc-panah, ikut berputar saat terbuka. */
-  .toc-toggle-panah {
-    width: 8px;
-    height: 8px;
-    border-right: 1.5px solid currentColor;
-    border-bottom: 1.5px solid currentColor;
-    transform: rotate(45deg);
-    transition: transform 0.2s ease;
-    flex: 0 0 auto;
+  /* Lapisan gelap di belakang panel. */
+  .docs-nav-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
   }
-  .toc.is-terbuka .toc-toggle-panah { transform: rotate(-135deg); }
+  .docs-nav-scrim.is-tampil { opacity: 1; visibility: visible; }
 
-  /* ── Daftar: disembunyikan saat tertutup ────────────────────────────────── */
-  .toc > .toc-bagian { display: none; }
-  .toc.is-terbuka > .toc-bagian { display: block; }
+  /* ── Panel geser ──────────────────────────────────────────────────────────
+     `position: fixed` + `transform` supaya animasinya murah (tidak memicu
+     layout). Lebar 300px atau 86% layar — mana yang lebih kecil, supaya di
+     ponsel sempit masih terlihat ada halaman di belakangnya (konteks visual
+     bahwa ini panel sementara, bukan halaman baru). */
+  .toc {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 61;
+    width: min(300px, 86vw);
+    max-height: none;
+    margin: 0;
+    padding: 1.25rem 1.1rem 2rem;
+    border: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+    background: var(--bg);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.24s;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  }
+  .toc.is-terbuka {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  /* Hormati pengguna yang memilih gerak minimum: panel tetap berfungsi,
+     hanya tanpa animasi geser. */
+  @media (prefers-reduced-motion: reduce) {
+    .toc, .docs-nav-scrim { transition: none; }
+  }
+
+  /* Judul kecil di atas panel — memberi konteks "ini daftar isi halaman". */
+  .toc::before {
+    content: 'Daftar isi';
+    display: block;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--line);
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
 
   /* ── Baris bagian ─────────────────────────────────────────────────────────
      Lebar penuh, tinggi seragam, border rambut. Pola Anthropic:
@@ -680,11 +705,11 @@
     /* min-height + padding memberi baris 44px+ tanpa mengunci tinggi:
        teks panjang yang membungkus tetap tumbuh, tidak terpotong. */
     min-height: 44px;
-    padding: 0.65rem 0.9rem;
+    padding: 0.65rem 0.2rem;
     border-radius: 0;
-    font-size: 0.86rem;
+    font-size: 0.88rem;
   }
-  .toc-judul:hover { background: var(--bg-soft); }
+  .toc-judul:hover { background: transparent; }
   .toc-bagian.is-terbuka > .toc-judul { background: transparent; }
 
   /* Nomor bagian: kolom tetap supaya semua judul mulai di garis yang sama.
@@ -692,7 +717,7 @@
      judulnya — daftar terlihat bergerigi. */
   .toc-num {
     flex: 0 0 auto;
-    min-width: 1.6rem;
+    min-width: 1.7rem;
   }
 
   /* Teks judul BOLEH membungkus — tapi karena tinggi baris sekarang
@@ -706,16 +731,17 @@
   .toc-panah { margin-left: auto; flex: 0 0 auto; }
 
   /* Sub-bagian: indentasi rapi dari nomor, bukan dari tepi. */
-  .toc-sub { padding-left: 2.1rem; }
+  .toc-sub { padding-left: 1.9rem; }
 
   .toc-link {
     display: block;
     border: 0;
     border-radius: 0;
-    padding: 0.5rem 0.9rem;
+    padding: 0.5rem 0.2rem;
     white-space: normal;
-    min-height: 38px;
-    font-size: 0.82rem;
+    /* 44px = target sentuh minimum (WCAG 2.5.5) */
+    min-height: 44px;
+    font-size: 0.84rem;
     background: transparent;
   }
   .toc-link.is-active {
