@@ -912,6 +912,95 @@ td, th { word-break: break-word; }
   grid-column: 1 / -1; padding: 2rem 1rem; text-align: center;
   color: var(--muted); font-size: 0.82rem; opacity: 0.72;
 }
+
+/* ══ TAB AKUN — gaya yang belum ada di panel ═══════════════════════════════ */
+
+/* Lencana jumlah di tab — penanda ada pekerjaan menunggu. */
+.tab-lencana {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  margin-left: 5px;
+  border-radius: 9px;
+  background: var(--err);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+
+/* Sel tabel: baris utama + keterangan di bawahnya. */
+.cell-main {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.cell-sub {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* Tombol aksi di dalam baris tabel. */
+.row-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+/* Tombol sekunder — untuk aksi yang tidak mengubah data secara merusak. */
+.btn-ghost {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--muted);
+}
+
+/* Tombol merusak — satu-satunya tombol merah di panel. Karena itu menonjol,
+   dan memang harus: tindakannya tidak bisa dibatalkan. */
+.btn-danger {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--err);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-danger:hover { opacity: 0.85; }
+
+/* Teks keterangan di bawah judul tabel. */
+.hint {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.hint.muted { color: var(--muted); }
+.hint strong { color: var(--text); font-weight: 600; }
+
+/* Tombol yang dinonaktifkan — mis. Setujui saat masih ada langganan aktif. */
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 </style>
 </head>
 <body>
@@ -940,6 +1029,7 @@ td, th { word-break: break-word; }
   <div class="tabs">
     <button class="tab active" data-tab="overview">Ringkasan</button>
     <button class="tab" data-tab="tokens">Token</button>
+    <button class="tab" data-tab="akun">Akun <span id="tabAkunLencana" class="tab-lencana" hidden>0</span></button>
     <button class="tab" data-tab="leads">Leads</button>
     <button class="tab" data-tab="funnel">Funnel</button>
     <button class="tab" data-tab="sla">SLA</button>
@@ -986,6 +1076,47 @@ td, th { word-break: break-word; }
           <button class="btn-primary" id="issueBtn">+ Terbitkan token</button>
         </div>
         <div id="tokensTable"></div>
+      </div>
+    </div>
+
+    <!-- ══ AKUN — ANTREAN PENGHAPUSAN ══════════════════════════════════════
+         ── KENAPA TAB INI ADA ────────────────────────────────────────────────
+         Akun yang dinonaktifkan TIDAK terhapus sendiri. Ia menunggu tinjauan
+         admin, dan kalau tidak ada yang meninjau, baru terhapus otomatis
+         setelah 12 bulan.
+
+         Tanpa tab ini, tidak ada cara meninjau — dan pemilik akun yang
+         berubah pikiran harus menunggu setahun untuk mendapat kejelasan.
+
+         ── URUTAN: PALING LAMA DI ATAS ───────────────────────────────────────
+         Yang paling lama menunggu adalah yang paling mendekati batas 12 bulan.
+         Server sudah mengurutkannya; tab ini hanya menampilkan. -->
+    <div class="panel" id="panel-akun">
+      <!-- ── KENAPA MEMAKAI .label/.value, BUKAN .stat-num/.stat-lbl ──────────
+           Kelas itu sudah dipakai panel Ringkasan. Memakai nama baru berarti
+           dua gaya untuk hal yang sama — dan yang satu akan tertinggal saat
+           tema berubah. -->
+      <div class="stat-grid" id="akunStats">
+        <div class="stat"><div class="label">Butuh tinjauan</div><div class="value" id="akunTinjau">—</div></div>
+        <div class="stat"><div class="label">Siap dihapus</div><div class="value err" id="akunSiap">—</div></div>
+        <div class="stat"><div class="label">Ada langganan</div><div class="value warn" id="akunLangganan">—</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head">
+          <h2>Antrean penghapusan akun</h2>
+          <div class="spacer"></div>
+          <button class="btn-ghost" id="akunRefresh">Segarkan</button>
+          <button class="btn-danger" id="akunBersihkan">Bersihkan sekarang</button>
+        </div>
+
+        <p class="hint muted">
+          Akun di sini sudah <strong>dinonaktifkan</strong> — pemiliknya tidak bisa masuk,
+          tapi datanya masih utuh. <strong>Setujui</strong> untuk menghapus permanen,
+          atau <strong>Tolak</strong> untuk mengembalikannya aktif.
+        </p>
+
+        <div id="akunTable"></div>
       </div>
     </div>
 
@@ -1368,6 +1499,50 @@ $('#refreshBtn').addEventListener('click', async () => {
     btn.classList.remove('is-loading');
   }
 });
+
+  // ── Aksi tab Akun ────────────────────────────────────────────────
+  $('#akunRefresh')?.addEventListener('click', () => {
+    loadAkun().catch((err) => toast(`Gagal: ${err.message}`, 'err'));
+  });
+
+  // ── KENAPA PEMBERSIHAN MANUAL BUTUH KONFIRMASI BERLAPIS ─────────────
+  //
+  // Aksi ini TIDAK BISA DIBATALKAN dan menyentuh BANYAK akun sekaligus.
+  // Meminta admin MENGETIK kata konfirmasi memaksa ia membaca — bukan
+  // sekadar menekan Enter karena tombolnya terlihat sama dengan yang lain.
+  $('#akunBersihkan')?.addEventListener('click', async () => {
+    const konfirmasi = prompt(
+      'Jalankan pembersihan permanen?\n\n'
+      + 'Semua akun yang SUDAH DISETUJUI atau SUDAH LEWAT 12 BULAN akan dihapus permanen.\n'
+      + 'Tindakan ini tidak bisa dibatalkan.\n\n'
+      + 'Ketik "bersihkan" untuk melanjutkan:'
+    );
+
+    if (konfirmasi === null) return;
+    if (konfirmasi.trim().toLowerCase() !== 'bersihkan') {
+      toast('Dibatalkan — kata konfirmasi tidak cocok.', 'err');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/akun/bersihkan', {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey, 'content-type': 'application/json' },
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        toast(`Gagal: ${data.message ?? data.error}`, 'err');
+        return;
+      }
+
+      toast(data.pesan ?? 'Pembersihan selesai.');
+      await loadAkun();
+      loadOverview();
+    } catch (err) {
+      toast(`Gagal: ${err.message}`, 'err');
+    }
+  });
 
 // ── Tabs ─────────────────────────────────────────────────────────
 $$('.tab').forEach((tab) => {
@@ -2023,6 +2198,175 @@ async function checkHealth() {
 }
 
 // ── Load all ─────────────────────────────────────────────────────
+  // ── AKUN — ANTREAN PENGHAPUSAN ─────────────────────────────────────────────
+  //
+  // ── MODEL KORPORAT: NONAKTIF → TINJAUAN → HAPUS ─────────────────────────────
+  //
+  // Akun yang diminta hapus oleh pemiliknya TIDAK langsung terhapus. Ia
+  // dinonaktifkan dan menunggu keputusan manusia:
+  //
+  //   Setujui → dihapus permanen pada pembersihan berikutnya
+  //   Tolak   → kembali aktif, pemiliknya bisa masuk lagi
+  //   Diam    → terhapus otomatis setelah 12 bulan
+  //
+  // ── KENAPA MANUSIA, BUKAN OTOMATIS ─────────────────────────────────────────
+  //
+  // Ada situasi yang hanya bisa dinilai manusia: sengketa pembayaran,
+  // investigasi penyalahgunaan, akun yang diperebutkan kepemilikannya.
+  // Otomatisasi tidak bisa membedakan "pengguna ingin pergi" dari "penyerang
+  // ingin menghapus jejak".
+  async function loadAkun() {
+    skeletonIfEmpty($('#akunTable'), skTable(['Akun', 'Status', 'Sisa', ''], 3), 'sk-hold-tall');
+
+    const data = await api('/api/admin/akun/antrean-hapus');
+
+    // ── KARTU ANGKA ───────────────────────────────────────────────────────────
+    $('#akunTinjau').textContent = String(data.butuh_tinjauan ?? 0);
+    $('#akunSiap').textContent = String(data.siap_hapus ?? 0);
+    $('#akunLangganan').textContent = String(data.ada_langganan ?? 0);
+
+    // Lencana di tab — penanda bahwa ada pekerjaan menunggu.
+    const lencana = $('#tabAkunLencana');
+    if (lencana) {
+      const n = data.butuh_tinjauan ?? 0;
+      lencana.textContent = String(n);
+      // Hanya muncul kalau ada yang butuh tinjauan. Lencana "0" permanen akan
+      // diabaikan mata — dan justru saat itulah ia penting.
+      lencana.hidden = n === 0;
+    }
+
+    const rows = data.daftar ?? [];
+
+    if (rows.length === 0) {
+      $('#akunTable').innerHTML = '<div class="empty">Tidak ada akun yang menunggu tinjauan.</div>';
+      clearSkeleton($('#akunTable'));
+      return;
+    }
+
+    // ── TABEL ─────────────────────────────────────────────────────────────────
+    //
+    // ── KENAPA SISA HARI DITAMPILKAN, BUKAN TANGGAL ─────────────────────────
+    // Tanggal butuh perhitungan untuk ditafsirkan. "Sisa 25 hari" langsung
+    // memberi tahu admin mana yang mendesak.
+    const baris = rows.map((a) => {
+      const sisa = a.sisa_hari === null || a.sisa_hari === undefined
+        ? '—'
+        : a.sisa_hari > 0 ? `${a.sisa_hari} hari` : 'habis';
+
+      // Lencana status — tiga keadaan yang berbeda artinya.
+      let status;
+      if (a.siap_hapus) {
+        status = '<span class="pill revoked">Siap dihapus</span>';
+      } else if (a.ada_langganan) {
+        // ── KENAPA INI PENTING DITAMPILKAN ───────────────────────────────────
+        // Penghapusan AKAN GAGAL kalau ada langganan aktif. Admin harus tahu
+        // SEBELUM mengklik — supaya ia menghubungi pengguna, bukan mendapat
+        // pesan galat yang tidak menjelaskan apa yang harus dilakukan.
+        status = `<span class="pill suspended">${a.jumlah_langganan} langganan aktif</span>`;
+      } else {
+        status = '<span class="pill standard">Menunggu tinjauan</span>';
+      }
+
+      const ket = [];
+      if (a.nama) ket.push(escapeHtml(a.nama));
+      if (a.disetujui_oleh) ket.push(`disetujui ${escapeHtml(a.disetujui_oleh)}`);
+      if (a.dihapus_pada) ket.push(`dinonaktifkan ${fmtDate(a.dihapus_pada)}`);
+
+      // Aksi hanya muncul kalau masih menunggu — yang sudah disetujui tidak
+      // butuh tombol lagi.
+      const aksi = a.siap_hapus ? '' : `
+        <div class="row-actions">
+          <button class="btn-ghost btn-sm" data-akun-tolak="${escapeAttr(a.id)}" data-akun-email="${escapeAttr(a.email ?? '')}">Tolak</button>
+          <button class="btn-primary btn-sm" data-akun-setuju="${escapeAttr(a.id)}" data-akun-email="${escapeAttr(a.email ?? '')}"
+            ${a.ada_langganan ? 'disabled title="Batalkan langganan aktif dulu — penghapusan akan gagal."' : ''}>Setujui</button>
+        </div>`;
+
+      return `<tr>
+        <td>
+          <div class="cell-main">${escapeHtml(a.email ?? '(tanpa email)')}</div>
+          ${ket.length ? `<div class="cell-sub">${ket.join(' · ')}</div>` : ''}
+        </td>
+        <td>${status}</td>
+        <td class="mono">${sisa}</td>
+        <td>${aksi}</td>
+      </tr>`;
+    }).join('');
+
+    $('#akunTable').innerHTML = `<table>
+      <thead><tr><th>Akun</th><th>Status</th><th>Sisa</th><th></th></tr></thead>
+      <tbody>${baris}</tbody>
+    </table>`;
+
+    clearSkeleton($('#akunTable'));
+
+    // ── HANDLER AKSI ──────────────────────────────────────────────────────────
+    $$('[data-akun-setuju]').forEach((btn) => {
+      btn.addEventListener('click', () => aksiAkun(btn.dataset.akunSetuju, btn.dataset.akunEmail, 'setuju'));
+    });
+    $$('[data-akun-tolak]').forEach((btn) => {
+      btn.addEventListener('click', () => aksiAkun(btn.dataset.akunTolak, btn.dataset.akunEmail, 'tolak'));
+    });
+  }
+
+  /**
+   * Setujui atau tolak penghapusan akun.
+   *
+   * ── KENAPA MEMINTA ALASAN ─────────────────────────────────────────────────
+   *
+   * Jejak audit harus menyebut SIAPA yang memutuskan dan ATAS DASAR APA.
+   * "Admin menyetujui" tidak cukup saat ada pertanyaan dari auditor atau
+   * sengketa di kemudian hari.
+   *
+   * Untuk persetujuan, catatannya opsional — pengguna yang jelas ingin pergi
+   * tidak butuh penjelasan. Untuk penolakan, alasan wajib: pemilik akun berhak
+   * tahu kenapa permintaannya tidak dikabulkan.
+   */
+  async function aksiAkun(id, email, jenis) {
+    const setuju = jenis === 'setuju';
+
+    const judul = setuju ? 'Setujui penghapusan permanen?' : 'Tolak penghapusan?';
+    const pesan = setuju
+      ? `Akun "${email}" akan dihapus PERMANEN pada pembersihan berikutnya.\n\nData pribadi hilang; catatan pembayaran tetap disimpan untuk pembukuan.`
+      : `Akun "${email}" akan dikembalikan AKTIF dan pemiliknya bisa masuk lagi.`;
+    const labelAlasan = setuju ? 'Catatan (opsional)' : 'Alasan penolakan (wajib)';
+
+    const alasan = prompt(`${judul}\n\n${pesan}\n\n${labelAlasan}:`);
+    if (alasan === null) return;   // dibatalkan
+
+    if (!setuju && !alasan.trim()) {
+      toast('Alasan penolakan wajib diisi.', 'err');
+      return;
+    }
+
+    try {
+      const jalur = setuju ? '/api/admin/akun/setujui-hapus' : '/api/admin/akun/tolak-hapus';
+      const isi = setuju
+        ? { id, oleh: 'panel-admin', catatan: alasan.trim() }
+        : { id, oleh: 'panel-admin', alasan: alasan.trim() };
+
+      const res = await fetch(jalur, {
+        method: 'POST',
+        headers: { 'x-admin-key': adminKey, 'content-type': 'application/json' },
+        body: JSON.stringify(isi),
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        // ── 409 = KEADAAN BERTENTANGAN ────────────────────────────────────────
+        // Mis. langganan aktif muncul setelah permintaan dibuat. Pesannya
+        // sudah menjelaskan; tidak perlu dibungkus lagi.
+        toast(`Gagal: ${data.message ?? data.error ?? 'tidak diketahui'}`, 'err');
+        return;
+      }
+
+      toast(data.pesan ?? 'Berhasil.');
+      await loadAkun();
+      loadOverview();   // angka ringkasan ikut berubah
+    } catch (err) {
+      toast(`Gagal: ${err.message}`, 'err');
+    }
+  }
+
 async function loadAll() {
   checkHealth();
   // Setiap pemuat gagal-diam (satu panel rusak tidak mematikan yang lain),
@@ -2032,6 +2376,13 @@ async function loadAll() {
   const loaders = [
     ['ringkasan', loadOverview],
     ['token', loadTokens],
+    // ── KENAPA AKUN IKUT DIMUAT DI AWAL ────────────────────────────────────
+    // Tab ini punya TENGGAT: akun yang tidak ditinjau terhapus otomatis
+    // setelah 12 bulan. Yang lain bisa menunggu; ini tidak.
+    //
+    // Memuatnya bersama yang lain berarti lencana jumlah di tab langsung
+    // terisi — admin tahu ada pekerjaan menunggu tanpa harus membuka tabnya.
+    ['akun', loadAkun],
     ['leads', loadLeads],
     ['funnel', loadFunnel],
     ['SLA', loadSla],
