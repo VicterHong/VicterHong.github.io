@@ -27,80 +27,73 @@ import { icon, iconHtml } from './icons.js';
     if (svg) el.replaceWith(svg);
   });
 
-  // ── 1. Daftar isi otomatis dari heading (accordion) ────────────────────────
+  // ── 1. Daftar isi otomatis dari heading ────────────────────────────────────
   //
-  // Versi lama menampilkan 7 bagian + 21 sub sekaligus (28 tautan). Pengunjung
-  // yang mencari "Batas laju" harus memindai semuanya. Sekarang jadi accordion:
-  // 7 baris saja, sub muncul saat bagiannya dibuka.
+  // ── STRUKTUR: JUDUL GRUP + ITEM TERBUKA (pola Claude Code Docs) ─────────────
+  // Diukur langsung di code.claude.com: sidebar mereka menampilkan judul grup
+  // ("Getting started", "Core concepts") sebagai teks tebal, diikuti SEMUA
+  // itemnya terbuka — tanpa accordion, tanpa chevron, tanpa nomor.
   //
-  // Pola ini dari dokumentasi Stripe/Vercel/Linear. Satu terbuka pada satu
-  // waktu — kalau semua bisa terbuka, daftarnya kembali panjang dan accordion
-  // kehilangan gunanya.
+  // Versi kita sebelumnya accordion (klik untuk buka sub). Itu pola
+  // Stripe/Vercel — benar untuk sidebar desktop yang sempit, tapi di panel
+  // mobile ia menambah satu ketukan untuk setiap bagian. Claude membuka
+  // semuanya: panel sudah punya scroll sendiri, jadi panjang bukan masalah.
+  //
+  // Nomor "01/02" dihapus dari daftar (tetap ada di judul bagian halaman) —
+  // di Claude tidak ada nomor, dan nomor membuat judul lebih sulit dipindai.
   var headings = content.querySelectorAll('h2[id], h3[id]');
-  var panels = [];       // { bagian, tautan[] } — untuk observer & auto-buka
+  var panels = [];       // { id, blok, tautan[] } — untuk observer
 
   if (headings.length) {
     var frag = document.createDocumentFragment();
-    var bagianKini = null;   // panel bagian yang sedang dibangun
-    var daftarSub = null;    // <ul> tempat sub-bagian ditaruh
+    var bagianKini = null;   // grup yang sedang dibangun
+    var daftarSub = null;    // <ul> tempat item ditaruh
 
     headings.forEach(function (h) {
       var isH2 = h.tagName === 'H2';
       var judul = h.textContent.replace(/^\s*\d+\s*/, '').trim();
 
       if (isH2) {
-        // ── Bagian utama: jadi tombol accordion ─────────────────────────────
+        // ── Bagian utama: jadi JUDUL GRUP + tautan bagian itu sendiri ────────
         var blok = document.createElement('div');
         blok.className = 'toc-bagian';
+        blok.dataset.bagian = h.id;
 
-        var tombol = document.createElement('button');
-        tombol.type = 'button';
-        tombol.className = 'toc-judul';
-        tombol.setAttribute('aria-expanded', 'false');
-        tombol.dataset.target = h.id;
+        var judulGrup = document.createElement('p');
+        judulGrup.className = 'toc-grup';
+        judulGrup.textContent = judul;
+        blok.appendChild(judulGrup);
 
-        var num = h.querySelector('.sec-num');
-        if (num) {
-          var span = document.createElement('span');
-          span.className = 'toc-num';
-          span.textContent = num.textContent.trim();
-          tombol.appendChild(span);
-        }
-
-        var teks = document.createElement('span');
-        teks.className = 'toc-judul-teks';
-        teks.textContent = judul;
-        tombol.appendChild(teks);
-
-        // Chevron dari CSS (border), bukan SVG — rotasinya jadi animasi
-        // transform yang murah.
-        var panah = document.createElement('span');
-        panah.className = 'toc-panah';
-        panah.setAttribute('aria-hidden', 'true');
-        tombol.appendChild(panah);
-
-        blok.appendChild(tombol);
-
+        // Tautan ke bagian itu sendiri — di Claude, judul grup BUKAN tautan;
+        // tapi pembaca kita perlu cara melompat ke bagian tanpa sub-bagian.
+        // Ditaruh sebagai item pertama di daftar supaya tidak menghalangi
+        // pemindaian judul grup.
         daftarSub = document.createElement('ul');
         daftarSub.className = 'toc-sub';
-        daftarSub.id = 'toc-sub-' + h.id;
-        tombol.setAttribute('aria-controls', daftarSub.id);
-        blok.appendChild(daftarSub);
 
+        var liUtama = document.createElement('li');
+        var aUtama = document.createElement('a');
+        aUtama.href = '#' + h.id;
+        aUtama.className = 'toc-link';
+        aUtama.textContent = 'Ringkasan';
+        liUtama.appendChild(aUtama);
+        daftarSub.appendChild(liUtama);
+
+        blok.appendChild(daftarSub);
         frag.appendChild(blok);
 
-        bagianKini = { id: h.id, tombol: tombol, daftar: daftarSub, tautan: [] };
+        bagianKini = { id: h.id, blok: blok, tautan: [aUtama] };
         panels.push(bagianKini);
-        blok.dataset.bagian = h.id;
       } else if (bagianKini) {
-        // ── Sub-bagian: masuk ke daftar bagian induknya ──────────────────────
+        // ── Sub-bagian: masuk ke daftar grup induknya ────────────────────────
         var li = document.createElement('li');
         var a = document.createElement('a');
         a.href = '#' + h.id;
         a.className = 'toc-link';
         a.textContent = h.textContent.trim();
         li.appendChild(a);
-        bagianKini.daftar.appendChild(li);
+        bagianKini.daftar = daftarSub;
+        daftarSub.appendChild(li);
         bagianKini.tautan.push(a);
       }
     });
@@ -344,41 +337,6 @@ import { icon, iconHtml } from './icons.js';
     }
   }
 
-  // ── 1b. Buka-tutup bagian ──────────────────────────────────────────────────
-  //
-  // Tombol + aria-expanded, bukan <details>: <details> tidak bisa dibuat
-  // eksklusif tanpa JS juga, dan gayanya sulit diseragamkan antar-browser.
-  function tutupSemua(kecuali) {
-    panels.forEach(function (p) {
-      if (p === kecuali) return;
-      p.tombol.setAttribute('aria-expanded', 'false');
-      p.daftar.hidden = true;
-      p.tombol.closest('.toc-bagian').classList.remove('is-terbuka');
-    });
-  }
-
-  function buka(p) {
-    p.tombol.setAttribute('aria-expanded', 'true');
-    p.daftar.hidden = false;
-    p.tombol.closest('.toc-bagian').classList.add('is-terbuka');
-  }
-
-  panels.forEach(function (p) {
-    p.daftar.hidden = true;   // semua tertutup saat halaman dimuat
-    p.tombol.addEventListener('click', function () {
-      var terbuka = p.tombol.getAttribute('aria-expanded') === 'true';
-      if (terbuka) {
-        // Klik kedua membalikkan yang pertama → semua tertutup.
-        p.tombol.setAttribute('aria-expanded', 'false');
-        p.daftar.hidden = true;
-        p.tombol.closest('.toc-bagian').classList.remove('is-terbuka');
-      } else {
-        tutupSemua(p);
-        buka(p);
-      }
-    });
-  });
-
   // ── 2. Sorot bagian yang sedang dibaca + perbarui breadcrumb ──────────────
   var links = toc.querySelectorAll('.toc-link');
   var crumbKini = document.getElementById('docsCrumbKini');
@@ -416,16 +374,13 @@ import { icon, iconHtml } from './icons.js';
             if (nama) crumbKini.textContent = nama;
           }
 
-          // Auto-buka bagian yang sedang dibaca. Tanpa ini, pengunjung yang
-          // menggulir ke bagian 4 melihat semua tertutup dan tidak tahu
-          // posisinya. Stripe melakukan hal yang sama.
-          var bagian = panels.find(function (p) {
-            return p.id === e.target.id || p.tautan.indexOf(link) >= 0;
+          // Tandai grup yang sedang dibaca. Di Claude tidak ada penanda grup
+          // aktif (hanya item), tapi menyorot judul grup membantu pembaca
+          // melihat posisinya di panel yang panjang. Latarnya sangat halus —
+          // lihat .toc-bagian.is-aktif di docs.css.
+          panels.forEach(function (p) {
+            p.blok.classList.toggle('is-aktif', p.tautan.indexOf(link) >= 0);
           });
-          if (bagian && bagian.tombol.getAttribute('aria-expanded') !== 'true') {
-            tutupSemua(bagian);
-            buka(bagian);
-          }
         }
       });
     }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
