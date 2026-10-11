@@ -2431,7 +2431,20 @@
     const l2 = $('#kamLangkah2fa2');
     const l3 = $('#kamLangkah2fa3');
     const pesan = $('#kamPesan2faDialog');
-    const inpKode = $('#kamKode2fa');
+
+    // ── ENAM KOTAK OTP — pakai fungsi bersama pasangOtpSel() ──────────────────
+    // Dipasang SEKARANG (saat init), bukan saat langkah 2 dibuka.
+    //
+    // ── KENAPA TIDAK MENUNGGU LANGKAH 2 ────────────────────────────────────────
+    // Versi pertama memasangnya di dalam mulai() — setelah API QR sukses.
+    // Itu rapuh: kalau API gagal atau lambat, handler tidak pernah terpasang,
+    // dan pengguna yang mencoba mengetik di sel kosong tidak mendapat
+    // auto-advance sama sekali.
+    //
+    // Event listener bisa dipasang pada elemen yang masih `hidden` — hanya
+    // FOKUS yang butuh elemen terlihat. Jadi pemasangan di init aman, dan
+    // fokus tetap dilakukan saat langkah 2 benar-benar dibuka.
+    const otp2fa = pasangOtpSel('#kamOtp2fa', () => verifikasi());
 
     /** Tampilkan satu langkah, sembunyikan yang lain. */
     function langkah(n) {
@@ -2449,7 +2462,7 @@
 
     function reset() {
       langkah(1);
-      if (inpKode) inpKode.value = '';
+      otp2fa?.reset();
       const qr = $('#kamQr2fa');
       if (qr) qr.innerHTML = '';
       const pulih = $('#kamPemulihan2fa');
@@ -2545,7 +2558,12 @@
 
         langkah(2);
         pesan2fa('');
-        setTimeout(() => inpKode?.focus(), 50);
+
+        // OTP sudah dipasang saat init (lihat atas). Di sini cukup reset
+        // isinya dan fokuskan sel pertama — fokus baru bisa dilakukan
+        // setelah wadahnya benar-benar terlihat.
+        otp2fa.reset();
+        setTimeout(() => otp2fa.sel[0]?.focus(), 50);
 
       } catch {
         pesan2fa('Tidak bisa menghubungi server. Coba lagi.', 'galat');
@@ -2558,11 +2576,11 @@
 
     // ── LANGKAH 2 → 3: VERIFIKASI KODE ────────────────────────────────────────
     async function verifikasi() {
-      const kode = (inpKode?.value || '').trim();
+      const kode = otp2fa?.nilai() || '';
 
       if (!/^\d{6}$/.test(kode)) {
         pesan2fa('Kode harus 6 angka.', 'galat');
-        inpKode?.focus();
+        otp2fa?.fokusKosong();
         return;
       }
 
@@ -2581,8 +2599,9 @@
 
         if (!res.ok || !d.ok) {
           pesan2fa(d.message || 'Kode tidak cocok. Coba lagi.', 'galat');
-          inpKode?.focus();
-          inpKode?.select();
+          // Kode salah → kosongkan semua sel dan mulai dari digit 1.
+          otp2fa?.reset();
+          otp2fa?.sel[0]?.focus();
           return;
         }
 
@@ -2643,13 +2662,8 @@
 
     $('#kamVerifikasi2fa')?.addEventListener('click', verifikasi);
 
-    inpKode?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); verifikasi(); }
-    });
-
-    inpKode?.addEventListener('input', () => {
-      inpKode.value = inpKode.value.replace(/\D/g, '').slice(0, 6);
-    });
+    // Handler OTP (auto-advance, paste, backspace, auto-kirim) dipasang oleh
+    // pasangOtpSel() saat langkah 2 dibuka — lihat fungsi mulai() di atas.
 
     // ── SALIN KODE PEMULIHAN ──────────────────────────────────────────────────
     $('#kamSalin2fa')?.addEventListener('click', async () => {
@@ -2706,6 +2720,122 @@
     } catch { /* biarkan nilai lama */ }
   }
 
+  // ══ OTP SEL TERPISAH — SATU FUNGSI UNTUK SEMUA DIALOG ═══════════════════════
+  //
+  // ── KENAPA DIEKSTRAK, BUKAN DISALIN DUA KALI ────────────────────────────────
+  // Ada dua dialog di halaman ini yang meminta kode 6 digit: setup 2FA dan
+  // hapus akun. Kalau perilakunya ditulis dua kali, cepat atau lambat keduanya
+  // berbeda — satu punya auto-advance, yang lain tidak; satu membatalkan
+  // auto-kirim saat Backspace, yang lain lupa. Pengguna merasakan perbedaan
+  // itu sebagai "aplikasi yang tidak konsisten".
+  //
+  // Satu fungsi, satu perilaku. Halaman masuk (auth.js) punya salinannya
+  // sendiri karena file itu tidak dimuat di sini — tapi perilakunya identik.
+  //
+  // ── PERILAKU YANG DIPASANG ──────────────────────────────────────────────────
+  //   1. INPUT   — hanya angka; tempelan multi-digit disebar ke sel berikutnya
+  //   2. MAJU    — setelah satu digit, fokus pindah sendiri
+  //   3. MUNDUR  — Backspace di sel kosong mundur dan menghapus digit sebelumnya
+  //   4. PANAH   — ArrowLeft/ArrowRight memindah fokus
+  //   5. ENTER   — panggil onLengkap
+  //   6. AUTO    — saat digit terakhir terisi, panggil onLengkap setelah jeda
+  //
+  // Jeda 280ms pada auto-kirim: mata butuh waktu memastikan 6 digit benar,
+  // dan pengguna masih sempat menekan Backspace kalau ada yang salah.
+  //
+  // @param {string}   selektor   — pemilih untuk wadah .auth-otp
+  // @param {Function} onLengkap  — dipanggil saat 6 digit terisi (atau Enter)
+  // @returns {{ sel, nilai, reset, fokusKosong }}
+  function pasangOtpSel(selektor, onLengkap) {
+    const wadah = document.querySelector(selektor);
+    const sel = wadah ? Array.from(wadah.querySelectorAll('.auth-otp-cell')) : [];
+    if (!sel.length) {
+      return { sel: [], nilai: () => '', reset: () => {}, fokusKosong: () => {} };
+    }
+
+    let timer = null;
+
+    const nilai = () => sel.map((s) => s.value).join('');
+
+    const isi = (i, v) => {
+      if (i < 0 || i >= sel.length) return;
+      sel[i].value = v;
+      sel[i].classList.toggle('is-terisi', v !== '');
+    };
+
+    const reset = () => {
+      clearTimeout(timer);
+      sel.forEach((s) => { s.value = ''; s.classList.remove('is-terisi'); });
+    };
+
+    /** Fokuskan sel pertama yang masih kosong — bukan selalu sel 1. */
+    const fokusKosong = () => {
+      (sel.find((s) => !s.value) || sel[0]).focus();
+    };
+
+    const jadwalkan = () => {
+      if (nilai().length !== sel.length) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => onLengkap?.(), 280);
+    };
+
+    sel.forEach((s, i) => {
+      s.addEventListener('input', () => {
+        const bersih = s.value.replace(/\D/g, '');
+
+        if (bersih.length > 1) {
+          // Beberapa digit sekaligus (paste) — sebar mulai dari sel ini.
+          const digit = bersih.slice(0, sel.length - i).split('');
+          digit.forEach((d, k) => isi(i + k, d));
+          sel[Math.min(i + digit.length, sel.length - 1)].focus();
+        } else {
+          isi(i, bersih);
+          if (bersih && i < sel.length - 1) sel[i + 1].focus();
+        }
+
+        clearTimeout(timer);
+        jadwalkan();
+      });
+
+      s.addEventListener('keydown', (e) => {
+        // Setiap perubahan membatalkan auto-kirim yang tertunda — kalau tidak,
+        // kode lama tetap terkirim meski pengguna baru memperbaikinya.
+        if (timer) { clearTimeout(timer); timer = null; }
+
+        if (e.key === 'Backspace') {
+          if (!s.value && i > 0) {
+            e.preventDefault();
+            isi(i - 1, '');
+            sel[i - 1].focus();
+          } else {
+            isi(i, '');
+          }
+          return;
+        }
+
+        if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); sel[i - 1].focus(); }
+        if (e.key === 'ArrowRight' && i < sel.length - 1) { e.preventDefault(); sel[i + 1].focus(); }
+        if (e.key === 'Enter') { e.preventDefault(); onLengkap?.(); }
+      });
+
+      // Fokus → pilih isi, supaya mengetik langsung mengganti digit lama.
+      s.addEventListener('focus', () => s.select());
+
+      // Tempelan yang mendarat langsung di satu sel (bukan lewat `input`).
+      s.addEventListener('paste', (e) => {
+        const teks = (e.clipboardData?.getData('text') || '').replace(/\D/g, '');
+        if (!teks) return;
+        e.preventDefault();
+        const digit = teks.slice(0, sel.length - i).split('');
+        digit.forEach((d, k) => isi(i + k, d));
+        sel[Math.min(i + digit.length, sel.length - 1)].focus();
+        jadwalkan();
+      });
+    });
+
+    return { sel, nilai, reset, fokusKosong };
+  }
+
   function initDanger() {
     const seksi = $('#kamDanger');
     const tombol = $('#kamHapusAkun');
@@ -2737,15 +2867,21 @@
     const dlg = $('#kamDialogHapusAkun');
     const l1 = $('#kamHapusLangkah1');
     const l2 = $('#kamHapusLangkah2');
-    const inpKode = $('#kamHapusKode');
     const pesan = $('#kamHapusPesan');
     if (!dlg) return;
+
+    // ── OTP HAPUS AKUN — fungsi bersama pasangOtpSel() ────────────────────────
+    // Perilaku identik dengan dialog 2FA: auto-advance, paste, backspace,
+    // auto-kirim. Dipasang saat init (bukan saat langkah 2 dibuka) — event
+    // listener bekerja pada elemen yang masih `hidden`; hanya fokus yang
+    // butuh elemen terlihat.
+    const otpHapus = pasangOtpSel('#kamOtpHapus', () => konfirmasi());
 
     /** Kembalikan dialog ke langkah 1 — dipakai saat dibuka dan ditutup. */
     function resetDialog() {
       if (l1) l1.hidden = false;
       if (l2) l2.hidden = true;
-      if (inpKode) inpKode.value = '';
+      otpHapus?.reset();
       if (pesan) { pesan.textContent = ''; pesan.className = 'auth-msg'; }
     }
 
@@ -2808,7 +2944,10 @@
         if (l1) l1.hidden = true;
         if (l2) l2.hidden = false;
         pesanDanger(d.pesan || 'Kode terkirim. Periksa email Anda.', 'sukses');
-        setTimeout(() => inpKode?.focus(), 50);
+
+        // OTP sudah dipasang saat init. Reset isinya, lalu fokus sel pertama.
+        otpHapus.reset();
+        setTimeout(() => otpHapus.sel[0]?.focus(), 50);
 
       } catch {
         pesanDanger('Tidak bisa menghubungi server. Coba lagi.', 'galat');
@@ -2822,12 +2961,12 @@
 
     // ── LANGKAH 2: KONFIRMASI ────────────────────────────────────────────────
     async function konfirmasi() {
-      const kode = (inpKode?.value || '').trim();
+      const kode = otpHapus?.nilai() || '';
 
       // Validasi klien — umpan balik cepat. Server memvalidasi ULANG.
       if (!/^\d{6}$/.test(kode)) {
         pesanDanger('Kode harus 6 angka.', 'galat');
-        inpKode?.focus();
+        otpHapus?.fokusKosong();
         return;
       }
 
@@ -2870,17 +3009,8 @@
 
     $('#kamHapusKonfirmasi')?.addEventListener('click', konfirmasi);
 
-    // Enter di kolom kode = konfirmasi. Pengguna yang mengetik 6 digit lalu
-    // menekan Enter mengharapkan aksinya jalan.
-    inpKode?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); konfirmasi(); }
-    });
-
-    // Hanya angka yang diterima — huruf diabaikan tanpa pesan galat, karena
-    // kolomnya sudah `inputmode="numeric"`.
-    inpKode?.addEventListener('input', () => {
-      inpKode.value = inpKode.value.replace(/\D/g, '').slice(0, 6);
-    });
+    // Handler OTP (auto-advance, paste, backspace, auto-kirim) dipasang oleh
+    // pasangOtpSel() saat langkah 2 dibuka — lihat fungsi kirimKode() di atas.
   }
 
   // Aman tanpa sesi: querySelector mengembalikan daftar kosong, fungsi

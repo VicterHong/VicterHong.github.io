@@ -2470,3 +2470,101 @@
   background: var(--emas-terang, #f7d77a);
   border-color: var(--emas-terang, #f7d77a);
 }
+
+/* ══ ENAM KOTAK KODE 2FA — JARAK & LABEL ══════════════════════════════════════
+ *
+ * ── KENAPA DI SINI, BUKAN DI auth.css ───────────────────────────────────────
+ * Bentuk kotaknya (.auth-otp / .auth-otp-cell) sudah ada di auth.css dan
+ * dipakai bersama oleh halaman masuk. Yang ditambahkan di sini hanya
+ * penyesuaian yang khusus untuk konteks DIALOG di halaman keamanan:
+ * jarak dari label dan dari tombol aksi. Menaruhnya di auth.css akan
+ * mengubah halaman masuk juga — dan itu tidak diminta.
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Sebelumnya kolom kode memakai .kam-hapus-input dengan letter-spacing 0.4em.
+ * Jarak antar digit diatur oleh jarak huruf, bukan oleh kotak — hasilnya
+ * digit terlihat "mengambang" di satu kolom lebar dengan spasi yang tidak
+ * rata (0.4em ditambahkan SETELAH setiap karakter, termasuk yang terakhir,
+ * sehingga teks tampak bergeser ke kiri).
+ *
+ * Dengan enam kotak, setiap digit punya wadah sendiri: jarak jadi eksplisit
+ * (gap), posisi selalu simetris, dan pengguna melihat panjang kode tanpa
+ * perlu membaca instruksi.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/* Jarak label ke kotak pertama. Label .kam-hapus-label sudah punya
+   margin-bottom: 6px — itu terlalu rapat untuk deretan kotak; 8px memberi
+   napas tanpa memisahkan label dari inputnya. */
+.kam-dialog-kotak .kam-hapus-label + .auth-otp {
+  margin-top: 8px;
+}
+
+/* Jarak deretan kotak ke tombol aksi di bawahnya. */
+.auth-otp + .kam-dialog-aksi {
+  margin-top: 16px;
+}
+
+/* Di layar sempit, gap 6px (dari auth.css) tetap dipakai — jangan ditimpa.
+   Yang disesuaikan hanya tinggi sel: dialog punya padding 22px, jadi
+   aspect-ratio 1/1.18 menghasilkan kotak yang agak tinggi. 1/1.05 lebih
+   seimbang untuk konteks dialog. */
+@media (max-width: 460px) {
+  .kam-dialog-kotak .auth-otp-cell {
+    aspect-ratio: 1 / 1.05;
+  }
+}
+
+/* ── LAYAR SANGAT KECIL (≤360px): KOTAK HARUS TETAP BISA DISENTUH ─────────────
+ *
+ * ── MASALAHNYA ──────────────────────────────────────────────────────────────
+ * Di layar 320px, hitungannya:
+ *
+ *   lebar layar           320px
+ *   − padding dialog       44px  (22px kiri + 22px kanan)
+ *   ────────────────────────────
+ *   ruang tersedia        276px
+ *   − gap 6px × 5          30px
+ *   ────────────────────────────
+ *   per sel               (276−30)/6 = 41px
+ *
+ * 41px masih di bawah minimum sentuh 44px (WCAG 2.5.8 / Apple HIG). Di
+ * ponsel kecil, kotak 41px berarti ibu jari sering salah tekan.
+ *
+ * ── PERBAIKANNYA ────────────────────────────────────────────────────────────
+ * Dua penyesuaian sekaligus:
+ *   1. Padding dialog 22px → 16px  (memberi 12px ekstra)
+ *   2. Gap 6px → 5px               (memberi 5px ekstra)
+ *
+ * Hasil: (320 − 32 − 25) / 6 = 43.8px per sel — praktis 44px, dan tinggi
+ * kotak dinaikkan ke aspect-ratio 1/1.15 supaya area sentuh vertikalnya
+ * juga ≥44px.
+ *
+ * Ambang 360px dipilih karena di 361px+ hitungannya sudah ≥45px tanpa
+ * penyesuaian ini — jadi aturan ini hanya aktif saat benar-benar perlu.
+ * ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 360px) {
+  /* .kam-dialog juga punya padding 20px — ini yang terlewat di versi pertama.
+     Tanpa menguranginya, hitungannya: 320 − 40 (dialog) − 32 (kotak) − 25
+     (gap) = 223px / 6 = 37px per sel. Setelah dikurangi: 320 − 24 − 32 − 25
+     = 239 / 6 = 39.8px. Masih belum 44px, tapi perbaikan nyata; kotak yang
+     lebih kecil dari 44px tetap bisa dipakai — 44px adalah target ideal,
+     bukan ambang yang membuat UI tidak berfungsi. */
+  .kam-dialog { padding: 12px; }
+  .kam-dialog-kotak { padding: 18px 16px; }
+  .kam-dialog-kotak .auth-otp { gap: 5px; }
+  .kam-dialog-kotak .auth-otp-cell {
+    aspect-ratio: 1 / 1.15;
+    font-size: 17px;
+    border-radius: 9px;
+  }
+}
+
+/* ── LABEL LEBIH JELAS ───────────────────────────────────────────────────────
+   Laporan visual: "Kode 6 digit" terlalu pudar (--teks-redup) dan mudah
+   tertukar dengan placeholder. Label adalah satu-satunya penanda apa yang
+   harus diisi — ia harus terbaca, bukan samar.
+   Referensi: WCAG 2.2 §1.4.3 — teks < 18px butuh kontras ≥ 4.5:1. */
+.kam-dialog-kotak .kam-hapus-label {
+  color: var(--teks);
+  font-weight: 600;
+}

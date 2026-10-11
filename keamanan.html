@@ -912,10 +912,35 @@
         <code class="kam-manual-kode" id="kamSecret2fa">—</code>
       </details>
 
-      <label class="kam-hapus-label" for="kamKode2fa">Kode 6 digit</label>
-      <input class="kam-hapus-input" id="kamKode2fa" type="text"
-             inputmode="numeric" autocomplete="one-time-code"
-             maxlength="6" placeholder="000000">
+      <label class="kam-hapus-label" for="kamKode2fa0">Kode 6 digit</label>
+      <!-- ── ENAM KOTAK TERPISAH, BUKAN SATU KOLOM ─────────────────────────────
+           Pola "Code Confirmation" (uxpatterns.dev): setiap digit punya kotak
+           sendiri. Alasannya bukan sekadar cantik:
+
+           1. Menunjukkan PANJANG kode tanpa perlu membaca instruksi —
+              pengguna langsung tahu harus mengisi 6, bukan 5 atau 8.
+           2. Mengurangi galat ketik: mata memverifikasi per digit, bukan
+              satu blok yang mudah tertukar.
+           3. Auto-advance membuat pengisian mengalir tanpa klik Tab.
+
+           Kelasnya memakai .auth-otp / .auth-otp-cell dari auth.css —
+           halaman ini sudah memuat auth.css, jadi tampilannya otomatis
+           identik dengan panel 2FA di halaman masuk. Satu komponen,
+           satu gaya, di seluruh situs. -->
+      <div class="auth-otp" id="kamOtp2fa">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               id="kamKode2fa0" data-otp-2fa="0" aria-label="Digit 1" autocomplete="one-time-code">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-2fa="1" aria-label="Digit 2">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-2fa="2" aria-label="Digit 3">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-2fa="3" aria-label="Digit 4">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-2fa="4" aria-label="Digit 5">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-2fa="5" aria-label="Digit 6">
+      </div>
 
       <div class="kam-dialog-aksi">
         <button class="auth-oauth" type="button" id="kamBatal2fa2">Batal</button>
@@ -992,10 +1017,26 @@
 
     <!-- Langkah 2: masukkan kode (muncul setelah kode terkirim) -->
     <div id="kamHapusLangkah2" hidden>
-      <label class="kam-hapus-label" for="kamHapusKode">Kode verifikasi</label>
-      <input class="kam-hapus-input" id="kamHapusKode" type="text"
-             inputmode="numeric" autocomplete="one-time-code"
-             maxlength="6" placeholder="000000" aria-describedby="kamHapusBantuan">
+      <label class="kam-hapus-label" for="kamHapusKode0">Kode verifikasi</label>
+      <!-- ── ENAM KOTAK, SAMA SEPERTI DIALOG 2FA ────────────────────────────────
+           Konsistensi: pengguna yang sudah mengisi kode di dialog 2FA akan
+           menemukan pola yang persis sama di sini. Satu komponen (.auth-otp
+           dari auth.css), dipakai di tiga tempat — halaman masuk, setup 2FA,
+           dan hapus akun. -->
+      <div class="auth-otp" id="kamOtpHapus" aria-describedby="kamHapusBantuan">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               id="kamHapusKode0" data-otp-hapus="0" aria-label="Digit 1" autocomplete="one-time-code">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-hapus="1" aria-label="Digit 2">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-hapus="2" aria-label="Digit 3">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-hapus="3" aria-label="Digit 4">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-hapus="4" aria-label="Digit 5">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               data-otp-hapus="5" aria-label="Digit 6">
+      </div>
       <p class="kam-hapus-bantuan" id="kamHapusBantuan">
         Kode berlaku 15 menit. Tidak menerima email?
         <button class="kam-hapus-tautan" type="button" id="kamHapusKirimUlang">Kirim ulang</button>
