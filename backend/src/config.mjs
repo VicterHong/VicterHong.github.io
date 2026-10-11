@@ -82,13 +82,27 @@ export const config = {
    *
    * Contoh: "Victer <noreply@portfolio-victer.pages.dev>"
    */
-  // Cloudflare Email Service (menggantikan Resend).
-  //   CF_ACCOUNT_ID  — ID akun Cloudflare
-  //   CF_API_TOKEN   — token dengan izin kirim email
-  //   EMAIL_FROM     — alamat pengirim di domain yang sudah di-onboard
+  // ── PENYEDIA EMAIL ─────────────────────────────────────────────────────────
   //
-  // Kalau salah satu kosong, email.mjs TIDAK rusak: ia menulis tautan reset
-  // ke log server sebagai jalur cadangan.
+  // Dua pilihan, dipilih otomatis oleh email.mjs:
+  //
+  //   1. RESEND — bisa dipakai TANPA domain sendiri.
+  //        RESEND_API_KEY  — kunci dari resend.com/api-keys
+  //        EMAIL_FROM      — opsional; default `onboarding@resend.dev`
+  //
+  //        Tanpa domain terverifikasi, Resend HANYA bisa mengirim ke email
+  //        yang dipakai mendaftar. Cukup untuk uji dan demo.
+  //
+  //   2. CLOUDFLARE EMAIL — butuh domain sendiri yang sudah di-onboard.
+  //        CF_ACCOUNT_ID   — ID akun Cloudflare
+  //        CF_API_TOKEN    — token dengan izin kirim email
+  //        EMAIL_FROM      — alamat pengirim di domain terverifikasi
+  //
+  // Kalau dua-duanya kosong, email.mjs TIDAK rusak: pemanggil menulis kode
+  // ke log server sebagai jalur cadangan — supaya alur pengguna tetap bisa
+  // diselesaikan (dengan bantuan admin).
+  resendApiKey: pick('RESEND_API_KEY', ''),
+
   cfAccountId: pick('CF_ACCOUNT_ID', ''),
   cfApiToken: pick('CF_API_TOKEN', ''),
   emailFrom: pick('EMAIL_FROM', ''),
