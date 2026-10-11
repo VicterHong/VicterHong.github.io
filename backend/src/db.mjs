@@ -513,6 +513,29 @@ export function openDb(path) {
 }
 
 /**
+ * Jalankan migrasi kolom lagi pada database yang sudah terbuka.
+  *
+  * ── KENAPA INI PERLU DIEKSPOR ───────────────────────────────────────────────
+  *
+  * `openDb()` menjalankan migrasi SEKALI, saat database dibuka. Tapi ada
+  * modul yang membuat tabelnya SENDIRI setelah itu (mis. `siapkanTabelPengguna`
+  * di users.mjs) — dan tabel yang baru dibuat itu tidak melewati migrasi.
+  *
+  * Akibatnya, database BARU tidak mendapat kolom-kolom hasil migrasi:
+  * `addColumn('users', ...)` dijalankan saat tabelnya belum ada, gagal dengan
+  * "no such table", dan kegagalan itu ditelan dengan sengaja.
+  *
+  * Di produksi masalah ini tidak terlihat karena tabelnya sudah ada sejak
+  * lama. Yang terkena hanya database baru — termasuk SEMUA uji otomatis.
+  *
+  * Idempoten: `addColumn` melewati kolom yang sudah ada, jadi memanggilnya
+  * berkali-kali aman.
+  */
+export function migrateUlang() {
+  migrate(getDb());
+}
+
+/**
  * Migrasi kolom untuk database yang SUDAH ADA.
  *
  * ── KENAPA INI PERLU ────────────────────────────────────────────────────────
@@ -701,6 +724,91 @@ function migrate(handle) {
   // itu keadaan yang sah. NULL akan memaksa setiap pembaca memeriksa dua
   // bentuk kekosongan yang berbeda.
   addColumn('users', 'avatar_key', "TEXT NOT NULL DEFAULT ''");
+
+  // ══ GRACE PERIOD — HAPUS AKUN DENGAN MASA TENGGANG ════════════════════════
+  //
+  // ── KENAPA TIDAK LANGSUNG HAPUS ────────────────────────────────────────────
+  //
+  // Versi pertama menghapus akun SEGERA. Itu melanggar standar korporat dan
+  // berbahaya untuk pengguna:
+  //
+  //   • Salah klik / akun diretas → data hilang permanen, tidak bisa kembali
+  //   • Dendam sesaat → pengguna kehilangan riwayat pembelian dan akses
+  //   • Tidak ada jalan pulang sama sekali
+  //
+  // Riset: "Temporary soft deletion is acceptable as an intermediate state
+  // (e.g., offering a 7-day grace period where users can cancel account
+  // deletion), provided the hard purge runs automatically at the end of the
+  // window." — dan GDPR memberi jendela 30 hari untuk memenuhi permintaan.
+  //
+  // GitHub, Google, Stripe, dan Facebook semuanya memakai masa tenggang.
+  //
+  // ── KENAPA 30 HARI ────────────────────────────────────────────────────────
+  //
+  // Itu batas respons GDPR (Pasal 12(3)): permintaan harus dipenuhi "tanpa
+  // penundaan yang tidak semestinya" dan paling lambat 1 bulan. Menghapus
+  // LEBIH CEPAT dari itu tidak melanggar — tapi menghapus lebih cepat berarti
+  // menghilangkan kesempatan pengguna membatalkan.
+  //
+  // 30 hari = batas maksimum yang masih patuh, dan itu yang dipakai
+  // vNext/Stripe/GitHub.
+  //
+  // ── KENAPA DISIMPAN SEBAGAI TIMESTAMP, BUKAN BOOLEAN ─────────────────────
+  //
+  // `dihapus_pada` memberi TIGA informasi sekaligus:
+  //   1. Apakah ada permintaan hapus (NULL = tidak ada)
+  //   2. Kapan permintaan dibuat (untuk menghitung sisa waktu)
+  //   3. Kapan purge harus jalan (dihapus_pada + 30 hari)
+  //
+  // Boolean `akan_dihapus` hanya memberi nomor 1 — dan untuk menampilkan
+  // "sisa 23 hari" atau menjadwalkan purge, dua informasi lainnya tetap
+  // perlu kolom tambahan.
+  //
+  // ── KENAPA `status` IKUT DIPAKAI ─────────────────────────────────────────
+  //
+  // Kolom `status` sudah ada (nilai: 'aktif'). Saat pengguna meminta hapus,
+  // statusnya jadi 'menunggu_hapus'. Itu membuat SEMUA pemeriksaan login
+  // yang sudah ada (yang membaca `status`) otomatis menolak akun ini —
+  // tanpa perlu menyentuh satu pun dari mereka.
+  //
+  // Menambah kolom boolean terpisah berarti SETIAP tempat yang memeriksa
+  // login harus diperbarui. Satu yang terlewat = akun yang seharusnya
+  // terkunci masih bisa masuk.
+  addColumn('users', 'dihapus_pada', 'INTEGER');
+  addColumn('users', 'alasan_hapus', "TEXT NOT NULL DEFAULT ''");
+
+  // ── KOLOM PERSETUJUAN ADMIN ──────────────────────────────────────────────────
+  //
+  // ── MODEL KORPORAT: NONAKTIF → PERSETUJUAN → HAPUS ───────────────────────────
+  //
+  // Bukan "klik hapus → langsung hilang". Alurnya:
+  //
+  //   1. Pengguna minta hapus → akun NONAKTIF (data utuh)
+  //   2. Admin/CS meninjau → SETUJU atau TOLAK
+  //   3. Kalau disetujui → dihapus permanen
+  //      Kalau tidak ada yang meninjau → otomatis setelah 12 bulan
+  //
+  // ── KENAPA ADMIN HARUS MENYETUJUI ────────────────────────────────────────────
+  //
+  // Ada situasi di mana penghapusan TIDAK BOLEH jalan, dan hanya manusia yang
+  // bisa menilainya:
+  //   • Sengketa pembayaran yang sedang berjalan
+  //   • Investigasi penyalahgunaan
+  //   • Kewajiban kontrak yang belum selesai
+  //   • Permintaan dari akun yang sedang diperebutkan kepemilikannya
+  //
+  // Otomatisasi tidak bisa membedakan "pengguna ingin pergi" dari "penyerang
+  // ingin menghapus jejak". Manusia bisa.
+  //
+  // ── KENAPA TETAP ADA JALUR OTOMATIS ──────────────────────────────────────────
+  //
+  // Kalau hanya admin yang bisa menghapus, akun yang benar-benar ditinggalkan
+  // akan menumpuk selamanya — dan itu melanggar prinsip penyimpanan terbatas
+  // GDPR (Pasal 5(1)(e)). 12 bulan adalah masa yang cukup untuk meninjau,
+  // dan cukup lama sehingga tidak ada pengguna aktif yang terkena.
+  addColumn('users', 'disetujui_oleh', "TEXT NOT NULL DEFAULT ''");
+  addColumn('users', 'disetujui_pada', 'INTEGER');
+  addColumn('users', 'catatan_admin', "TEXT NOT NULL DEFAULT ''");
 }
 
 /** Database yang sedang terbuka, atau lempar kalau belum dibuka. */

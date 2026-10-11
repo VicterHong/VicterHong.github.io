@@ -524,7 +524,19 @@
                   <p class="kam-setting-ket" id="kamTeks2fa">Memuat…</p>
                 </div>
                 <span class="kam-lencana" id="kamLencana2fa">—</span>
-                <a class="auth-oauth" href="/sign-in#2fa" id="kamAktifkan2fa">Aktifkan</a>
+                <!-- ── KENAPA <button>, BUKAN <a href="/sign-in#2fa"> ──────────────
+                     Versi pertama memakai tautan ke halaman masuk. Itu JALAN
+                     BUNTU: pengguna di halaman ini SUDAH login, sementara
+                     /sign-in adalah halaman untuk yang BELUM punya sesi.
+
+                     Lebih buruk lagi: /api/token/2fa/mulai butuh sesi
+                     (sesiDariRequest → 401 tanpa sesi). Jadi tautan itu
+                     mengirim pengguna ke tempat yang justru tidak bisa
+                     menyelesaikan setup.
+
+                     Tombol + dialog menyelesaikannya DI HALAMAN INI, tempat
+                     sesinya sudah ada. -->
+                <button class="auth-oauth" type="button" id="kamAktifkan2fa">Aktifkan</button>
               </div>
 
               <!-- Detail teknis 2FA — hanya muncul kalau aktif. -->
@@ -842,6 +854,94 @@
       <button class="auth-oauth" type="button" id="kamDialogBatal">Batal</button>
       <button class="auth-oauth auth-oauth-bahaya" type="button" id="kamDialogHapus">Hapus</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ DIALOG SETUP 2FA ═══════════════════════════════════════════════════════
+     ── KENAPA DIALOG INI ADA DI SINI, BUKAN DI /sign-in ──────────────────────
+     Alur setup 2FA sebelumnya hanya ada di halaman masuk. Itu SALAH TEMPAT:
+
+       • Halaman masuk untuk pengguna yang BELUM punya sesi
+       • /api/token/2fa/* butuh sesi (401 tanpa sesi)
+       • Pengguna yang mau mengaktifkan 2FA SUDAH login
+
+     Jadi alurnya dipindah ke sini — halaman pengaturan, tempat sesinya ada.
+
+     ── TIGA LANGKAH, SATU DIALOG ──────────────────────────────────────────────
+     Langkah 1: tombol "Mulai"     → server buat secret + QR
+     Langkah 2: pindai QR          → masukkan kode 6 digit
+     Langkah 3: kode pemulihan     → disimpan pengguna, lalu selesai
+
+     Satu dialog dengan tiga langkah yang SALING MENGGANTIKAN lebih baik
+     daripada tiga dialog terpisah: pengguna tidak melihat dialog menutup
+     lalu membuka lagi di tengah satu proses.
+
+     ── KENAPA KODE PEMULIHAN WAJIB DITAMPILKAN ────────────────────────────────
+     Kalau ponsel hilang dan kode pemulihan tidak disimpan, akun TERKUNCI
+     PERMANEN — tidak ada cara masuk lagi. Menampilkannya di akhir alur
+     adalah satu-satunya kesempatan pengguna menyimpannya. -->
+<div class="kam-dialog" id="kamDialog2fa" hidden>
+  <div class="kam-dialog-latar" data-tutup="1"></div>
+  <div class="kam-dialog-kotak" role="dialog" aria-modal="true"
+       aria-labelledby="kamJudul2fa">
+
+    <h3 class="kam-dialog-judul" id="kamJudul2fa">Aktifkan verifikasi 2 langkah</h3>
+
+    <!-- ── LANGKAH 1: MULAI ─────────────────────────────────────────────────── -->
+    <div id="kamLangkah2fa1">
+      <p class="kam-dialog-teks">
+        Pindai kode QR dengan aplikasi authenticator (Google Authenticator,
+        Authy, 1Password), lalu masukkan 6 digit yang muncul.
+      </p>
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamBatal2fa">Batal</button>
+        <button class="auth-oauth auth-oauth-utama" type="button" id="kamMulai2fa">
+          Mulai
+        </button>
+      </div>
+    </div>
+
+    <!-- ── LANGKAH 2: QR + KODE ─────────────────────────────────────────────── -->
+    <div id="kamLangkah2fa2" hidden>
+      <div class="kam-qr" id="kamQr2fa">
+        <!-- QR diisi JS sebagai <img> data URL -->
+      </div>
+
+      <details class="kam-manual">
+        <summary>Tidak bisa memindai? Masukkan kode manual</summary>
+        <code class="kam-manual-kode" id="kamSecret2fa">—</code>
+      </details>
+
+      <label class="kam-hapus-label" for="kamKode2fa">Kode 6 digit</label>
+      <input class="kam-hapus-input" id="kamKode2fa" type="text"
+             inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" placeholder="000000">
+
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamBatal2fa2">Batal</button>
+        <button class="auth-oauth auth-oauth-utama" type="button" id="kamVerifikasi2fa">
+          Verifikasi
+        </button>
+      </div>
+    </div>
+
+    <!-- ── LANGKAH 3: KODE PEMULIHAN ────────────────────────────────────────── -->
+    <div id="kamLangkah2fa3" hidden>
+      <p class="kam-dialog-teks">
+        Simpan kode pemulihan ini di tempat aman. Kalau ponsel Anda hilang,
+        <strong>ini satu-satunya cara masuk</strong>. Setiap kode hanya bisa
+        dipakai sekali.
+      </p>
+      <ul class="kam-pemulihan" id="kamPemulihan2fa"></ul>
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamSalin2fa">Salin semua</button>
+        <button class="auth-oauth auth-oauth-utama" type="button" id="kamSelesai2fa">
+          Selesai
+        </button>
+      </div>
+    </div>
+
+    <p class="auth-msg" id="kamPesan2faDialog" role="status" aria-live="polite"></p>
   </div>
 </div>
 

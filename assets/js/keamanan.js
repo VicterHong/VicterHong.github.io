@@ -1195,81 +1195,13 @@
   // Setelah mengikuti HorizonX, 2FA jadi BARIS di dalam tab Keamanan — jadi
   // pemuatnya didaftarkan ke `panelMasuk`.
   //
-  // Panel itu sekarang punya DUA pemuat (daftar cara masuk + status 2FA).
-  // Itulah kenapa `daftarPemuat` diubah menyimpan daftar, bukan satu fungsi:
-  // dengan versi lama, pendaftaran ini akan MENIMPA pemuat cara masuk.
-  daftarPemuat('panelMasuk', async () => {
-    const res = await fetch('/api/auth/2fa/status', { credentials: 'same-origin' });
-    if (!res.ok) return;
-    const d = await res.json().catch(() => ({}));
+  // ── KENAPA MEMANGGIL segarkanStatus2fa() ───────────────────────────────────
+  // Logika tampilan ada di SATU fungsi itu, dipakai bersama oleh pemuat ini
+  // dan oleh alur setup setelah verifikasi berhasil. Kalau logikanya ditulis
+  // dua kali, keduanya bisa menyimpang — dan yang menyimpang baru ketahuan
+  // saat pengguna melihat status yang salah setelah mengaktifkan 2FA.
+  daftarPemuat('panelMasuk', segarkanStatus2fa);
 
-    const lencana = $('#kamLencana2fa');
-    const teks = $('#kamTeks2fa');
-    const daftar = $('#kamDaftar2fa');
-    const tombol = $('#kamAktifkan2fa');
-
-    if (lencana) {
-      lencana.className = 'kam-lencana ' + (d.aktif ? 'is-sukses' : 'is-menunggu');
-      lencana.textContent = d.aktif ? 'Aktif' : 'Belum aktif';
-    }
-
-    // ── KENAPA TEKSNYA RINGKAS (ikuti HorizonX) ──────────────────────────────
-    //
-    // Versi pertama memakai kalimat panjang ("Akun Anda terlindungi kode 6
-    // digit dari aplikasi authenticator"). Itu penjelasan, bukan status —
-    // dan baris pengaturan dibaca dengan mata yang memindai, bukan membaca.
-    //
-    // HorizonX memakai satu baris pendek: "Not enabled" / "Enabled since
-    // 12 Jan 2026". Status dulu, detail teknis menyusul di bawah kalau aktif.
-    //
-    // Kalimat penjelasan tidak hilang — ia pindah ke `title` (muncul saat
-    // kursor berhenti) dan tetap dibaca pembaca layar.
-    if (teks) {
-      teks.textContent = d.aktif
-        ? `Aktif sejak ${waktuRingkas(d.dibuat_pada, { jam: false })}`
-        : 'Tambahkan lapisan keamanan kedua saat masuk.';
-      teks.title = d.aktif
-        ? 'Setiap kali masuk, Anda memasukkan kode 6 digit dari aplikasi authenticator.'
-        : 'Setelah aktif, sandi yang bocor saja tidak cukup untuk masuk.';
-    }
-
-    // ── TOMBOL BERUBAH SESUAI STATUS ─────────────────────────────────────────
-    //
-    // "Aktifkan" tidak masuk akal kalau 2FA sudah aktif — pengguna akan
-    // mengkliknya dan bertanya-tanya kenapa tidak terjadi apa-apa.
-    //
-    // Saat aktif, tombolnya jadi "Kelola" dan mengarah ke halaman masuk,
-    // tempat kode cadangan bisa dilihat dan 2FA bisa dimatikan.
-    if (tombol) {
-      tombol.textContent = d.aktif ? 'Kelola' : 'Aktifkan';
-      tombol.title = d.aktif
-        ? 'Lihat kode cadangan atau matikan verifikasi 2 langkah'
-        : 'Aktifkan verifikasi 2 langkah';
-    }
-
-    // Detail teknis hanya ditampilkan kalau 2FA memang aktif — kalau belum,
-    // daftar kosong hanya menambah baris yang tidak berarti.
-    if (daftar && d.aktif) {
-      daftar.hidden = false;
-      daftar.innerHTML = '';
-      const baris = [
-        ['Aktif sejak', waktuRingkas(d.dibuat_pada)],
-        ['Terakhir dipakai', d.terakhir_dipakai ? waktuRingkas(d.terakhir_dipakai) : 'Belum pernah'],
-      ];
-      for (const [k, v] of baris) {
-        const div = document.createElement('div');
-        div.className = 'kam-baris';
-        const dt = document.createElement('dt');
-        dt.textContent = k;
-        const dd = document.createElement('dd');
-        dd.textContent = v;
-        div.appendChild(dt); div.appendChild(dd);
-        daftar.appendChild(div);
-      }
-    } else if (daftar) {
-      daftar.hidden = true;
-    }
-  });
 
   /**
    * Tulis pesan status ke elemen tertentu.
@@ -2092,6 +2024,11 @@
     // Danger Zone perlu ditampilkan, dan permintaan itu tidak boleh menunda
     // pemuatan data profil yang utama.
     initDanger();
+
+    // ── KENAPA init2fa() DI SINI ──────────────────────────────────────────────
+    // Sama seperti initDanger(): listener dipasang setelah DOM siap, di dalam
+    // init() — bukan di luar, tempat urutan inisialisasi tidak terjamin.
+    init2fa();
   }
 
   // ══ NAVIGASI SIDEBAR ══════════════════════════════════════════════════════
@@ -2460,6 +2397,315 @@
   // Seksi ini ada di luar `#kamIsi` (lihat komentar di HTML), jadi JS yang
   // menentukan tampil-tidaknya. Kalau belum login, tidak ada akun untuk
   // dihapus — menampilkan tombolnya hanya membingungkan.
+
+  // ══ SETUP 2FA — DIALOG DI HALAMAN PENGATURAN ══════════════════════════════
+  //
+  // ── KENAPA DI SINI, BUKAN DI HALAMAN MASUK ────────────────────────────────
+  //
+  // Alur setup 2FA sebelumnya hanya ada di /sign-in. Itu SALAH TEMPAT:
+  //
+  //   • /sign-in adalah halaman untuk pengguna yang BELUM punya sesi
+  //   • /api/token/2fa/* butuh sesi → 401 tanpa sesi
+  //   • Pengguna yang mau mengaktifkan 2FA SUDAH login
+  //
+  // Tombol "Aktifkan" dulu berupa <a href="/sign-in#2fa"> — tautan ke halaman
+  // yang justru TIDAK BISA menyelesaikan setup. Jalan buntu.
+  //
+  // Sekarang: dialog di halaman ini, tempat sesinya sudah ada.
+  //
+  // ── KENAPA TIGA LANGKAH DALAM SATU DIALOG ─────────────────────────────────
+  //
+  // Langkah 1: minta QR
+  // Langkah 2: pindai + masukkan kode
+  // Langkah 3: simpan kode pemulihan
+  //
+  // Kalau masing-masing punya dialog sendiri, pengguna melihat dialog menutup
+  // lalu membuka lagi di tengah SATU proses — terasa seperti tiga alur
+  // terpisah, padahal ini satu.
+  function init2fa() {
+    const tombol = $('#kamAktifkan2fa');
+    const dlg = $('#kamDialog2fa');
+    if (!tombol || !dlg) return;
+
+    const l1 = $('#kamLangkah2fa1');
+    const l2 = $('#kamLangkah2fa2');
+    const l3 = $('#kamLangkah2fa3');
+    const pesan = $('#kamPesan2faDialog');
+    const inpKode = $('#kamKode2fa');
+
+    /** Tampilkan satu langkah, sembunyikan yang lain. */
+    function langkah(n) {
+      if (l1) l1.hidden = n !== 1;
+      if (l2) l2.hidden = n !== 2;
+      if (l3) l3.hidden = n !== 3;
+    }
+
+    function pesan2fa(teks, jenis = '') {
+      if (!pesan) return;
+      pesan.textContent = teks;
+      pesan.classList.toggle('is-galat', jenis === 'galat');
+      pesan.classList.toggle('is-sukses', jenis === 'sukses');
+    }
+
+    function reset() {
+      langkah(1);
+      if (inpKode) inpKode.value = '';
+      const qr = $('#kamQr2fa');
+      if (qr) qr.innerHTML = '';
+      const pulih = $('#kamPemulihan2fa');
+      if (pulih) pulih.innerHTML = '';
+      pesan2fa('');
+    }
+
+    function buka() {
+      reset();
+      dlg.hidden = false;
+      setTimeout(() => $('#kamMulai2fa')?.focus(), 50);
+    }
+
+    function tutup() {
+      dlg.hidden = true;
+      reset();
+      tombol.focus();
+    }
+
+    // ── BUKA / TUTUP ──────────────────────────────────────────────────────────
+    tombol.addEventListener('click', buka);
+
+    for (const id of ['#kamBatal2fa', '#kamBatal2fa2']) {
+      $(id)?.addEventListener('click', tutup);
+    }
+
+    dlg.querySelector('[data-tutup]')?.addEventListener('click', tutup);
+
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); tutup(); }
+    });
+
+    // ── LANGKAH 1 → 2: MINTA QR ───────────────────────────────────────────────
+    async function mulai() {
+      const btn = $('#kamMulai2fa');
+      if (btn) { btn.disabled = true; }
+      pesan2fa('Menyiapkan kode QR…');
+
+      try {
+        const res = await fetch('/api/token/2fa/mulai', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const d = await res.json().catch(() => ({}));
+
+        if (!res.ok || !d.ok) {
+          pesan2fa(d.message || 'Tidak bisa memulai setup. Coba lagi.', 'galat');
+          return;
+        }
+
+        // ── TAMPILKAN QR ──────────────────────────────────────────────────────
+        //
+        // ── NAMA FIELD DIAMBIL DARI SERVER, BUKAN DIASUMSIKAN ─────────────────
+        //
+        // Versi pertama membaca `d.qr` — field itu TIDAK ADA. Yang dikirim
+        // server bernama `qr_data_url` (dibaca dari routes.mjs, bukan dari
+        // ingatan).
+        //
+        // Akibatnya QR tidak pernah tampil, dan karena `if (qr && d.qr)`
+        // bernilai false tanpa galat, kegagalannya SENYAP — pengguna melihat
+        // langkah 2 kosong tanpa penjelasan.
+        //
+        // ── KENAPA ADA FALLBACK `qr_tersedia` ─────────────────────────────────
+        //
+        // Server mengirim `qr_tersedia: false` + `qr_catatan` kalau library QR
+        // gagal membuat gambar. Dalam kasus itu secret manual tetap bisa
+        // dipakai — jadi pesannya harus memberitahu, bukan diam.
+        const qr = $('#kamQr2fa');
+        const dataUrl = d.qr_data_url;
+
+        if (qr && dataUrl) {
+          qr.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = dataUrl;
+          img.alt = 'Kode QR untuk aplikasi authenticator';
+          img.width = 180;
+          img.height = 180;
+          qr.appendChild(img);
+        } else if (qr && d.qr_tersedia === false) {
+          // QR gagal dibuat — beri tahu, jangan biarkan area kosong.
+          qr.innerHTML = '';
+          const p = document.createElement('p');
+          p.className = 'kam-qr-galat';
+          p.textContent = d.qr_catatan || 'Kode QR tidak bisa dibuat. Pakai kode manual di bawah.';
+          qr.appendChild(p);
+        }
+
+        // Secret manual — untuk yang tidak bisa memindai.
+        const secret = $('#kamSecret2fa');
+        if (secret && d.secret) secret.textContent = d.secret;
+
+        langkah(2);
+        pesan2fa('');
+        setTimeout(() => inpKode?.focus(), 50);
+
+      } catch {
+        pesan2fa('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    $('#kamMulai2fa')?.addEventListener('click', mulai);
+
+    // ── LANGKAH 2 → 3: VERIFIKASI KODE ────────────────────────────────────────
+    async function verifikasi() {
+      const kode = (inpKode?.value || '').trim();
+
+      if (!/^\d{6}$/.test(kode)) {
+        pesan2fa('Kode harus 6 angka.', 'galat');
+        inpKode?.focus();
+        return;
+      }
+
+      const btn = $('#kamVerifikasi2fa');
+      if (btn) btn.disabled = true;
+      pesan2fa('Memeriksa kode…');
+
+      try {
+        const res = await fetch('/api/token/2fa/selesai', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: kode }),
+        });
+        const d = await res.json().catch(() => ({}));
+
+        if (!res.ok || !d.ok) {
+          pesan2fa(d.message || 'Kode tidak cocok. Coba lagi.', 'galat');
+          inpKode?.focus();
+          inpKode?.select();
+          return;
+        }
+
+        // ── TAMPILKAN KODE PEMULIHAN ──────────────────────────────────────────
+        //
+        // Ini SATU-SATUNYA kesempatan pengguna menyimpannya. Kalau ponsel
+        // hilang dan kode ini tidak disimpan, akun terkunci permanen.
+        // ── NAMA FIELD: `kode_pemulihan` (snake_case dari server) ─────────────
+        //
+        // Versi pertama membaca `d.kodePemulihan` — camelCase. Field itu tidak
+        // ada; server mengirim `kode_pemulihan`.
+        //
+        // Karena `Array.isArray(undefined)` bernilai false, daftarnya kosong
+        // TANPA galat — pengguna sampai di langkah 3 dan melihat kotak kosong,
+        // padahal kode pemulihan itu SATU-SATUNYA cara masuk kalau ponselnya
+        // hilang.
+        //
+        // Server mengirimnya sebagai array, tapi string dengan pemisah baris
+        // juga ditangani — supaya perubahan bentuk di sisi server tidak
+        // menghasilkan kotak kosong lagi.
+        const daftar = $('#kamPemulihan2fa');
+        if (daftar) {
+          daftar.innerHTML = '';
+          const mentah = d.kode_pemulihan ?? d.kodePemulihan ?? [];
+          const kode2 = Array.isArray(mentah)
+            ? mentah
+            : String(mentah).split(/[\s,]+/).filter(Boolean);
+
+          for (const k of kode2) {
+            const li = document.createElement('li');
+            li.textContent = String(k).trim();
+            daftar.appendChild(li);
+          }
+
+          // Kalau tetap kosong, itu kegagalan nyata — katakan, jangan diam.
+          if (kode2.length === 0) {
+            const li = document.createElement('li');
+            li.className = 'is-galat';
+            li.textContent = 'Kode pemulihan tidak diterima dari server. Muat ulang halaman dan coba lagi.';
+            daftar.appendChild(li);
+          }
+        }
+
+        langkah(3);
+        pesan2fa('');
+        setTimeout(() => $('#kamSelesai2fa')?.focus(), 50);
+
+        // Segarkan baris status di belakang dialog — supaya saat dialog
+        // ditutup, lencananya sudah berubah jadi "Aktif" tanpa perlu muat ulang.
+        segarkanStatus2fa();
+
+      } catch {
+        pesan2fa('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    $('#kamVerifikasi2fa')?.addEventListener('click', verifikasi);
+
+    inpKode?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); verifikasi(); }
+    });
+
+    inpKode?.addEventListener('input', () => {
+      inpKode.value = inpKode.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    // ── SALIN KODE PEMULIHAN ──────────────────────────────────────────────────
+    $('#kamSalin2fa')?.addEventListener('click', async () => {
+      const kode2 = [...document.querySelectorAll('#kamPemulihan2fa li')]
+        .map((li) => li.textContent).join('\n');
+      try {
+        await navigator.clipboard.writeText(kode2);
+        pesan2fa('Kode pemulihan disalin.', 'sukses');
+      } catch {
+        pesan2fa('Gagal menyalin — salin manual dari daftar di atas.', 'galat');
+      }
+    });
+
+    // ── SELESAI ───────────────────────────────────────────────────────────────
+    $('#kamSelesai2fa')?.addEventListener('click', () => {
+      tutup();
+      segarkanStatus2fa();
+    });
+  }
+
+  /**
+   * Muat ulang status 2FA di baris pengaturan.
+   *
+   * ── KENAPA DIPISAH DARI init2fa() ───────────────────────────────────────────
+   * Dipakai di dua tempat: saat panel Keamanan dibuka, dan setelah setup
+   * selesai. Kalau disatukan, salah satu pemanggil harus memanggil seluruh
+   * init — yang berarti memasang ulang listener (dan itu menggandakan klik).
+   */
+  async function segarkanStatus2fa() {
+    try {
+      const res = await fetch('/api/auth/2fa/status', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const d = await res.json().catch(() => ({}));
+
+      const lencana = $('#kamLencana2fa');
+      const teks = $('#kamTeks2fa');
+      const tombol = $('#kamAktifkan2fa');
+
+      if (lencana) {
+        lencana.className = 'kam-lencana ' + (d.aktif ? 'is-sukses' : 'is-menunggu');
+        lencana.textContent = d.aktif ? 'Aktif' : 'Belum aktif';
+      }
+      if (teks) {
+        teks.textContent = d.aktif
+          ? `Aktif sejak ${waktuRingkas(d.dibuat_pada, { jam: false })}`
+          : 'Tambahkan lapisan keamanan kedua saat masuk.';
+      }
+      if (tombol) {
+        tombol.textContent = d.aktif ? 'Kelola' : 'Aktifkan';
+        tombol.title = d.aktif
+          ? 'Lihat kode cadangan atau matikan verifikasi 2 langkah'
+          : 'Aktifkan verifikasi 2 langkah';
+      }
+    } catch { /* biarkan nilai lama */ }
+  }
+
   function initDanger() {
     const seksi = $('#kamDanger');
     const tombol = $('#kamHapusAkun');

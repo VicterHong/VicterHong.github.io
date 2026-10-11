@@ -27,7 +27,22 @@
  *      ke akun yang sudah ada → mencegah pengambilalihan akun
  */
 
-import { createHash } from 'node:crypto';
+// ── KENAPA `randomInt` DARI node:crypto, BUKAN Math.random() ────────────────
+//
+// Kode verifikasi 6 digit melindungi akun dari penghapusan oleh orang lain.
+// `Math.random()` adalah PRNG yang BISA DIPREDIKSI: setelah beberapa nilai
+// diamati, nilai berikutnya bisa dihitung. Untuk kode keamanan, itu berarti
+// penyerang bisa menebak kode verifikasi tanpa pernah menerima emailnya.
+//
+// `randomInt` dari node:crypto memakai sumber acak kriptografis.
+//
+// ── KENAPA BUKAN `randomBytes` ──────────────────────────────────────────────
+//
+// `randomInt(0, 1000000)` langsung memberi angka dalam rentang yang dibutuhkan.
+// Dengan `randomBytes`, angkanya harus di-modulo — dan modulo pada bilangan
+// acak menimbulkan bias (beberapa nilai lebih sering muncul). Untuk kode 6
+// digit, biasnya kecil tapi tetap ada, dan tidak ada alasan menerimanya.
+import { createHash, randomInt } from 'node:crypto';
 import { config } from './config.mjs';
 // ── KENAPA `transaction` DIIMPORT, BUKAN `db.transaction()` ────────────────
 // `node:sqlite` TIDAK punya method `.transaction()` — itu API better-sqlite3.
@@ -37,6 +52,18 @@ import { config } from './config.mjs';
 // Helper-nya ada di db.mjs sebagai fungsi terpisah: BEGIN → fn() → COMMIT,
 // dan ROLLBACK kalau fn() melempar.
 import { getDb, transaction } from './db.mjs';
+
+// ── KENAPA adaLanggananAktif DIIMPOR, BUKAN DITULIS DI SINI ─────────────────
+//
+// Pemeriksaan langganan menentukan apakah pengguna BOLEH menghapus akunnya.
+// Itu keputusan yang harus bisa diuji tanpa menyalakan server HTTP — dan
+// pembersih otomatis (purge-akun.mjs) memakai aturan yang SAMA saat menghapus
+// permanen.
+//
+// Dua salinan aturan berarti keduanya bisa menyimpang — dan yang menyimpang
+// baru ketahuan saat ada pengguna yang akunnya terhapus padahal masih
+// berlangganan.
+import { adaLanggananAktif, nonaktifkanAkun } from './purge-akun.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
@@ -2247,54 +2274,38 @@ function ruteSso() {
       },
     },
 
-    // ══ HAPUS AKUN — DANGER ZONE ═══════════════════════════════════════════════
+    // ══ HAPUS AKUN — DENGAN MASA TENGGANG 30 HARI ══════════════════════════════
     //
-    // ── KENAPA DUA LANGKAH, BUKAN SATU ────────────────────────────────────────
+    // ── KENAPA TIDAK LANGSUNG HAPUS (versi pertama salah) ──────────────────────
     //
-    // Menghapus akun tidak bisa dibatalkan. Satu klik yang salah berarti
-    // kehilangan akses selamanya — termasuk riwayat pembelian.
+    // Versi pertama menghapus akun SEGERA setelah kode verifikasi benar. Itu
+    // melanggar standar korporat dan berbahaya:
     //
-    // Langkah 1 (POST /api/auth/akun/hapus-mulai): server mengirim kode 6 digit
-    //   ke email pengguna.
-    // Langkah 2 (POST /api/auth/akun/hapus): pengguna memasukkan kode itu.
+    //   • Salah klik / akun diretas → data hilang permanen
+    //   • Tidak ada jalan pulang sama sekali
     //
-    // ── KENAPA KODE EMAIL, BUKAN KETIK NAMA ───────────────────────────────────
+    // Riset: "Temporary soft deletion is acceptable as an intermediate state
+    // (e.g., offering a 7-day grace period where users can cancel account
+    // deletion), provided the hard purge runs automatically at the end of the
+    // window." GitHub, Google, Stripe, dan Facebook semuanya memakai pola ini.
     //
-    // Pola umum (GitHub, Stripe) meminta pengguna mengetik nama repo atau
-    // nama akun. Itu mencegah klik tidak sengaja, TAPI tidak mencegah:
-    //   • Seseorang yang memakai perangkat bersama dan akun masih login
-    //   • Sesi yang dicuri
+    // ── ALUR BARU ─────────────────────────────────────────────────────────────
     //
-    // Kode email membuktikan pengguna masih menguasai EMAIL-nya — bukan hanya
-    // perangkat yang kebetulan masih login.
+    //   1. POST /akun/hapus-mulai   → kirim kode ke email
+    //   2. POST /akun/hapus         → verifikasi kode → status 'menunggu_hapus'
+    //   3. (30 hari)                → pengguna bisa login & membatalkan
+    //   4. POST /akun/batal-hapus   → kembalikan ke 'aktif'
+    //   5. (setelah 30 hari)        → pembersih otomatis menghapus permanen
     //
-    // ── KENAPA DIBLOKIR KALAU ADA LANGGANAN AKTIF ─────────────────────────────
+    // ── KENAPA `status` BERUBAH, BUKAN KOLOM BARU ─────────────────────────────
     //
-    // Menghapus akun dengan langganan berjalan berarti pengguna tetap ditagih
-    // sampai mereka membatalkan sendiri — dan mereka sudah kehilangan akses
-    // untuk membatalkannya.
+    // Login sudah memeriksa `user.status !== 'aktif'` (routes.mjs:1557). Dengan
+    // mengubah status, akun otomatis TERKUNCI di SEMUA jalur yang sudah ada —
+    // tanpa menyentuh satu pun dari mereka.
     //
-    // Stripe dan GitHub sama-sama memblokir ini. Pesannya harus jelas: batalkan
-    // langganan DULU, baru hapus akun.
-    //
-    // ── KENAPA DATA AUDIT TIDAK DIHAPUS ───────────────────────────────────────
-    //
-    // `access_events` berisi jejak keamanan yang mungkin dibutuhkan untuk
-    // investigasi (percobaan masuk, perubahan sandi). Menghapusnya berarti
-    // menghapus bukti.
-    //
-    // Yang dihapus: data pribadi (email, nama, sandi, identitas OAuth, foto).
-    // Yang disimpan: `token_id` di access_events — tanpa data pribadi apa pun,
-    // karena token_id bukan email dan tidak bisa dipakai untuk menghubungi
-    // pengguna.
-    //
-    // ── URUTAN PENGHAPUSAN ────────────────────────────────────────────────────
-    //
-    // Anak dulu, induk terakhir. Kalau dibalik dan ada kegagalan di tengah,
-    // baris `users` sudah hilang sementara anak-anaknya masih merujuk ke sana
-    // — dan itu data yatim yang sulit dibersihkan.
-    //
-    // Semua dalam SATU transaksi: kalau ada satu yang gagal, semuanya dibatalkan.
+    // Tapi itu menimbulkan masalah: pengguna juga tidak bisa login untuk
+    // MEMBATALKAN. Karena itu login mengembalikan `bisa_dibatalkan: true`
+    // (lihat routes.mjs) dan halaman masuk menawarkan pembatalan.
     {
       method: 'POST',
       pattern: '/api/auth/akun/hapus-mulai',
@@ -2305,103 +2316,99 @@ function ruteSso() {
         const pengguna = penggunaDariToken(tokenRow);
         if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
 
-        // ── CEK LANGGANAN AKTIF ───────────────────────────────────────────────
+        // ── BLOKIR KALAU SUDAH MENUNGGU HAPUS ──────────────────────────────────
         //
-        // Kalau ada pembayaran berstatus aktif, hapus akun DITOLAK. Pengguna
-        // harus membatalkan dulu.
-        const aktif = getDb().prepare(`
-          SELECT COUNT(*) c FROM payments
-          WHERE email = ? AND status IN ('aktif', 'active', 'berhasil', 'success')
-        `).get(pengguna.email).c;
-
-        if (aktif > 0) {
-          recordEvent({
-            tokenId: pengguna.token_id,
-            action: 'akun_hapus_ditolak',
-            outcome: 'langganan_aktif',
-            ip: clientIp(req), userAgent: req.headers['user-agent'] || '',
-            country: clientCountry(req),
-          });
+        // Minta kode dua kali tidak ada gunanya — permintaan pertama sudah
+        // tercatat. Yang dibutuhkan pengguna adalah MEMBATALKAN, dan itu
+        // endpoint lain.
+        if (pengguna.status === 'menunggu_hapus') {
           return sendJson(res, 409, {
             ok: false,
-            error: 'langganan_aktif',
-            message: 'Batalkan langganan aktif Anda dulu. Setelah dibatalkan, akun bisa dihapus.',
+            error: 'sudah_menunggu_hapus',
+            message: 'Akun Anda sudah dijadwalkan terhapus. Batalkan dulu kalau berubah pikiran.',
+            dihapus_pada: pengguna.dihapus_pada,
           });
         }
 
-        // ── BUAT KODE 6 DIGIT ─────────────────────────────────────────────────
+        // ── BLOKIR KALAU ADA LANGGANAN ATAU TAGIHAN AKTIF ─────────────────────
         //
-        // Disimpan di `password_resets` — tabel yang sudah ada untuk kode
-        // sekali-pakai.
+        // ── BUG YANG DIPERBAIKI ───────────────────────────────────────────────
         //
-        // ── KENAPA TABEL ITU, BUKAN TABEL BARU ────────────────────────────────
-        // Strukturnya persis yang dibutuhkan: `user_id`, `token_hash`,
-        // `kedaluwarsa`, `dipakai_at`. Membuat tabel `account_deletions`
-        // berarti menduplikasi struktur yang sama — dan dua tempat yang harus
-        // dijaga tetap sinkron.
+        // Versi pertama memakai status pembayaran YANG TIDAK ADA:
         //
-        // ── KENAPA `crypto.randomInt`, BUKAN `Math.random` ────────────────────
-        // `Math.random` bisa diprediksi dari beberapa nilai sebelumnya. Untuk
-        // kode keamanan, itu tidak bisa diterima.
-        const { randomInt } = await import('node:crypto');
-        const kode = String(randomInt(100000, 1000000));
+        //   Kode saya:   status IN ('lunas', 'aktif', 'menunggu')
+        //   Sebenarnya:  'pending', 'dibayar', 'gagal', 'kedaluwarsa', 'dikembalikan'
+        //
+        // NOL dari tiga status itu cocok — jadi pemeriksaannya SELALU
+        // mengembalikan 0, dan pengguna dengan langganan aktif TETAP BISA
+        // menghapus akunnya.
+        //
+        // ── KENAPA HARUS DIBLOKIR ─────────────────────────────────────────────
+        //
+        // Kalau akun dihapus sementara langganan berjalan:
+        //   • Pengguna tetap DITAGIH setiap bulan
+        //   • Tapi sudah kehilangan akses untuk membatalkannya
+        //   • Token akses API mereka juga terhapus
+        //   • Uang masuk tanpa layanan → refund manual → beban dukungan
+        //
+        // Ini pola yang dipakai sistem korporat: selesaikan kewajiban
+        // finansial dulu, baru tutup akun.
+        const langganan = adaLanggananAktif(pengguna.email);
 
-        // ── KENAPA DI-HASH ────────────────────────────────────────────────────
-        // Sama seperti sandi. Kalau database bocor, kode mentah tidak bisa
-        // dipakai untuk menghapus akun orang lain.
-        //
-        // Email disertakan dalam hash supaya kode satu pengguna tidak berlaku
-        // untuk pengguna lain, walaupun angkanya kebetulan sama.
+        if (langganan.ada) {
+          const jenis = langganan.rincian.map((r) => r.tier || 'langganan').join(', ');
+          return sendJson(res, 409, {
+            ok: false,
+            error: 'ada_langganan',
+            message: `Anda masih punya ${langganan.jumlah} langganan/tagihan aktif (${jenis}). `
+              + 'Batalkan dulu di menu Pembayaran, baru hapus akun.',
+            jumlah: langganan.jumlah,
+          });
+        }
+
+        const kode = String(randomInt(0, 1000000)).padStart(6, '0');
         const hash = createHash('sha256').update(`${kode}:${pengguna.email}`).digest('hex');
+        const kedaluwarsa = Date.now() + 15 * 60 * 1000;
 
-        const kedaluwarsa = Date.now() + 15 * 60 * 1000;   // 15 menit
-
-        // Bersihkan kode lama milik pengguna ini — supaya tidak menumpuk, dan
-        // supaya hanya kode TERBARU yang berlaku.
         getDb().prepare('DELETE FROM password_resets WHERE user_id = ?').run(pengguna.id);
-
         getDb().prepare(`
           INSERT INTO password_resets (user_id, token_hash, dibuat_at, kedaluwarsa)
           VALUES (?, ?, ?, ?)
         `).run(pengguna.id, hash, Date.now(), kedaluwarsa);
 
+        // ── KIRIM KODE LEWAT EMAIL ─────────────────────────────────────────────
+        let terkirim = false;
+        try {
+          const r = await kirimEmailResetSandi({ ke: pengguna.email, token: kode, nama: pengguna.nama });
+          terkirim = Boolean(r?.ok);
+        } catch (err) {
+          console.warn('[hapus-akun] email gagal:', err?.message ?? err);
+        }
+
+        // ── KODE DI LOG KALAU EMAIL GAGAL ──────────────────────────────────────
+        //
+        // Tanpa ini, pengguna terjebak: tidak menerima email, tidak bisa
+        // melanjutkan, dan tidak ada cara memulihkan selain menghubungi dukungan.
+        // Di log, operator bisa membacakan kodenya.
+        //
+        // HANYA dicatat kalau email benar-benar gagal — kalau berhasil, kode
+        // tidak boleh ada di log sama sekali.
+        if (!terkirim) {
+          console.warn(`[hapus-akun] KODE MANUAL untuk ${pengguna.email}: ${kode}`);
+        }
+
         recordEvent({
           tokenId: pengguna.token_id,
           action: 'akun_hapus_diminta',
-          outcome: 'ok',
+          outcome: terkirim ? 'ok' : 'email_gagal',
           ip: clientIp(req), userAgent: req.headers['user-agent'] || '',
           country: clientCountry(req),
-          detail: 'kode verifikasi dikirim',
+          detail: terkirim ? 'kode verifikasi dikirim' : 'kode dibuat, email gagal',
         });
-
-        // ── KIRIM KODE ────────────────────────────────────────────────────────
-        //
-        // Kegagalan kirim TIDAK menggagalkan permintaan — kode sudah tersimpan,
-        // dan pengguna bisa minta ulang. Yang penting: jangan bocorkan kode ke
-        // respons HTTP.
-        //
-        // ── KENAPA PAKAI `kirimEmailResetSandi` YANG SUDAH ADA ────────────────
-        // Itu satu-satunya fungsi kirim email di proyek ini. Ia menulis tautan
-        // reset ke log server kalau kredensial email belum dikonfigurasi —
-        // perilaku yang benar untuk pengembangan, dan tidak berbahaya di
-        // produksi karena log server tidak publik.
-        //
-        // Membuat fungsi email baru untuk kode hapus berarti menduplikasi
-        // konfigurasi SMTP, template, dan penanganan galat.
-        let terkirim = false;
-        try {
-          const { kirimEmailResetSandi } = await import('./email.mjs');
-          // Parameter `token` diisi kode — fungsinya hanya menyisipkan nilai
-          // ke template. Nama parameternya "token", tapi isinya bebas.
-          await kirimEmailResetSandi({ ke: pengguna.email, nama: pengguna.nama || '', token: kode });
-          terkirim = true;
-        } catch (err) {
-          console.warn('[hapus-akun] gagal kirim email:', err?.message ?? err);
-        }
 
         sendJson(res, 200, {
           ok: true,
-          // Sengaja TIDAK mengembalikan kode. Ia hanya lewat email.
+          terkirim,
           pesan: terkirim
             ? `Kode verifikasi dikirim ke ${pengguna.email}. Berlaku 15 menit.`
             : 'Kode dibuat, tapi email gagal terkirim. Hubungi dukungan.',
@@ -2428,10 +2435,6 @@ function ruteSso() {
         }
 
         // ── VERIFIKASI KODE ───────────────────────────────────────────────────
-        //
-        // Kolomnya `token_hash` dan `kedaluwarsa` — bukan `token` dan
-        // `kedaluwarsa_pada`. Diperiksa lewat PRAGMA table_info, bukan dari
-        // ingatan.
         const hash = createHash('sha256').update(`${kode}:${pengguna.email}`).digest('hex');
         const reset = getDb().prepare(`
           SELECT id, kedaluwarsa FROM password_resets
@@ -2453,146 +2456,214 @@ function ruteSso() {
           return sendJson(res, 400, { ok: false, error: 'kode_kedaluwarsa', message: 'Kode sudah kedaluwarsa. Minta kode baru.' });
         }
 
-        // ── HAPUS — DALAM SATU TRANSAKSI ──────────────────────────────────────
+        // ── KODE BENAR → NONAKTIFKAN (BUKAN HAPUS) ────────────────────────────
         //
-        // Anak dulu, induk terakhir. Kalau salah satu gagal, semuanya dibatalkan
-        // — tidak ada data setengah terhapus.
-        const db = getDb();
-        const hapusSemua = () => transaction(() => {
-          const email = pengguna.email;
-          const uid = pengguna.id;
+        // ── MODEL KORPORAT: NONAKTIF → TINJAUAN ADMIN → HAPUS ─────────────────
+        //
+        // Ini perubahan inti dari versi pertama. Kode yang benar TIDAK
+        // menghapus apa pun — ia mengubah status akun jadi nonaktif.
+        //
+        // Sistem korporat tidak pernah menghapus langsung. Alasannya bukan
+        // birokrasi, ada kerugian nyata yang dicegah:
+        //
+        //   • Klik salah / akun diretas → data hilang permanen
+        //   • Sengketa pembayaran berjalan → bukti transaksi hilang
+        //   • Investigasi penyalahgunaan → jejak dihapus sebelum diperiksa
+        //   • Akun diperebutkan kepemilikannya → pihak yang kalah menghapusnya
+        //
+        // Manusia (CS/admin) bisa membedakan "pengguna ingin pergi" dari
+        // "penyerang ingin menghapus jejak". Otomatisasi tidak bisa.
+        //
+        // ── TIGA JALUR KELUAR ─────────────────────────────────────────────────
+        //
+        //   1. Admin menyetujui  → dihapus pada pembersihan berikutnya
+        //   2. Admin menolak     → akun kembali aktif
+        //   3. Lewat 12 bulan    → otomatis, kalau tidak ada yang meninjau
+        //
+        // Jalur 3 wajib ada: tanpa itu, akun yang tidak pernah ditinjau
+        // menumpuk selamanya — melanggar penyimpanan terbatas GDPR.
+        const hasilNonaktif = nonaktifkanAkun(
+          pengguna.id,
+          String(body.alasan || 'permintaan pengguna').slice(0, 200),
+        );
 
-          // ── KENAPA SEMUA TOKEN, BUKAN HANYA SATU ──────────────────────────────
-          //
-          // Versi pertama memakai `pengguna.token_id` — SATU token saja.
-          //
-          // Itu kerentanan nyata: satu pengguna bisa punya BANYAK token (satu
-          // per perangkat, satu per integrasi API). Menghapus akun dengan satu
-          // token berarti sesi di perangkat LAIN tetap hidup — akunnya hilang,
-          // tapi orang yang memegang perangkat itu masih bisa masuk.
-          //
-          // Ditemukan saat uji end-to-end: 2 sesi akun uji SELAMAT dari
-          // penghapusan karena token_id-nya berbeda dari users.token_id.
-          //
-          // Sekarang: kumpulkan SEMUA token yang terhubung ke pengguna ini.
-          const semuaToken = new Set();
-
-          if (pengguna.token_id) semuaToken.add(pengguna.token_id);
-
-          for (const r of getDb().prepare(
-            'SELECT id FROM tokens WHERE issued_to = ?'
-          ).all(email)) {
-            if (r.id) semuaToken.add(r.id);
-          }
-
-          // ── KENAPA TIDAK ADA QUERY KE auth_identities ─────────────────────────
-          //
-          // Sempat saya tambahkan `SELECT token_id FROM auth_identities` — dan
-          // itu AKAN GAGAL: tabel itu tidak punya kolom `token_id` (diperiksa
-          // lewat PRAGMA table_info).
-          //
-          // Karena semuanya berjalan dalam satu transaksi, satu query gagal
-          // berarti SELURUH penghapusan dibatalkan — pengguna melihat pesan
-          // galat padahal datanya utuh. Kegagalan yang lebih baik daripada
-          // data setengah terhapus, tapi tetap gagal.
-          //
-          // Dua sumber di atas sudah cukup: users.token_id menangkap token
-          // utama, tokens.issued_to menangkap sisanya lewat email.
-
-          const tid = pengguna.token_id || [...semuaToken][0] || '';
-
-          // ── DATA PRIBADI ──────────────────────────────────────────────────────
-          db.prepare('DELETE FROM auth_identities WHERE user_id = ?').run(uid);
-          for (const t of semuaToken) db.prepare('DELETE FROM device_fingerprints WHERE token_id = ?').run(t);
-          for (const t of semuaToken) db.prepare('DELETE FROM sessions WHERE token_id = ?').run(t);
-          db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(uid);
-          for (const t of semuaToken) db.prepare('DELETE FROM revocations WHERE token_id = ?').run(t);
-          for (const t of semuaToken) db.prepare('DELETE FROM consents WHERE token_id = ?').run(t);
-          db.prepare('DELETE FROM payments WHERE email = ?').run(email);
-          db.prepare('DELETE FROM sales_leads WHERE email = ?').run(email);
-
-          // ── 2FA — PAKAI `identity`, BUKAN `user_id` ───────────────────────────
-          //
-          // Tabel-tabel TOTP memakai kolom `identity` yang berisi
-          // `tokens.issued_to` (email), BUKAN `users.id`.
-          //
-          // Awalnya saya tulis `WHERE user_id = ?` — dan query itu akan GAGAL
-          // karena kolomnya tidak ada. Ketahuan setelah memeriksa
-          // `PRAGMA table_info` alih-alih mengandalkan ingatan.
-          //
-          // Ini juga alasan transaksi penting: kalau query ini gagal di tengah,
-          // semua penghapusan sebelumnya dibatalkan — tidak ada data setengah
-          // terhapus.
-          db.prepare('DELETE FROM totp_secrets WHERE identity = ?').run(email);
-          db.prepare('DELETE FROM totp_recovery WHERE identity = ?').run(email);
-          db.prepare('DELETE FROM totp_attempts WHERE identity = ?').run(email);
-
-          // Tabel ini memakai `user_id` — beda dari tiga di atas.
-          db.prepare('DELETE FROM webauthn_challenges WHERE user_id = ?').run(uid);
-
-          // ── TOKEN AKSES ───────────────────────────────────────────────────────
-          //
-          // Token akses proyek milik pengguna ini. Dihapus karena ia kredensial
-          // yang masih bisa dipakai — membiarkannya berarti akun "sudah dihapus"
-          // tapi token-nya masih bisa mengakses API.
-          db.prepare('DELETE FROM tokens WHERE issued_to = ?').run(email);
-
-          // ── INDUK TERAKHIR ────────────────────────────────────────────────────
-          db.prepare('DELETE FROM users WHERE id = ?').run(uid);
-
-          // ── ACCESS_EVENTS: token_id DILEPAS, BARISNYA DIBIARKAN ──────────────
-          //
-          // Jejak keamanan TIDAK dihapus — ia mungkin dibutuhkan untuk
-          // investigasi (percobaan masuk, perubahan sandi). Tapi token_id-nya
-          // dijadikan NULL supaya tidak lagi bisa dikaitkan ke akun mana pun.
-          //
-          // Ini pola yang sama dipakai sistem audit korporat: catatannya
-          // tetap ada, identitasnya diputus.
-          for (const t of semuaToken) db.prepare('UPDATE access_events SET token_id = NULL WHERE token_id = ?').run(t);
-
-          // ── ANALYTICS & WEB_VITALS ────────────────────────────────────────────
-          //
-          // Metrik tidak mengandung data pribadi selain token_id. Dilepas juga
-          // supaya tidak ada sisa kaitan ke akun yang sudah tidak ada.
-          for (const t of semuaToken) db.prepare('UPDATE analytics_events SET token_id = NULL WHERE token_id = ?').run(t);
-        });
-
-        try {
-          hapusSemua();
-        } catch (err) {
-          console.error('[hapus-akun] gagal:', err?.message ?? err);
-          return sendJson(res, 500, { ok: false, error: 'gagal_hapus', message: 'Tidak bisa menghapus akun. Hubungi dukungan.' });
+        if (!hasilNonaktif.dinonaktifkan) {
+          return sendJson(res, 409, {
+            ok: false,
+            error: 'tidak_bisa_dinonaktifkan',
+            message: 'Akun tidak dalam keadaan yang bisa dinonaktifkan.',
+          });
         }
 
-        // ── HAPUS COOKIE SESI ─────────────────────────────────────────────────
-        //
-        // Akun sudah tidak ada. Cookie yang tersisa akan gagal validasi, tapi
-        // lebih bersih kalau langsung dihapus — supaya browser tidak menyimpan
-        // cookie yang tidak berguna.
-        // ── KENAPA COOKIE_SESI, BUKAN STRING 'sesi' ───────────────────────────
-        //
-        // Versi pertama menulis `setCookie(res, 'sesi', ...)` — nama cookie
-        // yang TIDAK PERNAH ADA di aplikasi ini. Cookie sesi yang sebenarnya
-        // bernama `portfolio_session` (lihat konstanta COOKIE_SESI di atas).
-        //
-        // Akibatnya: cookie yang benar TIDAK terhapus. Pengguna melihat akun
-        // "sudah dihapus", tapi browser masih menyimpan cookie sesi lama —
-        // dan permintaan berikutnya membawa cookie itu.
-        //
-        // Memakai konstanta berarti nama cookie hanya didefinisikan SEKALI.
-        setCookie(res, COOKIE_SESI, '', { maxAge: 0, path: '/' });
+        // Kode tidak bisa dipakai lagi — satu kode untuk satu aksi.
+        getDb().prepare('DELETE FROM password_resets WHERE id = ?').run(reset.id);
 
-        // Catat SETELAH penghapusan, tanpa token_id (akun sudah tidak ada).
+        // ── CABUT SEMUA SESI ───────────────────────────────────────────────────
+        //
+        // Semua perangkat harus keluar. Kalau sesi lain dibiarkan hidup,
+        // seseorang yang memegang perangkat itu masih bisa memakai akun.
+        //
+        // Mengumpulkan SEMUA token, bukan hanya users.token_id: satu pengguna
+        // bisa punya banyak token (perangkat, API).
+        const semuaToken = new Set();
+        if (pengguna.token_id) semuaToken.add(pengguna.token_id);
+        for (const r of getDb().prepare('SELECT id FROM tokens WHERE issued_to = ?').all(pengguna.email)) {
+          if (r.id) semuaToken.add(r.id);
+        }
+
+        for (const t of semuaToken) {
+          getDb().prepare('DELETE FROM sessions WHERE token_id = ?').run(t);
+        }
+
         recordEvent({
-          tokenId: null,
-          action: 'akun_dihapus',
+          tokenId: pengguna.token_id,
+          action: 'akun_dinonaktifkan',
           outcome: 'ok',
           ip: clientIp(req), userAgent: req.headers['user-agent'] || '',
           country: clientCountry(req),
-          detail: 'penghapusan atas permintaan pengguna',
+          detail: 'menunggu tinjauan admin; otomatis terhapus setelah 12 bulan',
         });
 
-        sendJson(res, 200, { ok: true, pesan: 'Akun Anda sudah dihapus.' });
+        // Cookie dibersihkan — sesi sudah tidak valid.
+        setCookie(res, COOKIE_SESI, '', { maxAge: 0, path: '/' });
+
+        sendJson(res, 200, {
+          ok: true,
+          pesan: 'Akun Anda dinonaktifkan. Permintaan penghapusan akan ditinjau oleh tim kami. '
+            + 'Anda masih bisa memulihkan akun dengan masuk kembali.',
+          nonaktif: true,
+          // ── KENAPA TIDAK MENJANJIKAN TANGGAL ────────────────────────────────
+          //
+          // Penghapusan tergantung tinjauan admin. Menjanjikan "terhapus dalam
+          // 30 hari" akan salah kalau admin butuh waktu lebih — dan pengguna
+          // yang sudah dijanjikan sesuatu lalu tidak ditepati akan menghubungi
+          // dukungan, atau lebih buruk, mengeluh publik.
+          //
+          // Yang bisa dijanjikan: ada tinjauan, dan ada pemulihan.
+          batas_otomatis_bulan: 12,
+        });
+      },
+    },
+
+    // ══ BATALKAN PENGHAPUSAN ═══════════════════════════════════════════════════
+    //
+    // ── KENAPA ENDPOINT INI WAJIB ADA ──────────────────────────────────────────
+    //
+    // Tanpa ini, masa tenggang hanya memperlambat penghapusan — bukan memberi
+    // jalan pulang. Nilai sesungguhnya dari grace period adalah PEMBATALAN.
+    //
+    // ── KENAPA BUTUH KODE, BUKAN HANYA SESI ────────────────────────────────────
+    //
+    // Akun dalam masa tenggang TIDAK BISA LOGIN (status bukan 'aktif'). Jadi
+    // tidak ada sesi untuk dipakai. Pengguna membuktikan kepemilikan lewat
+    // kode yang dikirim ke email — sama seperti saat meminta hapus.
+    //
+    // Ini juga melindungi dari skenario buruk: seseorang yang menguasai
+    // perangkat korban MEMINTA hapus akun. Korban menerima email "akun Anda
+    // akan dihapus" dan bisa membatalkannya — penyerang tidak bisa mencegah
+    // itu tanpa akses ke email.
+    {
+      method: 'POST',
+      pattern: '/api/auth/akun/batal-hapus',
+      handler: async (req, res) => {
+        const body = await readJson(req).catch(() => ({}));
+        const email = normalEmail(String(body.email || ''));
+        const kode = String(body.kode || '').trim();
+
+        if (!email || !/^\d{6}$/.test(kode)) {
+          return sendJson(res, 400, { ok: false, error: 'input_tidak_valid', message: 'Email dan kode 6 angka wajib diisi.' });
+        }
+
+        const pengguna = cariPengguna(email);
+
+        // ── JAWABAN SERAGAM UNTUK EMAIL TAK DIKENAL ───────────────────────────
+        //
+        // Kalau server membedakan "email tidak ada" dari "kode salah",
+        // penyerang bisa memakai endpoint ini untuk memetakan email mana yang
+        // terdaftar. Jawaban yang sama menutup celah itu.
+        if (!pengguna || pengguna.status !== 'menunggu_hapus') {
+          return sendJson(res, 400, { ok: false, error: 'tidak_bisa_dibatalkan', message: 'Email atau kode tidak cocok.' });
+        }
+
+        const hash = createHash('sha256').update(`${kode}:${pengguna.email}`).digest('hex');
+        const reset = getDb().prepare(`
+          SELECT id, kedaluwarsa FROM password_resets
+          WHERE user_id = ? AND token_hash = ?
+          ORDER BY dibuat_at DESC LIMIT 1
+        `).get(pengguna.id, hash);
+
+        if (!reset) {
+          return sendJson(res, 400, { ok: false, error: 'kode_salah', message: 'Email atau kode tidak cocok.' });
+        }
+
+        if (Number(reset.kedaluwarsa) < Date.now()) {
+          getDb().prepare('DELETE FROM password_resets WHERE id = ?').run(reset.id);
+          return sendJson(res, 400, { ok: false, error: 'kode_kedaluwarsa', message: 'Kode sudah kedaluwarsa. Minta kode baru.' });
+        }
+
+        // ── KEMBALIKAN AKUN ───────────────────────────────────────────────────
+        getDb().prepare(`
+          UPDATE users SET status = 'aktif', dihapus_pada = NULL, alasan_hapus = ''
+          WHERE id = ?
+        `).run(pengguna.id);
+
+        getDb().prepare('DELETE FROM password_resets WHERE id = ?').run(reset.id);
+
+        recordEvent({
+          tokenId: pengguna.token_id,
+          action: 'akun_hapus_dibatalkan',
+          outcome: 'ok',
+          ip: clientIp(req), userAgent: req.headers['user-agent'] || '',
+          country: clientCountry(req),
+          detail: 'pengguna membatalkan penghapusan',
+        });
+
+        sendJson(res, 200, {
+          ok: true,
+          pesan: 'Penghapusan dibatalkan. Akun Anda kembali aktif — silakan masuk.',
+        });
+      },
+    },
+
+    // ══ STATUS MASA TENGGANG ═══════════════════════════════════════════════════
+    //
+    // Dipakai halaman masuk untuk menampilkan "akun Anda akan terhapus dalam
+    // N hari" + tombol Batal, setelah pengguna memasukkan email.
+    {
+      method: 'POST',
+      pattern: '/api/auth/akun/status-hapus',
+      handler: async (req, res) => {
+        const body = await readJson(req).catch(() => ({}));
+        const email = normalEmail(String(body.email || ''));
+        if (!email) return sendJson(res, 400, { ok: false, error: 'email_kosong' });
+
+        const pengguna = cariPengguna(email);
+
+        // Jawaban SERAGAM: email tak dikenal dan akun aktif sama-sama "tidak
+        // menunggu hapus". Kalau dibedakan, endpoint ini jadi alat memetakan
+        // email terdaftar.
+        if (!pengguna || pengguna.status !== 'menunggu_hapus' || !pengguna.dihapus_pada) {
+          return sendJson(res, 200, { ok: true, menunggu_hapus: false });
+        }
+
+        const HARI = 24 * 60 * 60 * 1000;
+        const batasMs = Number(pengguna.dihapus_pada) + 30 * HARI;
+        const sisaMs = batasMs - Date.now();
+
+        // ── KENAPA `Math.ceil` ─────────────────────────────────────────────────
+        // `floor` akan menampilkan "29 hari" untuk permintaan yang baru dibuat
+        // 1 jam lalu — lebih kecil dari kenyataan, dan membuat pengguna merasa
+        // lebih terburu-buru daripada yang sebenarnya.
+        const sisaHari = sisaMs <= 0 ? 0 : Math.ceil(sisaMs / HARI);
+
+        sendJson(res, 200, {
+          ok: true,
+          menunggu_hapus: true,
+          dihapus_pada: pengguna.dihapus_pada,
+          batas_hapus: batasMs,
+          sisa_hari: sisaHari,
+          bisa_dibatalkan: sisaHari > 0,
+        });
       },
     },
 

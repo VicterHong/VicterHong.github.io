@@ -2226,6 +2226,76 @@
     tanganiGalatOauth();
     pasangIngatEmail();
 
+    // ── DUKUNGAN location.hash UNTUK PILIH PANEL ─────────────────────────────
+    //
+    // ── BUG YANG DIPERBAIKI ───────────────────────────────────────────────────
+    //
+    // Versi sebelumnya mengabaikan hash sepenuhnya. Tautan `/sign-in#2fa`
+    // selalu mendarat di panel 'masuk' — pengguna mengklik "Aktifkan 2FA"
+    // dan tidak terjadi apa-apa.
+    //
+    // Ditemukan dengan menguji di browser: panelAktif = ['masuk'] padahal
+    // hash = '#2fa'.
+    //
+    // ── KENAPA DIPERIKSA DI SINI ──────────────────────────────────────────────
+    //
+    // `pindahPanel` hidup di lingkup yang sama, dan init() adalah tempat semua
+    // inisialisasi berkumpul. Menambahkannya di luar init() berarti ia berjalan
+    // sebelum panel dipastikan ada.
+    //
+    // ── KENAPA HANYA HASH YANG DIKENAL ────────────────────────────────────────
+    //
+    // Hash sembarang (mis. #apa-saja) tidak boleh menyembunyikan panel masuk —
+    // pengguna akan melihat halaman kosong dan mengira situsnya rusak.
+    // Panel yang tidak dikenal diabaikan, dan panel default tetap tampil.
+    const PANEL_DARI_HASH = {
+      '2fa': 'setup2fa',
+      'setup2fa': 'setup2fa',
+      'lupa': 'lupa',
+      'pemulihan': 'pemulihan',
+    };
+
+    const hash = location.hash.slice(1).toLowerCase();
+    if (PANEL_DARI_HASH[hash]) {
+      // Panel-nya harus ada di halaman ini — di /sign-up, misalnya, panel
+      // setup2fa tidak ada. Tanpa pemeriksaan ini, `pindahPanel` menyembunyikan
+      // SEMUA panel dan halaman jadi kosong.
+      const ada = document.querySelector(`[data-panel="${PANEL_DARI_HASH[hash]}"]`);
+      if (ada) pindahPanel(PANEL_DARI_HASH[hash]);
+    }
+
+    // Ikuti perubahan hash setelah halaman dimuat (mis. pengguna mengklik
+    // tautan di dalam halaman yang sama).
+    //
+    // ── KENAPA HASH TAK DIKENAL HARUS KEMBALI KE PANEL DEFAULT ────────────────
+    //
+    // Versi pertama hanya bertindak kalau hash-nya dikenal. Itu menyisakan
+    // keadaan macet:
+    //
+    //   /sign-in#2fa       → panel setup2fa aktif
+    //   /sign-in#apa-saja  → hashchange jalan, tapi tidak ada yang cocok
+    //                      → panel setup2fa TETAP aktif
+    //
+    // Pengguna melihat panel setup 2FA padahal URL-nya tidak menyebut apa pun
+    // tentang 2FA. Lebih buruk: tidak ada cara kembali ke panel masuk selain
+    // memuat ulang halaman.
+    //
+    // Sekarang: hash yang tidak dikenal mengembalikan panel pertama di halaman
+    // (panel masuk) — keadaan yang diharapkan saat URL tidak memilih apa pun.
+    window.addEventListener('hashchange', () => {
+      const h = location.hash.slice(1).toLowerCase();
+      const tujuan = PANEL_DARI_HASH[h];
+
+      if (tujuan && document.querySelector(`[data-panel="${tujuan}"]`)) {
+        pindahPanel(tujuan);
+        return;
+      }
+
+      // Tidak dikenal → kembali ke panel pertama (default halaman).
+      const pertama = document.querySelector('.auth-panel');
+      if (pertama?.dataset.panel) pindahPanel(pertama.dataset.panel);
+    });
+
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('resize', onResize, { passive: true });
     window.addEventListener('pagehide', bersihkan, { once: true });

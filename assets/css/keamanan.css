@@ -2347,3 +2347,126 @@
     margin-top: 4px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SETUP 2FA — QR, kode manual, kode pemulihan
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA QR DIPUSATKAN DENGAN LATAR PUTIH ─────────────────────────────────
+
+   Kode QR adalah gambar HITAM DI ATAS PUTIH. Di tema gelap, kalau QR
+   ditempel langsung tanpa latar, kontrasnya hilang — pemindai tidak bisa
+   membacanya.
+
+   Latar putih + padding 12px memberi "quiet zone" yang dibutuhkan pemindai.
+   Tanpa itu, pengguna akan mengeluh "QR-nya tidak terbaca" padahal kodenya
+   benar.
+
+   ── KENAPA UKURAN 180px ─────────────────────────────────────────────────────
+
+   Cukup besar untuk dipindai dari layar ponsel lain, cukup kecil untuk muat
+   di dialog tanpa menggulir. Di bawah 150px, kamera ponsel sering gagal fokus.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.kam-qr {
+  display: grid;
+  place-items: center;
+  margin: 4px 0 16px;
+}
+
+.kam-qr img {
+  display: block;
+  /* Latar putih WAJIB — QR hitam-putih tidak terbaca di atas tema gelap. */
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  /* Ukuran minimum yang masih bisa difokus kamera ponsel. */
+  width: 180px;
+  height: 180px;
+}
+
+/* ── KODE MANUAL (kalau tidak bisa memindai) ──────────────────────────────────
+   Disembunyikan di dalam <details> supaya tidak mengalihkan perhatian dari QR.
+   Yang butuh akan mencarinya; yang tidak butuh tidak terganggu. */
+.kam-manual {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  color: var(--teks-samar);
+}
+
+.kam-manual summary {
+  cursor: pointer;
+  padding: 4px 0;
+  color: var(--teks-redup);
+}
+
+.kam-manual summary:hover { color: var(--teks); }
+
+.kam-manual-kode {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  /* Monospace + jarak huruf: kode base32 dibaca per karakter. */
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  color: var(--teks);
+  /* Bisa dibungkus — kode base32 panjangnya 32 karakter dan bisa meluber. */
+  word-break: break-all;
+  user-select: all;
+}
+
+/* ── KODE PEMULIHAN ───────────────────────────────────────────────────────────
+   ── KENAPA DAFTAR, BUKAN SATU BLOK TEKS ─────────────────────────────────────
+
+   Setiap kode hanya bisa dipakai SEKALI. Daftar bernomor membuat pengguna
+   bisa mencentang mana yang sudah dipakai — dan tahu berapa yang tersisa.
+
+   Blok teks panjang tidak memberi struktur itu.
+
+   ── KENAPA MONOSPACE + JARAK ────────────────────────────────────────────────
+   Kode dibaca dan diketik ulang secara manual saat darurat. Karakter yang
+   mudah tertukar (0/O, 1/l/I) harus bisa dibedakan — dan itu lebih mudah
+   dengan monospace. */
+.kam-pemulihan {
+  margin: 12px 0;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--garis);
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.kam-pemulihan li {
+  padding: 6px 0;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.86rem;
+  letter-spacing: 0.1em;
+  color: var(--teks);
+  user-select: all;
+}
+
+.kam-pemulihan li + li {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ── TOMBOL UTAMA (aksen emas) ────────────────────────────────────────────────
+   ── KENAPA PERLU VARIAN ─────────────────────────────────────────────────────
+   Dialog punya dua tombol: Batal dan aksi utama. Tanpa perbedaan visual,
+   keduanya terlihat sama pentingnya — dan pengguna harus membaca teksnya
+   untuk tahu mana yang melanjutkan. */
+.auth-oauth-utama {
+  background: var(--emas, #f5c542);
+  border-color: var(--emas, #f5c542);
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.auth-oauth-utama:hover {
+  background: var(--emas-terang, #f7d77a);
+  border-color: var(--emas-terang, #f7d77a);
+}

@@ -13,6 +13,12 @@ import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
 import { recordHeartbeat, cleanupHeartbeats, flushHeartbeats } from './sla.mjs';
 import { pruneAll } from './retention.mjs';
+
+// ── PENGHAPUSAN AKUN (model korporat) ───────────────────────────────────────
+//
+// Dipanggil penjadwal di bawah untuk membersihkan akun yang sudah lewat masa
+// tinjauan. Logikanya di modul terpisah supaya bisa diuji tanpa server HTTP.
+import { bersihkanAkunKedaluwarsa } from './purge-akun.mjs';
 import { sweepRateLimit } from './rate-limit.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -237,6 +243,42 @@ setInterval(() => {
     console.error('[rate-limit] sweep gagal:', err?.message ?? err);
   }
 }, 300_000).unref();
+
+/**
+ * Bersihkan akun yang sudah lewat masa tinjauan — model korporat.
+ *
+ * ── KENAPA PENJADWAL INI WAJIB ADA ──────────────────────────────────────────
+ *
+ * Ada DUA jalur yang menghasilkan penghapusan permanen:
+ *   1. Admin menyetujui permintaan → status 'siap_hapus'
+ *   2. Lewat 12 bulan tanpa tinjauan → status 'menunggu_hapus' kedaluwarsa
+ *
+ * Tanpa penjadwal, jalur 2 tidak pernah jalan — akun yang tidak pernah
+ * ditinjau menumpuk SELAMANYA, dan itu melanggar prinsip penyimpanan
+ * terbatas GDPR (Pasal 5(1)(e)).
+ *
+ * ── KENAPA TIAP 6 JAM ───────────────────────────────────────────────────────
+ *
+ * Penghapusan bukan operasi mendesak: masa tunggunya 12 bulan, jadi
+ * menjalankannya 4x sehari sudah sangat cukup.
+ *
+ * Lebih jarang (mis. sekali sehari) berarti admin yang menyetujui pagi harus
+ * menunggu sampai besok untuk melihat hasilnya. Lebih sering (mis. tiap
+ * menit) hanya membuang siklus CPU untuk query yang hampir selalu kosong.
+ */
+setInterval(() => {
+  try {
+    const hasil = bersihkanAkunKedaluwarsa();
+    if (hasil.berhasil > 0 || hasil.gagal > 0) {
+      console.log(`[purge] ${hasil.berhasil} akun dihapus permanen`
+        + (hasil.gagal ? `, ${hasil.gagal} gagal` : ''));
+    }
+  } catch (err) {
+    // Sama seperti pembersih lain: kalau DB sedang terkunci (backup berjalan),
+    // error di sini TIDAK BOLEH mematikan proses.
+    console.error('[purge] gagal:', err?.message ?? err);
+  }
+}, 6 * 3_600_000).unref();
 
 /**
  * Retensi data (A3) — dijalankan SEKALI SEHARI, bukan tiap jam.

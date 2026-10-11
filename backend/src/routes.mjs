@@ -27,6 +27,22 @@ import {
   findTokenByPlaintext, getToken, issueToken, listTokens, revokeToken,
   resumeToken, suspendToken, tokenProblem,
 } from './tokens.mjs';
+
+// ── FUNGSI PENGHAPUSAN AKUN (model korporat) ────────────────────────────────
+//
+// Dipakai endpoint admin untuk meninjau, menyetujui, dan menolak permintaan
+// hapus akun.
+//
+// ── KENAPA DI MODUL TERPISAH ────────────────────────────────────────────────
+//
+// Logikanya harus bisa diuji tanpa menyalakan server HTTP — dan aturan yang
+// SAMA dipakai pembersih otomatis (purge-akun.mjs) saat menghapus permanen.
+// Dua salinan aturan bisa menyimpang, dan yang menyimpang baru ketahuan saat
+// ada pengguna yang akunnya terhapus padahal seharusnya diselamatkan.
+import {
+  setujuiPenghapusan, tolakPenghapusan, bersihkanAkunKedaluwarsa,
+  sisaHariHapus, adaLanggananAktif,
+} from './purge-akun.mjs';
 import { createSession, validateSession, destroySession, cleanupExpiredSessions } from './sessions.mjs';
 import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
 import { enforceAbuseRules, revokeMessage } from './guard.mjs';
@@ -1555,6 +1571,40 @@ export const routes = [
       }
 
       if (user.status !== 'aktif') {
+        // ── AKUN DALAM MASA TENGGANG — TAWARKAN PEMBATALAN ────────────────────
+        //
+        // ── KENAPA TIDAK SEKADAR MENOLAK ──────────────────────────────────────
+        //
+        // Versi pertama menolak SEMUA status non-aktif dengan "Hubungi admin."
+        // Untuk akun yang menunggu hapus, itu JALAN BUNTU: pengguna tidak
+        // bisa masuk, tidak bisa membatalkan, dan tidak tahu harus apa.
+        //
+        // Masa tenggang 30 hari hanya berguna kalau ada jalan pulang. Tanpa
+        // pembatalan, ia cuma memperlambat penghapusan.
+        //
+        // ── KENAPA SANDINYA TETAP DIPERIKSA DULU ──────────────────────────────
+        //
+        // Kode di atas sudah memverifikasi sandi sebelum mencapai baris ini.
+        // Jadi yang bisa membatalkan hanyalah orang yang tahu sandinya —
+        // bukan siapa pun yang menebak alamat emailnya.
+        if (user.status === 'menunggu_hapus') {
+          const HARI = 24 * 60 * 60 * 1000;
+          const batasMs = Number(user.dihapus_pada || 0) + 30 * HARI;
+          const sisaMs = batasMs - Date.now();
+          const sisaHari = sisaMs <= 0 ? 0 : Math.ceil(sisaMs / HARI);
+
+          return sendJson(res, 403, {
+            ok: false,
+            error: 'menunggu_hapus',
+            message: sisaHari > 0
+              ? `Akun ini dijadwalkan terhapus dalam ${sisaHari} hari. Anda bisa membatalkannya.`
+              : 'Akun ini sedang dalam proses penghapusan.',
+            menunggu_hapus: true,
+            sisa_hari: sisaHari,
+            bisa_dibatalkan: sisaHari > 0,
+          });
+        }
+
         return sendJson(res, 403, {
           ok: false, error: 'akun_nonaktif',
           message: 'Akun ini tidak aktif. Hubungi admin.',
@@ -2599,6 +2649,198 @@ export const routes = [
       sendJson(res, 200, { ok: true, removed });
     }),
   },
+
+
+    // ══ ADMIN: ANTREAN PENGHAPUSAN AKUN ═════════════════════════════════════════
+    //
+    // ── KENAPA ADMIN HARUS MELIHAT DAFTAR, BUKAN LANGSUNG MENGHAPUS ────────────
+    //
+    // Model korporat menempatkan MANUSIA di antara permintaan pengguna dan
+    // penghapusan permanen. Tapi manusia butuh informasi untuk memutuskan:
+    //
+    //   • Sudah berapa lama akun menunggu?
+    //   • Apakah ada kewajiban berjalan (tagihan, sengketa)?
+    //   • Apakah ini permintaan yang wajar, atau ada tanda penyalahgunaan?
+    //
+    // Endpoint ini memberi daftarnya. Tanpa ini, admin harus menebak ID akun —
+    // dan itu berarti keputusan diambil tanpa data.
+    {
+      method: 'GET',
+      pattern: '/api/admin/akun/antrean-hapus',
+      handler: safe(async (req, res) => {
+        if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+
+        // ── AKUN YANG MENUNGGU TINJAUAN ────────────────────────────────────────
+        //
+        // Diurutkan dari yang PALING LAMA menunggu. Yang paling lama adalah
+        // yang paling mendekati batas 12 bulan — dan yang paling mendesak.
+        const menunggu = getDb().prepare(`
+          SELECT id, email, nama, status, dihapus_pada, alasan_hapus,
+                 disetujui_oleh, disetujui_pada, catatan_admin
+          FROM users
+          WHERE status IN ('menunggu_hapus', 'siap_hapus')
+          ORDER BY dihapus_pada ASC
+        `).all();
+
+        // ── SISA HARI + STATUS LANGGANAN ──────────────────────────────────────
+        //
+        // Dihitung di server, bukan di klien: admin memutuskan berdasarkan
+        // angka ini, dan dua perhitungan yang berbeda bisa menghasilkan
+        // keputusan yang salah.
+        const HARI = 24 * 60 * 60 * 1000;
+        const daftar = menunggu.map((a) => {
+          const sisaHari = sisaHariHapus(a.dihapus_pada);
+          const langganan = adaLanggananAktif(a.email);
+
+          return {
+            id: a.id,
+            email: a.email,
+            nama: a.nama,
+            status: a.status,
+            dihapus_pada: a.dihapus_pada,
+            alasan: a.alasan_hapus,
+            sisa_hari: sisaHari,
+            // ── KENAPA INI DIKIRIM KE ADMIN ────────────────────────────────────
+            //
+            // Penghapusan akan GAGAL kalau ada langganan aktif. Admin harus
+            // tahu itu SEBELUM mencoba menyetujui — supaya ia bisa menghubungi
+            // pengguna, bukan sekadar mendapat pesan galat.
+            ada_langganan: langganan.ada,
+            jumlah_langganan: langganan.jumlah,
+            // Sudah disetujui = siap dihapus pada pembersihan berikutnya.
+            siap_hapus: a.status === 'siap_hapus',
+            disetujui_oleh: a.disetujui_oleh || null,
+            disetujui_pada: a.disetujui_pada || null,
+          };
+        });
+
+        sendJson(res, 200, {
+          ok: true,
+          total: daftar.length,
+          // Ringkasan untuk dasbor: berapa yang butuh tindakan segera.
+          butuh_tinjauan: daftar.filter((a) => a.status === 'menunggu_hapus').length,
+          siap_hapus: daftar.filter((a) => a.siap_hapus).length,
+          ada_langganan: daftar.filter((a) => a.ada_langganan).length,
+          daftar,
+        });
+      }),
+    },
+
+    // ══ ADMIN: SETUJUI PENGHAPUSAN ═════════════════════════════════════════════
+    //
+    // ── KENAPA ADA PARAMETER `oleh` ────────────────────────────────────────────
+    //
+    // Jejak audit harus menyebut SIAPA yang menyetujui. "Admin menyetujui" tidak
+    // cukup saat ada pertanyaan dari auditor atau sengketa di kemudian hari —
+    // mereka ingin tahu orang mana, dan kapan.
+    //
+    // ── KENAPA `catatan` OPSIONAL TAPI DISARANKAN ──────────────────────────────
+    //
+    // Tidak semua persetujuan butuh penjelasan (mis. pengguna jelas-jelas ingin
+    // pergi). Tapi untuk kasus yang tidak jelas, catatan menyelamatkan peninjau
+    // berikutnya dari mengulang analisis yang sama.
+    {
+      method: 'POST',
+      pattern: '/api/admin/akun/setujui-hapus',
+      handler: safe(async (req, res) => {
+        if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+
+        const body = await readJson(req).catch(() => ({}));
+        const id = String(body.id || '').trim();
+        if (!id) return sendJson(res, 400, { ok: false, error: 'id_kosong' });
+
+        const hasil = setujuiPenghapusan(id, {
+          oleh: String(body.oleh || 'admin').slice(0, 100),
+          catatan: String(body.catatan || '').slice(0, 500),
+        });
+
+        if (!hasil.disetujui) {
+          // 409: permintaan bertentangan dengan keadaan sekarang (mis. masih
+          // ada langganan, atau statusnya bukan menunggu_hapus).
+          return sendJson(res, 409, {
+            ok: false,
+            error: 'tidak_bisa_disetujui',
+            message: hasil.alasan,
+            langganan: hasil.langganan || null,
+          });
+        }
+
+        sendJson(res, 200, {
+          ok: true,
+          pesan: 'Penghapusan disetujui. Akun akan dihapus pada pembersihan berikutnya.',
+        });
+      }),
+    },
+
+    // ══ ADMIN: TOLAK PENGHAPUSAN ═══════════════════════════════════════════════
+    //
+    // ── KENAPA PENOLAKAN HARUS MUNGKIN ─────────────────────────────────────────
+    //
+    // Ada situasi di mana penghapusan TIDAK BOLEH jalan:
+    //   • Sengketa pembayaran yang sedang berjalan
+    //   • Investigasi penyalahgunaan
+    //   • Kewajiban kontrak yang belum selesai
+    //
+    // Tanpa jalur penolakan, admin hanya punya pilihan "hapus" atau "diam" —
+    // dan diam berarti akun menunggu sampai 12 bulan lalu terhapus otomatis,
+    // termasuk yang seharusnya diselamatkan.
+    {
+      method: 'POST',
+      pattern: '/api/admin/akun/tolak-hapus',
+      handler: safe(async (req, res) => {
+        if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+
+        const body = await readJson(req).catch(() => ({}));
+        const id = String(body.id || '').trim();
+        if (!id) return sendJson(res, 400, { ok: false, error: 'id_kosong' });
+
+        const hasil = tolakPenghapusan(id, {
+          oleh: String(body.oleh || 'admin').slice(0, 100),
+          alasan: String(body.alasan || '').slice(0, 500),
+        });
+
+        if (!hasil.ditolak) {
+          return sendJson(res, 409, {
+            ok: false,
+            error: 'tidak_bisa_ditolak',
+            message: hasil.alasan,
+          });
+        }
+
+        sendJson(res, 200, {
+          ok: true,
+          pesan: 'Penghapusan ditolak. Akun kembali aktif.',
+        });
+      }),
+    },
+
+    // ══ ADMIN: JALANKAN PEMBERSIHAN MANUAL ═════════════════════════════════════
+    //
+    // ── KENAPA ADMIN BUTUH INI ─────────────────────────────────────────────────
+    //
+    // Penjadwal otomatis berjalan berkala, tapi admin kadang perlu menjalankan
+    // SEKARANG:
+    //   • Setelah menyetujui banyak permintaan sekaligus
+    //   • Saat audit — untuk membuktikan pembersihan benar-benar berjalan
+    //   • Saat menutup akun karena permintaan hukum
+    //
+    // Menunggu jadwal berikutnya berarti admin tidak bisa menyelesaikan
+    // pekerjaannya dalam satu sesi.
+    {
+      method: 'POST',
+      pattern: '/api/admin/akun/bersihkan',
+      handler: safe(async (req, res) => {
+        if (!isAdmin(req)) return sendJson(res, 401, { ok: false, error: 'admin_key_salah' });
+
+        const hasil = bersihkanAkunKedaluwarsa();
+
+        sendJson(res, 200, {
+          ok: true,
+          pesan: `${hasil.berhasil} akun dihapus permanen${hasil.gagal ? `, ${hasil.gagal} gagal` : ''}.`,
+          ...hasil,
+        });
+      }),
+    },
 
   {
     method: 'GET',
