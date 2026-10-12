@@ -37,12 +37,65 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ENV_FILE = '/home/ubuntu/.portfolio-token/service.env';
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Baca satu nilai dari service.env (parser sama dengan config.mjs). */
+// ══════════════════════════════════════════════════════════════════════════════
+// ── LOKASI service.env — DICARI DI BEBERAPA TEMPAT ──────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// ── MASALAH YANG DIPERBAIKI DI SINI ─────────────────────────────────────────
+// Versi pertama tes ini memakai path absolut:
+//
+//   const ENV_FILE = '/home/ubuntu/.portfolio-token/service.env';
+//
+// Itu GAGAL di GitHub Actions — runner CI memakai /home/runner/..., dan path
+// itu tidak ada di sana. Tes melaporkan "TURNSTILE_HOSTNAMES harus ada"
+// padahal konfigurasi produksinya benar.
+//
+// Persis bug yang sama pernah terjadi di 13 berkas tes lain (path absolut →
+// relatif). Pelajarannya: tes TIDAK BOLEH mengasumsikan lokasi berkas
+// konfigurasi server.
+//
+// ── KENAPA DICARI DI BEBERAPA TEMPAT ────────────────────────────────────────
+// Konfigurasi produksi ada di ~/.portfolio-token/service.env, tapi tes bisa
+// dijalankan dari mana saja. Mencari di beberapa kandidat membuat tes bekerja
+// baik di server maupun di mesin pengembang.
+//
+// Kalau TIDAK ADA satu pun yang ditemukan, tes di-SKIP — bukan gagal. Tes
+// yang menguji konfigurasi server tidak masuk akal dijalankan di CI yang
+// tidak punya konfigurasi itu. (Pola yang sama dipakai tes 9router untuk
+// kredensial provider.)
+function cariEnvFile() {
+  const kandidat = [
+    process.env.TOKEN_SERVICE_ENV,
+    join(process.env.HOME ?? '', '.portfolio-token', 'service.env'),
+    // Dari lokasi tes: backend/test/ → naik ke root proyek
+    resolve(__dirname, '..', '..', '.portfolio-token', 'service.env'),
+    resolve(__dirname, '..', 'service.env'),
+    resolve(__dirname, '..', '.env'),
+  ].filter(Boolean);
+
+  for (const p of kandidat) {
+    try {
+      if (existsSync(p)) return p;
+    } catch { /* lanjut ke kandidat berikutnya */ }
+  }
+  return null;
+}
+
+const ENV_FILE = cariEnvFile();
+
+/**
+ * Baca satu nilai dari service.env (parser sama dengan config.mjs).
+ *
+ * Mengembalikan null kalau berkas tidak ada — pemanggil yang memutuskan
+ * apakah itu berarti "skip" atau "gagal".
+ */
 function bacaEnv(kunci) {
-  if (!existsSync(ENV_FILE)) return null;
+  if (!ENV_FILE || !existsSync(ENV_FILE)) return null;
   for (const baris of readFileSync(ENV_FILE, 'utf8').split('\n')) {
     const t = baris.trim();
     if (!t || t.startsWith('#')) continue;
@@ -76,7 +129,7 @@ const DOMAIN_WAJIB = [
 ];
 
 describe('TURNSTILE_HOSTNAMES memuat semua domain', () => {
-  test('setiap domain yang dikenal ada di daftar', () => {
+  test('setiap domain yang dikenal ada di daftar', { skip: !ENV_FILE && 'service.env tidak ada (CI)' }, () => {
     const nilai = bacaEnv('TURNSTILE_HOSTNAMES');
     assert.ok(nilai, 'TURNSTILE_HOSTNAMES harus ada di service.env');
 
@@ -94,7 +147,7 @@ describe('TURNSTILE_HOSTNAMES memuat semua domain', () => {
     }
   });
 
-  test('daftar tidak memuat domain kosong', () => {
+  test('daftar tidak memuat domain kosong', { skip: !ENV_FILE && 'service.env tidak ada (CI)' }, () => {
     const nilai = bacaEnv('TURNSTILE_HOSTNAMES') ?? '';
     const daftar = nilai.split(',').map((s) => s.trim()).filter(Boolean);
 
@@ -106,7 +159,7 @@ describe('TURNSTILE_HOSTNAMES memuat semua domain', () => {
     }
   });
 
-  test('tidak ada duplikat', () => {
+  test('tidak ada duplikat', { skip: !ENV_FILE && 'service.env tidak ada (CI)' }, () => {
     const nilai = bacaEnv('TURNSTILE_HOSTNAMES') ?? '';
     const daftar = nilai.split(',').map((s) => s.trim()).filter(Boolean);
     const unik = new Set(daftar);
@@ -117,7 +170,7 @@ describe('TURNSTILE_HOSTNAMES memuat semua domain', () => {
     );
   });
 
-  test('site key dan secret key keduanya terisi', () => {
+  test('site key dan secret key keduanya terisi', { skip: !ENV_FILE && 'service.env tidak ada (CI)' }, () => {
     const site = bacaEnv('TURNSTILE_SITE_KEY');
     const secret = bacaEnv('TURNSTILE_SECRET_KEY');
 
@@ -148,7 +201,8 @@ describe('site key di HTML cocok dengan service.env', () => {
     'lupa-sandi.html',
   ];
 
-  const ROOT = '/home/ubuntu/portfolio-victer';
+  // Path relatif dari lokasi tes: backend/test/ → root proyek
+  const ROOT = resolve(__dirname, '..', '..');
 
   test('setiap halaman menulis site key yang sama', () => {
     const siteEnv = bacaEnv('TURNSTILE_SITE_KEY');

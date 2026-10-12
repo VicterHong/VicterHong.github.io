@@ -21,7 +21,23 @@ ENV_FILE="${TOKEN_SERVICE_ENV:-$HOME/.portfolio-token/service.env}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE="${1:-backup}"
 
+if [ ! -f "$ENV_FILE" ]; then
+  echo "[$(date -Is)] ❌ env tidak ditemukan: $ENV_FILE" >&2
+  exit 1
+fi
+
 # ── PASTIKAN `wrangler` DITEMUKAN, APA PUN PATH-NYA ────────────────────────────
+#
+# ── KENAPA PEMERIKSAAN INI SETELAH ENV, BUKAN SEBELUM ────────────────────────
+# Versi pertama memeriksa wrangler LEBIH DULU. Akibatnya, saat env tidak ada
+# DAN wrangler tidak ada (kondisi CI), pesan yang muncul adalah
+# "wrangler tidak ditemukan" — padahal masalah sebenarnya adalah env hilang.
+#
+# Pesan yang salah membuat diagnosis melenceng: operator akan mencari cara
+# memasang wrangler, padahal yang perlu diperbaiki adalah berkas konfigurasi.
+#
+# Urutan yang benar: periksa hal yang PALING DASAR dulu. Tanpa env, skrip
+# tidak bisa berbuat apa pun — bahkan kalau wrangler terpasang.
 #
 # MASALAH YANG DIPERBAIKI DI SINI (backup off-site gagal 4 hari berturut-turut):
 #
@@ -58,11 +74,6 @@ export PATH
 if ! command -v wrangler >/dev/null 2>&1; then
   echo "[$(date -Is)] ❌ wrangler tidak ditemukan di PATH: $PATH" >&2
   echo "    Backup TIDAK terunggah. Pasang: npm install -g wrangler" >&2
-  exit 1
-fi
-
-if [ ! -f "$ENV_FILE" ]; then
-  echo "[$(date -Is)] ❌ env tidak ditemukan: $ENV_FILE" >&2
   exit 1
 fi
 
