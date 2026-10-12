@@ -2154,3 +2154,164 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   }
   .auth-pulih-angka { font-size: 1.4rem; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ── HALAMAN RESET SANDI (reset-sandi.html) ────────────────────────────────────
+   ══════════════════════════════════════════════════════════════════════════════
+
+   Kelas di bawah HANYA dipakai halaman reset sandi. Ditambahkan di akhir berkas
+   supaya perubahan mudah dilihat di diff — tidak tersebar di antara aturan lain.
+
+   Semuanya memakai variabel warna yang sudah ada (--emas, --teks-redup, dst),
+   jadi tema tetap konsisten dengan halaman auth lain. */
+
+/* ── DAFTAR SYARAT SANDI ──────────────────────────────────────────────────────
+   Tiga baris syarat dengan tanda centang yang menyala saat terpenuhi.
+
+   ── KENAPA TANDA CENTANG, BUKAN TITIK BERWARNA ───────────────────────────────
+   Warna saja tidak cukup: pengguna dengan buta warna tidak bisa membedakan
+   merah/hijau. Bentuk centang terbaca tanpa warna — dan warna hanya
+   memperkuatnya. Ini sesuai panduan aksesibilitas "don't rely on color alone". */
+.auth-syarat {
+  list-style: none;
+  margin: 10px 0 4px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+/* ── WARNA: --teks-redup, BUKAN --teks-samar ─────────────────────────────
+   Diukur dengan rumus kontras WCAG terhadap latar kartu (#0a0a0b):
+     --teks-samar (#71717a) → 4.09:1  — DI BAWAH ambang AA (4.5:1)
+     --teks-redup (#a1a1aa) → 7.72:1  — hampir dua kali lipat, lulus AA
+
+   Teks ini BUKAN hiasan: pengguna harus membacanya untuk tahu aturan sandi.
+   Kontras yang gagal ambang berarti sebagian orang tidak bisa membacanya —
+   dan mereka akan gagal memenuhi syarat yang tidak pernah mereka lihat. */
+.auth-syarat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--teks-redup, #a1a1aa);
+  transition: color 0.18s ease;
+}
+
+/* Syarat yang terpenuhi menjadi LEBIH terang — bukan berwarna. Warnanya
+   dipakai untuk tanda centang; teksnya cukup dibedakan oleh kecerahan,
+   sehingga tetap terbaca bagi pengguna dengan buta warna. */
+.auth-syarat-item.terpenuhi {
+  color: var(--teks, #f4f4f5);
+}
+
+/* Tanda: lingkaran kosong → centang terisi.
+   Ukurannya tetap (14px) di kedua keadaan supaya tidak ada pergeseran layout
+   saat status berubah — teks di sebelahnya tidak bergerak. */
+/* ── BORDER: WARNA YANG BENAR-BENAR TERLIHAT ──────────────────────────────
+   --garis-terang adalah rgba(255,255,255,0.16) — kontrasnya hanya 1.89:1
+   terhadap latar kartu. Ambang WCAG untuk elemen non-teks adalah 3:1, jadi
+   lingkaran kosong itu nyaris tak terlihat di layar ponsel dengan pantulan.
+
+   Dipakai nilai yang sama dengan teks samar (#71717a, 4.09:1) — lulus ambang
+   3:1 untuk elemen non-teks, dan tetap terbaca sebagai "belum terpenuhi"
+   karena jauh lebih redup daripada tanda centang emas. */
+.auth-syarat-tanda {
+  position: relative;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--teks-samar, #71717a);
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.auth-syarat-item.terpenuhi .auth-syarat-tanda {
+  border-color: var(--emas, #f5c542);
+  background-color: var(--emas, #f5c542);
+}
+
+/* Centang digambar dengan dua batang — bukan SVG, supaya tidak perlu elemen
+   tambahan di HTML dan tetap tajam di semua kerapatan piksel. */
+.auth-syarat-item.terpenuhi .auth-syarat-tanda::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1.5px;
+  width: 3px;
+  height: 6px;
+  border: solid #0a0a0b;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* ── PANEL GAGAL: WARNA IKON ──────────────────────────────────────────────────
+   Lingkaran + silang memakai warna peringatan, bukan emas. Emas berarti
+   "aksi utama" di seluruh situs — memakainya untuk keadaan gagal akan
+   membingungkan.
+
+   ── KENAPA TIDAK MERAH MENYALA ───────────────────────────────────────────────
+   Tautan kedaluwarsa bukan kesalahan pengguna dan bukan keadaan darurat. Merah
+   menyala membuatnya terasa seperti kegagalan sistem. Warna redup memberi kesan
+   "ini wajar, ada jalan keluarnya" — dan jalan keluarnya memang ada, tepat di
+   bawah pesan. */
+.auth-check-gagal .auth-check-ring,
+.auth-check-gagal .auth-check-path {
+  stroke: var(--teks-samar, #71717a);
+}
+
+/* ── JALAN KEMBALI ────────────────────────────────────────────────────────────
+   Tautan teks di bawah tombol utama. Ukuran target sentuh dinaikkan ke 44px
+   (panduan WCAG 2.5.5) — tautan kecil yang hanya setinggi teks sulit ditekan
+   di ponsel. */
+.auth-alt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 4px;
+  font-size: 0.86rem;
+  color: var(--teks-redup, #b8b8b8);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.auth-alt:hover,
+.auth-alt:focus-visible {
+  color: var(--emas, #f5c542);
+}
+
+/* ── SPINNER TOMBOL ───────────────────────────────────────────────────────────
+   Muncul saat permintaan sedang berjalan. Tombol tetap mempertahankan
+   lebarnya (label tetap di tempat, hanya meredup) supaya tidak ada
+   pergeseran layout saat status berubah. */
+.auth-submit.is-loading {
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.auth-submit.is-loading .auth-submit-label { opacity: 0.5; }
+
+.auth-submit.is-loading .auth-submit-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+.auth-submit-spinner { display: none; }
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Hormati preferensi pengguna yang mematikan animasi. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-submit.is-loading .auth-submit-spinner { animation-duration: 2s; }
+  .auth-syarat-item,
+  .auth-syarat-tanda { transition: none; }
+}
