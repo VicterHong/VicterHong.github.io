@@ -56,11 +56,24 @@ const HALAMAN = [
   'sign-up.html',
   'reset-sandi.html',
   'lupa-sandi.html',
+  'keamanan.html',   // halaman profil — juga ruang pribadi
 ];
 
-// Pola header lama: <a class="auth-nav-brand" ...> ... </a> + <nav>...</nav>
-// Kita ganti SELURUH <header class="auth-nav"> ... </header>.
-const POLA_HEADER = /<header class="auth-nav">[\s\S]*?<\/header>/;
+// ── POLA HEADER LAMA ─────────────────────────────────────────────────────────
+//
+// Dua bentuk header lama ada di proyek ini:
+//
+//   <header class="auth-nav"> ... </header>   → halaman auth (sign-in dll)
+//   <nav class="auth-nav"> ... </nav>         → halaman profil (keamanan.html)
+//
+// Versi pertama skrip ini hanya menangkap <header>. Akibatnya keamanan.html
+// TERLEWAT: halaman profil tetap menampilkan link "Beranda" dan brand yang
+// bisa diklik — satu-satunya halaman yang belum jadi ruang pribadi.
+//
+// Regex menangkap KEDUANYA. Non-greedy supaya berhenti di penutup pertama —
+// keamanan.html punya <nav> lain di dalam panel (daftar tab), dan itu tidak
+// boleh tersentuh.
+const POLA_HEADER = /<(?:header|nav) class="auth-nav">[\s\S]*?<\/(?:header|nav)>/;
 
 // Header baru: logo saja, tidak bisa diklik.
 const HEADER_BARU = (label) => `<!--
@@ -114,6 +127,15 @@ for (const berkas of HALAMAN) {
   }
 
   const isi = readFileSync(berkas, 'utf8');
+
+  // ── SUDAH RUANG PRIBADI? ───────────────────────────────────────────────────
+  // Skrip ini idempoten: halaman yang sudah ditransformasi dilewati dengan
+  // pesan jelas, bukan peringatan "pola tidak ditemukan" yang menyesatkan.
+  if (isi.includes('auth-nav-polos')) {
+    console.log(`  ✅ ${berkas} — sudah ruang pribadi, dilewati`);
+    continue;
+  }
+
   const cocok = isi.match(POLA_HEADER);
 
   if (!cocok) {
@@ -125,7 +147,9 @@ for (const berkas of HALAMAN) {
   const label = berkas.startsWith('sign-in') ? 'masuk'
     : berkas.startsWith('sign-up') ? 'mendaftar'
     : berkas.startsWith('reset-sandi') ? 'mengganti sandi'
-    : 'memulihkan akses';
+    : berkas.startsWith('lupa-sandi') ? 'memulihkan akses'
+    : berkas.startsWith('keamanan') ? 'mengelola profil'
+    : 'memakai akun';
 
   const baru = isi.replace(POLA_HEADER, HEADER_BARU(label));
   writeFileSync(berkas, baru, 'utf8');

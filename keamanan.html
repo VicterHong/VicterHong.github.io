@@ -30,15 +30,47 @@
      Sama dengan halaman masuk: identitas situs muncul SEKALI di header,
      bukan diulang di dalam kartu. Konsistensi ini membuat halaman terasa
      bagian dari situs yang sama, bukan halaman terpisah. -->
-<nav class="auth-nav">
-  <a class="auth-nav-brand" href="/" aria-label="VIVASTIC, beranda">
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  ── KEPALA: LOGO SAJA, TANPA NAVIGASI ────────────────────────────────────────
+  ══════════════════════════════════════════════════════════════════════════════
+
+  ── KENAPA TIDAK ADA MENU (Beranda / Harga / Panduan) ────────────────────────
+  Halaman ini adalah RUANG PRIBADI. Pengguna yang sedang mengelola profil:
+
+    • butuh fokus pada satu tugas
+    • mungkin sedang panik (kalau lupa sandi)
+    • mungkin memakai perangkat orang lain
+
+  Menu navigasi mengundang mereka KELUAR dari alur. Satu klik tidak sengaja
+  di halaman daftar berarti mengisi ulang seluruh form.
+
+  Lima produk besar memakai pola yang sama — tidak satu pun menampilkan menu
+  pemasaran di halaman login:
+    Stripe · Linear · Vercel · GitHub · Google
+
+  ── KENAPA LOGO TIDAK BISA DIKLIK ────────────────────────────────────────────
+  Di halaman publik, logo yang bisa diklik adalah konvensi baik (pulang ke
+  beranda). Di sini itu JEBAKAN: pengguna yang tidak sengaja menyentuhnya
+  akan meninggalkan form dan kehilangan isinya.
+
+  Logo tetap ada sebagai identitas — pengguna harus tahu mereka di situs yang
+  benar. Tapi ia elemen visual, bukan pintu keluar.
+
+  ── KENAPA PAKAI <div>, BUKAN <a> TANPA href ─────────────────────────────────
+  <a> tanpa href tidak fokusabel dan tidak diumumkan sebagai tautan — jadi
+  secara teknis sudah "tidak bisa diklik". Tapi memakai <a> untuk elemen yang
+  bukan tautan adalah markup yang menyesatkan: pembaca kode akan mengira ada
+  navigasi yang hilang.
+
+  <div> menyatakan maksudnya dengan jujur: ini bukan tautan, ini identitas.
+-->
+<header class="auth-nav auth-nav-polos">
+  <div class="auth-nav-brand" role="img" aria-label="VIVASTIC">
     <span class="auth-nav-mark" aria-hidden="true"></span>
-    <span class="auth-nav-nama">VIVASTIC</span>
-  </a>
-  <div class="auth-nav-links">
-    <a class="auth-nav-signin" href="/">Beranda</a>
+    <span>VIVASTIC</span>
   </div>
-</nav>
+</header>
 
 <main class="auth-main">
   <div class="auth-scene">
@@ -1057,5 +1089,41 @@
 <script src="/assets/js/cf-gate-i18n.js" defer></script>
 <script src="/assets/js/cf-gate.js" defer></script>
 <script src="/assets/js/keamanan.js" defer></script>
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  ── LOGO MONOGRAM ────────────────────────────────────────────────────────────
+  ══════════════════════════════════════════════════════════════════════════════
+
+  ── MASALAH YANG DIPERBAIKI DI SINI ──────────────────────────────────────────
+  Baris ini SEBELUMNYA TIDAK ADA. Akibatnya header halaman ini menampilkan
+  kotak emas kosong 10×10 (gaya bawaan `.auth-nav-mark`) — bukan monogram
+  VIVASTIC.
+
+  Pengguna melihatnya sebagai "logo hilang": ada tempatnya, tapi isinya
+  kosong. Halaman profil terasa belum selesai.
+
+  ── KENAPA LOGO DIPASANG LEWAT JS, BUKAN LANGSUNG DI HTML ───────────────────
+  Logo VIVASTIC adalah monogram yang digambar dari SVG. Menuliskannya langsung
+  di setiap halaman berarti mengubah 6+ berkas setiap kali logonya berubah.
+
+  `logo-mount.js` adalah titik pemasangan tunggal: ia mencari `.brand-mark`
+  dan `.auth-nav-mark`, lalu memasang monogram yang sama. Satu sumber
+  kebenaran, banyak halaman.
+
+  ── KENAPA HALAMAN INI TERLEWAT ─────────────────────────────────────────────
+  Halaman auth lain (sign-in, sign-up, lupa-sandi, reset-sandi) memuatnya.
+  Halaman profil tidak — kemungkinan karena ditulis belakangan, dan tidak ada
+  yang mengingatkan bahwa header butuh skrip itu.
+
+  Pelajarannya: elemen yang isinya diisi JavaScript akan terlihat "kosong"
+  kalau skripnya lupa dimuat — dan tidak ada error di konsol, karena skrip
+  yang tidak dimuat tidak bisa melaporkan apa pun. Yang terlihat hanya
+  header tanpa logo.
+
+  `type="module"` — monogram.js memakai `export`, dan modul otomatis
+  deferred sehingga elemen pasti sudah ada di DOM saat skrip berjalan.
+-->
+<script type="module" src="/assets/js/logo-mount.js"></script>
 </body>
 </html>
