@@ -430,3 +430,85 @@ export function handlePreflight(req, res) {
   res.writeHead(204);
   res.end();
 }
+
+/**
+ * Pesan error yang aman ditampilkan ke klien.
+ *
+ * MASALAH SEBELUMNYA: `err.message` dikirim MENTAH untuk semua status,
+ * termasuk 500. Error sistem seperti ENOENT membawa path lengkap
+ * ("no such file or directory, open '/home/<user>/.portfolio-token/...'")
+ * — itu membocorkan username VPS, struktur direktori, dan nama tabel
+ * SQLite. Informasi itu membantu penyerang menyusun serangan lanjutan.
+ *
+ * ATURAN:
+ *   5xx → selalu 'kesalahan_internal'. Error sistem tidak pernah ke klien.
+ *   4xx → pesan boleh tampil KALAU lolos pemeriksaan di bawah. 4xx yang
+ *         kita lempar sendiri ("JSON tidak valid", "slug koleksi tidak
+ *         valid") memang untuk pengguna dan harus tetap terbaca.
+ *
+ * Pemeriksaan untuk 4xx (semua harus lolos):
+ *   - pendek (≤ 80 karakter) — pesan sistem biasanya panjang
+ *   - tidak mengandung '/' atau '\' — penanda path berkas
+ *   - tidak menyebut istilah sistem (SQLITE, ENOENT, EACCES, ECONNREFUSED)
+ * Kalau ada yang gagal, pakai pesan umum.
+ */
+export function publicError(err, code) {
+  if (code >= 500) return 'kesalahan_internal';
+  const msg = err?.message;
+  if (typeof msg !== 'string' || msg.length === 0) return 'permintaan_tidak_valid';
+  if (msg.length > 80) return 'permintaan_tidak_valid';
+  if (/[/\\]/.test(msg)) return 'permintaan_tidak_valid';
+  if (/SQLITE|ENOENT|EACCES|ECONNREFUSED|EPERM|EISDIR|undefined|null/i.test(msg)) {
+    return 'permintaan_tidak_valid';
+  }
+  return msg;
+}
+
+/**
+ * Bungkus handler: tangkap error supaya satu permintaan buruk tidak
+ * menjatuhkan layanan.
+ *
+ * ── KENAPA DI http-util.mjs, BUKAN DI routes.mjs ────────────────────────────
+ * Fungsi ini dulu hanya ada di routes.mjs. Rute auth (auth-routes.mjs)
+ * memakai gaya sendiri: 30 handler TANPA pembungkus. Error server di sana
+ * jatuh ke requestHandler di server.mjs — dan pembungkus itu menjawab
+ * SEMUA error sebagai HTTP 400 ("permintaan_tidak_valid").
+ *
+ * Akibatnya bug server (query gagal, null deref) terlihat sebagai
+ * "kesalahan klien" — monitoring buta, log tidak menandai 5xx, dan
+ * debugging salah arah: mencari input buruk padahal kode yang salah.
+ *
+ * Sekarang keduanya memakai SATU implementasi ini:
+ *   routes.mjs       → safe() dipakai 89 rute
+ *   auth-routes.mjs  → ruteAuth() membungkus semua rute dengan safe()
+ *
+ * ── PENTING: `url` (argumen ke-4) HARUS diteruskan ──────────────────────────
+ * Sebelumnya wrapper ini hanya memanggil handler(req, res, params) —
+ * akibatnya SEMUA handler yang membaca `url.searchParams` (filter, limit,
+ * pagination, query param) menerima undefined dan diam-diam mengabaikan
+ * filternya. 29 handler terpengaruh; filter di panel admin jadi tidak
+ * berfungsi.
+ *
+ * ── PENANDA __pelindung ─────────────────────────────────────────────────────
+ * Fungsi hasil dibubuhi `__pelindung = true` supaya audit (dan tes) bisa
+ * memverifikasi bahwa SETIAP rute yang terdaftar benar-benar terbungkus —
+ * tanpa penanda ini, rute tanpa pelindung hanya ketahuan saat produksi
+ * error di malam hari.
+ */
+export function safe(handler) {
+  const terbungkus = async (req, res, params, url) => {
+    try {
+      await handler(req, res, params, url);
+    } catch (err) {
+      const code = err?.statusCode ?? 500;
+      // Error 5xx selalu dicatat LENGKAP di server — supaya kita tetap bisa
+      // menelusuri masalah, sementara klien hanya melihat pesan umum.
+      if (code >= 500) console.error('[routes] error:', err);
+      if (!res.headersSent) {
+        sendJson(res, code, { ok: false, error: publicError(err, code) });
+      }
+    }
+  };
+  terbungkus.__pelindung = true;
+  return terbungkus;
+}

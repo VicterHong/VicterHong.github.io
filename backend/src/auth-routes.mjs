@@ -64,7 +64,7 @@ import { getDb, transaction } from './db.mjs';
 // baru ketahuan saat ada pengguna yang akunnya terhapus padahal masih
 // berlangganan.
 import { adaLanggananAktif, nonaktifkanAkun, cekKodePembatalan } from './purge-akun.mjs';
-import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner } from './http-util.mjs';
+import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner, safe } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
 // mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
@@ -1389,7 +1389,19 @@ function penggunaDariToken(tokenRow) {
 // ── Ekspor ────────────────────────────────────────────────────────────────────
 
 export function ruteAuth() {
-  return [
+  // ── KENAPA PEMBUNGKUSAN DI SINI, BUKAN SATU PER SATU ──────────────────────
+  // Ada ~40 rute di bawah ini (5 provider × beberapa rute + SSO + passkey +
+  // profil + akun). Menambahkan safe() pada masing-masing berarti satu
+  // tempat bisa terlewat setiap kali ada rute baru — dan yang terlewat
+  // baru ketahuan saat produksi error di malam hari.
+  //
+  // Membungkus DI SATU TEMPAT (map di akhir) membuat rute baru otomatis
+  // terlindungi: tidak ada jalan untuk menambah rute tanpa pelindung.
+  //
+  // Sebelum ini, error server di rute auth jatuh ke requestHandler
+  // (server.mjs) dan dilaporkan sebagai HTTP 400 "permintaan_tidak_valid"
+  // — seolah input klien yang salah, padahal kode server yang gagal.
+  const daftar = [
     ...['google', 'microsoft', 'apple', 'github', 'linkedin'].flatMap((p) => [
       ruteMulai(p),
       ...ruteCallback(p),
@@ -1404,6 +1416,14 @@ export function ruteAuth() {
     ruteDaftarIdentitas,
     ruteHapusIdentitas,
   ];
+
+  // Bungkus SETIAP rute dengan safe() — lihat komentar di atas.
+  //
+  // Spread objek: salinan baru, bukan mutasi — objek rute asli (mis.
+  // ruteProfil) tidak ikut berubah. Penting karena beberapa rute dipakai
+  // ulang di berkas ini; memutasi handler-nya dua kali akan membungkus
+  // dua kali, dan setiap error tercatat dua kali di log.
+  return daftar.map((r) => ({ ...r, handler: safe(r.handler) }));
 }
 
 /**

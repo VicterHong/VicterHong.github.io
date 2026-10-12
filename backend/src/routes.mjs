@@ -96,6 +96,7 @@ import {
 import {
   applyCors, clientCountry, clientGeo, clientIp, ipBucket, extractToken, handlePreflight,
   readJson, readBody, sendJson, parseCookies, setCookie, clearCookie,
+  safe, publicError,
 } from './http-util.mjs';
 import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
 import { ruteAuth } from './auth-routes.mjs';
@@ -453,62 +454,17 @@ function isAdmin(req) {
   return timingSafeEqual(h(key), h(expected));
 }
 
-/** Bungkus handler: tangkap error supaya satu permintaan buruk tidak menjatuhkan layanan.
- *
- *  PENTING: `url` (argumen ke-4) HARUS diteruskan. Sebelumnya wrapper ini
- *  hanya memanggil handler(req, res, params) — akibatnya SEMUA handler yang
- *  membaca `url.searchParams` (filter, limit, pagination, query param)
- *  menerima undefined dan diam-diam mengabaikan filternya. 29 handler
- *  terpengaruh; filter di panel admin jadi tidak berfungsi. */
-
 /**
- * Pesan error yang aman ditampilkan ke klien.
+ * Bungkus handler: tangkap error supaya satu permintaan buruk tidak menjatuhkan layanan.
  *
- * MASALAH SEBELUMNYA: `err.message` dikirim MENTAH untuk semua status,
- * termasuk 500. Error sistem seperti ENOENT membawa path lengkap
- * ("no such file or directory, open '/home/<user>/.portfolio-token/...'")
- * — itu membocorkan username VPS, struktur direktori, dan nama tabel
- * SQLite. Informasi itu membantu penyerang menyusun serangan lanjutan.
+ * ── PINDAH KE http-util.mjs ─────────────────────────────────────────────────
+ * publicError() dan safe() dulu didefinisikan di sini. Sekarang keduanya
+ * tinggal di http-util.mjs supaya auth-routes.mjs bisa memakai implementasi
+ * yang SAMA — rute auth sebelumnya tidak punya pelindung sama sekali, dan
+ * error server di sana dilaporkan sebagai HTTP 400 (kesalahan klien).
  *
- * ATURAN:
- *   5xx → selalu 'kesalahan_internal'. Error sistem tidak pernah ke klien.
- *   4xx → pesan boleh tampil KALAU lolos pemeriksaan di bawah. 4xx yang
- *         kita lempar sendiri ("JSON tidak valid", "slug koleksi tidak
- *         valid") memang untuk pengguna dan harus tetap terbaca.
- *
- * Pemeriksaan untuk 4xx (semua harus lolos):
- *   - pendek (≤ 80 karakter) — pesan sistem biasanya panjang
- *   - tidak mengandung '/' atau '\' — penanda path berkas
- *   - tidak menyebut istilah sistem (SQLITE, ENOENT, EACCES, ECONNREFUSED)
- * Kalau ada yang gagal, pakai pesan umum.
+ * Lihat http-util.mjs untuk dokumentasi lengkap kedua fungsi.
  */
-function publicError(err, code) {
-  if (code >= 500) return 'kesalahan_internal';
-  const msg = err?.message;
-  if (typeof msg !== 'string' || msg.length === 0) return 'permintaan_tidak_valid';
-  if (msg.length > 80) return 'permintaan_tidak_valid';
-  if (/[/\\]/.test(msg)) return 'permintaan_tidak_valid';
-  if (/SQLITE|ENOENT|EACCES|ECONNREFUSED|EPERM|EISDIR|undefined|null/i.test(msg)) {
-    return 'permintaan_tidak_valid';
-  }
-  return msg;
-}
-
-function safe(handler) {
-  return async (req, res, params, url) => {
-    try {
-      await handler(req, res, params, url);
-    } catch (err) {
-      const code = err?.statusCode ?? 500;
-      // Error 5xx selalu dicatat LENGKAP di server — supaya kita tetap bisa
-      // menelusuri masalah, sementara klien hanya melihat pesan umum.
-      if (code >= 500) console.error('[routes] error:', err);
-      if (!res.headersSent) {
-        sendJson(res, code, { ok: false, error: publicError(err, code) });
-      }
-    }
-  };
-}
 
 /**
  * Root situs = root repo. Berkas ini ada di `<repo>/backend/src/routes.mjs`,

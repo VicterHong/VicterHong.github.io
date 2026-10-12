@@ -1,26 +1,31 @@
 {
- "dibuat": "2026-10-12T00:55:41.044Z",
- "totalCommit": 342,
- "totalDicatat": 340,
+ "dibuat": "2026-10-12T03:45:55.045Z",
+ "totalCommit": 347,
+ "totalDicatat": 345,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-12",
  "rilis": [
   {
    "tanggal": "2026-10-12",
-   "jumlah": 2,
+   "jumlah": 7,
    "ringkasan": {
-    "fitur": 1,
-    "perbaikan": 1,
+    "fitur": 2,
+    "perbaikan": 3,
     "performa": 0,
     "dokumentasi": 0,
     "data": 0,
-    "pemeliharaan": 0
+    "pemeliharaan": 2
    },
    "kategori": [
     {
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "f97d25c",
+       "teks": "Link Changelog di 6 halaman + regenerasi berkas turunan",
+       "scope": "nav"
+      },
       {
        "hash": "cf97f4b",
        "teks": "Halaman catatan rilis dari riwayat git",
@@ -33,9 +38,35 @@
      "label": "Perbaikan",
      "item": [
       {
+       "hash": "4e85348",
+       "teks": "Kembalikan tab horizontal — perbaiki teks terhalang, bukan ganti kontrol",
+       "scope": "profil"
+      },
+      {
+       "hash": "0bd6b14",
+       "teks": "7 tab horizontal → pemilih di mobile (bug scroll horizontal)",
+       "scope": "profil"
+      },
+      {
        "hash": "f6975fd",
        "teks": "Item aktif otomatis + cookie FAB tidak menutupi panel",
        "scope": "docs"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "8a9154e",
+       "teks": "Kembalikan tab ke kondisi semula (db009ca)",
+       "scope": "profil"
+      },
+      {
+       "hash": "1e6e9c2",
+       "teks": "Git hook post-commit + pemasangnya",
+       "scope": "scripts"
       }
      ]
     }

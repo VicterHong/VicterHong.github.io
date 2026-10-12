@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 340 perubahan dari 342 commit (2026-10-01 → 2026-10-12).
+Total 345 perubahan dari 347 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,11 +10,19 @@ Total 340 perubahan dari 342 commit (2026-10-01 → 2026-10-12).
 
 ### Fitur baru
 
+- **nav**: Link Changelog di 6 halaman + regenerasi berkas turunan (`f97d25c`)
 - **changelog**: Halaman catatan rilis dari riwayat git (`cf97f4b`)
 
 ### Perbaikan
 
+- **profil**: Kembalikan tab horizontal — perbaiki teks terhalang, bukan ganti kontrol (`4e85348`)
+- **profil**: 7 tab horizontal → pemilih di mobile (bug scroll horizontal) (`0bd6b14`)
 - **docs**: Item aktif otomatis + cookie FAB tidak menutupi panel (`f6975fd`)
+
+### Pemeliharaan
+
+- **profil**: Kembalikan tab ke kondisi semula (db009ca) (`8a9154e`)
+- **scripts**: Git hook post-commit + pemasangnya (`1e6e9c2`)
 
 ## 2026-10-11
 
