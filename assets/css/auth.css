@@ -2264,7 +2264,20 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
    Tautan teks di bawah tombol utama. Ukuran target sentuh dinaikkan ke 44px
    (panduan WCAG 2.5.5) — tautan kecil yang hanya setinggi teks sulit ditekan
    di ponsel. */
-.auth-alt {
+/* ── NAMA KELAS: .auth-kembali, BUKAN .auth-alt ──────────────────────────────
+   Versi pertama memakai `.auth-alt` — dan itu BENTROK dengan kelas yang sudah
+   ada di baris 1600 (`.auth-alt` adalah pemisah "atau dengan email" di halaman
+   sign-in, dipakai sebagai wadah flex untuk deretan tombol sosial).
+
+   Akibatnya nyata: menambahkan `display: flex` di sini membuat deretan tombol
+   sosial di sign-in berubah tata letak, tombol Sign in terdorong keluar layar,
+   dan widget Turnstile naik ke posisi yang salah.
+
+   Pelajarannya: sebelum memakai nama kelas baru di berkas CSS bersama,
+   PERIKSA apakah namanya sudah dipakai. `grep "^\.nama-kelas"` cukup untuk
+   mencegahnya — dan itu jauh lebih murah daripada memperbaiki tata letak
+   halaman lain yang rusak. */
+.auth-kembali {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2276,8 +2289,8 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   transition: color 0.15s ease;
 }
 
-.auth-alt:hover,
-.auth-alt:focus-visible {
+.auth-kembali:hover,
+.auth-kembali:focus-visible {
   color: var(--emas, #f5c542);
 }
 
