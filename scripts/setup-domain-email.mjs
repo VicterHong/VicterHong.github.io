@@ -288,30 +288,43 @@ async function siapkan() {
   }
 
   // ── 2. Ambil record DNS ────────────────────────────────────────────────────
+  //
+  // ── KENAPA HARUS ENDPOINT DETAIL, BUKAN DAFTAR ─────────────────────────────
+  // `GET /senders/domains` (daftar) mengembalikan `records: null` — record DNS
+  // baru muncul di `GET /senders/domains/{domain}` (detail).
+  //
+  // Dan nama field-nya TIDAK konsisten antara dokumentasi dan kenyataan:
+  //   • Dokumentasi menyebut `dkim_record`
+  //   • Kenyataan: `dkim1Record` + `dkim2Record` (camelCase, bernomor)
+  //
+  // Skrip ini membaca KEDUANYA supaya tetap bekerja kalau Brevo mengubah
+  // bentuknya nanti.
   console.log('');
   console.log('  2. Mengambil record DNS yang diminta Brevo...');
 
-  let detail;
+  let dnsBrevo;
   try {
-    detail = await brevo('/senders/domains');
-    domain = (detail?.domains ?? []).find((d) => d.domain_name === DOMAIN_BREVO);
+    dnsBrevo = await brevo(`/senders/domains/${DOMAIN_BREVO}`);
   } catch (e) {
     console.error(`     ❌ ${e.message}`);
     return 1;
   }
 
-  const dnsBrevo = domain?.dns_records ?? {};
-  const dkim1 = dnsBrevo.dkim_record;
-  const dkim2 = dnsBrevo.dkim_record_2;
-  const brevoCode = dnsBrevo.brevo_code;
+  const dns = dnsBrevo?.dns_records ?? {};
 
-  console.log(`     DKIM 1     : ${dkim1 ? dkim1.host_name + ' → ' + String(dkim1.value).slice(0, 45) + '…' : '❌ tidak ada'}`);
-  console.log(`     DKIM 2     : ${dkim2 ? dkim2.host_name + ' → ' + String(dkim2.value).slice(0, 45) + '…' : '❌ tidak ada'}`);
-  console.log(`     Brevo code : ${brevoCode ? String(brevoCode.value).slice(0, 40) + '…' : '❌ tidak ada'}`);
+  // Terima dua bentuk penamaan.
+  const dkim1 = dns.dkim1Record ?? dns.dkim_record;
+  const dkim2 = dns.dkim2Record ?? dns.dkim_record_2;
+  const dmarc = dns.dmarc_record;
+
+  console.log(`     DKIM 1 : ${dkim1 ? `${dkim1.host_name} → ${String(dkim1.value).slice(0, 45)}…` : '❌ tidak ada'}`);
+  console.log(`     DKIM 2 : ${dkim2 ? `${dkim2.host_name} → ${String(dkim2.value).slice(0, 45)}…` : '❌ tidak ada'}`);
+  console.log(`     DMARC  : ${dmarc ? String(dmarc.value).slice(0, 50) : '❌ tidak ada'}`);
 
   if (!dkim1 || !dkim2) {
     console.error('');
-    console.error('     ❌ Record DKIM belum lengkap — coba lagi beberapa detik kemudian.');
+    console.error('     ❌ Record DKIM belum tersedia dari Brevo.');
+    console.error('        Coba lagi beberapa detik kemudian — Brevo kadang butuh waktu.');
     return 1;
   }
 
@@ -350,7 +363,9 @@ async function siapkan() {
   const berkasDmarc = {
     owner: PEMILIK,
     description: `DMARC policy for ${DOMAIN_AKAR}`,
-    records: { TXT: ['v=DMARC1; p=none;'] },
+    // Nilai dari Brevo (memuat alamat laporan rua@dmarc.brevo.com) — lebih baik
+    // dari nilai generik, karena Brevo bisa mengirim laporan pelanggaran.
+    records: { TXT: [String(dmarc?.value ?? 'v=DMARC1; p=none;').replace(/^"|"$/g, '')] },
   };
 
   const keluaran = join(ROOT, '.email-domain');
