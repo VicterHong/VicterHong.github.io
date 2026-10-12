@@ -64,16 +64,46 @@
   STRUKTUR: satu tugas per halaman.
 -->
 
-<header class="auth-nav">
-  <a class="auth-nav-brand" href="/home" aria-label="Kembali ke beranda">
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  ── KEPALA: LOGO SAJA, TANPA NAVIGASI ────────────────────────────────────────
+  ══════════════════════════════════════════════════════════════════════════════
+
+  ── KENAPA TIDAK ADA MENU (Beranda / Harga / Panduan) ────────────────────────
+  Halaman ini adalah RUANG PRIBADI. Pengguna yang sedang memulihkan akses:
+
+    • butuh fokus pada satu tugas
+    • mungkin sedang panik (kalau lupa sandi)
+    • mungkin memakai perangkat orang lain
+
+  Menu navigasi mengundang mereka KELUAR dari alur. Satu klik tidak sengaja
+  di halaman daftar berarti mengisi ulang seluruh form.
+
+  Lima produk besar memakai pola yang sama — tidak satu pun menampilkan menu
+  pemasaran di halaman login:
+    Stripe · Linear · Vercel · GitHub · Google
+
+  ── KENAPA LOGO TIDAK BISA DIKLIK ────────────────────────────────────────────
+  Di halaman publik, logo yang bisa diklik adalah konvensi baik (pulang ke
+  beranda). Di sini itu JEBAKAN: pengguna yang tidak sengaja menyentuhnya
+  akan meninggalkan form dan kehilangan isinya.
+
+  Logo tetap ada sebagai identitas — pengguna harus tahu mereka di situs yang
+  benar. Tapi ia elemen visual, bukan pintu keluar.
+
+  ── KENAPA PAKAI <div>, BUKAN <a> TANPA href ─────────────────────────────────
+  <a> tanpa href tidak fokusabel dan tidak diumumkan sebagai tautan — jadi
+  secara teknis sudah "tidak bisa diklik". Tapi memakai <a> untuk elemen yang
+  bukan tautan adalah markup yang menyesatkan: pembaca kode akan mengira ada
+  navigasi yang hilang.
+
+  <div> menyatakan maksudnya dengan jujur: ini bukan tautan, ini identitas.
+-->
+<header class="auth-nav auth-nav-polos">
+  <div class="auth-nav-brand" role="img" aria-label="VIVASTIC">
     <span class="auth-nav-mark" aria-hidden="true"></span>
     <span>VIVASTIC</span>
-  </a>
-  <nav class="auth-nav-links" aria-label="Navigasi">
-    <a href="/home">Beranda</a>
-    <a href="/pricing">Harga</a>
-    <a href="/docs">Panduan</a>
-  </nav>
+  </div>
 </header>
 
 <main class="auth-main">
