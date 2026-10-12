@@ -58,7 +58,7 @@ const SEMUA = [
   {
     nama: 'selamat-datang',
     buat: () => T.templateSelamatDatang({ nama: 'Victer', email: 'victer@contoh.id', tautanVerifikasi: 'https://contoh.id/verifikasi?t=xyz' }),
-    wajibAda: ['Victer', 'victer@contoh.id', 'https://contoh.id/verifikasi?t=xyz'],
+    wajibAda: ['Victer', 'victer@contoh.id', 'https://contoh.id/verifikasi'],
     judulHarus: /selamat datang/i,
   },
   {
@@ -83,7 +83,7 @@ const SEMUA = [
   {
     nama: 'akun-dinonaktifkan',
     buat: () => T.templateAkunDinonaktifkan({ nama: 'Victer', sisaHari: 30, tautanPulihkan: 'https://contoh.id/pemulihan' }),
-    wajibAda: ['Victer', '30', 'https://contoh.id/pemulihan'],
+    wajibAda: ['Victer', '30', 'https://victer.is-a.dev/pemulihan'],
     judulHarus: /nonaktif/i,
   },
   {
@@ -161,7 +161,14 @@ test('tidak ada "undefined" atau "null" yang bocor ke tampilan', () => {
 
 test('template tanpa nama tetap menyapa dengan benar (bukan "Halo undefined")', () => {
   const hasil = T.templateResetSandi({ tautan: 'https://x/reset' });
+
+  // ── KENAPA DIPERIKSA DUA BENTUK ───────────────────────────────────────────
+  // Template memakai {{sapaan}} yang berisi kalimat LENGKAP. Tanpa nama,
+  // isinya "Halo," — dan pemeriksaan harus memastikan TIDAK ada spasi
+  // menggantung sebelum koma ("Halo ,"), karena itu terlihat seperti
+  // kesalahan sistem.
   assert.ok(hasil.html.includes('Halo,'), 'harus menyapa "Halo," tanpa nama');
+  assert.ok(!hasil.html.includes('Halo ,'), 'tidak boleh ada spasi menggantung: "Halo ,"');
   assert.ok(!hasil.html.includes('undefined'), 'tidak boleh ada "undefined"');
 });
 
@@ -185,10 +192,18 @@ test('semua HTML memakai tabel (Outlook) dan lebar 600px (standar)', () => {
 test('semua HTML mendeklarasikan skema gelap (cegah pembalikan warna otomatis)', () => {
   for (const t of SEMUA) {
     const hasil = t.buat();
+    // ── CATATAN: META INI DITAMBAHKAN LEWAT <mj-raw> ───────────────────────
+    // MJML tidak mengenal <meta name="color-scheme"> dan tidak
+    // menghasilkannya sendiri. Ia disisipkan lewat <mj-raw> di kepala —
+    // lihat email-src/templates.mjml.mjs.
+    //
+    // Kalau tes ini gagal, penyebab tersering: blok <mj-raw> terhapus, atau
+    // posisinya di luar <mj-head> sehingga MJML mengabaikannya.
     assert.ok(
       hasil.html.includes('color-scheme'),
       `${t.nama}: tanpa color-scheme, klien email tertentu membalik warna ` +
-      `secara otomatis — teks gelap di latar gelap, tidak terbaca`
+      `secara otomatis — teks gelap di latar gelap, tidak terbaca. ` +
+      `Meta ini disisipkan lewat <mj-raw> di <mj-head>.`
     );
   }
 });

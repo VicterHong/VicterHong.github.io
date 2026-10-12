@@ -1,20 +1,20 @@
 {
- "dibuat": "2026-10-12T06:37:08.344Z",
- "totalCommit": 357,
- "totalDicatat": 355,
+ "dibuat": "2026-10-12T06:46:57.319Z",
+ "totalCommit": 358,
+ "totalDicatat": 356,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-12",
  "rilis": [
   {
    "tanggal": "2026-10-12",
-   "jumlah": 17,
+   "jumlah": 18,
    "ringkasan": {
     "fitur": 7,
     "perbaikan": 6,
     "performa": 0,
     "dokumentasi": 0,
     "data": 0,
-    "pemeliharaan": 4
+    "pemeliharaan": 5
    },
    "kategori": [
     {
@@ -98,6 +98,11 @@
      "kunci": "pemeliharaan",
      "label": "Pemeliharaan",
      "item": [
+      {
+       "hash": "05d90c3",
+       "teks": "Logo PNG asli, domain profesional, tombol & tabel diperbaiki",
+       "scope": "email"
+      },
       {
        "hash": "a237e56",
        "teks": "Perbarui uji domain untuk jalur Brevo",

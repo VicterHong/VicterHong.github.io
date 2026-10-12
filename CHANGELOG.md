@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 355 perubahan dari 357 commit (2026-10-01 → 2026-10-12).
+Total 356 perubahan dari 358 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -29,6 +29,7 @@ Total 355 perubahan dari 357 commit (2026-10-01 → 2026-10-12).
 
 ### Pemeliharaan
 
+- **email**: Logo PNG asli, domain profesional, tombol & tabel diperbaiki (`05d90c3`)
 - **email**: Perbarui uji domain untuk jalur Brevo (`a237e56`)
 - **email**: Kontras footer WCAG AA + tombol sekunder di email kode (`3970285`)
 - **profil**: Kembalikan tab ke kondisi semula (db009ca) (`8a9154e`)
