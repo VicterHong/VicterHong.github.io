@@ -121,6 +121,8 @@ export function templateKodeHapusAkun({ nama, kode, berlakuMenit = 15, sisaHari 
         jenis: 'peringatan',
       })}
       ${p('Kalau Anda tidak meminta penghapusan, abaikan email ini. Akun Anda tidak akan berubah, dan kami sarankan Anda segera mengganti sandi.', { redup: true })}
+      ${p('Ingin memeriksa aktivitas akun Anda dulu?', { redup: true, margin: '0 0 8px' })}
+      <div style="margin:0 0 8px">${tombol({ teks: 'Buka pengaturan keamanan', url: `${DASAR}/keamanan`, warna: WARNA.kartu, warnaTeks: WARNA.teks })}</div>
     `,
     catatanKaki: 'Anda menerima email ini karena ada permintaan penghapusan akun dari perangkat Anda.',
   });

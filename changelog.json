@@ -1,16 +1,16 @@
 {
- "dibuat": "2026-10-12T03:45:55.045Z",
- "totalCommit": 347,
- "totalDicatat": 345,
+ "dibuat": "2026-10-12T04:59:43.849Z",
+ "totalCommit": 351,
+ "totalDicatat": 349,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-12",
  "rilis": [
   {
    "tanggal": "2026-10-12",
-   "jumlah": 7,
+   "jumlah": 11,
    "ringkasan": {
-    "fitur": 2,
-    "perbaikan": 3,
+    "fitur": 4,
+    "perbaikan": 5,
     "performa": 0,
     "dokumentasi": 0,
     "data": 0,
@@ -21,6 +21,16 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "5fd425d",
+       "teks": "Perintah uji kirim + panduan setup + kecualikan preview dari deploy",
+       "scope": "email"
+      },
+      {
+       "hash": "a8ad74d",
+       "teks": "Sistem email korporasi — 8 template, desain profesional",
+       "scope": "email"
+      },
       {
        "hash": "f97d25c",
        "teks": "Link Changelog di 6 halaman + regenerasi berkas turunan",
@@ -37,6 +47,16 @@
      "kunci": "perbaikan",
      "label": "Perbaikan",
      "item": [
+      {
+       "hash": "fe572f8",
+       "teks": "Satukan pelindung error — rute auth tidak lagi lapor 400 untuk bug server",
+       "scope": "error"
+      },
+      {
+       "hash": "9d4bff1",
+       "teks": "Hanya tampilkan peristiwa pengguna, bukan log admin/sistem",
+       "scope": "aktivitas"
+      },
       {
        "hash": "4e85348",
        "teks": "Kembalikan tab horizontal — perbaiki teks terhalang, bukan ganti kontrol",

@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 345 perubahan dari 347 commit (2026-10-01 → 2026-10-12).
+Total 349 perubahan dari 351 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,11 +10,15 @@ Total 345 perubahan dari 347 commit (2026-10-01 → 2026-10-12).
 
 ### Fitur baru
 
+- **email**: Perintah uji kirim + panduan setup + kecualikan preview dari deploy (`5fd425d`)
+- **email**: Sistem email korporasi — 8 template, desain profesional (`a8ad74d`)
 - **nav**: Link Changelog di 6 halaman + regenerasi berkas turunan (`f97d25c`)
 - **changelog**: Halaman catatan rilis dari riwayat git (`cf97f4b`)
 
 ### Perbaikan
 
+- **error**: Satukan pelindung error — rute auth tidak lagi lapor 400 untuk bug server (`fe572f8`)
+- **aktivitas**: Hanya tampilkan peristiwa pengguna, bukan log admin/sistem (`9d4bff1`)
 - **profil**: Kembalikan tab horizontal — perbaiki teks terhalang, bukan ganti kontrol (`4e85348`)
 - **profil**: 7 tab horizontal → pemilih di mobile (bug scroll horizontal) (`0bd6b14`)
 - **docs**: Item aktif otomatis + cookie FAB tidak menutupi panel (`f6975fd`)

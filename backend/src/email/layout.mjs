@@ -59,6 +59,16 @@
 // ── Palet ─────────────────────────────────────────────────────────────────────
 // Sama dengan situs (assets/css/main.css) supaya email dan halaman web terasa
 // satu produk. Diambil dari variabel CSS: --accent, --bg, --bg-card, dll.
+//
+// ── KENAPA teksSamar LEBIH TERANG DARI DI SITUS ──────────────────────────────
+// Di situs, --text-faint (#8a8a94) dipakai untuk teks yang boleh samar karena
+// pengguna bisa memperbesar halaman. Di email tidak bisa: ukurannya terkunci
+// 12px, dan latar kartu (#16161a) lebih gelap dari latar situs. Rasio
+// kontrasnya mepet batas WCAG AA (4.5:1) — di layar ponsel dengan kecerahan
+// rendah, teks footer jadi tidak terbaca.
+//
+// #9d9da8 menaikkan rasio ke ~6:1: masih terlihat sebagai teks sekunder,
+// tapi tetap terbaca di semua kondisi.
 export const WARNA = {
   latar: '#0a0a0b',        // --bg
   kartu: '#16161a',        // --bg-card
@@ -67,7 +77,7 @@ export const WARNA = {
   garisLembut: '#1e1e23',  // --line-soft
   teks: '#f4f4f6',         // --text
   teksRedup: '#a1a1aa',    // --text-dim
-  teksSamar: '#8a8a94',    // --text-faint
+  teksSamar: '#9d9da8',    // lebih terang dari --text-faint, alasan di atas
   emas: '#f5c542',         // --accent
   emasTerang: '#f7d77a',   // --accent-light
   hijau: '#34d399',        // status sukses
