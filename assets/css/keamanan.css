@@ -1086,27 +1086,101 @@
     grid-template-columns: 1fr;
   }
 
+  /* ══ TAB HORIZONTAL → PEMILIH (SELECT) ═══════════════════════════════════════
+   *
+   * ── MASALAH (terukur di produksi 390px) ─────────────────────────────────────
+   * Ada 7 tab: Profil, Keamanan, Pembayaran, Sesi aktif, Token akses,
+   * Aktivitas, Notifikasi. Total lebarnya 791px sedangkan ruang tersedia
+   * hanya ~350px — 441px tersembunyi di balik scroll horizontal.
+   *
+   * Akibat yang terlihat pengguna:
+   *   - Tab pertama terpotong ("Keamanan" terbaca "ken akses") karena bar
+   *     sedang dalam posisi tergeser
+   *   - Penghitung di tab Keamanan mengambang di posisi yang membingungkan
+   *   - Pengguna tidak tahu masih ada 4 tab lain di sebelah kanan
+   *
+   * ── KENAPA BUKAN SCROLL HORIZONTAL ──────────────────────────────────────────
+   * Navigasi yang butuh digeser menyembunyikan tujuannya sendiri. Ini pola yang
+   * sama dengan bug daftar isi di halaman Panduan (dulu chip scroll, sekarang
+   * panel geser) — dan pelajaran yang sama berlaku: jangan sembunyikan
+   * navigasi di balik gestur horizontal.
+   *
+   * ── YANG DIPAKAI: SELECT NATIF ══════════════════════════════════════════════
+   * `<select>` dipilih, bukan menu kustom, karena tiga alasan:
+   *   1. Di ponsel, select natif membuka pemilih sistem (iOS wheel / Android
+   *      dialog) — pengalaman yang sudah dikenal, dan target sentuhnya besar.
+   *   2. Aksesibilitas gratis: pembaca layar, keyboard, dan mode teks besar
+   *      semuanya sudah ditangani browser.
+   *   3. Tidak ada JS baru untuk membuka/menutup — hanya meneruskan perubahan
+   *      ke tab yang sesuai.
+   *
+   * Tab aslinya TIDAK dihapus dari DOM (JS masih memakainya untuk aria dan
+   * status aktif) — hanya disembunyikan secara visual.
+   * ────────────────────────────────────────────────────────────────────────── */
+
+  /* Tab horizontal disembunyikan — digantikan pemilih di bawahnya. */
   .kam-sisi {
-    flex-direction: row;
-    gap: 6px;
-    padding: 0 0 14px;
-    border-right: 0;
-    border-bottom: 1px solid var(--garis);
-    margin-bottom: 18px;
-    /* Bisa digeser kalau bagian bertambah nanti, bukan terpotong. */
-    overflow-x: auto;
-    scrollbar-width: none;
+    display: none;
   }
 
-  .kam-sisi::-webkit-scrollbar { display: none; }
+  /* ── Pemilih: label + select ─────────────────────────────────────────────── */
+  .kam-pilih {
+    display: block;
+    margin-bottom: 18px;
+  }
 
-  .kam-sisi-item {
-    width: auto;
-    flex-shrink: 0;
-    padding: 8px 14px;
+  .kam-pilih-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--teks-samar);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .kam-pilih-bungkus {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .kam-pilih-select {
+    width: 100%;
+    /* 48px: target sentuh nyaman, dan tinggi seragam dengan kontrol lain. */
+    min-height: 48px;
+    padding: 0.7rem 2.4rem 0.7rem 0.9rem;
+    border: 1px solid var(--garis);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--teks);
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .kam-pilih-select:focus-visible {
+    outline: 2px solid var(--emas);
+    outline-offset: 2px;
+  }
+
+  /* Panah: pointer-events none supaya klik sampai ke <select>. */
+  .kam-pilih-panah {
+    position: absolute;
+    right: 0.9rem;
+    color: var(--teks-samar);
+    pointer-events: none;
   }
 
   .kam-panel { padding-left: 0; }
+}
+
+/* Pemilih hanya untuk mobile — di desktop tab horizontal sudah cukup. */
+@media (min-width: 641px) {
+  .kam-pilih { display: none; }
 }
 
 /* ══ KARTU IDENTITAS: AVATAR + NAMA + EMAIL ═══════════════════════════════════

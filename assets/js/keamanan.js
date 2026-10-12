@@ -2043,6 +2043,59 @@
 
     const panelDari = (id) => document.getElementById(id);
 
+    // ── PEMILIH BAGIAN (mobile) ───────────────────────────────────────────────
+    //
+    // ── KENAPA DAFTARNYA DIBANGUN DARI TAB, BUKAN DITULIS DI HTML ─────────────
+    // Kalau daftar opsi ditulis terpisah di HTML, ia bisa tertinggal saat tab
+    // berubah (tambah bagian baru → pemilih tidak ikut). Membangunnya dari tab
+    // berarti satu sumber kebenaran: apa pun yang ada di tablist, ada di pemilih.
+    //
+    // Label diambil dari teks tab, dan penghitung (kalau ada) diikutkan sebagai
+    // bagian dari label — di tab Keamanan, "3 cara masuk" adalah informasi yang
+    // membantu memilih, bukan hiasan.
+    const pilihBagian = document.getElementById('kamPilihBagian');
+
+    if (pilihBagian) {
+      for (const t of tab) {
+        // Teks tab tanpa penghitung — penghitung ditambahkan terpisah supaya
+        // bisa dibedakan (dan diperbarui saat angkanya berubah).
+        const labelTeks = Array.from(t.querySelectorAll('span'))
+          .filter((s) => !s.classList.contains('kam-sisi-ikon') &&
+                         !s.classList.contains('kam-sisi-hitung'))
+          .map((s) => s.textContent.trim())
+          .join(' ')
+          .trim();
+
+        const opsi = document.createElement('option');
+        opsi.value = t.dataset.panel;
+        opsi.textContent = labelTeks || t.dataset.panel;
+        // Tandai opsi dengan id tab — dipakai saat memperbarui penghitung.
+        opsi.dataset.tabId = t.id;
+        pilihBagian.appendChild(opsi);
+      }
+
+      pilihBagian.addEventListener('change', () => {
+        pilih(pilihBagian.value);
+      });
+    }
+
+    /** Perbarui penghitung di pemilih — dipanggil saat angka tab berubah. */
+    function selaraskanPenghitung() {
+      if (!pilihBagian) return;
+      for (const opsi of pilihBagian.options) {
+        const t = document.getElementById(opsi.dataset.tabId);
+        if (!t) continue;
+        const hitung = t.querySelector('.kam-sisi-hitung');
+        const labelTeks = opsi.textContent.replace(/\s*·.*$/, '').trim();
+        // Penghitung "—" berarti belum dimuat; jangan tampilkan di pemilih.
+        if (hitung && hitung.textContent.trim() && hitung.textContent.trim() !== '—') {
+          opsi.textContent = labelTeks + ' · ' + hitung.textContent.trim();
+        } else {
+          opsi.textContent = labelTeks;
+        }
+      }
+    }
+
     function pilih(id, { fokus = false } = {}) {
       for (const t of tab) {
         const aktif = t.dataset.panel === id;
@@ -2053,6 +2106,11 @@
         t.tabIndex = aktif ? 0 : -1;
         if (aktif && fokus) t.focus();
       }
+
+      // Sinkronkan pemilih mobile — tanpa ini, pemilih menunjukkan bagian lama
+      // sementara panel sudah berpindah (dua kontrol, dua keadaan berbeda).
+      if (pilihBagian && pilihBagian.value !== id) pilihBagian.value = id;
+
       for (const p of document.querySelectorAll('.kam-panel-isi')) {
         const aktif = p.id === id;
         p.hidden = !aktif;
@@ -2074,6 +2132,11 @@
       } else if (id === 'panelBayar') muatPembelian();
 
       if (history.replaceState) history.replaceState(null, '', '#' + id);
+
+      // Penghitung bisa berubah setelah pemuat di atas selesai (permintaan
+      // jaringan). Selaraskan lagi setelahnya — kalau tidak, pemilih
+      // menampilkan angka lama.
+      setTimeout(selaraskanPenghitung, 600);
     }
 
     for (const t of tab) {

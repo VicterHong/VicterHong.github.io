@@ -87,6 +87,40 @@
              otomatis bergantung pada id itu. -->
         <div class="kam-tata">
 
+          <!-- ══ PEMILIH BAGIAN (HANYA MOBILE) ═════════════════════════════════════
+               ── KENAPA ADA DUA KONTROL UNTUK HAL YANG SAMA ──────────────────────
+               Di desktop, tujuh tab horizontal muat dalam satu baris — itu kontrol
+               yang tepat: semua pilihan terlihat sekaligus, satu klik.
+
+               Di mobile (≤640px), ketujuh tab itu butuh 791px sedangkan ruang
+               hanya ~350px. Versi sebelumnya memakai scroll horizontal, dan
+               hasilnya: tab pertama terpotong, penghitung mengambang di posisi
+               membingungkan, dan pengguna tidak tahu masih ada 4 tab lain.
+
+               Pemilih ini menggantikannya di mobile. Keduanya menggerakkan panel
+               yang SAMA — JS menyinkronkan keduanya, jadi tidak ada dua sumber
+               kebenaran.
+
+               ── KENAPA <select>, BUKAN MENU KUSTOM ───────────────────────────────
+               1. Ponsel membuka pemilih sistem (iOS wheel / Android dialog) —
+                  pengalaman yang sudah dikenal, target sentuh besar.
+               2. Aksesibilitas gratis: pembaca layar, keyboard, mode teks besar.
+               3. Tidak perlu JS untuk membuka/menutup.
+
+               Daftar opsinya SAMA dengan tab di bawah — JS yang mengisi, supaya
+               tidak ada dua daftar yang bisa saling tertinggal saat tab berubah. -->
+          <div class="kam-pilih">
+            <label class="kam-pilih-label" for="kamPilihBagian">Bagian</label>
+            <div class="kam-pilih-bungkus">
+              <select class="kam-pilih-select" id="kamPilihBagian"></select>
+              <svg class="kam-pilih-panah" viewBox="0 0 12 12" width="13" height="13"
+                   fill="none" stroke="currentColor" stroke-width="1.6"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 4.5L6 7.5L9 4.5"/>
+              </svg>
+            </div>
+          </div>
+
           <!-- role="tablist": ini pemilih panel, bukan navigasi halaman. -->
           <nav class="kam-sisi" role="tablist" aria-label="Bagian profil">
             <button class="kam-sisi-item is-aktif" type="button" role="tab"
