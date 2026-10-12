@@ -338,6 +338,20 @@ import { icon, iconHtml } from './icons.js';
   }
 
   // ── 2. Sorot bagian yang sedang dibaca + perbarui breadcrumb ──────────────
+  //
+  // ── KENAPA SCROLL, BUKAN IntersectionObserver ───────────────────────────────
+  // Versi sebelumnya memakai IntersectionObserver dengan rootMargin
+  // '-20% 0px -70% 0px' — hanya heading yang berada di pita 20%-30% viewport
+  // yang dianggap "sedang dibaca".
+  //
+  // Terukur di produksi: heading pertama ada di y=501, sedangkan pita itu
+  // berada di y=169-253. Hasilnya TIDAK ADA item aktif sampai pengguna
+  // menggulir cukup jauh — panel tampak tanpa penanda posisi, persis yang
+  // terlihat di screenshot.
+  //
+  // Pendekatan scroll lebih langsung dan lebih mudah dibuktikan: ambil heading
+  // terakhir yang sudah melewati garis baca (25% dari atas viewport), sorot
+  // itemnya. Ini juga yang dilakukan dokumentasi Stripe/Vercel.
   var links = toc.querySelectorAll('.toc-link');
   var crumbKini = document.getElementById('docsCrumbKini');
 
@@ -356,36 +370,76 @@ import { icon, iconHtml } from './icons.js';
     return sebelumnya ? sebelumnya.textContent.replace(/^\s*\d+\s*/, '').trim() : '';
   }
 
-  if (links.length && 'IntersectionObserver' in window) {
+  if (links.length) {
     var byId = {};
     links.forEach(function (l) { byId[l.getAttribute('href').slice(1)] = l; });
 
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) {
-        var link = byId[e.target.id];
-        if (!link) return;
-        if (e.isIntersecting) {
-          links.forEach(function (l) { l.classList.remove('is-active'); });
-          link.classList.add('is-active');
+    // Hanya heading yang punya tautan di panel — supaya penanda tidak
+    // menunjuk ke item yang tidak ada.
+    var daftarHeading = Array.prototype.slice.call(headings).filter(function (h) {
+      return byId[h.id];
+    });
 
-          // Perbarui breadcrumb — pembaca tahu sedang di bagian mana.
-          if (crumbKini) {
-            var nama = judulBagian(e.target.id);
-            if (nama) crumbKini.textContent = nama;
-          }
+    var headingAktif = null;
 
-          // Tandai grup yang sedang dibaca. Di Claude tidak ada penanda grup
-          // aktif (hanya item), tapi menyorot judul grup membantu pembaca
-          // melihat posisinya di panel yang panjang. Latarnya sangat halus —
-          // lihat .toc-bagian.is-aktif di docs.css.
-          panels.forEach(function (p) {
-            p.blok.classList.toggle('is-aktif', p.tautan.indexOf(link) >= 0);
-          });
-        }
+    /** Perbarui sorotan + breadcrumb + penanda grup. */
+    function tandaiAktif(id) {
+      if (id === headingAktif) return;   // tidak berubah → tidak ada kerja DOM
+      headingAktif = id;
+
+      links.forEach(function (l) { l.classList.remove('is-active'); });
+      var link = byId[id];
+      if (link) link.classList.add('is-active');
+
+      // Breadcrumb: pembaca tahu sedang di bagian mana.
+      if (crumbKini && id) {
+        var nama = judulBagian(id);
+        if (nama) crumbKini.textContent = nama;
+      }
+
+      // Tandai grup yang sedang dibaca — membantu orientasi di panel panjang.
+      panels.forEach(function (p) {
+        p.blok.classList.toggle('is-aktif', p.tautan.indexOf(link) >= 0);
       });
-    }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+    }
 
-    headings.forEach(function (h) { observer.observe(h); });
+    /** Cari heading terakhir yang sudah melewati garis baca. */
+    function perbaruiDariScroll() {
+      // Garis baca: 25% dari atas viewport. Heading dianggap "sedang dibaca"
+      // begitu ia melewati garis itu — bukan saat berada di tengah layar.
+      var garis = window.innerHeight * 0.25;
+      var kandidat = null;
+
+      for (var i = 0; i < daftarHeading.length; i++) {
+        var r = daftarHeading[i].getBoundingClientRect();
+        if (r.top <= garis) kandidat = daftarHeading[i].id;
+        else break;   // heading berikutnya sudah di bawah garis
+      }
+
+      // Sebelum heading pertama melewati garis → sorot item pertama.
+      // Tanpa ini, panel tidak punya penanda sama sekali saat halaman baru
+      // dibuka — persis masalah yang dilaporkan.
+      tandaiAktif(kandidat || (daftarHeading[0] && daftarHeading[0].id));
+    }
+
+    // throttle via requestAnimationFrame — scroll memicu puluhan event per
+    // detik; tanpa ini, tiap event membaca getBoundingClientRect (mahal).
+    var menunggu = false;
+    function tanganiScroll() {
+      if (menunggu) return;
+      menunggu = true;
+      requestAnimationFrame(function () {
+        perbaruiDariScroll();
+        menunggu = false;
+      });
+    }
+
+    window.addEventListener('scroll', tanganiScroll, { passive: true });
+    window.addEventListener('resize', tanganiScroll, { passive: true });
+
+    // Jalankan sekali saat halaman siap — supaya panel sudah punya penanda
+    // sejak awal, bukan setelah pengguna menggulir.
+    perbaruiDariScroll();
   }
 
   // ── 3. Pencarian ───────────────────────────────────────────────────────────

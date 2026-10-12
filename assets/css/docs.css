@@ -1015,3 +1015,35 @@
 @media (min-width: 901px) {
   .toc-kepala { padding-top: 0.25rem; }
 }
+
+/* ══ KONFLIK Z-INDEX: TOMBOL COOKIE DI ATAS PANEL ══════════════════════════════
+ *
+ * ── MASALAH (terlihat di screenshot produksi 390px) ─────────────────────────
+ * `cookies.css` menaruh tombol cookie di `position: fixed; left: 1rem;
+ * bottom: 1rem; z-index: 100`. Panel navigasi kita di z-index 61.
+ *
+ * Hasilnya: tombol bulat itu MENGAMBANG di atas panel, menutupi teks item
+ * paling bawah ("Kapan token dicabut otomatis?"). Terlihat seperti bug
+ * rendering — dan memang begitu dari sudut pandang pembaca.
+ *
+ * ── KENAPA TIDAK MENAIKKAN Z-INDEX PANEL ────────────────────────────────────
+ * Panel bisa dinaikkan ke 101, tapi itu perlombaan yang tidak ada habisnya:
+ * setiap elemen fixed baru (toast, notifikasi, tombol bantuan) akan jadi
+ * masalah yang sama. Yang benar: elemen yang TIDAK RELEVAN saat panel terbuka
+ * disembunyikan.
+ *
+ * Cookie FAB tidak berguna saat panel navigasi terbuka — pengguna sedang
+ * memilih bagian, bukan mengurus preferensi cookie. Menyembunyikannya juga
+ * menghilangkan tumpang tindih.
+ *
+ * Selektornya memakai :has() pada body — didukung semua browser modern
+ * (Chrome 105+, Safari 15.4+, Firefox 121+). Di browser lama, tombolnya tetap
+ * terlihat tapi tidak merusak apa pun (hanya tumpang tindih seperti sekarang).
+ * ────────────────────────────────────────────────────────────────────────── */
+body:has(.toc.is-terbuka) .cookie-fab,
+body:has(.toc.is-terbuka) .cookie-banner {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
