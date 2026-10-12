@@ -182,11 +182,16 @@
   display: inline-flex;
   align-items: center;
   gap: var(--pr-2);
-  /* Target sentuh 44px */
-  min-height: 2.5rem;
+  /* Target sentuh 44px (WCAG 2.5.8). Sebelumnya 2.5rem = 40px — terukur
+     kurang 4px dari minimum. Toggle ini satu-satunya cara ganti periode,
+     jadi ukurannya tidak boleh di bawah ambang. */
+  min-height: 2.75rem;
   padding: 0.5rem 1.1rem;
   border-radius: 999px;
-  font-size: 0.84rem;
+  /* 0.88rem = ukuran teks UI yang sudah dipakai .faq-tanya & .cta-sub.
+     Sebelumnya 0.84rem — nilai ketiga yang nyaris sama; disatukan supaya
+     skala tipografi halaman ini tidak punya dua ukuran yang tak terbedakan. */
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--pr-text-dim);
   white-space: nowrap;
@@ -210,18 +215,69 @@
   outline-offset: 3px;
 }
 
+/* ── Keadaan ditekan ────────────────────────────────────────────────────────
+   Tanpa ini, toggle tidak memberi umpan balik sama sekali saat ditekan —
+   terasa seperti tombol mati di perangkat sentuh, tempat hover tidak ada.
+   Perubahan hanya pada latar (bukan ukuran) supaya tidak ada teks yang
+   bergeser saat tekanan dilepas. */
+.periode-input:active + .periode-teks {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--pr-text);
+}
+
+/* Radio terpilih yang ditekan: tetap kuning, hanya diredupkan sedikit. */
+.periode-input:checked:active + .periode-teks {
+  background: var(--pr-accent-light);
+  color: #0a0a0b;
+}
+
 .periode-catatan {
   display: inline-flex;
   align-items: center;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.01em;
   /* Saat belum terpilih: aksen di atas latar gelap */
   background: var(--pr-accent-soft);
   color: var(--pr-accent-light);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── LAYAR KECIL (≤416px): toggle dibagi rata ────────────────────────────────
+   Terukur di 320px: toggle selebar 351px sementara ruang tersedia hanya
+   288px (320 − 2×16 padding halaman) → halaman meluber 16px secara
+   horizontal. Di 360px pun sisa ruangnya cuma 24px — terlalu mepet.
+
+   Perbaikannya BUKAN menyembunyikan lencana diskon (itu informasi yang
+   justru jadi alasan memilih tahunan), melainkan membuat kedua opsi
+   berbagi lebar yang tersedia — pola segmented control yang sama dipakai
+   Stripe dan Linear. Isi tiap opsi tetap utuh, hanya jaraknya yang rapat. */
+@media (max-width: 26rem) {
+  .periode-wadah {
+    width: 100%;
+  }
+
+  .periode-toggle {
+    width: 100%;
+  }
+
+  .periode-opsi {
+    flex: 1;
+  }
+
+  .periode-teks {
+    width: 100%;
+    justify-content: center;
+    gap: var(--pr-1);
+    padding-inline: 0.5rem;
+  }
+
+  .periode-catatan {
+    padding-inline: 0.35rem;
+    font-size: 0.62rem;
+  }
 }
 
 /* Saat terpilih, lencananya ikut membalik supaya tetap kontras di atas
