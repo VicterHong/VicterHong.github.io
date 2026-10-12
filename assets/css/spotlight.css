@@ -661,7 +661,13 @@
   padding: 0 1.5rem;
 }
 
-.spotlight-dots { display: flex; align-items: center; gap: 0.5rem; }
+/* ── JARAK ANTAR-DOT (diukur) ────────────────────────────────────────────────
+   gap 0.5rem (8px) menyisakan jarak pusat-ke-pusat 18px, sementara area
+   sentuh ::before masing-masing 26px — dua area saling tumpang tindih 8px,
+   jadi ketukan di antaranya mendarat di dot yang salah (gagal WCAG 2.5.8
+   "spacing"). gap 1rem (16px) → jarak pusat 26px: area bersinggungan tepat,
+   tanpa tumpang tindih, dan lingkaran 24px tidak berpotongan. */
+.spotlight-dots { display: flex; align-items: center; gap: 1rem; }
 
 .spotlight-dot {
   /* Dinaikkan dari 0.5rem (8px) ke 0.625rem (10px) — kritik: "dot kontras

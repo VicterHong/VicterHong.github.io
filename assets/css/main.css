@@ -1001,7 +1001,11 @@ a { color: inherit; text-decoration: none; }
   margin: 0 0 0.6rem;
 }
 
-.section-note { color: var(--text-faint); font-size: 0.94rem; margin: 0; max-width: 56ch; }
+/* ── LEBAR BACA CATATAN SEKSI (diukur 1440px) ────────────────────────────────
+   max-width 56ch = 575px, tapi glyph rata-rata nyata hanya 6,5px sementara
+   ch (lebar glyph "0") 10,3px — hasilnya 86 karakter nyata per baris, di atas
+   batas 75. 46ch = 473px → ≈72 karakter nyata, masuk rentang 60-75. */
+.section-note { color: var(--text-faint); font-size: 0.94rem; margin: 0; max-width: 46ch; }
 
 /* ── PROYEK UNGGULAN ─────────────────────────────────────────────────────────── */
 
@@ -1649,6 +1653,14 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
   .project { padding: 1.5rem; }
   .project-foot { flex-direction: column; align-items: flex-start; }
   .section { padding: 3.2rem 1.25rem; }
+
+  /* ── TAP TARGET CTA KARTU PROYEK (diukur 390px) ─────────────────────────
+     "Minta akses kode" hanya 22,8px dan pill "Detail teknis" 39,1px —
+     keduanya di bawah minimum 44px. min-height melebarkan area ketuk
+     TANPA menyentuh tipografi: teks tetap di tengah karena kedua elemen
+     sudah inline-flex + align-items: center. */
+  .project-link,
+  .project-link-detail { min-height: 44px; }
 }
 
 /* ── JARING PENGAMAN GLOBAL: prefers-reduced-motion ─────────────────────────
