@@ -175,17 +175,45 @@ describe('endpoint lupa-sandi mencatat outcome sebenarnya', () => {
 // ── C. CONFIG: PERINGATAN DOMAIN YANG TIDAK BISA DIVERIFIKASI ───────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
-describe('config memperingatkan domain tidak bisa diverifikasi', () => {
-  test('ada daftar domain yang tidak bisa diverifikasi', () => {
+describe('config memperingatkan domain pihak lain', () => {
+  test('ada daftar domain pihak lain (untuk peringatan, bukan blokir)', () => {
     const isi = baca('src/config.mjs');
 
+    // Nama variabel berubah dari `domainTidakBisaDiverifikasi` menjadi
+    // `domainPihakLain` — karena domain seperti ini MEMANG BISA dipakai
+    // kalau sudah diverifikasi di penyedia. Nama lama menyiratkan
+    // "tidak mungkin", yang terbukti salah.
     assert.match(
-      isi, /domainTidakBisaDiverifikasi/,
-      'config harus punya daftar domain yang tidak bisa ditambahi DNS record',
+      isi, /domainPihakLain/,
+      'config harus punya daftar domain pihak lain',
     );
     for (const d of ['is-a.dev', 'github.io', 'pages.dev']) {
       assert.ok(isi.includes(`'${d}'`), `daftar harus memuat ${d}`);
     }
+  });
+
+  test('peringatan TIDAK masuk ke problems (layanan tetap jalan)', () => {
+    const isi = baca('src/config.mjs');
+
+    // Ini regresi fatal yang dicegah: dulu domain is-a.dev masuk ke
+    // `problems`, dan server.mjs memanggil process.exit(1) — layanan mati
+    // justru SETELAH domainnya berhasil diverifikasi.
+    const blokEmail = isi.slice(isi.indexOf('domainPihakLain'));
+    const dalamBlok = blokEmail.slice(0, 600);
+
+    assert.match(
+      dalamBlok, /warnings\.push/,
+      'domain pihak lain harus masuk `warnings`, bukan `problems`',
+    );
+    assert.doesNotMatch(
+      dalamBlok, /problems\.push/,
+      'domain pihak lain TIDAK BOLEH masuk `problems` — itu mematikan layanan',
+    );
+  });
+
+  test('validateWarnings() diekspor', () => {
+    const isi = baca('src/config.mjs');
+    assert.match(isi, /export function validateWarnings/);
   });
 
   test('memeriksa bentuk alamat email', () => {
