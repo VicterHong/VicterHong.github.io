@@ -342,7 +342,7 @@ async function kirimTemplate({ ke, template, label = 'email', cadangan = '' }) {
  * dan yang disimpan di database hanya HASH token.
  */
 export async function kirimEmailResetSandi({ ke, nama, token }) {
-  const dasar = config.siteUrl || 'https://portfolio-victer.pages.dev';
+  const dasar = config.siteUrl || 'https://victer.is-a.dev';
   const tautan = `${dasar}/reset-sandi?token=${encodeURIComponent(token)}`;
 
   const template = templateResetSandi({ nama, tautan, berlakuMenit: 60 });

@@ -34,7 +34,7 @@ import {
   WARNA, bungkus, tombol, kotakKode, kotakCatatan, barisDetail, p, versiTeks,
 } from './layout.mjs';
 
-const DASAR = 'https://portfolio-victer.pages.dev';
+const DASAR = 'https://victer.is-a.dev';
 
 /** Sapa nama dengan aman — hindari "Halo undefined,". */
 function sapa(nama) {

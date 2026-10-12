@@ -102,22 +102,37 @@ const PENGISI = '&#847;&zwnj;&nbsp;'.repeat(40);
  * Outlook tidak menghormati `padding` pada elemen `<a>`. Solusinya: bungkus
  * tautan dalam tabel satu sel, dan taruh padding di sel itu. Inilah pola
  * "bulletproof button" yang dipakai semua email transaksional besar.
+ *
+ * ── KENAPA LEBAR TOMBOL DIBATASI (bukan dibiarkan penuh) ─────────────────────
+ * Tombol dengan `display:block` akan memenuhi lebar kartu — dan label pendek
+ * seperti "Lihat pesanan" lalu tampak sebagai pil raksasa yang sebagian besar
+ * isinya ruang kosong. Itu terlihat seperti template, bukan desain.
+ *
+ * Solusinya: `display:inline-block` di dalam sel yang `text-align:left`.
+ * Lebarnya mengikuti panjang label + padding, jadi tombol pendek tetap
+ * proporsional dan tombol panjang ("Buka pengaturan keamanan") tidak
+ * terpotong.
+ *
+ * ── UKURAN SENTUH ────────────────────────────────────────────────────────────
+ * Padding 15px vertikal memberi tinggi ~48px — di atas ambang 44px yang
+ * direkomendasikan Apple dan Google. Tombol yang lebih pendek membuat
+ * pengguna salah tekan, terutama saat membuka email sambil berjalan.
  */
 export function tombol({ teks, url, warna = WARNA.emas, warnaTeks = '#0a0a0b' }) {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px">
     <tr>
-      <td align="center" bgcolor="${warna}" style="border-radius:8px">
+      <td align="left">
         <!--[if mso]>
         <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
-          href="${url}" style="height:44px;v-text-anchor:middle;width:220px" arcsize="18%" stroke="f" fillcolor="${warna}">
+          href="${url}" style="height:48px;v-text-anchor:middle;width:240px" arcsize="17%" stroke="f" fillcolor="${warna}">
           <w:anchorlock/>
           <center style="color:${warnaTeks};font-family:${FONT};font-size:15px;font-weight:600">${teks}</center>
         </v:roundrect>
         <![endif]-->
         <!--[if !mso]><!-- -->
         <a href="${url}"
-           style="display:inline-block;padding:13px 28px;background:${warna};color:${warnaTeks};font-family:${FONT};font-size:15px;font-weight:600;line-height:18px;text-decoration:none;border-radius:8px">
+           style="display:inline-block;padding:15px 30px;background:${warna};color:${warnaTeks};font-family:${FONT};font-size:15px;font-weight:600;line-height:18px;text-decoration:none;border-radius:8px">
           ${teks}
         </a>
         <!--<![endif]-->
@@ -152,13 +167,26 @@ export function kotakKode(kode) {
  *
  * Memakai tabel dua kolom, BUKAN flexbox: Outlook tidak mengenal flexbox, dan
  * label/nilai akan bertumpuk tanpa pemisah.
+ *
+ * ── KENAPA ADA GARIS PEMISAH ANTAR BARIS ─────────────────────────────────────
+ * Tanpa pemisah, mata harus menelusuri dari label paling kiri ke nilai paling
+ * kanan untuk setiap baris — dan pada baris keempat atau kelima, mudah
+ * tersesat ke baris yang salah. Itu masalah nyata pada struk: pengguna sedang
+ * memeriksa angka, dan salah baca berarti salah paham soal tagihan.
+ *
+ * Garis tipis (1px, warna lebih gelap dari latar) memandu mata tanpa
+ * menambah berat visual. Baris terakhir tidak diberi garis — tidak ada yang
+ * perlu dipisahkan di bawahnya.
  */
 export function barisDetail(baris) {
-  const isi = baris.map(([label, nilai], i) => `
+  const isi = baris.map(([label, nilai], i) => {
+    const garis = i === 0 ? '' : `border-top:1px solid ${WARNA.garisLembut};`;
+    return `
     <tr>
-      <td style="padding:${i === 0 ? '0' : '10px'} 0 0;font-family:${FONT};font-size:14px;color:${WARNA.teksSamar};vertical-align:top;width:45%">${label}</td>
-      <td style="padding:${i === 0 ? '0' : '10px'} 0 0;font-family:${FONT};font-size:14px;color:${WARNA.teks};text-align:right;vertical-align:top">${nilai}</td>
-    </tr>`).join('');
+      <td style="${garis}padding:11px 0 0;font-family:${FONT};font-size:14px;color:${WARNA.teksSamar};vertical-align:top;width:45%">${label}</td>
+      <td style="${garis}padding:11px 0 0;font-family:${FONT};font-size:14px;color:${WARNA.teks};text-align:right;vertical-align:top">${nilai}</td>
+    </tr>`;
+  }).join('');
 
   return `
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -206,7 +234,16 @@ export function p(teks, { redup = false, margin = '0 0 16px' } = {}) {
  * @param {string} [opsi.catatanKaki] - kalimat tambahan sebelum footer
  */
 export function bungkus({ judul, preheader, isi, catatanKaki = '' }) {
-  const dasar = 'https://portfolio-victer.pages.dev';
+  // ── KENAPA DOMAIN PROFESIONAL, BUKAN pages.dev ─────────────────────────────
+  // Email dikirim dari `noreply@victer.is-a.dev`. Kalau tautan di dalamnya
+  // menuju `portfolio-victer.pages.dev`, penerima melihat dua domain berbeda
+  // — dan itu pola yang sama dengan email phishing (pengirim satu domain,
+  // tautan ke domain lain).
+  //
+  // Penerima yang waspada akan curiga, dan filter spam memberi nilai lebih
+  // rendah. Satu domain untuk pengirim DAN tautan adalah syarat dasar email
+  // transaksional yang bisa dipercaya.
+  const dasar = 'https://victer.is-a.dev';
   const tahun = new Date().getFullYear();
 
   return `<!DOCTYPE html>
@@ -243,9 +280,33 @@ export function bungkus({ judul, preheader, isi, catatanKaki = '' }) {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="vertical-align:middle">
-                    <div style="width:34px;height:34px;border-radius:10px;background:${WARNA.emas};text-align:center;line-height:34px;font-family:${FONT};font-size:17px;font-weight:700;color:#0a0a0b">V</div>
+                    <!--
+                      ── LOGO: GAMBAR PNG, DENGAN CADANGAN TEKS ─────────────────
+                      Beberapa klien email MEMBLOKIR gambar secara default
+                      (Outlook sering, Gmail untuk pengirim baru). Kalau logo
+                      hanya gambar, kepala email jadi kosong — terlihat rusak.
+
+                      Karena itu logo dibungkus sel ber-latar emas yang berisi
+                      huruf "V". Kalau gambar dimuat, ia menutupi huruf itu.
+                      Kalau tidak, huruf "V" tetap muncul dan kepala email
+                      tetap utuh.
+
+                      Atribut alt sengaja DIKOSONGKAN: pembaca layar tidak
+                      perlu membacakan "logo" sebelum nama perusahaan — nama
+                      itu ada di sebelahnya.
+                    -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td width="36" height="36" bgcolor="${WARNA.emas}"
+                            style="width:36px;height:36px;border-radius:10px;text-align:center;vertical-align:middle;font-family:${FONT};font-size:18px;font-weight:700;color:#0a0a0b;line-height:36px">
+                          <img src="${dasar}/assets/img/vivastic-mark-72.png"
+                               width="36" height="36" alt=""
+                               style="display:block;width:36px;height:36px;border:0;border-radius:10px;outline:none;text-decoration:none">
+                        </td>
+                      </tr>
+                    </table>
                   </td>
-                  <td style="padding-left:11px;vertical-align:middle">
+                  <td style="padding-left:12px;vertical-align:middle">
                     <div style="font-family:${FONT};font-size:15px;font-weight:600;color:${WARNA.teks};letter-spacing:0.06em">VIVASTIC</div>
                   </td>
                 </tr>
@@ -282,16 +343,26 @@ export function bungkus({ judul, preheader, isi, catatanKaki = '' }) {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
                style="width:100%;max-width:600px">
           <tr>
-            <td style="padding:20px 32px 0;text-align:center">
-              <p style="margin:0 0 8px;font-family:${FONT};font-size:12px;line-height:1.6;color:${WARNA.teksSamar}">
-                <a href="${dasar}/bantuan" style="color:${WARNA.teksRedup};text-decoration:underline">Pusat bantuan</a>
+            <td style="padding:28px 32px 0;text-align:center">
+              <!--
+                ── TAGLINE BRAND ────────────────────────────────────────────────
+                Satu baris pendek di bawah kartu memberi email "kepribadian" —
+                pembeda antara email yang dirancang dan template yang dipakai
+                apa adanya. Diletakkan di footer (bukan atas) supaya tidak
+                bersaing dengan isi utama.
+              -->
+              <p style="margin:0 0 14px;font-family:${FONT};font-size:12px;line-height:1.6;color:${WARNA.teksSamar};letter-spacing:0.02em">
+                Layanan pengembangan perangkat lunak
+              </p>
+              <p style="margin:0 0 14px;font-family:${FONT};font-size:12px;line-height:1.6;color:${WARNA.teksSamar}">
+                <a href="${dasar}/docs" style="color:${WARNA.teksRedup};text-decoration:underline">Panduan</a>
                 &nbsp;·&nbsp;
                 <a href="${dasar}/privasi" style="color:${WARNA.teksRedup};text-decoration:underline">Kebijakan privasi</a>
                 &nbsp;·&nbsp;
                 <a href="${dasar}/keamanan" style="color:${WARNA.teksRedup};text-decoration:underline">Keamanan</a>
               </p>
               <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.6;color:${WARNA.teksSamar}">
-                © ${tahun} VIVASTIC · Layanan pengembangan perangkat lunak
+                © ${tahun} VIVASTIC
               </p>
             </td>
           </tr>
@@ -324,6 +395,6 @@ export function versiTeks({ judul, baris }) {
     '',
     garis,
     'Email otomatis dari VIVASTIC — mohon jangan dibalas.',
-    'Bantuan: https://portfolio-victer.pages.dev/bantuan',
+    'Bantuan: https://victer.is-a.dev/bantuan',
   ].join('\n');
 }

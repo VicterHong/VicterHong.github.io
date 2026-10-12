@@ -32,7 +32,7 @@ const CONTOH = [
     keterangan: 'Dikirim saat pengguna lupa sandi. Ada tombol + tautan cadangan.',
     hasil: T.templateResetSandi({
       nama: 'Victer',
-      tautan: 'https://portfolio-victer.pages.dev/reset-sandi?token=contoh-token-panjang-abc123',
+      tautan: 'https://victer.is-a.dev/reset-sandi?token=contoh-token-panjang-abc123',
       berlakuMenit: 60,
     }),
   },
@@ -56,7 +56,7 @@ const CONTOH = [
     hasil: T.templateSelamatDatang({
       nama: 'Victer',
       email: 'victer@contoh.id',
-      tautanVerifikasi: 'https://portfolio-victer.pages.dev/verifikasi?t=contoh',
+      tautanVerifikasi: 'https://victer.is-a.dev/verifikasi?t=contoh',
     }),
   },
   {
@@ -89,7 +89,7 @@ const CONTOH = [
     keterangan: 'Masa tenggang dimulai — cara memulihkan.',
     hasil: T.templateAkunDinonaktifkan({
       nama: 'Victer', sisaHari: 30,
-      tautanPulihkan: 'https://portfolio-victer.pages.dev/pemulihan',
+      tautanPulihkan: 'https://victer.is-a.dev/pemulihan',
     }),
   },
   {

@@ -27,7 +27,7 @@ const T = await import(resolve(ROOT, 'backend/src/email/templates.mjs'));
 const TEMPLATE = [
   ['01-reset-sandi', T.templateResetSandi({
     nama: 'Victer',
-    tautan: 'https://portfolio-victer.pages.dev/reset-sandi?token=contoh-token-panjang',
+    tautan: 'https://victer.is-a.dev/reset-sandi?token=contoh-token-panjang',
     berlakuMenit: 60,
   })],
   ['02-kode-hapus-akun', T.templateKodeHapusAkun({
@@ -38,7 +38,7 @@ const TEMPLATE = [
   })],
   ['04-selamat-datang', T.templateSelamatDatang({
     nama: 'Victer', email: 'victer@contoh.id',
-    tautanVerifikasi: 'https://portfolio-victer.pages.dev/verifikasi?t=contoh',
+    tautanVerifikasi: 'https://victer.is-a.dev/verifikasi?t=contoh',
   })],
   ['05-masuk-perangkat-baru', T.templateMasukPerangkatBaru({
     nama: 'Victer', perangkat: 'Chrome di Android 15', lokasi: 'Jakarta, Indonesia',
@@ -51,7 +51,7 @@ const TEMPLATE = [
   })],
   ['07-akun-dinonaktifkan', T.templateAkunDinonaktifkan({
     nama: 'Victer', sisaHari: 30,
-    tautanPulihkan: 'https://portfolio-victer.pages.dev/pemulihan',
+    tautanPulihkan: 'https://victer.is-a.dev/pemulihan',
   })],
   ['08-kode-masuk', T.templateKodeMasuk({
     nama: 'Victer', kode: '998877', berlakuMenit: 10,
@@ -68,7 +68,30 @@ for (const [nama, hasil] of TEMPLATE) {
   const berkasHtml = `${KELUAR}/${nama}.html`;
   const berkasPng = `${KELUAR}/${nama}.png`;
 
-  writeFileSync(berkasHtml, hasil.html, 'utf8');
+  // ── SEMATKAN GAMBAR SEBAGAI DATA-URI UNTUK SCREENSHOT ────────────────────
+  //
+  // Halaman uji dimuat lewat `file://`, dan dari sana peramban TIDAK bisa
+  // mengambil gambar `https://` (aturan keamanan lintas-origin). Akibatnya
+  // logo tampil sebagai ikon gambar rusak — padahal di email asli gambarnya
+  // ada dan bisa diakses.
+  //
+  // Menyematkan gambar sebagai data-URI membuat screenshot menampilkan apa
+  // yang BENAR-BENAR dilihat penerima. Tanpa ini, setiap pemeriksaan visual
+  // akan selalu melaporkan "logo rusak" dan menutupi masalah yang sebenarnya.
+  let htmlUji = hasil.html;
+
+  const gambarEmail = [...hasil.html.matchAll(/src="(https:\/\/[^"]+\.png)"/g)];
+  for (const [, url] of gambarEmail) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) continue;
+      const buf = Buffer.from(await res.arrayBuffer());
+      const dataUri = `data:image/png;base64,${buf.toString('base64')}`;
+      htmlUji = htmlUji.split(url).join(dataUri);
+    } catch { /* biarkan URL asli kalau gagal */ }
+  }
+
+  writeFileSync(berkasHtml, htmlUji, 'utf8');
 
   try {
     execFileSync(CHROME, [

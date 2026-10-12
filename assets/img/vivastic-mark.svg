@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="VIVASTIC">
+  <!--
+    Logo VIVASTIC — chevron "V" geometris di atas pelat emas.
+
+    ── KENAPA CHEVRON GEOMETRIS, BUKAN HURUF "V" ──────────────────────────
+    Huruf yang ditulis dengan font akan berbeda bentuk di setiap perangkat
+    (font tidak selalu tersedia, dan setiap sistem punya fallback sendiri).
+    Bentuk geometris selalu sama di mana pun — dan itu syarat pertama logo
+    yang bisa dipercaya.
+
+    Chevron juga tetap terbaca saat diperkecil sampai 16px (favicon),
+    sementara huruf "V" mulai melebur dengan latarnya.
+
+    ── GEOMETRI ────────────────────────────────────────────────────────────
+    Semua angka kelipatan 2 dan simetris terhadap x=64:
+      · Pelat      : 128×128, sudut 28 (rasio sudut/jari-jari yang lazim
+                     untuk ikon aplikasi modern)
+      · Chevron    : puncak (64,92), lengan atas di y=40
+      · Ketebalan  : 16 satuan — cukup tebal agar tetap jelas di 16px,
+                     cukup tipis agar bentuk "V" tidak jadi segitiga
+      · Sudut lengan: 52° — lebih tegak dari 45°, memberi kesan stabil
+                     tanpa terlihat kaku
+  -->
+  <defs>
+    <linearGradient id="emas" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f9e08a"/>
+      <stop offset="45%" stop-color="#f5c542"/>
+      <stop offset="100%" stop-color="#dda92e"/>
+    </linearGradient>
+    <!-- Kilau halus di sudut kiri atas — memberi dimensi tanpa efek berlebihan -->
+    <linearGradient id="kilau" x1="0" y1="0" x2="0.7" y2="0.7">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#emas)"/>
+  <rect width="128" height="128" rx="28" fill="url(#kilau)"/>
+
+  <path d="M34 40 L64 92 L94 40 L78 40 L64 68 L50 40 Z" fill="#0a0a0b"/>
+</svg>

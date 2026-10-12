@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 350 perubahan dari 352 commit (2026-10-01 → 2026-10-12).
+Total 355 perubahan dari 357 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,6 +10,9 @@ Total 350 perubahan dari 352 commit (2026-10-01 → 2026-10-12).
 
 ### Fitur baru
 
+- **email**: Halaman input kunci dukung Brevo + Resend (deteksi otomatis) (`1e3d0a8`)
+- **email**: Dukung Brevo — satu-satunya penyedia yang terima domain is-a.dev (`71365cb`)
+- **email**: Setup domain email profesional @send.victer.is-a.dev (otomatis) (`6bbf727`)
 - **email**: Perintah uji kirim + panduan setup + kecualikan preview dari deploy (`5fd425d`)
 - **email**: Sistem email korporasi — 8 template, desain profesional (`a8ad74d`)
 - **nav**: Link Changelog di 6 halaman + regenerasi berkas turunan (`f97d25c`)
@@ -17,6 +20,7 @@ Total 350 perubahan dari 352 commit (2026-10-01 → 2026-10-12).
 
 ### Perbaikan
 
+- **email**: Perbaiki pembacaan record DNS Brevo (`d9d3282`)
 - **error**: Satukan pelindung error — rute auth tidak lagi lapor 400 untuk bug server (`fe572f8`)
 - **aktivitas**: Hanya tampilkan peristiwa pengguna, bukan log admin/sistem (`9d4bff1`)
 - **profil**: Kembalikan tab horizontal — perbaiki teks terhalang, bukan ganti kontrol (`4e85348`)
@@ -25,6 +29,7 @@ Total 350 perubahan dari 352 commit (2026-10-01 → 2026-10-12).
 
 ### Pemeliharaan
 
+- **email**: Perbarui uji domain untuk jalur Brevo (`a237e56`)
 - **email**: Kontras footer WCAG AA + tombol sekunder di email kode (`3970285`)
 - **profil**: Kembalikan tab ke kondisi semula (db009ca) (`8a9154e`)
 - **scripts**: Git hook post-commit + pemasangnya (`1e6e9c2`)
