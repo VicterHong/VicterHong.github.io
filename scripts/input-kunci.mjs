@@ -15,33 +15,32 @@
  * pengguna, dikirim lewat HTTPS ke server, dan tidak pernah menyentuh chat.
  *
  * ══════════════════════════════════════════════════════════════════════════════
+ * ── DUA PENYEDIA YANG DIDUKUNG ───────────────────────────────────────────────
+ * ══════════════════════════════════════════════════════════════════════════════
+ *
+ *   1. BREVO  (xkeysib-...)  — menerima domain is-a.dev
+ *   2. RESEND (re_...)       — menolak domain is-a.dev, tapi bekerja tanpa domain
+ *
+ * Skrip mendeteksi penyedianya dari AWALAN kunci, jadi pengguna tidak perlu
+ * memilih — cukup tempel, dan server tahu harus menguji ke API mana.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
  * ── PENGAMANAN (berlapis) ────────────────────────────────────────────────────
  * ══════════════════════════════════════════════════════════════════════════════
  *
  *   1. TOKEN DI URL — 32 byte acak. Tanpa token, semua permintaan ditolak 404.
- *      Halaman login palsu yang dipindai bot tidak menemukan apa pun.
- *
  *   2. SEKALI PAKAI — setelah kunci tersimpan, server menutup dirinya sendiri.
- *      Tidak ada jendela waktu untuk dipakai ulang.
- *
  *   3. TENGGANG WAKTU — mati otomatis setelah 15 menit, dipakai atau tidak.
- *
- *   4. HANYA LOOPBACK — server mendengarkan di 127.0.0.1. Akses dari luar
- *      HANYA lewat tunnel HTTPS yang dibuat khusus untuk sesi ini.
- *
- *   5. KUNCI TIDAK PERNAH DI-LOG — tidak ada console.log isi kunci, tidak ada
- *      penulisan ke berkas log. Yang dicatat hanya "berhasil/gagal".
- *
- *   6. KUNCI DIUJI DULU — dikirim ke Resend sebelum disimpan. Kunci salah
- *      tidak menimpa kunci yang sudah benar.
- *
+ *   4. HANYA LOOPBACK — server mendengarkan di 127.0.0.1.
+ *   5. KUNCI TIDAK PERNAH DI-LOG — yang dicatat hanya "berhasil/gagal".
+ *   6. KUNCI DIUJI DULU — dikirim ke API penyedia sebelum disimpan.
  *   7. HAPUS DARI MEMORI — variabel dibersihkan setelah ditulis.
  *
  * Jalankan: node scripts/input-kunci.mjs
  */
 
 import { createServer } from 'node:http';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -59,6 +58,41 @@ const TOKEN = randomBytes(32).toString('hex');
 const JALUR = `/simpan-${TOKEN}`;
 
 let sudahDipakai = false;
+
+// ── Deteksi penyedia dari awalan kunci ────────────────────────────────────────
+//
+// ── KENAPA DETEKSI OTOMATIS, BUKAN DROPDOWN ─────────────────────────────────
+// Pengguna baru saja menyalin kunci dari dashboard penyedia; ia tidak perlu
+// menjawab pertanyaan tambahan tentang kunci apa yang baru ia salin. Awalan
+// kunci sudah cukup — dan kalau salah, pesan galat menyebutkan bentuk yang
+// benar.
+const PENYEDIA = [
+  {
+    nama: 'brevo',
+    kunciEnv: 'BREVO_API_KEY',
+    awalan: 'xkeysib-',
+    label: 'Brevo',
+    // Endpoint ringan untuk memastikan kunci sah.
+    uji: (kunci) => ({
+      url: 'https://api.brevo.com/v3/account',
+      headers: { 'api-key': kunci, accept: 'application/json' },
+    }),
+  },
+  {
+    nama: 'resend',
+    kunciEnv: 'RESEND_API_KEY',
+    awalan: 're_',
+    label: 'Resend',
+    uji: (kunci) => ({
+      url: 'https://api.resend.com/domains',
+      headers: { Authorization: `Bearer ${kunci}` },
+    }),
+  },
+];
+
+function deteksiPenyedia(kunci) {
+  return PENYEDIA.find((p) => kunci.startsWith(p.awalan)) ?? null;
+}
 
 // ── Halaman ───────────────────────────────────────────────────────────────────
 
@@ -94,19 +128,33 @@ function halaman({ pesan = '', jenis = '' } = {}) {
   button:active { opacity:.85; }
   .pesan { margin-top:18px; padding:13px 15px; border-radius:9px; font-size:13px;
            line-height:1.6; border-left:3px solid ${warna}; background:#121214; color:#a1a1aa; }
+  .pesan a { color:#f5c542; }
+  .pilihan { margin:0 0 20px; padding:14px 16px; background:#121214;
+             border:1px solid #26262c; border-radius:9px; }
+  .pilihan p { margin:0 0 10px; font-size:12px; color:#8a8a94; }
+  .pilihan div { font-size:13px; line-height:1.9; color:#a1a1aa; }
+  .pilihan code { color:#f5c542; font-size:12px; }
   .catatan { margin-top:20px; font-size:12px; line-height:1.6; color:#71717a; }
 </style>
 </head>
 <body>
   <div class="kartu">
     <div class="logo">V</div>
-    <h1>Simpan Kunci Resend</h1>
-    <p class="ket">Tempel kunci API di bawah. Kunci dikirim lewat HTTPS, diuji ke Resend, lalu disimpan ke server — <strong style="color:#f4f4f6">tidak pernah masuk riwayat chat</strong>.</p>
+    <h1>Simpan Kunci API</h1>
+    <p class="ket">Tempel kunci API di bawah. Kunci dikirim lewat HTTPS, diuji langsung ke penyedianya, lalu disimpan ke server — <strong style="color:#f4f4f6">tidak pernah masuk riwayat chat</strong>.</p>
+
+    <div class="pilihan">
+      <p>Penyedia dideteksi otomatis dari awalan kunci:</p>
+      <div>
+        <code>xkeysib-…</code> &nbsp;→&nbsp; Brevo <em style="color:#34d399">(menerima is-a.dev)</em><br>
+        <code>re_…</code> &nbsp;→&nbsp; Resend
+      </div>
+    </div>
 
     <form method="POST" action="${JALUR}">
-      <label for="kunci">Kunci API (mulai <code>re_</code>)</label>
+      <label for="kunci">Kunci API</label>
       <input id="kunci" name="kunci" type="password" autocomplete="off"
-             spellcheck="false" autocapitalize="off" placeholder="re_..." required autofocus>
+             spellcheck="false" autocapitalize="off" placeholder="xkeysib-... atau re_..." required autofocus>
       <button type="submit">Simpan &amp; Uji</button>
     </form>
 
@@ -126,32 +174,52 @@ function halaman({ pesan = '', jenis = '' } = {}) {
 async function simpan(kunci) {
   const bersih = String(kunci).trim().replace(/^["']|["']$/g, '');
 
-  if (!bersih.startsWith('re_')) {
-    return { ok: false, pesan: 'Kunci tidak dikenali — kunci Resend selalu mulai dengan <code>re_</code>.' };
+  const penyedia = deteksiPenyedia(bersih);
+
+  if (!penyedia) {
+    return {
+      ok: false,
+      pesan: 'Kunci tidak dikenali. Bentuk yang didukung:<br>'
+        + '&nbsp;&nbsp;• <code>xkeysib-…</code> (Brevo)<br>'
+        + '&nbsp;&nbsp;• <code>re_…</code> (Resend)',
+    };
   }
+
   if (bersih.length < 20) {
     return { ok: false, pesan: `Kunci terlalu pendek (${bersih.length} karakter) — sepertinya terpotong saat menempel.` };
   }
 
-  // ── Uji ke Resend SEBELUM disimpan ──────────────────────────────────────────
+  // ── Uji ke API penyedia SEBELUM disimpan ────────────────────────────────────
   // Kalau ditulis dulu lalu diuji, kunci yang salah akan menimpa kunci yang baik.
   let sah = false;
   let alasan = '';
+  let infoTambahan = '';
 
   try {
-    const res = await fetch('https://api.resend.com/domains', {
-      headers: { Authorization: `Bearer ${bersih}` },
-      signal: AbortSignal.timeout(15_000),
-    });
+    const { url, headers } = penyedia.uji(bersih);
+
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
 
     sah = res.ok;
-    if (!res.ok) alasan = `Resend menolak (HTTP ${res.status})`;
+
+    if (!res.ok) {
+      alasan = `${penyedia.label} menolak (HTTP ${res.status})`;
+    } else if (penyedia.nama === 'brevo') {
+      // Ambil nama akun untuk konfirmasi visual — pengguna tahu kunci ini
+      // benar-benar miliknya.
+      const data = await res.json().catch(() => ({}));
+      const email = data?.email ?? '';
+      if (email) infoTambahan = `Akun: ${email}`;
+    }
   } catch (e) {
-    return { ok: false, pesan: `Tidak bisa menghubungi Resend: ${e.message.slice(0, 100)}. Coba lagi.` };
+    return { ok: false, pesan: `Tidak bisa menghubungi ${penyedia.label}: ${e.message.slice(0, 100)}. Coba lagi.` };
   }
 
   if (!sah) {
-    return { ok: false, pesan: `Kunci ${alasan}. Buat kunci baru di <a href="https://resend.com/api-keys" style="color:#f5c542">resend.com/api-keys</a>.` };
+    return {
+      ok: false,
+      pesan: `Kunci ${alasan}. Buat kunci baru di dashboard ${penyedia.label}.`,
+    };
   }
 
   // ── Tulis (ganti baris lama, jangan menumpuk) ───────────────────────────────
@@ -163,12 +231,16 @@ async function simpan(kunci) {
 
   const isi = readFileSync(BERKAS, 'utf8')
     .split('\n')
-    .filter((b) => !b.startsWith('RESEND_API_KEY='))
+    .filter((b) => !b.startsWith(`${penyedia.kunciEnv}=`))
     .join('\n');
 
-  writeFileSync(BERKAS, `${isi.replace(/\n+$/, '')}\nRESEND_API_KEY=${bersih}\n`, { mode: 0o600 });
+  writeFileSync(BERKAS, `${isi.replace(/\n+$/, '')}\n${penyedia.kunciEnv}=${bersih}\n`, { mode: 0o600 });
 
-  return { ok: true, pesan: 'Kunci sah dan tersimpan. Server akan menutup diri.' };
+  return {
+    ok: true,
+    penyedia: penyedia.nama,
+    pesan: `Kunci ${penyedia.label} sah dan tersimpan.${infoTambahan ? `<br>${infoTambahan}` : ''} Server akan menutup diri.`,
+  };
 }
 
 // ── Server ────────────────────────────────────────────────────────────────────
@@ -221,7 +293,7 @@ const server = createServer(async (req, res) => {
 
       if (hasil.ok) {
         sudahDipakai = true;
-        console.log('[input-kunci] ✅ Kunci tersimpan — server menutup diri.');
+        console.log(`[input-kunci] ✅ Kunci ${hasil.penyedia ?? ''} tersimpan — server menutup diri.`);
         setTimeout(() => {
           server.close();
           process.exit(0);
