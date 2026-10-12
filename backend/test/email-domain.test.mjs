@@ -219,20 +219,70 @@ test('nilai DKIM panjang (kunci RSA) tidak terpotong', () => {
 
 // ── 7. Jaga agar salinan di tes ini tidak basi ────────────────────────────────
 
-test('fungsi bersihkan() di skrip asli masih sama', async () => {
+test('skrip asli masih memakai pola yang diuji di sini', async () => {
   const { readFileSync } = await import('node:fs');
   const sumber = readFileSync(
     '/home/ubuntu/portfolio-victer/scripts/setup-domain-email.mjs', 'utf8'
   );
 
+  // ── CATATAN PERUBAHAN: RESEND → BREVO ────────────────────────────────────
+  //
+  // Skrip ini DULU memakai Resend (MX + TXT di subdomain `send.`). Setelah
+  // ditemukan bahwa Resend MENOLAK domain dari Public Suffix List —
+  // termasuk `is-a.dev` — jalur penyedianya berpindah ke Brevo, yang memakai
+  // CNAME untuk DKIM (sehingga tidak bentrok dengan CNAME situs di root).
+  //
+  // Uji di atas (1-6) masih relevan karena ia menguji LOGIKA yang sama:
+  // membersihkan kutip ganda, membuang titik di akhir target, dan memastikan
+  // nilai panjang tidak terpotong. Yang berubah hanya nama record-nya.
+  //
+  // Uji ini memastikan skrip asli masih punya pola yang diuji — supaya
+  // salinan di tes ini tidak diam-diam jadi uji terhadap kode yang sudah
+  // tidak ada.
+
   assert.ok(
-    /const bersihkan = \(v\) => String\(v \?\? ''\)\.replace\(\/\^"\|\"\$\/g, ''\)\.trim\(\)/.test(sumber),
-    'fungsi bersihkan() di skrip asli sudah berubah — perbarui salinan di tes ini ' +
-    'supaya uji tetap menguji perilaku yang sebenarnya'
+    /const target1 = String\(dkim1\.value\)\.replace\(\/\\\.\$\/, ''\)/.test(sumber),
+    'pola pembersihan titik di akhir target DKIM berubah di skrip asli — ' +
+    'perbarui salinan di tes ini supaya uji tetap menguji perilaku yang sebenarnya'
   );
 
   assert.ok(
-    /target: bersihkan\(mx\.value\)\.replace\(\/\\\.\$\/, ''\)/.test(sumber),
-    'pembersihan titik di akhir target MX sudah berubah — perbarui salinan di tes ini'
+    /brevo1\._domainkey/.test(sumber) && /brevo2\._domainkey/.test(sumber),
+    'skrip asli harus menyusun DUA berkas DKIM Brevo (brevo1 + brevo2) — ' +
+    'Brevo memakai dua kunci, dan satu saja membuat DKIM tidak valid'
+  );
+
+  assert.ok(
+    /_dmarc/.test(sumber),
+    'skrip asli harus menyusun berkas DMARC — tanpa itu penerima email ' +
+    'tidak punya petunjuk menangani email yang gagal autentikasi'
+  );
+});
+
+test('skrip asli memakai CNAME untuk DKIM (bukan TXT) — kunci kompatibilitas is-a.dev', async () => {
+  const { readFileSync } = await import('node:fs');
+  const sumber = readFileSync(
+    '/home/ubuntu/portfolio-victer/scripts/setup-domain-email.mjs', 'utf8'
+  );
+
+  // ── KENAPA INI PENTING ───────────────────────────────────────────────────
+  //
+  // Ini alasan TEKNIS kenapa Brevo bisa bekerja di is-a.dev sementara Resend
+  // tidak:
+  //
+  //   Root domain `victer.is-a.dev` sudah memakai CNAME ke Cloudflare Pages.
+  //   Aturan DNS: CNAME tidak boleh berdampingan dengan MX/TXT di record set
+  //   yang sama.
+  //
+  //   • Resend butuh MX + TXT di root (atau subdomain) → BENTROK / ditolak
+  //   • Brevo memakai CNAME di label terpisah (_domainkey) → AMAN
+  //
+  // Kalau seseorang mengubah skrip ini untuk memakai TXT di root, ia akan
+  // merusak situs atau PR-nya ditolak.
+  assert.match(
+    sumber,
+    /berkasDkim1[\s\S]{0,200}records:\s*\{\s*CNAME:/,
+    'DKIM Brevo HARUS memakai CNAME — memakai TXT di root akan bentrok ' +
+    'dengan CNAME situs dan merusak domain'
   );
 });
