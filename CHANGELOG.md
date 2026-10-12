@@ -2,9 +2,19 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 338 perubahan dari 340 commit (2026-10-01 → 2026-10-11).
+Total 340 perubahan dari 342 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
+
+## 2026-10-12
+
+### Fitur baru
+
+- **changelog**: Halaman catatan rilis dari riwayat git (`cf97f4b`)
+
+### Perbaikan
+
+- **docs**: Item aktif otomatis + cookie FAB tidak menutupi panel (`f6975fd`)
 
 ## 2026-10-11
 

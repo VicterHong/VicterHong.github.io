@@ -1,10 +1,46 @@
 {
- "dibuat": "2026-10-12T00:52:42.004Z",
- "totalCommit": 340,
- "totalDicatat": 338,
+ "dibuat": "2026-10-12T00:55:41.044Z",
+ "totalCommit": 342,
+ "totalDicatat": 340,
  "hariPertama": "2026-10-01",
- "hariTerakhir": "2026-10-11",
+ "hariTerakhir": "2026-10-12",
  "rilis": [
+  {
+   "tanggal": "2026-10-12",
+   "jumlah": 2,
+   "ringkasan": {
+    "fitur": 1,
+    "perbaikan": 1,
+    "performa": 0,
+    "dokumentasi": 0,
+    "data": 0,
+    "pemeliharaan": 0
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "cf97f4b",
+       "teks": "Halaman catatan rilis dari riwayat git",
+       "scope": "changelog"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "f6975fd",
+       "teks": "Item aktif otomatis + cookie FAB tidak menutupi panel",
+       "scope": "docs"
+      }
+     ]
+    }
+   ]
+  },
   {
    "tanggal": "2026-10-11",
    "jumlah": 20,

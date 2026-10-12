@@ -16,7 +16,7 @@ Lokasi: Indonesia.
 
 ### Spareparts Inventory System Inventory & logistik untuk suku cadang alat berat. Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit. Teknologi: FastAPI, PostgreSQL, Docker, n8n, Telegram. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
-### WhatsApp Family Assistant Bot grup keluarga yang reaktif dan aman. Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Teknologi: Node.js, Baileys, JSONL, systemd. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
+### WhatsApp Family Assistant Bot grup keluarga yang reaktif dan aman. Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Bisa mendengar pesan suara, mencari berita sendiri, dan membaca isi tautan yang dibagikan. Teknologi: Node.js, Baileys, faster-whisper, systemd. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
 ## Halaman penting
 
