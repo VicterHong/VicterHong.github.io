@@ -102,6 +102,63 @@ import {
 
 const COOKIE_SESI = 'portfolio_session';
 
+// ══ AKSI YANG BOLEH MUNCUL DI LOG AKTIVITAS PENGGUNA ═════════════════════════
+//
+// ── MASALAH YANG DIPERBAIKI (terlihat di produksi) ──────────────────────────
+// Tabel `access_events` adalah log audit BERSAMA: ia menampung peristiwa
+// pengguna (masuk, ganti sandi) DAN peristiwa sistem/admin (penghapusan
+// akun diproses admin, penonaktifan, keputusan tinjauan).
+//
+// Endpoint /api/auth/aktivitas dulu mengirim SEMUANYA untuk token pengguna.
+// Hasilnya di tab Aktivitas muncul entri yang membingungkan:
+//
+//   akun_hapus_diminta    ← keputusan admin, bukan aksi pengguna
+//   akun_hapus_gagal      ← kegagalan sistem, pengguna tidak melakukan apa pun
+//   akun_hapus_disetujui  ← keputusan admin
+//   akun_dinonaktifkan    ← tindakan admin
+//
+// Pengguna membaca "akun_hapus_gagal" dan menyimpulkan akunnya bermasalah —
+// padahal itu catatan internal tentang percobaan yang tidak jadi.
+//
+// ── PEMISAHAN INI POLA STANDAR ──────────────────────────────────────────────
+// GitHub memisahkannya tegas: "Security log" (peristiwa akun pribadi) vs
+// "Audit log" (peristiwa organisasi). Vercel: "Activity Log" hanya berisi
+// peristiwa yang dilakukan user; metadata audit masuk ke Audit Logs yang
+// hanya tersedia untuk Enterprise.
+//
+// Yang boleh muncul di log pengguna: peristiwa yang PENGGUNA lakukan, atau
+// yang menyangkut KEAMANAN akunnya sendiri (masuk, sesi dicabut).
+// Yang tidak: keputusan admin, kesalahan sistem, event internal.
+//
+// Daftar putih, bukan daftar hitam — event baru yang ditambahkan nanti
+// TIDAK otomatis bocor ke log pengguna; harus didaftarkan dulu di sini.
+//
+// Diletakkan di LEVEL MODUL (bukan di dalam array rute) karena array rute
+// adalah daftar objek literal — pernyataan `const` di dalamnya adalah
+// SyntaxError.
+const AKSI_PENGGUNA = [
+  // Masuk
+  'auth_masuk', 'auth_oauth_masuk', 'auth_sso_masuk', 'auth_passkey_masuk',
+  // Pendaftaran
+  'auth_daftar', 'auth_oauth_daftar', 'auth_passkey_daftar', 'auth_oauth_sambung',
+  // Sandi
+  'auth_lupa_sandi', 'auth_reset_sandi',
+  // Sesi
+  'auth_sesi_cabut', 'auth_sesi_cabut_semua',
+  // 2FA
+  'totp_verify',
+  // Profil
+  'profil_diperbarui', 'avatar_unggah', 'avatar_hapus',
+  'auth_identitas_hapus',
+  // Media
+  'media_unggah', 'media_hapus',
+  // Token
+  'token_validate', 'token_revoke',
+];
+
+// Placeholder IN (...) — dibangun sekali dari daftar di atas.
+const AKSI_PENGGUNA_IN = AKSI_PENGGUNA.map(() => '?').join(',');
+
 /**
  * Origin yang diizinkan untuk WebAuthn.
  *
@@ -2127,6 +2184,9 @@ function ruteSso() {
     //
     // Difilter dengan token_id pengguna — tidak ada parameter yang bisa diubah
     // klien untuk melihat aktivitas orang lain.
+    //
+    // Daftar putih AKSI_PENGGUNA (level modul, lihat atas berkas) menyaring
+    // peristiwa admin/sistem. Penjelasan lengkap ada di definisinya.
     {
       method: 'GET',
       pattern: '/api/auth/aktivitas',
@@ -2141,9 +2201,10 @@ function ruteSso() {
           SELECT action, outcome, ip, country, detail, at
           FROM access_events
           WHERE token_id = ?
+            AND action IN (${AKSI_PENGGUNA_IN})
           ORDER BY at DESC, id DESC
           LIMIT 40
-        `).all(pengguna.token_id);
+        `).all(pengguna.token_id, ...AKSI_PENGGUNA);
 
         sendJson(res, 200, {
           ok: true,

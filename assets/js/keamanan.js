@@ -1037,13 +1037,69 @@
     if (!akt.length) { if (kosong) kosong.hidden = false; return; }
     if (kosong) kosong.hidden = true;
 
-    // Nama aksi teknis → kalimat yang bisa dibaca.
+    // ── Nama aksi teknis → kalimat yang bisa dibaca ──────────────────────────
+    //
+    // ── KENAPA DAFTAR INI HARUS LENGKAP ─────────────────────────────────────────
+    // Baris pemakaian di bawah: `AKSI[a.aksi] || a.aksi`. Kalau sebuah aksi
+    // tidak ada di kamus ini, KODE MENTAHNYA yang tampil ke pengguna —
+    // "akun_hapus_gagal" alih-alih "Penghapusan akun gagal". Itu yang terlihat
+    // di produksi.
+    //
+    // Dua lapis pertahanan:
+    //   1. Backend hanya mengirim aksi pengguna (daftar putih AKSI_PENGGUNA) —
+    //      event admin/sistem tidak pernah sampai ke sini.
+    //   2. Kamus ini mencakup SEMUA aksi yang mungkin dikirim backend, plus
+    //      cadangan generik di baris pemakaian untuk aksi baru yang belum
+    //      diterjemahkan (tidak pernah menampilkan kode mentah).
     const AKSI = {
-      auth_masuk: 'Masuk', auth_daftar: 'Akun dibuat', auth_keluar: 'Keluar',
-      auth_oauth_masuk: 'Masuk lewat penyedia', auth_sso_masuk: 'Masuk lewat SSO',
+      // Masuk
+      auth_masuk: 'Masuk ke akun',
+      auth_oauth_masuk: 'Masuk lewat penyedia',
+      auth_sso_masuk: 'Masuk lewat SSO',
       auth_passkey_masuk: 'Masuk dengan passkey',
-      token_validate: 'Token divalidasi', token_revoke: 'Token dicabut',
+      // Pendaftaran
+      auth_daftar: 'Akun dibuat',
+      auth_oauth_daftar: 'Akun dibuat lewat penyedia',
+      auth_passkey_daftar: 'Passkey didaftarkan',
+      auth_oauth_sambung: 'Penyedia masuk disambungkan',
+      // Sandi
+      auth_lupa_sandi: 'Permintaan atur ulang sandi',
+      auth_reset_sandi: 'Sandi diatur ulang',
+      // Sesi
+      auth_sesi_cabut: 'Sesi dicabut',
+      auth_sesi_cabut_semua: 'Semua sesi dicabut',
+      // 2FA
+      totp_verify: 'Verifikasi dua langkah',
+      // Profil
+      profil_diperbarui: 'Profil diperbarui',
+      avatar_unggah: 'Foto profil diunggah',
+      avatar_hapus: 'Foto profil dihapus',
+      auth_identitas_hapus: 'Cara masuk dihapus',
+      // Media
+      media_unggah: 'Berkas diunggah',
+      media_hapus: 'Berkas dihapus',
+      // Token
+      token_validate: 'Token divalidasi',
+      token_revoke: 'Token dicabut',
     };
+
+    /**
+     * Terjemahkan aksi teknis ke kalimat yang bisa dibaca.
+     *
+     * Cadangan: kalau aksi belum ada di kamus, JANGAN tampilkan kode mentahnya.
+     * "auth_sesi_cabut_baru" → "Aktivitas keamanan", bukan string snake_case
+     * yang tidak berarti apa pun bagi pengguna.
+     *
+     * Kode mentah tetap berguna untuk debug — jadi ia dikirim ke console
+     * (developer bisa lihat), bukan ke layar.
+     */
+    function namaAksi(aksi) {
+      if (AKSI[aksi]) return AKSI[aksi];
+      if (!aksi) return 'Aktivitas';
+      // Aksi tak dikenal — catat untuk developer, tampilkan teks aman.
+      console.warn('[aktivitas] aksi belum diterjemahkan:', aksi);
+      return 'Aktivitas keamanan';
+    }
 
     for (const a of akt) {
       const li = document.createElement('li');
@@ -1054,7 +1110,7 @@
 
       const judul = document.createElement('p');
       judul.className = 'kam-item-judul';
-      judul.textContent = AKSI[a.aksi] || a.aksi || 'Aktivitas';
+      judul.textContent = namaAksi(a.aksi);
 
       const ket = document.createElement('p');
       ket.className = 'kam-item-ket';
@@ -1069,7 +1125,8 @@
       if (a.hasil && a.hasil !== 'ok' && a.hasil !== 'sukses') {
         const l = document.createElement('span');
         l.className = 'kam-lencana is-gagal';
-        l.textContent = a.hasil;
+        // Hasil juga diterjemahkan — "gagal" cukup, bukan kode internal.
+        l.textContent = a.hasil === 'gagal' ? 'Gagal' : a.hasil;
         li.appendChild(l);
       }
       daftar.appendChild(li);
