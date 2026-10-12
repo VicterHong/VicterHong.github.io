@@ -28,7 +28,8 @@
     "email:test": "cd backend && node src/admin-cli.mjs email-test",
     "email:domain": "node scripts/setup-domain-email.mjs",
     "email:build": "node scripts/build-email.mjs",
-    "email:shot": "node scripts/shot-email.mjs"
+    "email:shot": "node scripts/shot-email.mjs",
+    "email:impor": "node scripts/impor-desain.mjs"
   },
   "dependencies": {
     "cloudflare": "^1.0.0-beta.12"

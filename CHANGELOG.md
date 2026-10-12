@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 356 perubahan dari 358 commit (2026-10-01 → 2026-10-12).
+Total 357 perubahan dari 359 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,6 +10,7 @@ Total 356 perubahan dari 358 commit (2026-10-01 → 2026-10-12).
 
 ### Fitur baru
 
+- **email**: Migrasi ke MJML + sistem variabel {{...}} (`22c676b`)
 - **email**: Halaman input kunci dukung Brevo + Resend (deteksi otomatis) (`1e3d0a8`)
 - **email**: Dukung Brevo — satu-satunya penyedia yang terima domain is-a.dev (`71365cb`)
 - **email**: Setup domain email profesional @send.victer.is-a.dev (otomatis) (`6bbf727`)

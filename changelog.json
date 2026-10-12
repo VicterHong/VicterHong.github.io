@@ -1,15 +1,15 @@
 {
- "dibuat": "2026-10-12T06:46:57.319Z",
- "totalCommit": 358,
- "totalDicatat": 356,
+ "dibuat": "2026-10-12T07:05:30.150Z",
+ "totalCommit": 359,
+ "totalDicatat": 357,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-12",
  "rilis": [
   {
    "tanggal": "2026-10-12",
-   "jumlah": 18,
+   "jumlah": 19,
    "ringkasan": {
-    "fitur": 7,
+    "fitur": 8,
     "perbaikan": 6,
     "performa": 0,
     "dokumentasi": 0,
@@ -21,6 +21,11 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "22c676b",
+       "teks": "Migrasi ke MJML + sistem variabel {{...}}",
+       "scope": "email"
+      },
       {
        "hash": "1e3d0a8",
        "teks": "Halaman input kunci dukung Brevo + Resend (deteksi otomatis)",

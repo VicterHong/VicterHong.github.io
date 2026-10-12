@@ -17,3 +17,6 @@ dist/
 preview-email/
 preview-email.html
 .email-domain/
+
+# HTML ekspor dari platform visual (besar, bisa diekspor ulang)
+email-src/impor/*.html
