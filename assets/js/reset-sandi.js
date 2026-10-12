@@ -111,6 +111,96 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════════
+  // ── METER KEKUATAN + PENGUMUMAN PEMBACA LAYAR ─────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // ── SKOR: 0–4, BUKAN 0–100 ──────────────────────────────────────────────────
+  //
+  // Meter punya empat segmen, jadi skornya juga 0–4. Menghitung skor 0–100
+  // lalu membaginya ke empat akan menciptakan ilusi presisi yang tidak
+  // berguna: pengguna tidak bisa membedakan "62" dari "64", dan tidak ada
+  // tindakan berbeda untuk keduanya.
+  //
+  // Yang bisa mereka lakukan: menambah panjang, menambah variasi. Empat
+  // tingkat itu cukup untuk menyampaikan "masih kurang" vs "sudah cukup".
+  //
+  // ── KENAPA PANJANG DIHITUNG DUA KALI (8 dan 12) ─────────────────────────────
+  // Delapan karakter adalah syarat MINIMUM — melewatinya tidak otomatis
+  // membuat sandi kuat. Dua belas karakter adalah ambang di mana panjang
+  // mulai memberi keamanan nyata (NIST SP 800-63B menekankan panjang di atas
+  // kompleksitas).
+  //
+  // Karena itu "Minimal 8 karakter" memenuhi satu syarat, tapi baru memberi
+  // poin kedua saat mencapai 12. Meter yang naik penuh di 8 karakter akan
+  // berbohong tentang kekuatan sandi.
+  const AMBANG = {
+    panjang: 8,
+    panjangKuat: 12,
+  };
+
+  const LABEL = ['', 'Lemah', 'Cukup', 'Baik', 'Kuat'];
+
+  function hitungSkor(sandi) {
+    if (!sandi) return 0;
+    let skor = 0;
+    if (sandi.length >= AMBANG.panjang) skor += 1;
+    if (/[a-z]/.test(sandi) && /[A-Z]/.test(sandi)) skor += 1;
+    if (/[0-9]/.test(sandi)) skor += 1;
+    if (sandi.length >= AMBANG.panjangKuat) skor += 1;
+    return skor;
+  }
+
+  // ── PENGUMUMAN PEMBACA LAYAR: DEBOUNCED ─────────────────────────────────────
+  //
+  // ── KENAPA HARUS DEBOUNCED ──────────────────────────────────────────────────
+  // Tanpa jeda, setiap huruf yang diketik memicu pengumuman. Pengguna pembaca
+  // layar akan mendengar "Lemah… Lemah… Lemah…" puluhan kali, dan itu membuat
+  // halaman tidak terpakai — pengumuman saling menimpa sebelum selesai.
+  //
+  // GSAP Vault menyebutnya "strength announced politely once typing pauses".
+  // Jeda 600ms: cukup lama untuk menandakan pengguna berhenti, cukup pendek
+  // agar umpan balik tidak terasa tertunda.
+  let timerSr = null;
+
+  function umumkanKekuatan(skor) {
+    const el = $('kekuatanSr');
+    if (!el) return;
+
+    clearTimeout(timerSr);
+    timerSr = setTimeout(() => {
+      // Kosong: tidak ada yang perlu diumumkan.
+      if (skor === 0) { el.textContent = ''; return; }
+
+      const label = LABEL[skor];
+      const kurang = 4 - skor;
+      el.textContent = kurang === 0
+        ? `Kekuatan sandi: ${label}. Semua syarat terpenuhi.`
+        : `Kekuatan sandi: ${label}. ${kurang} syarat lagi untuk kuat.`;
+    }, 600);
+  }
+
+  /** Perbarui meter + label visual. */
+  function perbaruiMeter(skor) {
+    const meter = $('meterSandi');
+    if (meter) {
+      // Setiap segmen diberi `data-isi` 1 atau 0. CSS yang mengurus animasi
+      // sapuan (arah masuk dari kiri, arah keluar dari kanan) — JS hanya
+      // menyatakan KEADAAN, bukan gerakannya.
+      [...meter.querySelectorAll('.auth-meter-segmen')].forEach((seg, i) => {
+        seg.dataset.isi = i < skor ? '1' : '0';
+      });
+    }
+
+    const label = $('labelKekuatan');
+    if (label) {
+      label.textContent = skor > 0 ? LABEL[skor] : '';
+      // Menyala hanya saat semua syarat terpenuhi — satu warna status,
+      // bukan gradien merah-kuning-hijau.
+      label.dataset.kuat = skor >= 4 ? '1' : '0';
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
   // ── TOMBOL LIHAT SANDI ────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════
   //
@@ -139,7 +229,18 @@
   // ══════════════════════════════════════════════════════════════════════════
 
   inpSandi.addEventListener('input', () => {
-    periksaSyarat(inpSandi.value);
+    const nilai = inpSandi.value;
+
+    // 1. Tanda centang — digambar/dibatalkan lewat CSS stroke-dashoffset.
+    periksaSyarat(nilai);
+
+    // 2. Meter kekuatan + label.
+    const skor = hitungSkor(nilai);
+    perbaruiMeter(skor);
+
+    // 3. Pengumuman pembaca layar — debounced, tidak setiap huruf.
+    umumkanKekuatan(skor);
+
     // Pesan kecocokan lama tidak lagi relevan setelah sandi pertama berubah.
     if (msgCocok.textContent) msgCocok.textContent = '';
   });

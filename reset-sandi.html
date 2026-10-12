@@ -56,7 +56,6 @@
     <a href="/home">Beranda</a>
     <a href="/pricing">Harga</a>
     <a href="/docs">Panduan</a>
-    <a href="/sign-in">Masuk</a>
   </nav>
 </header>
 
@@ -156,18 +155,89 @@
           role="status" + aria-live="polite" — pembaca layar mengumumkan
           perubahan status tanpa memotong apa yang sedang dibaca.
         -->
-        <ul class="auth-syarat" id="daftarSyarat" role="status" aria-live="polite">
+        <!--
+          ══════════════════════════════════════════════════════════════════════
+          ── SYARAT SANDI + METER KEKUATAN ────────────────────────────────────
+          ══════════════════════════════════════════════════════════════════════
+
+          ── DUA BAGIAN, DUA TUGAS ─────────────────────────────────────────────
+          Meter di atas menjawab "seberapa kuat?" dengan satu pandangan.
+          Daftar di bawah menjawab "apa yang kurang?" dengan tepat.
+
+          Keduanya diperlukan: meter saja membuat pengguna menebak apa yang
+          harus diubah; daftar saja tidak memberi gambaran kemajuan.
+
+          ── KENAPA METER 4 SEGMEN, BUKAN BAR MENERUS ──────────────────────────
+          Bar menerus dengan gradien panjang terlihat seperti progress bar
+          unggahan — bahasa visual yang salah untuk keamanan. Empat segmen
+          diskret (pola GSAP Vault) terbaca sebagai "tingkat", bukan "proses".
+
+          Setiap segmen menyapu masuk dari kiri ke kanan saat terisi, dan
+          menyapu keluar dari kanan ke kiri saat kosong — arah yang berlawanan
+          membuat pengosongan terasa seperti "membatalkan", bukan "mengulang".
+        -->
+        <div class="auth-meter" id="meterSandi" aria-hidden="true">
+          <span class="auth-meter-segmen" data-isi="0"></span>
+          <span class="auth-meter-segmen" data-isi="0"></span>
+          <span class="auth-meter-segmen" data-isi="0"></span>
+          <span class="auth-meter-segmen" data-isi="0"></span>
+        </div>
+
+        <!-- Label kekuatan — teks, bukan warna saja.
+             Warna saja tidak terbaca oleh pengguna buta warna, dan "3 dari 4
+             segmen" tidak bermakna apa pun tanpa label. -->
+        <p class="auth-meter-label" id="labelKekuatan" aria-hidden="true"></p>
+
+        <!--
+          ── PENGUMUMAN PEMBACA LAYAR ──────────────────────────────────────────
+          Terpisah dari label visual, dan aria-live="polite" — pembaca layar
+          mengumumkan setelah pengguna berhenti mengetik, bukan setiap huruf.
+
+          Kalau digabung dengan daftar syarat, setiap huruf yang diketik akan
+          memicu pengumuman ulang seluruh daftar — tidak terbaca oleh manusia.
+        -->
+        <p class="auth-sr-only" id="kekuatanSr" role="status" aria-live="polite"></p>
+
+        <!--
+          ── DAFTAR SYARAT ─────────────────────────────────────────────────────
+          Setiap tanda adalah SVG dengan lingkaran + jalur centang. Centang
+          DIGAMBAR lewat stroke-dashoffset saat syarat terpenuhi, dan
+          DIBATALKAN (dashoffset kembali) saat syarat hilang.
+
+          ── KENAPA SVG, BUKAN KARAKTER ✓ ATAU ::after ─────────────────────────
+          Versi sebelumnya memakai ::after dengan border yang dirotasi —
+          centang muncul mendadak, tanpa animasi. SVG stroke-dashoffset
+          adalah satu-satunya cara menggambar garis secara bertahap.
+
+          ── KENAPA role="list" DI <ul> ──────────────────────────────────────
+          list-style: none membuat Safari menghapus semantik daftar.
+          Menambahkan role="list" secara eksplisit mengembalikannya, sehingga
+          pembaca layar mengumumkan "daftar, 3 item".
+        -->
+        <ul class="auth-syarat" id="daftarSyarat" role="list">
           <li class="auth-syarat-item" data-syarat="panjang">
-            <span class="auth-syarat-tanda" aria-hidden="true"></span>
-            <span>Minimal 8 karakter</span>
+            <svg class="auth-syarat-tanda" viewBox="0 0 16 16" width="16" height="16"
+                 aria-hidden="true" focusable="false">
+              <circle class="auth-syarat-lingkaran" cx="8" cy="8" r="6.5" fill="none"/>
+              <path class="auth-syarat-centang" d="M5 8.2l2.2 2.2L11 6" fill="none"/>
+            </svg>
+            <span class="auth-syarat-teks">Minimal 8 karakter</span>
           </li>
           <li class="auth-syarat-item" data-syarat="huruf">
-            <span class="auth-syarat-tanda" aria-hidden="true"></span>
-            <span>Huruf besar dan kecil</span>
+            <svg class="auth-syarat-tanda" viewBox="0 0 16 16" width="16" height="16"
+                 aria-hidden="true" focusable="false">
+              <circle class="auth-syarat-lingkaran" cx="8" cy="8" r="6.5" fill="none"/>
+              <path class="auth-syarat-centang" d="M5 8.2l2.2 2.2L11 6" fill="none"/>
+            </svg>
+            <span class="auth-syarat-teks">Huruf besar dan kecil</span>
           </li>
           <li class="auth-syarat-item" data-syarat="angka">
-            <span class="auth-syarat-tanda" aria-hidden="true"></span>
-            <span>Minimal satu angka</span>
+            <svg class="auth-syarat-tanda" viewBox="0 0 16 16" width="16" height="16"
+                 aria-hidden="true" focusable="false">
+              <circle class="auth-syarat-lingkaran" cx="8" cy="8" r="6.5" fill="none"/>
+              <path class="auth-syarat-centang" d="M5 8.2l2.2 2.2L11 6" fill="none"/>
+            </svg>
+            <span class="auth-syarat-teks">Minimal satu angka</span>
           </li>
         </ul>
 
