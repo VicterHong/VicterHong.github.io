@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+# Git hook `post-commit` — sinkronkan metrik portofolio tepat setelah ada commit.
+#
+# ── CARA PASANG ─────────────────────────────────────────────────────────────
+#   bash /home/ubuntu/portfolio-victer/scripts/pasang-hook.sh
+#
+# ── KENAPA NON-BLOCKING ─────────────────────────────────────────────────────
+#
+# Deploy memakan ~72 detik. Hook git yang menunggu selama itu membuat setiap
+# `git commit` terasa menggantung — dan orang akan mematikan hook-nya. Karena
+# itu skrip ini langsung melepas diri ke latar belakang dan `exit 0` seketika.
+#
+# ── KENAPA PAKAI DEBOUNCE ───────────────────────────────────────────────────
+#
+# Satu sesi kerja biasanya menghasilkan beberapa commit berurutan. Tanpa
+# debounce, tiap commit memicu deploy sendiri: 72 detik kerja server + satu
+# jatah kuota Cloudflare Pages (500/bulan). Dengan debounce, commit-commit
+# berdekatan digabung jadi SATU deploy.
+#
+# ── KENAPA CRON TETAP ADA ───────────────────────────────────────────────────
+#
+# Hook hanya jalan di mesin ini, dan hanya kalau terpasang. Cron 6 jam tetap
+# dipasang sebagai jaring pengaman — kalau hook gagal, atau commit datang dari
+# mesin lain, metrik tetap tersinkron.
+#
+set -u
+
+PORTFOLIO="/home/ubuntu/portfolio-victer"
+NODE="/home/ubuntu/.hermes/node/bin/node"
+LOG="/home/ubuntu/.portfolio-token/hook-commit.log"
+LOCK="/tmp/portfolio-hook.lock"
+PENDING="/tmp/portfolio-hook.pending"
+
+# Jeda debounce (detik). Bisa diperkecil lewat env untuk pengujian.
+DEBOUNCE="${PORTFOLIO_HOOK_DEBOUNCE:-90}"
+
+REPO="${1:-$PWD}"
+NAMA="$(basename "$REPO" 2>/dev/null || echo '?')"
+
+mkdir -p "$(dirname "$LOG")" 2>/dev/null || true
+
+# ── LEPAS KE LATAR BELAKANG ───────────────────────────────────────────────────
+#
+# Commit tidak boleh menunggu. `setsid` memisahkan pekerja dari sesi shell git
+# supaya ia tetap hidup walau terminal sudah kembali ke prompt.
+if [ "${PORTFOLIO_HOOK_WORKER:-}" != "1" ]; then
+  PORTFOLIO_HOOK_WORKER=1 setsid bash "$0" "$REPO" </dev/null >>"$LOG" 2>&1 &
+  exit 0
+fi
+
+echo "── $(date '+%Y-%m-%d %H:%M:%S') commit di $NAMA ──" >>"$LOG"
+
+# ── JANGAN PASANG DI REPO PORTOFOLIO SENDIRI ──────────────────────────────────
+#
+# Sinkronisasi ini menulis commit KE repo portofolio. Kalau hook terpasang di
+# sana juga, setiap sinkronisasi memicu sinkronisasi berikutnya — lingkaran
+# tanpa akhir. Ini lapisan kedua; installer juga sudah menolaknya.
+case "$REPO" in
+  "$PORTFOLIO"|"$PORTFOLIO"/*)
+    echo "dilewati: repo portofolio sendiri (akan jadi lingkaran)" >>"$LOG"
+    exit 0
+    ;;
+esac
+
+# ── SATU PEKERJA SAJA ─────────────────────────────────────────────────────────
+#
+# Commit beruntun bisa memicu beberapa hook sekaligus. Yang kalah hanya
+# menandai "ada commit baru" lalu keluar; pekerja yang menang akan membacanya
+# di loop debounce di bawah.
+exec 9>"$LOCK"
+if ! flock -n 9; then
+  touch "$PENDING"
+  echo "pekerja lain sedang jalan → ditandai ada commit baru" >>"$LOG"
+  exit 0
+fi
+
+# ── DEBOUNCE: TUNGGU SAMPAI COMMIT BERHENTI ───────────────────────────────────
+#
+# Selama jeda, kalau ada commit baru (penanda PENDING dibuat), ulangi jeda.
+# Jadi deploy hanya terjadi setelah aktivitas commit benar-benar berhenti.
+while true; do
+  rm -f "$PENDING"
+  sleep "$DEBOUNCE"
+  if [ -f "$PENDING" ]; then
+    echo "ada commit baru selama jeda → tunggu lagi" >>"$LOG"
+    continue
+  fi
+  break
+done
+
+# ── SINKRONISASI ──────────────────────────────────────────────────────────────
+
+cd "$PORTFOLIO" || { echo "GAGAL: $PORTFOLIO tidak ada" >>"$LOG"; exit 1; }
+
+# Cek dulu: kalau metrik sudah sinkron, tidak perlu deploy sama sekali.
+if "$NODE" scripts/sync-metrik.mjs --check >>"$LOG" 2>&1; then
+  echo "metrik sudah sinkron — tidak deploy" >>"$LOG"
+  exit 0
+fi
+
+if ! "$NODE" scripts/sync-metrik.mjs >>"$LOG" 2>&1; then
+  echo "GAGAL sinkronisasi" >>"$LOG"
+  exit 1
+fi
+
+# Kalau ternyata berkasnya tidak berubah (mis. nilai kembali sama), jangan
+# memaksa commit dan deploy yang tidak ada isinya.
+if git diff --quiet assets/js/data/projects.js 2>/dev/null; then
+  echo "tidak ada perubahan berkas — tidak deploy" >>"$LOG"
+  exit 0
+fi
+
+git add assets/js/data/projects.js >>"$LOG" 2>&1
+git commit -m "data(proyek): sinkron dari commit $NAMA $(date '+%Y-%m-%d %H:%M')" >>"$LOG" 2>&1
+
+if npm run deploy:aman >>"$LOG" 2>&1; then
+  echo "deploy OK" >>"$LOG"
+else
+  echo "DEPLOY GAGAL" >>"$LOG"
+  exit 1
+fi
+
+# Pangkas log supaya tidak tumbuh tanpa batas.
+tail -500 "$LOG" > "$LOG.tmp" 2>/dev/null && mv "$LOG.tmp" "$LOG"
