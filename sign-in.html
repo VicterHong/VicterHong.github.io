@@ -221,10 +221,30 @@
           <div class="auth-field">
             <!-- Label + "Lupa sandi?" sebaris — pola korporat (Stripe, Linear):
                  tindakan pemulihan berada tepat di sebelah kolom yang bermasalah,
-                 bukan di bawah form tempat pengguna harus mencarinya. -->
+                 bukan di bawah form tempat pengguna harus mencarinya.
+
+                 ── KENAPA <a href>, BUKAN <button> ────────────────────────────
+                 Sebelumnya ini tombol yang memindahkan panel DI DALAM kartu —
+                 URL tidak berubah, dan tiga hal rusak:
+
+                   1. Tautan tidak bisa dikirim/di-bookmark ("buka /lupa-sandi")
+                   2. Tombol Back membawa pengguna KELUAR dari situs
+                   3. Pengguna yang panik menghadapi kartu penuh elemen lain
+
+                 Stripe memakai halaman tersendiri (dashboard.stripe.com/reset).
+                 Sekarang sama: <a href="/lupa-sandi">.
+
+                 <a> juga lebih baik secara teknis: bekerja dengan klik tengah,
+                 Ctrl+klik, dan "buka di tab baru" — tombol dengan JS tidak.
+
+                 ── KENAPA EMAIL DIKIRIM DI QUERY STRING ──────────────────────
+                 Kalau pengguna sudah mengetik emailnya, tidak perlu mengetik
+                 ulang di halaman berikutnya. Handler di bawah menambahkan
+                 parameter itu SEBELUM navigasi. -->
             <div class="auth-label-baris">
               <label for="inpSandi">Sandi</label>
-              <button type="button" class="auth-link-inline auth-link-kecil" id="btnLupaSandi">Lupa sandi?</button>
+              <a class="auth-link-inline auth-link-kecil" id="linkLupaSandi"
+                 href="/lupa-sandi">Lupa sandi?</a>
             </div>
             <div class="auth-input-wrap auth-input-ikon">
               <!-- ── IKON KIRI: GEMBOK ────────────────────────────────────
@@ -588,46 +608,8 @@
            Meminta tautan reset. Server SELALU membalas sukses apa pun status
            emailnya (mencegah orang memeriksa email mana yang terdaftar), jadi
            panel ini tidak pernah menampilkan "email tidak ditemukan". -->
-      <section class="auth-panel" id="panel-lupa" data-panel="lupa">
-        <h2 class="auth-panel-title">Pemulihan sandi</h2>
-        <p class="auth-panel-desc">
-          Masukkan email terdaftar. Tautan pembuatan sandi baru akan dikirimkan ke alamat tersebut.
-        </p>
-        <form class="auth-form" id="formLupa" autocomplete="on" novalidate>
-          <div class="auth-field">
-            <label for="inpEmailLupa">Email</label>
-            <input class="auth-input" type="email" id="inpEmailLupa" name="email"
-                   required autocomplete="email">
-          </div>
-          <div class="auth-turnstile" id="turnstileSlotLupa" aria-hidden="true"></div>
-          <button type="submit" class="auth-submit" id="btnLupa">
-            <span class="auth-submit-label">Kirim tautan</span>
-            <span class="auth-submit-spinner" aria-hidden="true"></span>
-          </button>
-          <p class="auth-msg" id="msgLupa" role="status" aria-live="polite"></p>
-          <button type="button" class="auth-link" id="btnBatalLupa">← Kembali ke sign in</button>
-        </form>
-      </section>
 
       <!-- ══ Panel: tautan terkirim ═════════════════════════════════════════ -->
-      <section class="auth-panel" id="panel-lupa-selesai" data-panel="lupa-selesai">
-        <div class="auth-done">
-          <svg class="auth-check" viewBox="0 0 52 52" aria-hidden="true">
-            <circle cx="26" cy="26" r="24" fill="none" stroke="#f5c542" stroke-width="2"/>
-            <path d="M15 27l7.5 7.5L37 20" fill="none" stroke="#f5c542"
-                  stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                  class="auth-check-path"/>
-          </svg>
-          <h2 class="auth-done-title">Periksa email Anda</h2>
-          <p class="auth-done-sub">
-            Kalau email itu terdaftar, kami sudah mengirim tautan untuk membuat
-            sandi baru. Tautan berlaku 1 jam.
-          </p>
-          <button type="button" class="auth-submit" id="btnKembaliDariLupa">
-            <span class="auth-submit-label">Kembali ke halaman masuk</span>
-          </button>
-        </div>
-      </section>
 
       <!-- ══ Panel: setup 2FA (QR + verifikasi) ═════════════════════════════ -->
       <section class="auth-panel" id="panel-setup2fa" data-panel="setup2fa">

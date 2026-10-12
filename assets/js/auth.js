@@ -929,69 +929,62 @@
   });
 
   // ══ Alur: LUPA SANDI ═════════════════════════════════════════════════════
-
-  $('#btnLupaSandi')?.addEventListener('click', () => {
-    // Isi otomatis dengan email yang sudah diketik — hemat satu langkah.
-    const email = $('#inpEmailMasuk')?.value?.trim();
-    if (email) { const el = $('#inpEmailLupa'); if (el) el.value = email; }
-    pindahPanel('lupa');
-    $('#inpEmailLupa')?.focus();
-  });
-
-  $('#btnBatalLupa')?.addEventListener('click', () => {
-    pesan($('#msgLupa'), '');
-    pindahPanel('masuk');
-  });
-
-  $('#btnKembaliDariLupa')?.addEventListener('click', () => pindahPanel('masuk'));
-
-  const formLupa = $('#formLupa');
-  const btnLupa = $('#btnLupa');
-  const msgLupa = $('#msgLupa');
-
-  formLupa?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = $('#inpEmailLupa')?.value?.trim() ?? '';
-
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      pesan(msgLupa, 'Format email tidak valid.', 'galat');
-      getar(kartu);
-      $('#inpEmailLupa')?.focus();
-      return;
-    }
-
-    setMemuat(btnLupa, true);
-    pesan(msgLupa, 'Mengirim…');
-
-    await siapkanTurnstile();
-    const tokenTurnstile = await tungguTokenTurnstile(8000);
-
-    try {
-      const hasil = await kirimJson('/api/auth/lupa-sandi', {
-        email,
-        'cf-turnstile-response': tokenTurnstile,
-      });
-
-      // Server SELALU membalas sukses (mencegah orang memeriksa email mana
-      // yang terdaftar). Jadi panel berikutnya tidak pernah mengungkapkan
-      // apakah email itu ada atau tidak.
-      if (!hasil.ok) {
-        pesan(msgLupa, pesanGalat(hasil, 'Gagal mengirim. Coba lagi.'), 'galat');
-        getar(kartu);
-        return;
+  //
+  // ── HALAMAN TERPISAH, BUKAN PANEL DI DALAM KARTU ────────────────────────────
+  //
+  // Versi sebelumnya: `#btnLupaSandi` memindahkan panel di dalam kartu yang
+  // sama. URL tidak berubah, dan itu menyebabkan tiga masalah nyata:
+  //
+  //   1. Tautan tidak bisa dikirim — "buka /lupa-sandi" bisa di-Share,
+  //      "klik Lupa sandi di halaman masuk" tidak.
+  //   2. Tombol Back membawa pengguna KELUAR dari situs, bukan kembali ke
+  //      halaman masuk — karena URL tidak pernah berubah.
+  //   3. Pengguna yang panik menghadapi kartu penuh elemen: tombol sosial,
+  //      kolom sandi, "ingat saya". Satu tugas per layar lebih baik.
+  //
+  // Stripe memakai halaman tersendiri (dashboard.stripe.com/reset). Sekarang
+  // sama: `<a href="/lupa-sandi">` — navigasi biasa, bukan JS.
+  //
+  // ── SATU-SATUNYA HAL YANG DILAKUKAN JS DI SINI ──────────────────────────────
+  // Menambahkan email yang sudah diketik ke URL tujuan, supaya pengguna tidak
+  // perlu mengetiknya dua kali. Kalau kolomnya kosong, tautan tetap bekerja
+  // seperti biasa — halaman tujuan akan meminta email.
+  //
+  // ── KENAPA TIDAK preventDefault + location.href ─────────────────────────────
+  // Itu akan merusak klik tengah, Ctrl+klik, dan "buka di tab baru". Dengan
+  // membiarkan navigasi berjalan dan hanya mengubah `href`, semua perilaku
+  // bawaan peramban tetap bekerja.
+  const linkLupa = $('#linkLupaSandi');
+  if (linkLupa) {
+    linkLupa.addEventListener('click', () => {
+      const email = $('#inpEmailMasuk')?.value?.trim();
+      if (email) {
+        linkLupa.href = `/lupa-sandi?email=${encodeURIComponent(email)}`;
       }
+    });
+  }
 
-      pesan(msgLupa, '');
-      pindahPanel('lupa-selesai');
-    } catch (err) {
-      pesan(msgLupa, err?.name === 'AbortError'
-        ? 'Server tidak merespons.'
-        : 'Gagal terhubung.', 'galat');
-      getar(kartu);
-    } finally {
-      setMemuat(btnLupa, false);
-    }
-  });
+  // ══ Alur: LUPA SANDI ═════════════════════════════════════════════════════
+  //
+  // ── KODE FORM LUPA DIHAPUS DARI HALAMAN INI ─────────────────────────────────
+  //
+  // Versi sebelumnya punya panel lupa DI DALAM kartu halaman masuk, dengan
+  // form + handler di berkas ini. Sekarang pemulihan sandi punya halaman
+  // sendiri (`/lupa-sandi`) dengan skripnya sendiri (`lupa-sandi.js`).
+  //
+  // ── KENAPA DIHAPUS, BUKAN DIBIARKAN ─────────────────────────────────────────
+  // Kode yang tidak lagi dipakai bukan "cadangan" — ia beban:
+  //
+  //   • `$('#formLupa')` mengembalikan null sekarang, jadi handler tidak
+  //     pernah terpasang. Kalau ada yang mengubahnya nanti dan lupa bahwa
+  //     elemennya sudah tidak ada, ia akan bingung kenapa tidak bekerja.
+  //   • 40 baris yang harus dibaca setiap kali berkas ini dibuka.
+  //   • Kalau suatu saat panel itu dibuat kembali, salinan lama akan
+  //     bertabrakan dengan yang baru — dua handler untuk satu id.
+  //
+  // Yang tersisa di sini hanya SATU hal: menambahkan email yang sudah
+  // diketik ke tautan `/lupa-sandi`, supaya pengguna tidak mengetiknya dua
+  // kali. Lihat di atas (linkLupa).
 
   // ══ Alur: DAFTAR (sign up) ═══════════════════════════════════════════════
   //
