@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Changelog | VIVASTIC</title>
+<meta name="description" content="Semua perubahan penting pada layanan VIVASTIC, dikelompokkan per tanggal — fitur baru, perbaikan, dan performa.">
+<meta name="author" content="VIVASTIC">
+<meta name="theme-color" content="#f5c542">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://portfolio-victer.pages.dev/changelog">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+
+<meta property="og:title" content="Changelog, VIVASTIC">
+<meta property="og:description" content="Fitur baru, perbaikan, dan performa — dikelompokkan per tanggal.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://portfolio-victer.pages.dev/changelog">
+<meta property="og:locale" content="id_ID">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Changelog VIVASTIC",
+  "description": "Catatan rilis: fitur baru, perbaikan, dan performa layanan.",
+  "inLanguage": "id-ID",
+  "author": { "@type": "Person", "name": "VIVASTIC" },
+  "publisher": { "@type": "Person", "name": "VIVASTIC" }
+}
+</script>
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/docs.css">
+<link rel="stylesheet" href="assets/css/changelog.css">
+<link rel="stylesheet" href="assets/css/cookies.css">
+<link rel="stylesheet" href="assets/css/logo.css">
+<link rel="stylesheet" href="assets/css/cf-gate.css">
+</head>
+<body>
+
+<div class="hero-backdrop" aria-hidden="true">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg"></video>
+  <div class="hero-fallback"></div>
+</div>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="/home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">VIVASTIC</span>
+    </a>
+    <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
+      <a href="/home#s6ahns">Tentang</a>
+      <a href="/home#cckxsk">Layanan</a>
+      <a href="/pricing">Harga</a>
+      <a href="/home#utqvwf">Proyek</a>
+      <a href="/home#5nfyzw">Cara kerja</a>
+      <a href="/docs">Panduan</a>
+      <a href="/changelog" aria-current="page">Changelog</a>
+      <a href="/home#kontak">Kontak</a>
+    </nav>
+    <div class="nav-akun" id="navAkun">
+      <a class="nav-signin" href="/sign-in">Sign in</a>
+    </div>
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="siteNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
+
+<main class="docs-page">
+
+  <div class="docs-head">
+    <p class="docs-eyebrow">
+      <span data-icon="book" data-icon-size="14"></span>
+      Catatan rilis
+    </p>
+    <h1>Changelog</h1>
+    <p>
+      Semua perubahan pada layanan ini, dikelompokkan per tanggal.
+      Fitur baru, perbaikan, dan peningkatan performa — apa adanya, tanpa pemasaran.
+    </p>
+    <p class="cl-ringkas" id="clRingkas">Memuat riwayat…</p>
+  </div>
+
+  <div class="docs-layout">
+
+    <!-- ══ SIDEBAR: DAFTAR TANGGAL ══════════════════════════════════════════════
+         Pola Claude Code Docs: sidebar berisi navigasi. Di sini isinya daftar
+         tanggal rilis + penyaring kategori — pembaca bisa melompat ke tanggal
+         tertentu atau menyaring hanya "Fitur baru".
+
+         Di mobile sidebar jadi panel geser (mekanisme sama dengan halaman
+         Panduan) — lihat changelog.js. -->
+    <button class="docs-bilah-nav cl-bilah-buka" id="clNavBuka" type="button"
+            aria-label="Buka navigasi" aria-expanded="false" aria-controls="clSidebar">
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="none"
+           stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 5h14M3 10h14M3 15h9"/>
+      </svg>
+      <span>Navigasi</span>
+      <span class="docs-bilah-jumlah" id="clNavJumlah"></span>
+    </button>
+
+    <div class="docs-nav-scrim" id="clNavScrim" aria-hidden="true"></div>
+
+    <nav class="toc cl-sidebar" id="clSidebar" aria-label="Navigasi changelog"
+         data-judul-panel="Changelog">
+
+      <!-- Penyaring kategori — pola yang sama dengan Claude docs: kontrol
+           dulu, baru daftar. -->
+      <div class="toc-kepala">
+        <p class="cl-filter-label" id="clFilterLabel">Saring kategori</p>
+        <div class="cl-filter" role="group" aria-labelledby="clFilterLabel" id="clFilter"></div>
+      </div>
+
+      <!-- Daftar tanggal — diisi JS dari changelog.json. -->
+      <div class="cl-tanggal-nav" id="clTanggalNav"></div>
+    </nav>
+
+    <div class="doc-content cl-konten" id="clKonten">
+
+      <!-- ══ KEADAAN AWAL ══════════════════════════════════════════════════════
+           Kerangka yang menyerupai hasil akhir — supaya tidak ada lompatan
+           tata letak saat data tiba (CLS). -->
+      <div class="cl-skeleton" id="clSkeleton" aria-hidden="true">
+        <div class="cl-skeleton-baris"></div>
+        <div class="cl-skeleton-baris"></div>
+        <div class="cl-skeleton-baris"></div>
+      </div>
+
+      <p class="cl-kosong" id="clKosong" hidden>
+        Tidak ada perubahan pada kategori ini.
+      </p>
+
+      <!-- Daftar rilis — diisi JS. -->
+      <div id="clDaftar"></div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer" id="siteFooter"></footer>
+
+<script src="/assets/js/nav-akun.js" defer></script>
+<script src="/assets/js/changelog.js" defer></script>
+<script src="assets/js/logo-mount.js" defer></script>
+<script src="assets/js/footer.js" defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
+<script src="assets/js/cf-gate-i18n.js" defer></script>
+<script src="assets/js/cf-gate.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   CHANGELOG — catatan rilis
+   ══════════════════════════════════════════════════════════════════════════════
+
+   Pola dari Claude Code Docs changelog:
+     - Dikelompokkan per TANGGAL (bukan versi semver — proyek ini tidak pakai
+       tag versi, dan tanggal lebih jujur: pembaca tahu kapan sesuatu berubah)
+     - Tiap tanggal punya kategori: Fitur baru / Perbaikan / Performa / …
+     - Item ringkas, satu baris, dengan penanda warna per kategori
+
+   Yang dipakai dari docs.css: .docs-page, .docs-layout, .toc (panel geser),
+   .docs-nav-scrim, .docs-bilah-nav. Halaman ini memuat docs.css juga, jadi
+   tidak ada duplikasi mekanisme panel.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Ringkasan di bawah deskripsi ─────────────────────────────────────────── */
+.cl-ringkas {
+  margin-top: 0.9rem;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Sidebar: penyaring + daftar tanggal ──────────────────────────────────── */
+
+/* Di desktop sidebar ini memakai .toc dari docs.css (sticky, 240px).
+   Yang ditambahkan hanya isinya. */
+
+.cl-filter-label {
+  margin: 0 0 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cl-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1.1rem;
+}
+
+.cl-filter-item {
+  padding: 0.32rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.cl-filter-item:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.cl-filter-item.is-aktif {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.cl-filter-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Daftar tanggal di sidebar ────────────────────────────────────────────── */
+.cl-tanggal-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cl-nav-tanggal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.42rem 0.6rem;
+  border-radius: 6px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.82rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.cl-nav-tanggal:hover {
+  color: var(--text);
+  background: var(--bg-soft);
+}
+
+.cl-nav-tanggal:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.cl-nav-hari {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Jumlah perubahan — angka, bukan label; tabular supaya sejajar. */
+.cl-nav-jumlah {
+  flex: 0 0 auto;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Konten: daftar rilis ─────────────────────────────────────────────────── */
+.cl-konten {
+  /* Sedikit lebih lebar dari panduan — changelog lebih banyak baris pendek. */
+  max-width: 760px;
+}
+
+.cl-hari {
+  padding-bottom: 1.9rem;
+  margin-bottom: 1.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.cl-hari:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.cl-hari-kepala {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.cl-hari-tanggal {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+/* "hari ini" / "3 hari lalu" — konteks waktu, bukan judul. */
+.cl-hari-jarak {
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.cl-hari-jumlah {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Kategori ─────────────────────────────────────────────────────────────── */
+.cl-kategori {
+  margin-bottom: 1.2rem;
+}
+
+.cl-kategori:last-child {
+  margin-bottom: 0;
+}
+
+.cl-kategori-judul {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+/* Penanda warna per kategori — titik kecil, bukan bilah tebal.
+   Warna membantu memindai; ukuran kecil menjaga agar tidak jadi hiasan. */
+.cl-tanda {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.cl-kategori-fitur .cl-tanda { background: #4ade80; }
+.cl-kategori-perbaikan .cl-tanda { background: #f5c542; }
+.cl-kategori-performa .cl-tanda { background: #60a5fa; }
+.cl-kategori-dokumentasi .cl-tanda { background: #a78bfa; }
+.cl-kategori-data .cl-tanda { background: #22d3ee; }
+.cl-kategori-pemeliharaan .cl-tanda { background: var(--text-faint); }
+
+/* ── Daftar item ──────────────────────────────────────────────────────────── */
+.cl-daftar {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.cl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding-left: 1rem;
+  position: relative;
+  line-height: 1.55;
+}
+
+/* Titik kecil sebagai penanda baris — menggantikan bullet <ul>. */
+.cl-item::before {
+  content: '';
+  position: absolute;
+  left: 0.15rem;
+  top: 0.6em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  opacity: 0.6;
+}
+
+.cl-item-teks {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+/* Scope dari Conventional Commits — mis. "docs", "auth", "profil".
+   Monospace + redup: menandai area teknis tanpa menarik perhatian. */
+.cl-scope {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  vertical-align: 0.05em;
+}
+
+/* Hash commit — bisa diklik mata untuk verifikasi, tapi tidak mengganggu. */
+.cl-hash {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* ── Keadaan awal: kerangka ───────────────────────────────────────────────── */
+.cl-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cl-skeleton-baris {
+  height: 5.5rem;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-soft) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    var(--bg-soft) 100%
+  );
+  background-size: 200% 100%;
+  animation: cl-denyut 1.4s ease-in-out infinite;
+}
+
+@keyframes cl-denyut {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-skeleton-baris { animation: none; }
+}
+
+.cl-kosong {
+  padding: 2rem 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ══ MOBILE ════════════════════════════════════════════════════════════════════
+   Sidebar jadi panel geser — mekanisme sama dengan halaman Panduan, jadi
+   aturannya sebagian sudah ada di docs.css (.toc, .docs-nav-scrim).
+   Yang di sini hanya penyesuaian isi sidebar changelog. */
+@media (max-width: 900px) {
+
+  /* Tombol buka panel: di changelog tidak perlu bilah fixed dengan menu
+     titik tiga — cukup tombol tunggal di atas konten. */
+  .cl-bilah-buka {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    min-height: 48px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-card);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .cl-bilah-buka:hover { border-color: var(--accent); }
+
+  .cl-bilah-buka:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Penyaring di panel: lebih lega supaya nyaman disentuh. */
+  .cl-filter-item {
+    min-height: 38px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  /* Tanggal di panel: 44px supaya nyaman disentuh. */
+  .cl-nav-tanggal {
+    min-height: 44px;
+    font-size: 0.86rem;
+  }
+
+  /* Konten: jarak antar-hari sedikit dirapatkan. */
+  .cl-hari {
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .cl-hari-jumlah {
+    /* Di layar sempit, "20 perubahan" di kanan membuat baris judul berdesakan.
+       Turunkan ke baris berikutnya. */
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .cl-item {
+    gap: 0.5rem;
+  }
+
+  /* Hash commit disembunyikan di mobile — verifikasi commit bukan tugas
+     pembaca ponsel, dan 7 karakter monospace memakan ruang yang berharga. */
+  .cl-hash { display: none; }
+}
+
+/* Desktop: tombol buka panel disembunyikan (sidebar sudah terlihat). */
+@media (min-width: 901px) {
+  .cl-bilah-buka { display: none; }
+}

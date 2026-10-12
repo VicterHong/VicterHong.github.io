@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "node scripts/build-css.mjs && node scripts/generate-discovery.mjs && wrangler pages deploy dist --project-name=portfolio-victer",
+    "deploy": "node scripts/generate-changelog.mjs && node scripts/build-css.mjs && node scripts/generate-discovery.mjs && wrangler pages deploy dist --project-name=portfolio-victer",
     "discovery": "node scripts/generate-discovery.mjs",
-    "preflight": "node scripts/build-css.mjs && node scripts/preflight.mjs",
+    "preflight": "node scripts/generate-changelog.mjs && node scripts/build-css.mjs && node scripts/preflight.mjs",
     "debug": "node scripts/debug-production.mjs",
     "debug:network": "node scripts/debug-network.mjs",
     "shot": "node scripts/shot.mjs",
@@ -22,7 +22,8 @@
     "status": "curl -s https://portfolio-victer.victerphanjaya.workers.dev/health | python3 -m json.tool",
     "build": "node scripts/build-css.mjs",
     "deploy:aman": "node scripts/deploy-aman.mjs",
-    "verifikasi": "node scripts/verifikasi-dist.mjs"
+    "verifikasi": "node scripts/verifikasi-dist.mjs",
+    "changelog": "node scripts/generate-changelog.mjs"
   },
   "dependencies": {
     "cloudflare": "^1.0.0-beta.12"

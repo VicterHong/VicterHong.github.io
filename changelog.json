@@ -1,0 +1,2093 @@
+{
+ "dibuat": "2026-10-12T00:52:42.004Z",
+ "totalCommit": 340,
+ "totalDicatat": 338,
+ "hariPertama": "2026-10-01",
+ "hariTerakhir": "2026-10-11",
+ "rilis": [
+  {
+   "tanggal": "2026-10-11",
+   "jumlah": 20,
+   "ringkasan": {
+    "fitur": 13,
+    "perbaikan": 6,
+    "performa": 0,
+    "dokumentasi": 0,
+    "data": 1,
+    "pemeliharaan": 0
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "d19c464",
+       "teks": "Sidebar gaya Claude Code Docs — grup + item terbuka",
+       "scope": "docs"
+      },
+      {
+       "hash": "9943b47",
+       "teks": "Bilah fixed, pemilih bahasa, breadcrumb, menu titik tiga",
+       "scope": "docs"
+      },
+      {
+       "hash": "c54912b",
+       "teks": "Panel navigasi geser dari kiri (pola Claude/Stripe/Vercel)",
+       "scope": "docs"
+      },
+      {
+       "hash": "db009ca",
+       "teks": "Input kode 2FA jadi 6 kotak terpisah (pola korporasi)",
+       "scope": "keamanan"
+      },
+      {
+       "hash": "777360b",
+       "teks": "Sinkronisasi otomatis metrik proyek dari repo nyata",
+       "scope": "metrik"
+      },
+      {
+       "hash": "b50b92d",
+       "teks": "Tambah Resend sebagai penyedia kedua — bisa dipakai tanpa domain",
+       "scope": "email"
+      },
+      {
+       "hash": "ed88243",
+       "teks": "Tab Akun di panel admin — antrean penghapusan dengan tinjauan",
+       "scope": "admin"
+      },
+      {
+       "hash": "e29c7dd",
+       "teks": "Akun masa tenggang bisa dipulihkan dari halaman masuk",
+       "scope": "pemulihan"
+      },
+      {
+       "hash": "ec2c720",
+       "teks": "Model korporat 3 tahap — nonaktif → persetujuan admin → hapus",
+       "scope": "akun"
+      },
+      {
+       "hash": "40ad968",
+       "teks": "Zona Berbahaya — hapus akun dengan verifikasi kode email",
+       "scope": "profil"
+      },
+      {
+       "hash": "146ea44",
+       "teks": "Tab horizontal + tab Notifikasi baru",
+       "scope": "profil"
+      },
+      {
+       "hash": "a48433a",
+       "teks": "Sistem toast — notifikasi mengambang",
+       "scope": "profil"
+      },
+      {
+       "hash": "a1969b1",
+       "teks": "Sistem reveal tiga-fase adaptasi HorizonX.so",
+       "scope": "profil"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "58e9179",
+       "teks": "Navigasi mobile jadi tombol buka-tutup, bukan chip scroll",
+       "scope": "docs"
+      },
+      {
+       "hash": "70f383e",
+       "teks": "Widget Turnstile terpotong di ponsel ≤400px",
+       "scope": "auth"
+      },
+      {
+       "hash": "ca2d8ff",
+       "teks": "Bulatkan RAM ke 8 MB — cegah deploy palsu",
+       "scope": "metrik"
+      },
+      {
+       "hash": "88c9015",
+       "teks": "Restrukturisasi ikut HorizonX + perbaiki 3 bug hasil uji E2E",
+       "scope": "keamanan"
+      },
+      {
+       "hash": "3854d52",
+       "teks": "Tab Notifikasi jadi PREFERENSI, bukan daftar peristiwa",
+       "scope": "profil"
+      },
+      {
+       "hash": "81a141f",
+       "teks": "Gate Cloudflare menahan reveal — 15 elemen tidak pernah muncul",
+       "scope": "animasi"
+      }
+     ]
+    },
+    {
+     "kunci": "data",
+     "label": "Data",
+     "item": [
+      {
+       "hash": "ae91e5c",
+       "teks": "Perbarui WhatsApp Family Assistant dengan hasil produksi",
+       "scope": "proyek"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-10",
+   "jumlah": 30,
+   "ringkasan": {
+    "fitur": 12,
+    "perbaikan": 11,
+    "performa": 1,
+    "dokumentasi": 2,
+    "data": 0,
+    "pemeliharaan": 4
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "4cd6715",
+       "teks": "Watchdog CPU — bersihkan proses nyasar otomatis saat beban tinggi",
+       "scope": "ops"
+      },
+      {
+       "hash": "8457d5a",
+       "teks": "Adaptasi teknik BlackRay.Studio ke sistem cinematic yang ada",
+       "scope": "animasi"
+      },
+      {
+       "hash": "d65c11d",
+       "teks": "Deteksi perangkat pakai Client Hints, bukan User-Agent",
+       "scope": "perangkat"
+      },
+      {
+       "hash": "46fbb1e",
+       "teks": "Masking IP di server + endpoint admin dengan IP penuh",
+       "scope": "sesi"
+      },
+      {
+       "hash": "ff99300",
+       "teks": "Lokasi, jaringan, dan ikon per baris di kartu sesi",
+       "scope": "sesi"
+      },
+      {
+       "hash": "998cb7e",
+       "teks": "Ganti 20 ikon hand-rolled dengan Phosphor resmi",
+       "scope": "ikon"
+      },
+      {
+       "hash": "1cdfb29",
+       "teks": "Ikon + badge pola ProfileDropdown, perbaiki celah [hidden]",
+       "scope": "menu"
+      },
+      {
+       "hash": "e78bdf0",
+       "teks": "Unggah foto profil ke Cloudflare R2",
+       "scope": "profil"
+      },
+      {
+       "hash": "96e29c8",
+       "teks": "Rombak panel Sesi aktif mengikuti pola GitHub/Google",
+       "scope": "sesi"
+      },
+      {
+       "hash": "c652eb9",
+       "teks": "Tombol cabut sesi — instruksi tanpa aksi itu cacat",
+       "scope": "sesi"
+      },
+      {
+       "hash": "8c52729",
+       "teks": "7 tab lengkap dengan data nyata dari database",
+       "scope": "profil"
+      },
+      {
+       "hash": "7cc9215",
+       "teks": "Menu akun pindah ke grup terpisah + tab Pembayaran",
+       "scope": "profil"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "2cd54cd",
+       "teks": "Sinyal layar menang saat platform bertentangan",
+       "scope": "perangkat"
+      },
+      {
+       "hash": "0e14976",
+       "teks": "Nama ISP, deteksi perangkat di OAuth, badge terpotong",
+       "scope": "sesi"
+      },
+      {
+       "hash": "8748ff4",
+       "teks": "Perbaiki \"kesalahan_internal\" — body is not defined",
+       "scope": "oauth"
+      },
+      {
+       "hash": "7a32edd",
+       "teks": "Format masker IP — jumlah titik mengikuti jumlah digit",
+       "scope": "sesi"
+      },
+      {
+       "hash": "4491639",
+       "teks": "Foto profil muncul di menu akun semua halaman",
+       "scope": "header"
+      },
+      {
+       "hash": "70f403d",
+       "teks": "Catat sharp + npm ci — uji gambar tidak lagi di-skip diam-diam",
+       "scope": "ci"
+      },
+      {
+       "hash": "fc84ffe",
+       "teks": "\"Kontak\" di halaman auth menuju anchor yang tidak ada",
+       "scope": "tautan"
+      },
+      {
+       "hash": "d021efe",
+       "teks": "Check discovery berhenti jadi bom waktu harian",
+       "scope": "ci"
+      },
+      {
+       "hash": "979bee6",
+       "teks": "Tautan \"Cara masuk\" mendarat di tab yang salah",
+       "scope": "nav"
+      },
+      {
+       "hash": "f7f12e1",
+       "teks": "Sinkronkan sitemap/llms dengan generator",
+       "scope": "discovery"
+      },
+      {
+       "hash": "1bdcc20",
+       "teks": "Kontras tombol aksi-merusak — 3.70:1 → 6.98:1",
+       "scope": "tombol"
+      }
+     ]
+    },
+    {
+     "kunci": "performa",
+     "label": "Performa",
+     "item": [
+      {
+       "hash": "d8210eb",
+       "teks": "Minifikasi JS — 619 KB → 251 KB (hemat 59%)",
+       "scope": "build"
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "bef27d8",
+       "teks": "Analisis mekanisme BlackRay.Studio + demo replikasi",
+       "scope": "animasi"
+      },
+      {
+       "hash": "67b13dc",
+       "teks": "Status integrasi + panduan setup komponen React",
+       "scope": "shadcn"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "767f2d7",
+       "teks": "Hapus log pelacak sementara dari /api/auth/masuk",
+       "scope": ""
+      },
+      {
+       "hash": "55a9a7a",
+       "teks": "Log sementara lacak perangkat di /api/auth/masuk",
+       "scope": ""
+      },
+      {
+       "hash": "6f73fb0",
+       "teks": "Tinggi kontrol seragam 44px + kartu dipadatkan",
+       "scope": "auth"
+      },
+      {
+       "hash": "37eb3f0",
+       "teks": "Buang berkas yang tidak dipakai — s.bin dan .bak uji lama",
+       "scope": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-09",
+   "jumlah": 36,
+   "ringkasan": {
+    "fitur": 12,
+    "perbaikan": 13,
+    "performa": 0,
+    "dokumentasi": 3,
+    "data": 0,
+    "pemeliharaan": 8
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "f951dc6",
+       "teks": "Field Organisasi + waktu masuk terakhir",
+       "scope": "profil"
+      },
+      {
+       "hash": "4855246",
+       "teks": "Kartu identitas dengan avatar — pola settings GitHub/Vercel",
+       "scope": "profil"
+      },
+      {
+       "hash": "49074f5",
+       "teks": "Daftar isi jadi accordion — pola dokumentasi Stripe/Vercel/Linear",
+       "scope": "docs"
+      },
+      {
+       "hash": "41686f2",
+       "teks": "Tata letak sidebar + panel dari komponen Settings Card",
+       "scope": "profil"
+      },
+      {
+       "hash": "ca018e1",
+       "teks": "Footer 4 kolom — struktur dari komponen shadcn, data VIVASTIC",
+       "scope": "footer"
+      },
+      {
+       "hash": "5689294",
+       "teks": "Halaman profil bergaya Stripe — bisa diedit, bukan hanya dibaca",
+       "scope": "profil"
+      },
+      {
+       "hash": "048dc55",
+       "teks": "Sign-up beri jalan keluar saat email sudah terdaftar + 2 pengaman build",
+       "scope": "auth"
+      },
+      {
+       "hash": "bbc5d5b",
+       "teks": "Sign-in beri peringatan jelas saat akun tidak ditemukan",
+       "scope": "auth"
+      },
+      {
+       "hash": "0c36f64",
+       "teks": "Halaman daftar dapat tombol provider — sama seperti halaman masuk",
+       "scope": "auth"
+      },
+      {
+       "hash": "5c0d56e",
+       "teks": "Tambah LinkedIn + kisi tombol provider jadi fleksibel",
+       "scope": "auth"
+      },
+      {
+       "hash": "e31c9ac",
+       "teks": "Sembunyikan tombol Apple yang belum dikonfigurasi",
+       "scope": "auth"
+      },
+      {
+       "hash": "0457aaa",
+       "teks": "Dukungan SSO di skrip pemasang kredensial",
+       "scope": "sso"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "6d86867",
+       "teks": "Pupil Saweria presisi — oval vertikal + offset ke dalam",
+       "scope": "kontak"
+      },
+      {
+       "hash": "8c23693",
+       "teks": "Pupil mata Saweria — hilangkan kesan seram",
+       "scope": "kontak"
+      },
+      {
+       "hash": "24d3dc9",
+       "teks": "Logo Saweria dengan detail wajah lengkap",
+       "scope": "kontak"
+      },
+      {
+       "hash": "df10e23",
+       "teks": "Logo Saweria dari sticker resmi + haluskan tepi",
+       "scope": "kontak"
+      },
+      {
+       "hash": "13663ef",
+       "teks": "Logo merek resmi untuk Ko-fi & Saweria, bukan ikon karangan",
+       "scope": "kontak"
+      },
+      {
+       "hash": "671f028",
+       "teks": "Pengguna yang sudah login tidak perlu verifikasi Turnstile lagi",
+       "scope": "gate"
+      },
+      {
+       "hash": "d548b2d",
+       "teks": "Teks halaman daftar akurat — akun aktif seketika, bukan ditinjau manual",
+       "scope": "auth"
+      },
+      {
+       "hash": "cc9204a",
+       "teks": "Halaman meluber saat widget Turnstile dimuat — penyebab \"miring\"",
+       "scope": "auth"
+      },
+      {
+       "hash": "0855bbd",
+       "teks": "Widget Turnstile sejajar dengan kolom form",
+       "scope": "auth"
+      },
+      {
+       "hash": "bb46cd4",
+       "teks": "Tombol sign in/up tidak lagi dikunci frontend — verifikasi di backend",
+       "scope": "auth"
+      },
+      {
+       "hash": "82b72aa",
+       "teks": "CSS hilang di sign-in — verifikasi build buta + `hidden` dikalahkan `display:grid`",
+       "scope": "build"
+      },
+      {
+       "hash": "89602a8",
+       "teks": "Ikon passkey hilang saat diklik + ikon diganti versi FIDO",
+       "scope": "auth"
+      },
+      {
+       "hash": "f0bf348",
+       "teks": "FRAME_ACUAN tidak pernah dideklarasikan — animasi kartu mati total",
+       "scope": "auth"
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "01b4ad7",
+       "teks": "LinkedIn — status + cara mengaktifkan (self-serve, tanpa review)",
+       "scope": ""
+      },
+      {
+       "hash": "7e59e26",
+       "teks": "Status provider + keputusan tidak memakai Apple",
+       "scope": "auth"
+      },
+      {
+       "hash": "0b86648",
+       "teks": "Panduan Cloudflare Access lengkap dari pengalaman pemasangan",
+       "scope": "sso"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "b243ec1",
+       "teks": "Hapus field organisasi + bersihkan pola \"AI slop\"",
+       "scope": "profil"
+      },
+      {
+       "hash": "f2ae1f3",
+       "teks": "Hapus IdP Apple tiruan dan seluruh jejaknya",
+       "scope": "apple"
+      },
+      {
+       "hash": "7a182b9",
+       "teks": "IdP tiruan + uji alur Apple lengkap (20/20 lulus)",
+       "scope": "apple"
+      },
+      {
+       "hash": "1347088",
+       "teks": "Ikon SSO dibedakan dari ikon kolom sandi — gembok → gedung",
+       "scope": "auth"
+      },
+      {
+       "hash": "b100b2a",
+       "teks": "Ikon passkey jadi kunci saja (Phosphor Key)",
+       "scope": "auth"
+      },
+      {
+       "hash": "6c75edf",
+       "teks": "Checkbox profesional + simpan metode login + lihat profil tersimpan",
+       "scope": "auth"
+      },
+      {
+       "hash": "9d048f6",
+       "teks": "Checkbox \"Ingat email\" + ikon gembok SSO — mengikuti Cloudflare",
+       "scope": "auth"
+      },
+      {
+       "hash": "7426e2f",
+       "teks": "Tombol SSO jadi \"Masuk dengan SSO\" — tanpa nama vendor",
+       "scope": "auth"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-08",
+   "jumlah": 38,
+   "ringkasan": {
+    "fitur": 20,
+    "perbaikan": 8,
+    "performa": 0,
+    "dokumentasi": 0,
+    "data": 0,
+    "pemeliharaan": 10
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "cd926ab",
+       "teks": "SSO perusahaan lewat OIDC generik — berfungsi untuk semua IdP",
+       "scope": "sso"
+      },
+      {
+       "hash": "3bf688b",
+       "teks": "Avatar pengguna dibuat di edge — tanpa backend, tanpa penyimpanan",
+       "scope": "avatar"
+      },
+      {
+       "hash": "a954323",
+       "teks": "Tangani kode galat OAuth + skrip pemasang kredensial",
+       "scope": "auth"
+      },
+      {
+       "hash": "de3dba8",
+       "teks": "Halaman keamanan akun — daftar cara masuk, tambah/hapus passkey",
+       "scope": "keamanan"
+      },
+      {
+       "hash": "9677acf",
+       "teks": "Backend OAuth (Google/Microsoft/Apple/GitHub), passkey, SSO",
+       "scope": "auth"
+      },
+      {
+       "hash": "4dcfcfa",
+       "teks": "Ikon di semua field, passkey jadi kunci, footer tiga lapis",
+       "scope": "auth"
+      },
+      {
+       "hash": "ad74b15",
+       "teks": "Satu logo, bahasa korporat, animasi mata, hapus field perusahaan",
+       "scope": "auth"
+      },
+      {
+       "hash": "62c1265",
+       "teks": "Hapus placeholder + panduan login di docs",
+       "scope": "auth"
+      },
+      {
+       "hash": "2a32c32",
+       "teks": "Logo dari icon Vic's Private HQ + favicon + perbaikan kolom auth",
+       "scope": "brand"
+      },
+      {
+       "hash": "675d91c",
+       "teks": "Monogram VIVASTIC + latar grid teknis, ganti logo { } dan partikel",
+       "scope": "brand"
+      },
+      {
+       "hash": "bda5a6d",
+       "teks": "Halaman sign-in profesional + SSO/identitas mengikuti pola korporat",
+       "scope": "auth"
+      },
+      {
+       "hash": "2276916",
+       "teks": "Logo interaktif { } di semua halaman + perbaiki kedipan idle",
+       "scope": "logo"
+      },
+      {
+       "hash": "be2cde1",
+       "teks": "Gerbang verifikasi + tautan Harga di navigasi",
+       "scope": "pricing"
+      },
+      {
+       "hash": "fa370c1",
+       "teks": "Halaman Kebijakan Privasi & Syarat Ketentuan + rebrand ke Vivastic",
+       "scope": "legal"
+      },
+      {
+       "hash": "c1b2651",
+       "teks": "Pindah ke Midtrans — modal KTP, tanpa PT",
+       "scope": "pembayaran"
+      },
+      {
+       "hash": "2025418",
+       "teks": "Skrip setup kredensial Xendit — input tersembunyi",
+       "scope": "pembayaran"
+      },
+      {
+       "hash": "f7f0327",
+       "teks": "Integrasi Xendit — langganan berbayar",
+       "scope": "pembayaran"
+      },
+      {
+       "hash": "740a52e",
+       "teks": "Glow berputar saat kartu dipilih + kesejajaran grid",
+       "scope": "pricing"
+      },
+      {
+       "hash": "d6c0ebd",
+       "teks": "Diskon per periode — Bulanan 20%, Tahunan 25%",
+       "scope": "pricing"
+      },
+      {
+       "hash": "63e8b65",
+       "teks": "Halaman harga dengan data dari backend + skeleton",
+       "scope": "pricing"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "2d34ea1",
+       "teks": "Total-bytes menghitung CSS dua kali — preflight memblokir deploy",
+       "scope": "perf"
+      },
+      {
+       "hash": "93e6e37",
+       "teks": "Email akun kerja tidak terbaca + uji tidak rapuh",
+       "scope": "microsoft"
+      },
+      {
+       "hash": "0eb412e",
+       "teks": "Worker menelan redirect OAuth — login GitHub tidak bisa dipakai",
+       "scope": "oauth"
+      },
+      {
+       "hash": "00bf3e6",
+       "teks": "Passkey & SSO dipindah ke bawah, ritme jarak diseragamkan",
+       "scope": "auth"
+      },
+      {
+       "hash": "ffc49d4",
+       "teks": "Pulihkan form sign-up yang rusak + bersihkan hint + legal footer",
+       "scope": "auth"
+      },
+      {
+       "hash": "ec4301b",
+       "teks": "Hapus aturan _redirects yang menyebabkan loop tak berujung",
+       "scope": "legal"
+      },
+      {
+       "hash": "48a22e4",
+       "teks": "Harga sejajar, tombol seragam, glow mulus",
+       "scope": "pricing"
+      },
+      {
+       "hash": "c9f90f6",
+       "teks": "Kesejajaran kartu di KEDUA mode periode",
+       "scope": "pricing"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "e2d48f5",
+       "teks": "Subjudul disederhanakan jadi pola korporat",
+       "scope": "auth"
+      },
+      {
+       "hash": "a403ec4",
+       "teks": "Bersihkan em dash dari data harga di backend",
+       "scope": "anti-slop"
+      },
+      {
+       "hash": "fc20f51",
+       "teks": "Hapus em dash & gradient tombol sesuai audit referensi",
+       "scope": "anti-slop"
+      },
+      {
+       "hash": "886e874",
+       "teks": "A11y(auth): naikkan kontras ikon mata dari 4.09:1 ke 7.72:1",
+       "scope": ""
+      },
+      {
+       "hash": "807fc25",
+       "teks": "Ikon mata pakai path resmi Lucide (eye + eye-off)",
+       "scope": "auth"
+      },
+      {
+       "hash": "2890f05",
+       "teks": "Ikon kolom sandi jadi GEMBOK, ikon mata tetap di kanan",
+       "scope": "auth"
+      },
+      {
+       "hash": "25bb7e1",
+       "teks": "VIVASTIC huruf kapital semua + letter-spacing disesuaikan",
+       "scope": "brand"
+      },
+      {
+       "hash": "f834a80",
+       "teks": "Hapus badge \"HARGA\" di atas judul",
+       "scope": "pricing"
+      },
+      {
+       "hash": "b7706fc",
+       "teks": "Bahasa korporasi untuk fitur \"mencakup paket lain\"",
+       "scope": "pricing"
+      },
+      {
+       "hash": "200818c",
+       "teks": "Tipografi harga korporat — diperkecil, bobot turun, angka seragam",
+       "scope": "pricing"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-07",
+   "jumlah": 6,
+   "ringkasan": {
+    "fitur": 4,
+    "perbaikan": 2,
+    "performa": 0,
+    "dokumentasi": 0,
+    "data": 0,
+    "pemeliharaan": 0
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "8e86871",
+       "teks": "7 endpoint 2FA + integrasi gerbang login",
+       "scope": "auth"
+      },
+      {
+       "hash": "5cf13cd",
+       "teks": "2FA end-to-end — enrollment, verifikasi, kode pemulihan",
+       "scope": "auth"
+      },
+      {
+       "hash": "b51121d",
+       "teks": "Modul TOTP — RFC 6238 dari nol, nol dependensi",
+       "scope": "auth"
+      },
+      {
+       "hash": "ddd4239",
+       "teks": "Halaman masuk premium — 3D tilt, blob, partikel, TOTP, passkey",
+       "scope": "auth"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "7e593ca",
+       "teks": "Animasi berbasis WAKTU, bukan frame — konsisten di semua perangkat",
+       "scope": "auth"
+      },
+      {
+       "hash": "f4d0ebc",
+       "teks": "Minifikasi HTML — selesaikan pelanggaran anggaran 90 KB",
+       "scope": "build"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-06",
+   "jumlah": 46,
+   "ringkasan": {
+    "fitur": 25,
+    "perbaikan": 16,
+    "performa": 3,
+    "dokumentasi": 1,
+    "data": 0,
+    "pemeliharaan": 1
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "4df61a9",
+       "teks": "Script analisis lengkap + catatan sudo",
+       "scope": "security"
+      },
+      {
+       "hash": "10db8ef",
+       "teks": "Rating keamanan komposit + kartu visual",
+       "scope": "security"
+      },
+      {
+       "hash": "6446aaa",
+       "teks": "Analisis tren, peta geografis, alert lonjakan otomatis",
+       "scope": "security"
+      },
+      {
+       "hash": "06b5c34",
+       "teks": "Pemantauan uptime ringan via systemd timer",
+       "scope": "ops"
+      },
+      {
+       "hash": "a049401",
+       "teks": "Clearance ke cookie HttpOnly bertanda tangan server",
+       "scope": "gate"
+      },
+      {
+       "hash": "f6c723b",
+       "teks": "Sembunyikan widget Turnstile — spinner -> Berhasil saja",
+       "scope": "gate"
+      },
+      {
+       "hash": "a75a493",
+       "teks": "Font stack asli Cloudflare + teks peringatan 'verifikasi lama' 37 bahasa",
+       "scope": "gate"
+      },
+      {
+       "hash": "7d54d74",
+       "teks": "Tenggang 15 menit + gate di docs.html & 404.html",
+       "scope": "gate"
+      },
+      {
+       "hash": "b03d8ed",
+       "teks": "Masa tenggang 3 menit + perbaiki loop 'Berhasil!' yang stuck",
+       "scope": "gate"
+      },
+      {
+       "hash": "404b344",
+       "teks": "Holding state premium + live update dari R2",
+       "scope": "media"
+      },
+      {
+       "hash": "da4d419",
+       "teks": "LQIP di manifest publik + dimensi gambar",
+       "scope": "media"
+      },
+      {
+       "hash": "7ef319a",
+       "teks": "Gambar galeri dari R2 + skeleton + ikon korporat",
+       "scope": "media"
+      },
+      {
+       "hash": "5c70c75",
+       "teks": "Mobile setara desktop + rotasi pelukan",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "09d5509",
+       "teks": "Efek \"napas\" — kartu menyusut saat meluncur, mengembang saat mendarat",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "af4a895",
+       "teks": "Auto-scroll slide + jeda (varian A, dipilih pemilik)",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "dbb618f",
+       "teks": "Ganti cover-flow ke center-mode scale (pola Slick center)",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "ad56b06",
+       "teks": "Spring physics, hapus petunjuk & tombol, perbaiki lompatan",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "fdeb6b1",
+       "teks": "Hapus semua angka + drift kontinu (auto-scroll mulus)",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "9adb9d0",
+       "teks": "Hapus angka, auto-scroll, transisi melayang",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "9556c62",
+       "teks": "Ganti visual generate dengan foto Unsplash + color grading",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "195d435",
+       "teks": "Carousel jadi galeri komersial — visual, glow, aksesibilitas",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "0a598e2",
+       "teks": "Akses repo lewat undangan — token jadi kunci nyata",
+       "scope": "premium"
+      },
+      {
+       "hash": "0c93fd3",
+       "teks": "Repo privat — token jadi kunci akses kode, bukan sekadar tulisan",
+       "scope": "premium"
+      },
+      {
+       "hash": "ba80d75",
+       "teks": "Carousel spotlight — galeri proyek dengan kartu melengkung",
+       "scope": "ui"
+      },
+      {
+       "hash": "5596035",
+       "teks": "Terapkan temuan Luna + Opus + panduan desain Anthropic",
+       "scope": "portfolio"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "0eb4a1f",
+       "teks": "Konversi semua waktu UTC → WIB (UTC+7)",
+       "scope": "report"
+      },
+      {
+       "hash": "a264d95",
+       "teks": "'Terima semua' tidak mencentang toggle analitik",
+       "scope": "cookie"
+      },
+      {
+       "hash": "39a49b9",
+       "teks": "Clearance pakai nonce, bukan IP — IP binding tidak andal di rantai 4 hop",
+       "scope": "gate"
+      },
+      {
+       "hash": "68a628b",
+       "teks": "Sembunyikan widget saat timeout + tutup celah ruang kosong",
+       "scope": "gate"
+      },
+      {
+       "hash": "cda9d85",
+       "teks": "Ringkas komentar HTML — preflight sempat gagal di batas 90 KB",
+       "scope": "build"
+      },
+      {
+       "hash": "f69302e",
+       "teks": "Turnstile tidak lagi menggantung — timeout token + tombol coba lagi",
+       "scope": "gate"
+      },
+      {
+       "hash": "094a773",
+       "teks": "Elemen media SELALU dibuat, bukan hanya kalau ada gambar",
+       "scope": "media"
+      },
+      {
+       "hash": "be9ecd8",
+       "teks": "Proxy pakai Pages Function, bukan _redirects",
+       "scope": "media"
+      },
+      {
+       "hash": "814d612",
+       "teks": "Proxy /api dan /media lewat Pages _redirects",
+       "scope": "media"
+      },
+      {
+       "hash": "bb874e4",
+       "teks": "Hilangkan double-animation gambar — akar glitch yang tersisa",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "b26e2f5",
+       "teks": "Glitch saat mantul — susut dihitung dari energi pegas, bukan kecepatan",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "000284f",
+       "teks": "Glitching — bayangan terpotong, tepi bergerigi, kedutan bayangan",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "d279f9d",
+       "teks": "Arah drag terbalik + 4 bug posisi yang ditemukan berantai",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "d5d8c02",
+       "teks": "Auto-scroll belum slick — lompatan 441px tiap ganti kartu",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "d98bdd3",
+       "teks": "Isi email tombol undangan + jangan render tombol mati",
+       "scope": "premium"
+      },
+      {
+       "hash": "fb726fc",
+       "teks": "Footer Ray ID terpotong di layar pendek",
+       "scope": "gate"
+      }
+     ]
+    },
+    {
+     "kunci": "performa",
+     "label": "Performa",
+     "item": [
+      {
+       "hash": "b755b91",
+       "teks": "Hilangkan sisa glitch — hysteresis, z-index halus, layer GPU tetap",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "5ec86b2",
+       "teks": "Optimasi bayangan berjenjang + hemat decode video",
+       "scope": "spotlight"
+      },
+      {
+       "hash": "2a8f5f8",
+       "teks": "Minifikasi CSS 53% — hemat 65 KB, sumber tetap terbaca",
+       "scope": "build"
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "7d457ce",
+       "teks": "Perbaiki komentar yang tidak akurat soal X-Client-IP",
+       "scope": "gate"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "e82001f",
+       "teks": "Perbarui lastmod sitemap ke 2026-10-06",
+       "scope": "discovery"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-05",
+   "jumlah": 36,
+   "ringkasan": {
+    "fitur": 8,
+    "perbaikan": 13,
+    "performa": 4,
+    "dokumentasi": 8,
+    "data": 0,
+    "pemeliharaan": 3
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "a4cf8c5",
+       "teks": "Video narasi di bagian publik + font halaman proyek",
+       "scope": "portfolio"
+      },
+      {
+       "hash": "8cd243f",
+       "teks": "Aksen kuning premium #f5c542 — ganti oranye, plus i18n gate",
+       "scope": "design"
+      },
+      {
+       "hash": "544650f",
+       "teks": "Tipografi + transisi — Satoshi/Playfair & easeOutQuart",
+       "scope": "design"
+      },
+      {
+       "hash": "a97c670",
+       "teks": "Artefak proyek + ritme galeri — PRD UI/UX dari GPT-6 Luna",
+       "scope": "design"
+      },
+      {
+       "hash": "86971b1",
+       "teks": "Sampul proyek 3D — screenshot UI asli MINA",
+       "scope": "design"
+      },
+      {
+       "hash": "5df4323",
+       "teks": "Prinsip kerja — dari manifesto teknis ke cara kerja dengan klien",
+       "scope": "content"
+      },
+      {
+       "hash": "d2b8dd9",
+       "teks": "Kartu Layanan — ikon + tata letak diukur, CSS di bawah anggaran",
+       "scope": "design"
+      },
+      {
+       "hash": "2aa101c",
+       "teks": "Batch 3 — nav aktif (P1-6) + audit gerak nyata",
+       "scope": "design"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "7e2aaf7",
+       "teks": "Grid prinsip 2x2 + teks kartu rata (diukur)",
+       "scope": "design"
+      },
+      {
+       "hash": "ecad14b",
+       "teks": "Scroll-spy — pilih section yang mengandung garis aktif",
+       "scope": "design"
+      },
+      {
+       "hash": "4ff2cd9",
+       "teks": "Jarak docs mobile 103px -> 63px (media query bertabrakan)",
+       "scope": "design"
+      },
+      {
+       "hash": "c705396",
+       "teks": "Target sentuh 44px di SEMUA viewport (WCAG 2.5.5)",
+       "scope": "a11y"
+      },
+      {
+       "hash": "c1b3c1c",
+       "teks": "Batch 1 — header proyek + 5 perbaikan desain dari audit Luna",
+       "scope": "design"
+      },
+      {
+       "hash": "03b36cd",
+       "teks": "FIX-08 Turnstile fail-closed + validasi hostname/action",
+       "scope": "security"
+      },
+      {
+       "hash": "bbb92ca",
+       "teks": "FIX-07 perbandingan kunci admin yang benar",
+       "scope": "security"
+      },
+      {
+       "hash": "0864292",
+       "teks": "FIX-06 rate limit default + cache /api/ready + tutup kebocoran path",
+       "scope": "security"
+      },
+      {
+       "hash": "523f7f0",
+       "teks": "FIX-05 normalisasi IP + hapus fallback X-Forwarded-For",
+       "scope": "security"
+      },
+      {
+       "hash": "bdbc1e3",
+       "teks": "FIX-04 jangan bocorkan pesan error internal",
+       "scope": "security"
+      },
+      {
+       "hash": "c04d61b",
+       "teks": "FIX-03 batasi /api/admin/* ke loopback",
+       "scope": "security"
+      },
+      {
+       "hash": "559773d",
+       "teks": "FIX-02 router aman terhadap decode & path traversal",
+       "scope": "security"
+      },
+      {
+       "hash": "555576e",
+       "teks": "FIX-01 proses tidak mati karena satu request",
+       "scope": "security"
+      }
+     ]
+    },
+    {
+     "kunci": "performa",
+     "label": "Performa",
+     "item": [
+      {
+       "hash": "1423d99",
+       "teks": "Batch 2 — motion tokens + prefers-reduced-motion menyeluruh",
+       "scope": "a11y"
+      },
+      {
+       "hash": "d7e8502",
+       "teks": "A4 + A6 — index filter audit + rate limiter tahan serangan",
+       "scope": ""
+      },
+      {
+       "hash": "1824d9d",
+       "teks": "A1 — agregasi heartbeat SLA per menit (6,4:1 kompresi)",
+       "scope": ""
+      },
+      {
+       "hash": "92e424d",
+       "teks": "A5 + A3 + E — konkurensi SQLite, retensi, metrik event loop",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "32bb281",
+       "teks": "Perbandingan desain dengan referensi Kombai Gallery",
+       "scope": ""
+      },
+      {
+       "hash": "ae54d3d",
+       "teks": "PRD perbaikan desain dari audit GPT-6 Luna",
+       "scope": ""
+      },
+      {
+       "hash": "a2f9cc3",
+       "teks": "Audit kesiapan skala enterprise (Opus 5.5)",
+       "scope": ""
+      },
+      {
+       "hash": "e59c25b",
+       "teks": "FIX-09 selesai — verifikasi IP audit + ringkasan 9 FIX",
+       "scope": ""
+      },
+      {
+       "hash": "a80a421",
+       "teks": "Siapkan migrasi domain victer.is-a.dev (menunggu PR merge)",
+       "scope": ""
+      },
+      {
+       "hash": "4631cde",
+       "teks": "PRD perbaikan keamanan dari 8 temuan audit (9 FIX)",
+       "scope": ""
+      },
+      {
+       "hash": "8be7278",
+       "teks": "Audit keamanan oleh Opus 5.5 (8 temuan)",
+       "scope": ""
+      },
+      {
+       "hash": "196835d",
+       "teks": "PRD pembagian peran model AI (penalaran vs eksekusi)",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "d6b2d79",
+       "teks": "Hapus sampul proyek — penilaian visual dari pemilik",
+       "scope": "design"
+      },
+      {
+       "hash": "2e1052b",
+       "teks": "A7 + A8 — backup off-site terenkripsi + moderasi komentar",
+       "scope": ""
+      },
+      {
+       "hash": "886b67d",
+       "teks": "Perbarui tanggal lastmod sitemap (5 Okt)",
+       "scope": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-04",
+   "jumlah": 40,
+   "ringkasan": {
+    "fitur": 17,
+    "perbaikan": 14,
+    "performa": 2,
+    "dokumentasi": 0,
+    "data": 0,
+    "pemeliharaan": 7
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "296202b",
+       "teks": "Efek gelombang saat tekan tombol + tombol kaca transparan",
+       "scope": "ui"
+      },
+      {
+       "hash": "2f060df",
+       "teks": "Bilah memanjang penuh + animasi lebih responsif",
+       "scope": "cookies"
+      },
+      {
+       "hash": "0009791",
+       "teks": "Banner persetujuan cookie dua lapis",
+       "scope": "cookies"
+      },
+      {
+       "hash": "dd68abf",
+       "teks": "Skeleton penahan tata letak untuk semua panel",
+       "scope": "admin"
+      },
+      {
+       "hash": "7c99a14",
+       "teks": "Halaman panduan penggunaan publik ala dokumentasi korporat",
+       "scope": "docs"
+      },
+      {
+       "hash": "b94876e",
+       "teks": "Health jujur + rotasi log + dokumentasi API + CI",
+       "scope": "production"
+      },
+      {
+       "hash": "33452ea",
+       "teks": "Pilih proyek bebas + multi-proyek per token",
+       "scope": "admin"
+      },
+      {
+       "hash": "99684fd",
+       "teks": "Skrip satu-perintah untuk buka panel admin",
+       "scope": "tools"
+      },
+      {
+       "hash": "7c19f16",
+       "teks": "Diagnostik akses panel admin",
+       "scope": "tools"
+      },
+      {
+       "hash": "6fa7c50",
+       "teks": "Panel admin lengkap — 11 tab termasuk 8 modul Framer",
+       "scope": "admin"
+      },
+      {
+       "hash": "71e9990",
+       "teks": "Seamless loop sungguhan — crossfade tail→head",
+       "scope": "video"
+      },
+      {
+       "hash": "c5aed5c",
+       "teks": "8 modul produksi — CMS, Performance, Collaborate, Grow, SEO, AEO, Convert, Publish",
+       "scope": "framer-grade"
+      },
+      {
+       "hash": "7659e54",
+       "teks": "Seamless loop optimization - zero gap",
+       "scope": "video"
+      },
+      {
+       "hash": "16f014c",
+       "teks": "Particles Three.js + custom video player + masonry",
+       "scope": "phase3"
+      },
+      {
+       "hash": "f11bb18",
+       "teks": "Horizontal scroll + orb menu + variable weight",
+       "scope": "phase2"
+      },
+      {
+       "hash": "2f00cb2",
+       "teks": "Film grain + wave reveal + magnetic cards",
+       "scope": "phase1"
+      },
+      {
+       "hash": "ac96e23",
+       "teks": "Sentuhan exclusive portfolio — nomor section, rail navigasi, marquee",
+       "scope": "editorial"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "0ad6a7a",
+       "teks": "Gelombang tidak terlihat + tidak ada di menu navigasi",
+       "scope": "ripple"
+      },
+      {
+       "hash": "a9c29c9",
+       "teks": "Tautan menu tidak bisa disentuh — scrim menutupi panel",
+       "scope": "nav"
+      },
+      {
+       "hash": "11e67e7",
+       "teks": "Logo & menu identik di kedua halaman, hapus tombol Hubungi",
+       "scope": "ui"
+      },
+      {
+       "hash": "59f2802",
+       "teks": "Background video + header identik home + menu mobile rapi",
+       "scope": "docs"
+      },
+      {
+       "hash": "af69f88",
+       "teks": "Hilangkan flaky test jendela waktu — pakai margin lebar",
+       "scope": "test"
+      },
+      {
+       "hash": "1d47340",
+       "teks": "Hapus flaky test — jendela waktu 1ms tidak andal di CI",
+       "scope": "test"
+      },
+      {
+       "hash": "8e6e3d5",
+       "teks": "Urutan query tidak deterministik — temuan CI",
+       "scope": "backend"
+      },
+      {
+       "hash": "160887c",
+       "teks": "Filter tidak berfungsi — bug argumen url di wrapper safe()",
+       "scope": "admin"
+      },
+      {
+       "hash": "9ba5a40",
+       "teks": "Tombol Muat ulang — feedback visual + error tidak lagi ditelan",
+       "scope": "admin"
+      },
+      {
+       "hash": "2058278",
+       "teks": "Responsif di HP — mode kartu, tidak perlu scroll samping",
+       "scope": "admin"
+      },
+      {
+       "hash": "68d0e95",
+       "teks": "Listen di IPv4 + IPv6 — perbaiki SSH tunnel 'localhost'",
+       "scope": "server"
+      },
+      {
+       "hash": "dfddff9",
+       "teks": "Root situs benar + pemindaian rahasia tanpa false positive",
+       "scope": "backend"
+      },
+      {
+       "hash": "65b7380",
+       "teks": "Disable particles, restore video background",
+       "scope": ""
+      },
+      {
+       "hash": "b7ff25d",
+       "teks": "Threshold 0.1 + 3s fallback untuk mobile",
+       "scope": "wave-reveal"
+      }
+     ]
+    },
+    {
+     "kunci": "performa",
+     "label": "Performa",
+     "item": [
+      {
+       "hash": "f7bc744",
+       "teks": "Hapus HEAD probe, pakai native <source> fallback",
+       "scope": "video"
+      },
+      {
+       "hash": "f28d352",
+       "teks": "Optimasi fase 1-3 untuk production",
+       "scope": "corporate"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "d822467",
+       "teks": "Hilangkan semua emoji — ganti dengan ikon SVG + samakan UI docs",
+       "scope": "ui"
+      },
+      {
+       "hash": "ce0b118",
+       "teks": "Update actions ke v5 — hilangkan peringatan deprecation",
+       "scope": "ci"
+      },
+      {
+       "hash": "06955df",
+       "teks": "Audit menyeluruh panel admin — 8 area diperiksa",
+       "scope": "admin"
+      },
+      {
+       "hash": "054212d",
+       "teks": "Perbaiki layout modal terhimpit — spacing lega & grid rata",
+       "scope": "admin"
+      },
+      {
+       "hash": "632f688",
+       "teks": "Modal pencabutan token profesional",
+       "scope": "admin"
+      },
+      {
+       "hash": "8c0bff5",
+       "teks": "Rapikan UI modal — minimalis, standar korporat",
+       "scope": "admin"
+      },
+      {
+       "hash": "9485d83",
+       "teks": "Add production debug + screenshot tools",
+       "scope": "scripts"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-03",
+   "jumlah": 49,
+   "ringkasan": {
+    "fitur": 27,
+    "perbaikan": 9,
+    "performa": 0,
+    "dokumentasi": 4,
+    "data": 0,
+    "pemeliharaan": 9
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "e713ce9",
+       "teks": "SEO production + uptime monitoring (PRD §8)",
+       "scope": "production"
+      },
+      {
+       "hash": "5b6714c",
+       "teks": "Efek depth tingkat Framer/Awwwards — scroll-stand, tilt berlapis, glare, spotlight",
+       "scope": "3d"
+      },
+      {
+       "hash": "14aea95",
+       "teks": "Hero standar Framer/Dribbble — bukti visual + nav CTA + scroll progress",
+       "scope": "design"
+      },
+      {
+       "hash": "5458430",
+       "teks": "Backup harian database token (PRD §8) + dokumentasi",
+       "scope": "ops"
+      },
+      {
+       "hash": "9190b38",
+       "teks": "Standar korporat — bintang wajib, validasi spesifik, opsi budget/urgensi rapi",
+       "scope": "form"
+      },
+      {
+       "hash": "1fbdfff",
+       "teks": "Gerbang Turnstile untuk token akses + form permintaan",
+       "scope": "security"
+      },
+      {
+       "hash": "41d05a0",
+       "teks": "Interstitial Cloudflare persis (interaction-only) + halaman utama pulih",
+       "scope": "gate"
+      },
+      {
+       "hash": "44d7b3b",
+       "teks": "Style profesional mirip kofi.com / Cloudflare",
+       "scope": "gate"
+      },
+      {
+       "hash": "dff62a3",
+       "teks": "Turnstile gate untuk semua halaman",
+       "scope": "security"
+      },
+      {
+       "hash": "4d4e571",
+       "teks": "Production setup dengan Cloudflare MCP",
+       "scope": "turnstile"
+      },
+      {
+       "hash": "f8e6080",
+       "teks": "Setup custom domain options",
+       "scope": "domain"
+      },
+      {
+       "hash": "1724ccb",
+       "teks": "Full edge deployment — Pages + Workers + R2",
+       "scope": "cloudflare"
+      },
+      {
+       "hash": "10718ae",
+       "teks": "Setup lengkap — deploy script + dokumentasi",
+       "scope": "cloudflare"
+      },
+      {
+       "hash": "2b3d504",
+       "teks": "Deploy Worker live ke edge",
+       "scope": "cloudflare"
+      },
+      {
+       "hash": "3ef821a",
+       "teks": "Setup profesional — wrangler, cf CLI, workers, config",
+       "scope": "cloudflare"
+      },
+      {
+       "hash": "815ab13",
+       "teks": "Cloudflare Turnstile — CAPTCHA tanpa geser",
+       "scope": ""
+      },
+      {
+       "hash": "2b9caa7",
+       "teks": "Anti-spam form (Q3) + persetujuan syarat akses (Q5)",
+       "scope": "v2.5"
+      },
+      {
+       "hash": "12bf763",
+       "teks": "Anchor ter-obfuscate + kode proyek 12 karakter dengan sistem alias",
+       "scope": ""
+      },
+      {
+       "hash": "89e24c8",
+       "teks": "URL berkode acak /s/<kode>/ — pola Notion, Figma, Linear",
+       "scope": ""
+      },
+      {
+       "hash": "01f7ddb",
+       "teks": "File standar korporat — manifest, 404, README",
+       "scope": ""
+      },
+      {
+       "hash": "2fcd3d1",
+       "teks": "Teknik premium dari Linear, Vercel, Stripe",
+       "scope": ""
+      },
+      {
+       "hash": "30d0c22",
+       "teks": "Logo dalam TILE SERAGAM — gaya skill-icons (standar industri)",
+       "scope": ""
+      },
+      {
+       "hash": "5d8ad05",
+       "teks": "Logo resmi FULL-COLOR dari koleksi Iconify logos:",
+       "scope": ""
+      },
+      {
+       "hash": "ce9ce3a",
+       "teks": "Ganti dengan logo RESMI dari Simple Icons",
+       "scope": ""
+      },
+      {
+       "hash": "0fa8161",
+       "teks": "Logo teknologi interaktif — gambar asli, bukan teks pill",
+       "scope": ""
+      },
+      {
+       "hash": "23f9ba2",
+       "teks": "Logo interaktif coding — kurung { } yang bisa digerakkan user",
+       "scope": ""
+      },
+      {
+       "hash": "21d096b",
+       "teks": "Restrukturisasi landing page jadi standar portfolio",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "bc2a3cf",
+       "teks": "Guard init ganda + jaring pengaman 6 detik",
+       "scope": "depth"
+      },
+      {
+       "hash": "1abc91e",
+       "teks": "Minimum realistis nama/perusahaan + pesan token kosong kustom",
+       "scope": "form"
+      },
+      {
+       "hash": "928da50",
+       "teks": "Kunci tombol lagi setelah logout + cache bump v9",
+       "scope": "gate"
+      },
+      {
+       "hash": "32cd8d6",
+       "teks": "Production-ready, hapus banner testing",
+       "scope": "turnstile"
+      },
+      {
+       "hash": "1c60ef6",
+       "teks": "Widget render otomatis saat form dibuka",
+       "scope": "turnstile"
+      },
+      {
+       "hash": "a7f184b",
+       "teks": "Panah link hilang + grid highlight belum rata",
+       "scope": ""
+      },
+      {
+       "hash": "2cb4ea4",
+       "teks": "Konflik CSS ::before/::after + grid highlight tidak rata",
+       "scope": ""
+      },
+      {
+       "hash": "a83be08",
+       "teks": "Tile warna SQL/Telegram/WhatsApp/n8n tidak muncul",
+       "scope": ""
+      },
+      {
+       "hash": "d3b7e14",
+       "teks": "Tinggi visual logo SERAGAM + ikon SQL netral",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "8e278c4",
+       "teks": "Runbook production lengkap + PRD v3.0",
+       "scope": "production"
+      },
+      {
+       "hash": "e829e3e",
+       "teks": "Perbarui komentar agar konsisten dengan tombol 'Buka'",
+       "scope": "gate"
+      },
+      {
+       "hash": "a0b4062",
+       "teks": "Add production setup guide",
+       "scope": "turnstile"
+      },
+      {
+       "hash": "5e24880",
+       "teks": "Cara rotasi kode + peta anchor",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "b9c56a6",
+       "teks": "'Detail teknis' jadi tombol utama solid, repo sekunder",
+       "scope": "cta"
+      },
+      {
+       "hash": "05e1d80",
+       "teks": "Tombol tetap 'Buka' saat terkunci + gaya disabled jelas",
+       "scope": "gate"
+      },
+      {
+       "hash": "097e96d",
+       "teks": "Sembunyikan pesan sukses verifikasi di gerbang token",
+       "scope": "gate"
+      },
+      {
+       "hash": "9b2c326",
+       "teks": "Widget Turnstile bahasa Indonesia + lebar wajar",
+       "scope": "gate"
+      },
+      {
+       "hash": "d832bc7",
+       "teks": "Struktur korporat + URL bersih",
+       "scope": ""
+      },
+      {
+       "hash": "3a525e2",
+       "teks": "Perbesar glyph systemd di tile",
+       "scope": ""
+      },
+      {
+       "hash": "00b7717",
+       "teks": "Ukuran logo seragam + ikon SQL generik",
+       "scope": ""
+      },
+      {
+       "hash": "22958ca",
+       "teks": "Naikkan kontras logo sebelum hover",
+       "scope": ""
+      },
+      {
+       "hash": "7179783",
+       "teks": "Gabung semua logo jadi SATU panel tilt 3D",
+       "scope": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-02",
+   "jumlah": 26,
+   "ringkasan": {
+    "fitur": 0,
+    "perbaikan": 7,
+    "performa": 0,
+    "dokumentasi": 5,
+    "data": 0,
+    "pemeliharaan": 14
+   },
+   "kategori": [
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "a67ab82",
+       "teks": "Video hero kurang terlihat — naikkan opacity + text-shadow",
+       "scope": ""
+      },
+      {
+       "hash": "eaea16b",
+       "teks": "Video hero tidak terlihat di HP — poster + retry autoplay",
+       "scope": ""
+      },
+      {
+       "hash": "e50eb0b",
+       "teks": "Video hero tidak terlihat di mobile",
+       "scope": ""
+      },
+      {
+       "hash": "8c912ae",
+       "teks": "Animasi mobile — judul hilang + threshold observer terlalu tinggi",
+       "scope": ""
+      },
+      {
+       "hash": "097d111",
+       "teks": "Path video narasi pakai siteRoot (relatif dari modul, bukan halaman)",
+       "scope": ""
+      },
+      {
+       "hash": "783f95c",
+       "teks": "Cache bust project.js v=2 untuk tier badge + watermark",
+       "scope": ""
+      },
+      {
+       "hash": "e052fd6",
+       "teks": "Tambah mode:cors untuk cookie cross-origin",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "d0770cf",
+       "teks": "Tandai v2.2 selesai di PRD roadmap",
+       "scope": ""
+      },
+      {
+       "hash": "b96f46e",
+       "teks": "Tandai v1.2 selesai (hero video tanpa watermark)",
+       "scope": ""
+      },
+      {
+       "hash": "02c8d92",
+       "teks": "Tandai v2.3-v2.4 selesai di PRD roadmap",
+       "scope": ""
+      },
+      {
+       "hash": "015ea51",
+       "teks": "Update OPERASIONAL.md — analytics, webhook, keamanan v2.6",
+       "scope": ""
+      },
+      {
+       "hash": "f8f9311",
+       "teks": "Update OPERASIONAL.md untuk v2.1 (tier, session, watermark)",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "4921e5a",
+       "teks": "Kembalikan video hero ke opacity 0.55 (versi yang disukai pengguna)",
+       "scope": ""
+      },
+      {
+       "hash": "2593090",
+       "teks": "V2.2: video narasi per proyek — dibuat programatik, tanpa AI, tanpa watermark",
+       "scope": ""
+      },
+      {
+       "hash": "b32228c",
+       "teks": "V2.2 design kit: video narasi portofolio (Figma + Seedance gratis)",
+       "scope": ""
+      },
+      {
+       "hash": "9335b03",
+       "teks": "V2.9: cinematic scroll effects (teknik PRIOR, vanilla)",
+       "scope": ""
+      },
+      {
+       "hash": "bb16695",
+       "teks": "V1.2: hero video final tanpa watermark (roadmap v1.2)",
+       "scope": ""
+      },
+      {
+       "hash": "251ffd9",
+       "teks": "V2.8: admin dashboard web (F28)",
+       "scope": ""
+      },
+      {
+       "hash": "22183fb",
+       "teks": "V2.7: enterprise package — SLA tracking + audit export + custom domain guide (F27)",
+       "scope": ""
+      },
+      {
+       "hash": "0bd6108",
+       "teks": "V2.6: security hardening — audit Fable 5.1",
+       "scope": ""
+      },
+      {
+       "hash": "1f58c65",
+       "teks": "V2.5: GPT Astra micro-interactions (F4)",
+       "scope": ""
+      },
+      {
+       "hash": "a120777",
+       "teks": "V2.4: lead automation — webhook notifications (M4)",
+       "scope": ""
+      },
+      {
+       "hash": "18d4c35",
+       "teks": "V2.3: analytics funnel (M3)",
+       "scope": ""
+      },
+      {
+       "hash": "fb0611a",
+       "teks": "V2.2: device fingerprint detection (M2)",
+       "scope": ""
+      },
+      {
+       "hash": "32b02b0",
+       "teks": "Ignore backend config dan test files",
+       "scope": ""
+      },
+      {
+       "hash": "90a0cb8",
+       "teks": "V2.1: token format VP-XXXX, tier system, session cookie, watermark, lead form lengkap",
+       "scope": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-01",
+   "jumlah": 11,
+   "ringkasan": {
+    "fitur": 0,
+    "perbaikan": 0,
+    "performa": 0,
+    "dokumentasi": 1,
+    "data": 0,
+    "pemeliharaan": 10
+   },
+   "kategori": [
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "5991c8e",
+       "teks": "Panduan operasional + README lapisan akses",
+       "scope": ""
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "b62b5b3",
+       "teks": "PRD v2.0: tandai selesai + catatan implementasi",
+       "scope": ""
+      },
+      {
+       "hash": "1639038",
+       "teks": "Pratinjau terkunci tidak lagi membocorkan istilah internal",
+       "scope": ""
+      },
+      {
+       "hash": "bf289ba",
+       "teks": "V2.0: sistem token akses proyek — backend, halaman terkunci, form sales",
+       "scope": ""
+      },
+      {
+       "hash": "df07139",
+       "teks": "Perbarui alamat layanan token",
+       "scope": ""
+      },
+      {
+       "hash": "0314d24",
+       "teks": "Perbarui alamat layanan token",
+       "scope": ""
+      },
+      {
+       "hash": "ddd4b8d",
+       "teks": "PRD v2.0: arsitektur portofolio korporat dengan tokenized access, monetisasi sales, Seedance 2.5, GPT Astra, Fable 5.1",
+       "scope": ""
+      },
+      {
+       "hash": "a7db6d8",
+       "teks": "V1.1-temp: turunkan opacity hero video ke 0.28 (watermark sementara)",
+       "scope": ""
+      },
+      {
+       "hash": "c53e01b",
+       "teks": "V1.1: tambah hero video (MP4 + WebM), update loader untuk multi-format, preload none",
+       "scope": ""
+      },
+      {
+       "hash": "d103d40",
+       "teks": "PRD v1.0: tujuan, non-goals, persyaratan, arsitektur, rencana rilis, 5 pertanyaan terbuka",
+       "scope": ""
+      },
+      {
+       "hash": "eeb33e0",
+       "teks": "Portofolio awal: HTML/CSS/JS murni, data dari repo nyata, video latar opsional",
+       "scope": ""
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
