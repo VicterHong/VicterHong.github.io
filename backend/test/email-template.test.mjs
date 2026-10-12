@@ -92,6 +92,50 @@ const SEMUA = [
     wajibAda: ['Victer', '998877', '10 menit'],
     judulHarus: /kode masuk/i,
   },
+  // ── SIKLUS LANGGANAN ──────────────────────────────────────────────────────
+  {
+    nama: 'langganan-akan-berakhir',
+    buat: () => T.templateLanggananAkanBerakhir({
+      nama: 'Victer', paket: 'Profesional', sisaHari: 7,
+      tanggalBerakhir: Date.now() + 7 * 86400000, jumlah: 'Rp1.500.000',
+    }),
+    wajibAda: ['Victer', 'Profesional', '7'],
+    judulHarus: /berakhir/i,
+  },
+  {
+    nama: 'langganan-berakhir',
+    buat: () => T.templateLanggananBerakhir({
+      nama: 'Victer', paket: 'Profesional', tanggalBerakhir: Date.now(),
+    }),
+    wajibAda: ['Victer', 'Profesional'],
+    judulHarus: /berakhir/i,
+  },
+  {
+    nama: 'langganan-diperpanjang',
+    buat: () => T.templateLanggananDiperpanjang({
+      nama: 'Victer', paket: 'Profesional',
+      tanggalBerakhir: Date.now() + 365 * 86400000, nomorPesanan: 'VIV-2026-0001',
+    }),
+    wajibAda: ['Victer', 'Profesional', 'VIV-2026-0001'],
+    judulHarus: /aktif|diperpanjang/i,
+  },
+  {
+    nama: 'pembayaran-gagal',
+    buat: () => T.templatePembayaranGagal({
+      nama: 'Victer', paket: 'Standar', jumlah: 'Rp79.000', alasan: 'Kartu ditolak', sisaHari: 7,
+    }),
+    wajibAda: ['Victer', 'Standar', 'Rp79.000', 'Kartu ditolak'],
+    judulHarus: /gagal/i,
+  },
+  {
+    nama: 'token-akan-kedaluwarsa',
+    buat: () => T.templateTokenAkanKedaluwarsa({
+      nama: 'Victer', labelToken: 'Production API', sisaHari: 14,
+      tanggalKedaluwarsa: Date.now() + 14 * 86400000,
+    }),
+    wajibAda: ['Victer', 'Production API', '14'],
+    judulHarus: /kedaluwarsa/i,
+  },
 ];
 
 // ── 1. Bentuk hasil ───────────────────────────────────────────────────────────

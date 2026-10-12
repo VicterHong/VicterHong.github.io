@@ -221,6 +221,11 @@ for (const [nama, def] of Object.entries(TEMPLATE)) {
     'sapaan',
     // Nilai yang selalu dikirim templates.mjs
     'ip', 'tanggal', 'status',
+    // Tautan tindakan — muncul di atribut href, jadi diperlakukan sebagai
+    // "mentah" (tidak di-escape). Dikirim oleh fungsi template langganan.
+    'tautan_perpanjang', 'tautan_bayar',
+    // Sisa hari perbaikan pembayaran — hanya dipakai template pembayaran_gagal
+    'sisa_hari',
   ]);
 
   const takTerdaftar = dipakai.filter((v) => !terdaftar.has(v));

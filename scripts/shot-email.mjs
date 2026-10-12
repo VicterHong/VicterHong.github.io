@@ -57,6 +57,27 @@ const TEMPLATE = [
     nama: 'Victer', kode: '998877', berlakuMenit: 10,
     lokasi: 'Bandung, Indonesia', ip: '10.0.0.1',
   })],
+
+  // ── SIKLUS LANGGANAN ──────────────────────────────────────────────────────
+  ['09-langganan-akan-berakhir', T.templateLanggananAkanBerakhir({
+    nama: 'Victer', paket: 'Profesional', sisaHari: 7,
+    tanggalBerakhir: Date.now() + 7 * 86400000, jumlah: 'Rp1.500.000',
+  })],
+  ['10-langganan-berakhir', T.templateLanggananBerakhir({
+    nama: 'Victer', paket: 'Profesional', tanggalBerakhir: Date.now(),
+  })],
+  ['11-langganan-diperpanjang', T.templateLanggananDiperpanjang({
+    nama: 'Victer', paket: 'Profesional',
+    tanggalBerakhir: Date.now() + 365 * 86400000, nomorPesanan: 'VIV-2026-0001',
+  })],
+  ['12-pembayaran-gagal', T.templatePembayaranGagal({
+    nama: 'Victer', paket: 'Standar', jumlah: 'Rp79.000',
+    alasan: 'Kartu ditolak oleh bank', sisaHari: 7,
+  })],
+  ['13-token-akan-kedaluwarsa', T.templateTokenAkanKedaluwarsa({
+    nama: 'Victer', labelToken: 'Production API', sisaHari: 14,
+    tanggalKedaluwarsa: Date.now() + 14 * 86400000,
+  })],
 ];
 
 rmSync(KELUAR, { recursive: true, force: true });

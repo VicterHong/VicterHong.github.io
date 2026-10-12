@@ -56,6 +56,11 @@ import {
   templateStrukPembayaran,
   templateAkunDinonaktifkan,
   templateKodeMasuk,
+  templateLanggananAkanBerakhir,
+  templateLanggananBerakhir,
+  templateLanggananDiperpanjang,
+  templatePembayaranGagal,
+  templateTokenAkanKedaluwarsa,
 } from './email/templates.mjs';
 
 /**
@@ -432,5 +437,95 @@ export async function kirimKodeMasuk({ ke, nama, kode, berlakuMenit = 10, lokasi
     template,
     label: 'kode-masuk',
     cadangan: `KODE MASUK → ${kode} (berlaku ${berlakuMenit} menit)`,
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── SIKLUS LANGGANAN ────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Pengingat SEBELUM langganan berakhir — email paling penting di siklus ini.
+ *
+ * ── KENAPA HARUS DIKIRIM LEBIH AWAL, BUKAN SAAT BERAKHIR ────────────────────
+ * Tanpa pengingat, pelanggan baru tahu aksesnya habis saat ia gagal membuka
+ * sesuatu. Pengalaman itu terasa seperti sistem rusak, bukan seperti
+ * langganan yang perlu diperpanjang — dan pelanggan yang merasa sistemnya
+ * rusak akan menghubungi dukungan, bukan memperpanjang.
+ *
+ * Mengirim lebih awal juga memberi waktu: pelanggan bisa memperpanjang tanpa
+ * tergesa-gesa, dan tidak ada jeda akses sama sekali.
+ */
+export async function kirimLanggananAkanBerakhir({
+  ke, nama, paket, sisaHari, tanggalBerakhir, jumlah, tautanPerpanjang,
+}) {
+  const template = templateLanggananAkanBerakhir({
+    nama, paket, sisaHari, tanggalBerakhir, jumlah, tautanPerpanjang,
+  });
+
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'langganan-akan-berakhir',
+    cadangan: `PERPANJANG: ${paket} berakhir dalam ${sisaHari} hari → ${tautanPerpanjang ?? 'https://victer.is-a.dev/pricing'}`,
+  });
+}
+
+/** Pemberitahuan setelah langganan benar-benar berakhir (akses dijeda). */
+export async function kirimLanggananBerakhir({
+  ke, nama, paket, tanggalBerakhir, tautanPerpanjang,
+}) {
+  const template = templateLanggananBerakhir({
+    nama, paket, tanggalBerakhir, tautanPerpanjang,
+  });
+
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'langganan-berakhir',
+    cadangan: `AKTIFKAN KEMBALI: ${paket} → ${tautanPerpanjang ?? 'https://victer.is-a.dev/pricing'}`,
+  });
+}
+
+/** Konfirmasi perpanjangan berhasil. */
+export async function kirimLanggananDiperpanjang({
+  ke, nama, paket, tanggalBerakhir, nomorPesanan,
+}) {
+  const template = templateLanggananDiperpanjang({
+    nama, paket, tanggalBerakhir, nomorPesanan,
+  });
+
+  return kirimTemplate({ ke, template, label: 'langganan-diperpanjang' });
+}
+
+/** Pemberitahuan pembayaran gagal — dengan jendela waktu perbaikan. */
+export async function kirimPembayaranGagal({
+  ke, nama, paket, jumlah, alasan, sisaHari = 7, tautanBayar,
+}) {
+  const template = templatePembayaranGagal({
+    nama, paket, jumlah, alasan, sisaHari, tautanBayar,
+  });
+
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'pembayaran-gagal',
+    cadangan: `BAYAR ULANG: ${paket} ${jumlah} — ${alasan} → ${tautanBayar ?? 'https://victer.is-a.dev/pricing'}`,
+  });
+}
+
+/** Pengingat token akses yang mendekati kedaluwarsa. */
+export async function kirimTokenAkanKedaluwarsa({
+  ke, nama, labelToken, sisaHari, tanggalKedaluwarsa,
+}) {
+  const template = templateTokenAkanKedaluwarsa({
+    nama, labelToken, sisaHari, tanggalKedaluwarsa,
+  });
+
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'token-akan-kedaluwarsa',
+    cadangan: `TOKEN KEDALUWARSA: "${labelToken}" dalam ${sisaHari} hari`,
   });
 }

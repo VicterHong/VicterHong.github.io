@@ -435,6 +435,171 @@ ${kotakKode()}
     }),
   },
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // ── SIKLUS LANGGANAN ─────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // ── KENAPA EMPAT TEMPLATE, BUKAN SATU ─────────────────────────────────────
+  //
+  // Langganan punya EMPAT momen berbeda, dan pengguna butuh hal berbeda di
+  // masing-masing:
+  //
+  //   1. Akan berakhir  → kesempatan memperpanjang dengan tenang
+  //   2. Sudah berakhir → akses terputus, butuh jalan kembali SEGERA
+  //   3. Sudah perpanjang → konfirmasi, supaya tidak ada keraguan
+  //   4. Gagal bayar    → masalah pembayaran, butuh tindakan spesifik
+  //
+  // Memakai satu template untuk semuanya menghasilkan email yang salah nada:
+  // "perpanjang sekarang!" saat langganan masih 7 hari lagi terasa mendesak
+  // tanpa alasan, dan "langganan Anda akan berakhir" setelah aksesnya mati
+  // terasa tidak nyambung.
+  //
+  // ── YANG PALING PENTING: PENGINGAT SEBELUM BERAKHIR ───────────────────────
+  // Tanpa email ini, pelanggan baru tahu aksesnya habis saat ia gagal membuka
+  // sesuatu — dan pengalaman itu terasa seperti sistem rusak, bukan seperti
+  // langganan yang perlu diperpanjang.
+
+  langganan_akan_berakhir: {
+    subjek: 'Langganan {{paket}} Anda berakhir dalam {{sisa_hari}} hari',
+    variabelWajib: ['nama', 'paket', 'sisa_hari', 'tanggal_berakhir', 'jumlah'],
+    mjml: () => kerangka({
+      preheader: 'Berakhir {{tanggal_berakhir}} — perpanjang untuk tetap punya akses',
+      isi: `        <mj-text>{{sapaan}}</mj-text>
+        <mj-text>
+          Langganan <strong style="color:${WARNA.teks}">{{paket}}</strong> Anda akan berakhir
+          dalam <strong style="color:${WARNA.emas}">{{sisa_hari}} hari</strong>.
+        </mj-text>
+${tabelDetail([
+        ['Paket', '{{paket}}'],
+        ['Berakhir pada', '{{tanggal_berakhir}}'],
+        ['Perpanjangan', '{{jumlah}}'],
+      ])}
+        <mj-text>
+          Kalau Anda perpanjang sekarang, akses Anda berlanjut tanpa jeda —
+          token dan konfigurasi yang sudah ada tetap bekerja, tidak perlu
+          diatur ulang.
+        </mj-text>
+        <mj-button href="{{tautan_perpanjang}}">Perpanjang sekarang</mj-button>
+        <mj-text font-size="13px" color="${WARNA.teksSamar}">
+          Tidak ada yang perlu dilakukan kalau Anda memang ingin berhenti —
+          akses akan berakhir sendiri pada tanggal di atas.
+        </mj-text>`,
+      catatanKaki: 'Anda menerima email ini karena langganan Anda akan berakhir. Kami kirim lebih awal supaya Anda punya waktu memutuskan.',
+    }),
+  },
+
+  langganan_berakhir: {
+    subjek: 'Langganan {{paket}} Anda sudah berakhir',
+    variabelWajib: ['nama', 'paket', 'tanggal_berakhir'],
+    mjml: () => kerangka({
+      preheader: 'Akses Anda dijeda — aktifkan kembali kapan saja',
+      isi: `        <mj-text>{{sapaan}}</mj-text>
+        <mj-text>
+          Langganan <strong style="color:${WARNA.teks}">{{paket}}</strong> Anda berakhir
+          pada <strong style="color:${WARNA.teks}">{{tanggal_berakhir}}</strong>.
+          Akses ke fitur berlangganan kini <strong style="color:${WARNA.merah}">dijeda</strong>.
+        </mj-text>
+${kotakCatatan({
+        teks: `<strong style="color:${WARNA.teks}">Data Anda tidak dihapus.</strong> Proyek, konfigurasi, dan riwayat tetap tersimpan. Begitu Anda mengaktifkan kembali, semuanya tersedia seperti sebelumnya.`,
+        jenis: 'info',
+      })}
+        <mj-text>
+          Tidak ada batas waktu untuk kembali. Kalau nanti Anda butuh lagi,
+          cukup aktifkan kembali dari halaman langganan.
+        </mj-text>
+        <mj-button href="{{tautan_perpanjang}}">Aktifkan kembali</mj-button>
+        <mj-text font-size="13px" color="${WARNA.teksSamar}">
+          Punya pertanyaan sebelum memutuskan? Balas email ini — kami bantu.
+        </mj-text>`,
+      catatanKaki: 'Anda menerima email ini karena langganan Anda berakhir hari ini.',
+    }),
+  },
+
+  langganan_diperpanjang: {
+    subjek: 'Langganan {{paket}} Anda aktif sampai {{tanggal_berakhir}}',
+    variabelWajib: ['nama', 'paket', 'tanggal_berakhir', 'nomor_pesanan'],
+    mjml: () => kerangka({
+      preheader: 'Terima kasih — akses Anda berlanjut tanpa jeda',
+      isi: `        <mj-text>{{sapaan}}</mj-text>
+        <mj-text>Terima kasih sudah memperpanjang. Langganan Anda sudah aktif kembali.</mj-text>
+${kotakCatatan({
+        teks: `<strong style="color:${WARNA.hijau}">✓ Aktif</strong> — akses {{paket}} Anda berlanjut sampai {{tanggal_berakhir}}.`,
+        jenis: 'sukses',
+      })}
+${tabelDetail([
+        ['Paket', '{{paket}}'],
+        ['Aktif sampai', '{{tanggal_berakhir}}'],
+        ['Nomor pesanan', `<span style="font-family:monospace;font-size:13px">{{nomor_pesanan}}</span>`],
+      ])}
+        <mj-text>
+          Token dan konfigurasi Anda tidak berubah — tidak ada yang perlu
+          diatur ulang.
+        </mj-text>
+        <mj-button href="https://victer.is-a.dev/pesanan" background-color="${WARNA.kartu}" color="${WARNA.teks}"
+                   border="1px solid ${WARNA.garis}">Lihat detail pesanan</mj-button>`,
+      catatanKaki: 'Simpan email ini sebagai bukti perpanjangan langganan Anda.',
+    }),
+  },
+
+  pembayaran_gagal: {
+    subjek: 'Pembayaran langganan {{paket}} Anda gagal',
+    variabelWajib: ['nama', 'paket', 'jumlah', 'alasan'],
+    mjml: () => kerangka({
+      preheader: 'Akses Anda masih aktif — perbaiki pembayaran dalam {{sisa_hari}} hari',
+      isi: `        <mj-text>{{sapaan}}</mj-text>
+        <mj-text>
+          Kami tidak berhasil memproses pembayaran langganan
+          <strong style="color:${WARNA.teks}">{{paket}}</strong> Anda.
+        </mj-text>
+${tabelDetail([
+        ['Paket', '{{paket}}'],
+        ['Jumlah', `<strong style="color:${WARNA.emas}">{{jumlah}}</strong>`],
+        ['Alasan', '{{alasan}}'],
+      ])}
+${kotakCatatan({
+        teks: `<strong style="color:${WARNA.teks}">Akses Anda masih aktif.</strong> Anda punya waktu {{sisa_hari}} hari untuk memperbaiki pembayaran sebelum akses dijeda.`,
+        jenis: 'peringatan',
+      })}
+        <mj-text>
+          Cara paling cepat: buat pesanan baru dengan metode pembayaran yang
+          berbeda. Akses Anda tetap berjalan selama proses ini.
+        </mj-text>
+        <mj-button href="{{tautan_bayar}}">Bayar ulang</mj-button>
+        <mj-text font-size="13px" color="${WARNA.teksSamar}">
+          Sudah membayar tapi masih menerima email ini? Balas dengan bukti
+          transfer — kami periksa dan perbaiki.
+        </mj-text>`,
+      catatanKaki: 'Anda menerima email ini karena ada masalah pembayaran pada langganan Anda.',
+    }),
+  },
+
+  token_akan_kedaluwarsa: {
+    subjek: 'Token akses Anda kedaluwarsa dalam {{sisa_hari}} hari',
+    variabelWajib: ['nama', 'label_token', 'sisa_hari', 'tanggal_kedaluwarsa'],
+    mjml: () => kerangka({
+      preheader: 'Token "{{label_token}}" berakhir {{tanggal_kedaluwarsa}}',
+      isi: `        <mj-text>{{sapaan}}</mj-text>
+        <mj-text>
+          Token akses <strong style="color:${WARNA.teks}">{{label_token}}</strong>
+          akan kedaluwarsa dalam <strong style="color:${WARNA.emas}">{{sisa_hari}} hari</strong>.
+        </mj-text>
+${tabelDetail([
+        ['Token', '{{label_token}}'],
+        ['Kedaluwarsa', '{{tanggal_kedaluwarsa}}'],
+      ])}
+${kotakCatatan({
+        teks: 'Token yang kedaluwarsa berhenti bekerja otomatis. Kalau ada integrasi yang memakainya, integrasi itu akan gagal pada tanggal tersebut.',
+        jenis: 'peringatan',
+      })}
+        <mj-text>
+          Perbarui atau ganti token dari halaman token akses sebelum tanggal
+          itu supaya tidak ada layanan yang terputus.
+        </mj-text>
+        <mj-button href="https://victer.is-a.dev/keamanan">Kelola token akses</mj-button>`,
+      catatanKaki: 'Anda menerima email ini karena ada token akses yang mendekati kedaluwarsa.',
+    }),
+  },
+
 };
 
 /** Warna & font diekspor supaya generator bisa memakainya untuk versi teks. */

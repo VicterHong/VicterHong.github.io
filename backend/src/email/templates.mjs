@@ -230,3 +230,106 @@ export function templateKodeMasuk({ nama, kode, berlakuMenit = 10, lokasi, ip })
 export function daftarTemplate() {
   return Object.keys(HTML_EMAIL);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── TEMPLATE SIKLUS LANGGANAN ───────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// ── KENAPA EMPAT FUNGSI TERPISAH ────────────────────────────────────────────
+// Setiap momen dalam siklus langganan butuh nada berbeda. Memakai satu fungsi
+// untuk semuanya menghasilkan email yang salah konteks — lihat penjelasan
+// lengkap di email-src/templates.mjml.mjs.
+
+/** Tanggal saja (tanpa jam) — untuk tanggal berakhir langganan. */
+function tanggalSaja(ms) {
+  return new Date(ms).toLocaleDateString('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+}
+
+/**
+ * Pengingat SEBELUM langganan berakhir — email paling penting di siklus ini.
+ *
+ * Tanpa ini, pelanggan baru tahu aksesnya habis saat ia gagal membuka
+ * sesuatu. Pengalaman itu terasa seperti sistem rusak, bukan seperti
+ * langganan yang perlu diperpanjang.
+ */
+export function templateLanggananAkanBerakhir({
+  nama, paket, sisaHari, tanggalBerakhir, jumlah, tautanPerpanjang,
+}) {
+  return bangun('langganan_akan_berakhir', {
+    sapaan: sapaan(nama),
+    paket,
+    sisa_hari: String(sisaHari),
+    tanggal_berakhir: typeof tanggalBerakhir === 'number'
+      ? tanggalSaja(tanggalBerakhir)
+      : String(tanggalBerakhir ?? ''),
+    jumlah: jumlah ?? '',
+    tautan_perpanjang: tautanPerpanjang ?? 'https://victer.is-a.dev/pricing',
+  }, {
+    judul: 'Langganan Anda akan berakhir',
+    mentah: ['tautan_perpanjang'],
+  });
+}
+
+/** Pemberitahuan setelah langganan benar-benar berakhir (akses dijeda). */
+export function templateLanggananBerakhir({ nama, paket, tanggalBerakhir, tautanPerpanjang }) {
+  return bangun('langganan_berakhir', {
+    sapaan: sapaan(nama),
+    paket,
+    tanggal_berakhir: typeof tanggalBerakhir === 'number'
+      ? tanggalSaja(tanggalBerakhir)
+      : String(tanggalBerakhir ?? ''),
+    tautan_perpanjang: tautanPerpanjang ?? 'https://victer.is-a.dev/pricing',
+  }, {
+    judul: 'Langganan Anda sudah berakhir',
+    mentah: ['tautan_perpanjang'],
+  });
+}
+
+/** Konfirmasi perpanjangan berhasil. */
+export function templateLanggananDiperpanjang({ nama, paket, tanggalBerakhir, nomorPesanan }) {
+  return bangun('langganan_diperpanjang', {
+    sapaan: sapaan(nama),
+    paket,
+    tanggal_berakhir: typeof tanggalBerakhir === 'number'
+      ? tanggalSaja(tanggalBerakhir)
+      : String(tanggalBerakhir ?? ''),
+    nomor_pesanan: nomorPesanan ?? '',
+  }, {
+    judul: 'Langganan diperpanjang',
+  });
+}
+
+/** Pemberitahuan pembayaran gagal — dengan jendela waktu perbaikan. */
+export function templatePembayaranGagal({
+  nama, paket, jumlah, alasan, sisaHari = 7, tautanBayar,
+}) {
+  return bangun('pembayaran_gagal', {
+    sapaan: sapaan(nama),
+    paket,
+    jumlah: jumlah ?? '',
+    alasan: alasan ?? 'Tidak diketahui',
+    sisa_hari: String(sisaHari),
+    tautan_bayar: tautanBayar ?? 'https://victer.is-a.dev/pricing',
+  }, {
+    judul: 'Pembayaran gagal',
+    mentah: ['tautan_bayar'],
+  });
+}
+
+/** Pengingat token akses yang mendekati kedaluwarsa. */
+export function templateTokenAkanKedaluwarsa({
+  nama, labelToken, sisaHari, tanggalKedaluwarsa,
+}) {
+  return bangun('token_akan_kedaluwarsa', {
+    sapaan: sapaan(nama),
+    label_token: labelToken ?? 'Token akses',
+    sisa_hari: String(sisaHari),
+    tanggal_kedaluwarsa: typeof tanggalKedaluwarsa === 'number'
+      ? tanggalSaja(tanggalKedaluwarsa)
+      : String(tanggalKedaluwarsa ?? ''),
+  }, {
+    judul: 'Token akses akan kedaluwarsa',
+  });
+}
