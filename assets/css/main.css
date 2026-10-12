@@ -750,7 +750,15 @@ a { color: inherit; text-decoration: none; }
     font-weight: 600;
   }
 
-  .nav-toggle { display: inline-flex; align-items: center; flex-shrink: 0; }
+  .nav-toggle { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* Tap target ≥44px di mobile (WCAG 2.5.8). Terukur sebelum ini: tombol
+     menu 39,6×36,4px dan "Sign in" 76,4×38,5px — dua kontrol yang paling
+     sering disentuh di layar sentuh, keduanya di bawah ambang. Hanya di
+     ≤900px (mode mobile/panel); desktop dengan mouse tidak terpengaruh
+     sehingga header desktop identik seperti sebelumnya. */
+  .nav-toggle { min-width: 44px; min-height: 44px; }
+  .nav-signin { min-height: 44px; }
 
   /* Tirai gelap di belakang panel — memisahkan menu dari konten halaman
      supaya mata tidak terbagi antara keduanya. */

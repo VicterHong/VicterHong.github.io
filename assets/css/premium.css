@@ -53,11 +53,17 @@
 
 /* ── FOKUS KEYBOARD YANG DIRANCANG ──────────────────────────────────────────────
    Bukan outline default browser. Terlihat jelas, konsisten di semua elemen
-   interaktif, dan hanya muncul saat navigasi keyboard (:focus-visible). */
+   interaktif, dan hanya muncul saat navigasi keyboard (:focus-visible).
+
+   JANGAN tambahkan `border-radius` di sini (dulu ada — bug nyata): radius
+   memaksa SETIAP elemen berubah bentuk saat difokuskan keyboard. Terukur:
+   pill "Detail teknis" (radius 999px) menyusut jadi 9px begitu menerima
+   fokus — bentuk elemen tidak boleh berubah karena fokus. Cincin `box-shadow`
+   otomatis mengikuti radius asli elemen, jadi tidak perlu dan tidak boleh
+   diatur di sini. */
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-  border-radius: var(--radius-sm);
   transition: box-shadow var(--dur-fast) var(--ease-out-quad);
 }
 
