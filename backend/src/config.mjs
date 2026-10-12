@@ -414,6 +414,64 @@ export function validateConfig() {
       + 'Isi di ' + ENV_FILE);
   }
 
+  // ── Email: pengirim harus alamat yang VALID ──────────────────────────────
+  //
+  // ── KENAPA PEMERIKSAAN INI ADA ───────────────────────────────────────────
+  //
+  // 7 email ditolak Brevo dengan alasan yang sama:
+  //
+  //   Sending has been rejected because the sender you used
+  //   noreply@victer.is-a.dev is not valid.
+  //   Validate your sender or authenticate your domain
+  //
+  // Penyebabnya: domain `is-a.dev` dikelola lewat PR GitHub — pemiliknya
+  // TIDAK BISA menambah DNS record yang diminta Brevo. Jadi domain itu
+  // tidak akan pernah bisa diverifikasi, dan setiap email yang memakai
+  // alamat itu akan SELALU ditolak.
+  //
+  // Kegagalan ini tidak terlihat dari dalam: API Brevo menjawab sukses
+  // (permintaan diterima), lalu menolak di sisi pengiriman. Tanpa
+  // pemeriksaan ini, masalahnya baru ketahuan setelah pengguna komplain
+  // tidak menerima email.
+  //
+  // Pemeriksaan di sini hanya bisa memeriksa BENTUK, bukan apakah Brevo
+  // benar-benar menerima alamatnya — itu perlu panggilan API, dan config
+  // tidak boleh bergantung pada jaringan. Yang dicegah: alamat kosong,
+  // alamat tanpa `@`, dan alamat dari domain yang tidak bisa diverifikasi
+  // (is-a.dev, github.io, pages.dev — semuanya domain pihak lain).
+  if (config.emailFrom || config.brevoApiKey || config.resendApiKey) {
+    const alamat = config.emailFrom || config.brevoSenderEmail || '';
+    const cocok = alamat.match(/<([^>]+)>/) ?? [null, alamat];
+    const surel = (cocok[1] ?? '').trim();
+
+    if (!surel) {
+      problems.push('EMAIL_FROM kosong padahal penyedia email diisi — '
+        + 'email tidak akan bisa dikirim. Isi di ' + ENV_FILE);
+    } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(surel)) {
+      problems.push(`EMAIL_FROM bukan alamat email yang sah: "${surel}". `
+        + 'Format yang diterima: "Nama <alamat@domain>" atau "alamat@domain". '
+        + 'Isi di ' + ENV_FILE);
+    } else {
+      // Domain pihak lain yang tidak bisa ditambahi DNS record.
+      const domainTidakBisaDiverifikasi = ['is-a.dev', 'github.io', 'pages.dev', 'workers.dev'];
+      const domain = surel.split('@')[1] ?? '';
+      const kena = domainTidakBisaDiverifikasi.find(
+        (d) => domain === d || domain.endsWith('.' + d),
+      );
+
+      if (kena) {
+        problems.push(
+          `EMAIL_FROM memakai domain "${domain}" yang TIDAK BISA diverifikasi `
+          + `(dikelola pihak lain — tidak ada akses DNS). Penyedia email `
+          + `(Brevo/Resend) akan MENOLAK setiap pengiriman dari alamat ini. `
+          + `Ganti EMAIL_FROM ke alamat yang sudah terverifikasi di dashboard `
+          + `penyedia, atau verifikasi domain Anda sendiri dulu. `
+          + `Isi di ${ENV_FILE}`,
+        );
+      }
+    }
+  }
+
   return problems;
 }
 

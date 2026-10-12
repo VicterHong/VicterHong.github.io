@@ -1800,15 +1800,61 @@ export const routes = [
       // Pesan sukses yang seragam juga mencegah pengguna panik: mereka tidak
       // tahu apakah emailnya terdaftar atau tidak, dan itu memang bukan
       // informasi yang perlu mereka ketahui.
+      //
+      // ── KENAPA HASIL PENGIRIMAN DITUNGGU, BUKAN `catch(() => {})` ──────────
+      //
+      // Versi sebelumnya:
+      //
+      //   kirimEmailResetSandi({...}).catch(() => {});
+      //   recordEvent({ outcome: 'dikirim' });
+      //
+      // Itu SALAH DUA KALI:
+      //
+      //   1. `email.mjs` TIDAK PERNAH melempar — ia mengembalikan
+      //      `{ok:false, error:'...'}`. Jadi `.catch()` tidak menangkap apa
+      //      pun; kegagalan hilang tanpa jejak.
+      //
+      //   2. `outcome: 'dikirim'` dicatat berdasarkan "apakah user ada",
+      //      bukan "apakah email terkirim". Log selalu bilang sukses.
+      //
+      // Akibatnya nyata: 7 email ditolak Brevo ("sender not valid") dan
+      // TIDAK ADA satu pun catatan bahwa pengiriman gagal. Pengguna
+      // menunggu email yang tidak akan pernah datang.
+      //
+      // Pengiriman kini ditunggu, hasilnya diperiksa, dan outcome mencatat
+      // keadaan sebenarnya. Tidak ada kebocoran waktu respons yang berarti:
+      // respons sukses dikirim SETELAH hasil diketahui, dan pesannya tetap
+      // seragam untuk email terdaftar maupun tidak.
+      let terkirim = null;   // null = tidak dicoba (user tidak ada / tidak aktif)
       if (user && user.status === 'aktif') {
         const token = buatTokenReset(user.id);
-        const { kirimEmailResetSandi } = await import('./email.mjs');
-        // Kirim tanpa menunggu — kegagalan email TIDAK boleh membuat endpoint
-        // ini membocorkan keberadaan akun lewat perbedaan waktu respons.
-        kirimEmailResetSandi({ ke: email, nama: user.nama, token }).catch(() => {});
+        try {
+          const { kirimEmailResetSandi } = await import('./email.mjs');
+          const r = await kirimEmailResetSandi({ ke: email, nama: user.nama, token });
+          terkirim = Boolean(r?.ok);
+          if (!terkirim) {
+            // Dicatat di log server supaya operator tahu penyebabnya.
+            // Alasan dari penyedia (mis. "sender not valid") ikut disertakan —
+            // tanpa itu, diagnosis hanya bisa ditebak.
+            console.warn(`[lupa-sandi] email gagal untuk ${email}: ${r?.error ?? 'tidak diketahui'}`);
+          }
+        } catch (err) {
+          terkirim = false;
+          console.warn(`[lupa-sandi] email melempar untuk ${email}:`, err?.message ?? err);
+        }
       }
 
-      recordEvent({ action: 'auth_lupa_sandi', outcome: user ? 'dikirim' : 'email_tidak_ada', ip: clientIp(req) });
+      recordEvent({
+        action: 'auth_lupa_sandi',
+        outcome: user
+          ? (user.status !== 'aktif' ? 'akun_tidak_aktif'
+            : terkirim ? 'dikirim' : 'email_gagal')
+          : 'email_tidak_ada',
+        ip: clientIp(req),
+        // Detail hanya diisi kalau pengiriman DICOBA — supaya panel admin bisa
+        // membedakan "email gagal" dari "akun tidak ada".
+        detail: terkirim === false ? 'penyedia email menolak pengiriman' : undefined,
+      });
 
       return sendJson(res, 200, {
         ok: true,
