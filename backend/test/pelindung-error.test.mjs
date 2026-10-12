@@ -32,8 +32,22 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const { safe, publicError } = await import('/home/ubuntu/portfolio-victer/backend/src/http-util.mjs');
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+
+const { safe, publicError } = await import(join(AKAR, 'backend', 'src', 'http-util.mjs'));
 
 /** Respons palsu yang merekam apa yang dikirim handler. */
 function responsPalsu() {
@@ -221,7 +235,7 @@ test('publicError menyaring pesan yang membocorkan sistem', () => {
 // ── 7. Rute auth benar-benar terbungkus (audit runtime) ──────────────────────
 
 test('ruteAuth() mengembalikan rute yang SEMUA terbungkus safe()', async () => {
-  const { ruteAuth } = await import('/home/ubuntu/portfolio-victer/backend/src/auth-routes.mjs');
+  const { ruteAuth } = await import(join(AKAR, 'backend', 'src', 'auth-routes.mjs'));
   const rute = ruteAuth();
 
   assert.ok(Array.isArray(rute) && rute.length > 0, 'ruteAuth() harus mengembalikan array rute');

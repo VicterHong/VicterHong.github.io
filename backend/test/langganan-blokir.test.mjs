@@ -32,14 +32,28 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 const DIR = mkdtempSync(join(tmpdir(), 'uji-langganan-'));
 process.env.DB_PATH = join(DIR, 'uji.db');
 
-const { openDb, getDb, migrateUlang } = await import('/home/ubuntu/portfolio-victer/backend/src/db.mjs');
+const { openDb, getDb, migrateUlang } = await import(join(AKAR, 'backend', 'src', 'db.mjs'));
 openDb(join(DIR, 'uji.db'));
 
-const { siapkanTabelPengguna } = await import('/home/ubuntu/portfolio-victer/backend/src/users.mjs');
+const { siapkanTabelPengguna } = await import(join(AKAR, 'backend', 'src', 'users.mjs'));
 siapkanTabelPengguna();
 migrateUlang();
 
@@ -47,7 +61,7 @@ migrateUlang();
 //
 // Bukan ditulis ulang sebagai string. Kalau namanya berubah di checkout.mjs,
 // tes ini otomatis memakai nama yang baru.
-const { STATUS } = await import('/home/ubuntu/portfolio-victer/backend/src/checkout.mjs');
+const { STATUS } = await import(join(AKAR, 'backend', 'src', 'checkout.mjs'));
 
 let lulus = 0, gagal = 0;
 const cek = (nama, dapat, harap) => {

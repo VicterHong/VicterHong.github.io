@@ -35,11 +35,25 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 const DIR = mkdtempSync(join(tmpdir(), 'uji-aktivitas-'));
 process.env.DB_PATH = join(DIR, 'uji.db');
 
-const { openDb, getDb } = await import('/home/ubuntu/portfolio-victer/backend/src/db.mjs');
+const { openDb, getDb } = await import(join(AKAR, 'backend', 'src', 'db.mjs'));
 openDb(join(DIR, 'uji.db'));
 
 // ── 1. Daftar putih: event admin/sistem TIDAK boleh ada ────────────────────────
@@ -47,12 +61,12 @@ openDb(join(DIR, 'uji.db'));
 // Membaca daftar dari modul, bukan menyalinnya — kalau daftarnya berubah,
 // uji ini mengikuti (bukan pecah karena salinan yang basi).
 
-const modul = await import('/home/ubuntu/portfolio-victer/backend/src/auth-routes.mjs');
+const modul = await import(join(AKAR, 'backend', 'src', 'auth-routes.mjs'));
 
 // Daftar tidak diekspor (sengaja — ia detail internal). Baca lewat sumber
 // teks modul sebagai jaring pengaman terakhir, DAN uji perilakunya di bawah.
 const sumber = await import('node:fs').then((fs) =>
-  fs.readFileSync('/home/ubuntu/portfolio-victer/backend/src/auth-routes.mjs', 'utf8')
+  fs.readFileSync(join(AKAR, 'backend', 'src', 'auth-routes.mjs'), 'utf8')
 );
 
 test('event admin TIDAK ada di daftar putih aktivitas pengguna', () => {

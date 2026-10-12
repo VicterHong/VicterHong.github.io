@@ -29,8 +29,22 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const V = await import('/home/ubuntu/portfolio-victer/backend/src/email/variabel.mjs');
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+
+const V = await import(join(AKAR, 'backend', 'src', 'email', 'variabel.mjs'));
 
 // ── 1. Penggantian: SEMUA kemunculan ──────────────────────────────────────────
 
@@ -137,7 +151,7 @@ test('nilaiStandar mengisi judul, judul_email, dan tahun', () => {
 // ── 6. Integrasi: template nyata tidak menyisakan placeholder ─────────────────
 
 test('SEMUA template nyata tidak menyisakan placeholder setelah diisi', async () => {
-  const T = await import('/home/ubuntu/portfolio-victer/backend/src/email/templates.mjs');
+  const T = await import(join(AKAR, 'backend', 'src', 'email', 'templates.mjs'));
 
   const kasus = [
     ['reset sandi', T.templateResetSandi({ nama: 'Victer', tautan: 'https://x.id/r?t=1' })],
@@ -163,7 +177,7 @@ test('SEMUA template nyata tidak menyisakan placeholder setelah diisi', async ()
 });
 
 test('template tanpa nama tetap tidak menyisakan spasi menggantung', async () => {
-  const T = await import('/home/ubuntu/portfolio-victer/backend/src/email/templates.mjs');
+  const T = await import(join(AKAR, 'backend', 'src', 'email', 'templates.mjs'));
   const hasil = T.templateResetSandi({ tautan: 'https://x.id/r' });
 
   assert.ok(!hasil.html.includes('Halo ,'), 'tidak boleh "Halo ," (spasi menggantung)');
@@ -173,7 +187,7 @@ test('template tanpa nama tetap tidak menyisakan spasi menggantung', async () =>
 // ── 7. Meta color-scheme (khusus MJML) ────────────────────────────────────────
 
 test('semua template memuat meta color-scheme', async () => {
-  const T = await import('/home/ubuntu/portfolio-victer/backend/src/email/templates.mjs');
+  const T = await import(join(AKAR, 'backend', 'src', 'email', 'templates.mjs'));
 
   // ── KENAPA META INI PENTING ──────────────────────────────────────────────
   // MJML TIDAK menghasilkan <meta name="color-scheme"> sendiri. Ia disisipkan

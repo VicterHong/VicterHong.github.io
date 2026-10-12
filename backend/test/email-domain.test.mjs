@@ -29,6 +29,20 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 // ── Fungsi yang diuji (salinan dari setup-domain-email.mjs) ───────────────────
 //
@@ -222,7 +236,7 @@ test('nilai DKIM panjang (kunci RSA) tidak terpotong', () => {
 test('skrip asli masih memakai pola yang diuji di sini', async () => {
   const { readFileSync } = await import('node:fs');
   const sumber = readFileSync(
-    '/home/ubuntu/portfolio-victer/scripts/setup-domain-email.mjs', 'utf8'
+    join(AKAR, 'scripts', 'setup-domain-email.mjs'), 'utf8'
   );
 
   // ── CATATAN PERUBAHAN: RESEND → BREVO ────────────────────────────────────
@@ -262,7 +276,7 @@ test('skrip asli masih memakai pola yang diuji di sini', async () => {
 test('skrip asli memakai CNAME untuk DKIM (bukan TXT) — kunci kompatibilitas is-a.dev', async () => {
   const { readFileSync } = await import('node:fs');
   const sumber = readFileSync(
-    '/home/ubuntu/portfolio-victer/scripts/setup-domain-email.mjs', 'utf8'
+    join(AKAR, 'scripts', 'setup-domain-email.mjs'), 'utf8'
   );
 
   // ── KENAPA INI PENTING ───────────────────────────────────────────────────

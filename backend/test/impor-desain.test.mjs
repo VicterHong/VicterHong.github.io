@@ -22,6 +22,20 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 // ── Salinan fungsi (importer menjalankan aksi saat diimpor, jadi tidak bisa
 //    diimpor langsung di tes) ────────────────────────────────────────────────
@@ -159,7 +173,7 @@ test('HTML tanpa tabel terdeteksi (email berbasis div rapuh di Outlook)', () => 
 test('fungsi normalisasi di berkas asli masih sama', async () => {
   const { readFileSync } = await import('node:fs');
   const sumber = readFileSync(
-    '/home/ubuntu/portfolio-victer/scripts/impor-desain.mjs', 'utf8'
+    join(AKAR, 'scripts', 'impor-desain.mjs'), 'utf8'
   );
 
   // ── KENAPA DIPERIKSA ─────────────────────────────────────────────────────

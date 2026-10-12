@@ -30,21 +30,35 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 const DIR = mkdtempSync(join(tmpdir(), 'uji-pulih-'));
 process.env.DB_PATH = join(DIR, 'uji.db');
 
-const { openDb, getDb, migrateUlang } = await import('/home/ubuntu/portfolio-victer/backend/src/db.mjs');
+const { openDb, getDb, migrateUlang } = await import(join(AKAR, 'backend', 'src', 'db.mjs'));
 openDb(join(DIR, 'uji.db'));
 
-const { siapkanTabelPengguna } = await import('/home/ubuntu/portfolio-victer/backend/src/users.mjs');
+const { siapkanTabelPengguna } = await import(join(AKAR, 'backend', 'src', 'users.mjs'));
 siapkanTabelPengguna();
 migrateUlang();
 
-const { siapkanTabelIdentitas } = await import('/home/ubuntu/portfolio-victer/backend/src/auth-identities.mjs');
+const { siapkanTabelIdentitas } = await import(join(AKAR, 'backend', 'src', 'auth-identities.mjs'));
 siapkanTabelIdentitas();
 
-const { nonaktifkanAkun, batalkanHapus, sisaHariHapus } = await import('/home/ubuntu/portfolio-victer/backend/src/purge-akun.mjs');
+const { nonaktifkanAkun, batalkanHapus, sisaHariHapus } = await import(join(AKAR, 'backend', 'src', 'purge-akun.mjs'));
 
 let lulus = 0, gagal = 0;
 const cek = (nama, dapat, harap) => {
@@ -71,7 +85,7 @@ console.log('\n  ══ 1. CEK KODE PEMBATALAN ══');
 buatAkun('r1', 'pulih@contoh.test', 'menunggu_hapus', sekarang - 5 * HARI);
 
 // ── FUNGSI YANG HARUS ADA ───────────────────────────────────────────────────
-const { cekKodePembatalan } = await import('/home/ubuntu/portfolio-victer/backend/src/purge-akun.mjs');
+const { cekKodePembatalan } = await import(join(AKAR, 'backend', 'src', 'purge-akun.mjs'));
 
 cek('cekKodePembatalan tersedia', typeof cekKodePembatalan, 'function');
 
@@ -191,7 +205,7 @@ console.log('\n  ══ 6. REGRESI: IMPORT EMAIL ══');
 //
 // Ini menangkap kelas bug yang sama untuk fungsi apa pun di masa depan.
 const fs = await import('node:fs');
-const sumber = fs.readFileSync('/home/ubuntu/portfolio-victer/backend/src/auth-routes.mjs', 'utf8');
+const sumber = fs.readFileSync(join(AKAR, 'backend', 'src', 'auth-routes.mjs'), 'utf8');
 
 // Semua fungsi email yang mungkin dipanggil (pola: await kirimXxx(...)).
 const polaPanggilan = /await (kirim[A-Z]\w*)\(/g;
@@ -212,7 +226,7 @@ cek('tidak ada import statis email.mjs (harus dinamis)', /^import .* from '\.\/e
 // = await import(...)` tidak melempar saat import, tapi menghasilkan undefined
 // dan gagal saat dipanggil. Karena itu nama-namanya diperiksa terhadap ekspor
 // modul email yang sebenarnya.
-const sumberEmail = fs.readFileSync('/home/ubuntu/portfolio-victer/backend/src/email.mjs', 'utf8');
+const sumberEmail = fs.readFileSync(join(AKAR, 'backend', 'src', 'email.mjs'), 'utf8');
 const diekspor = [...sumberEmail.matchAll(/export async function (kirim\w+)/g)].map((m) => m[1]);
 
 for (const nama of [...new Set(dipanggil)]) {

@@ -36,6 +36,20 @@ import { spawn, execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 const PORT = 51000 + Math.floor(Math.random() * 800), BE_PORT = PORT + 1;
 const BASE = `https://127.0.0.1:${PORT}`;
@@ -86,15 +100,15 @@ const env = {
 };
 
 const be = spawn('node', ['src/server.mjs'], {
-  cwd: '/home/ubuntu/portfolio-victer/backend', env, stdio: ['ignore', 'pipe', 'pipe'],
+  cwd: join(AKAR, 'backend'), env, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let beLog = '';
 be.stdout.on('data', (d) => { beLog += d; });
 be.stderr.on('data', (d) => { beLog += d; });
 
-const fe = spawn('node', ['serve-uji-https.mjs', String(PORT), '/home/ubuntu/portfolio-victer/dist',
+const fe = spawn('node', ['serve-uji-https.mjs', String(PORT), join(AKAR, 'dist'),
   `http://127.0.0.1:${BE_PORT}`, CERT, KEY],
-  { cwd: '/home/ubuntu/portfolio-victer/backend', stdio: 'ignore',
+  { cwd: join(AKAR, 'backend'), stdio: 'ignore',
     env: { ...process.env, SITEKEY_UJI: '1x00000000000000000000AA' } });
 
 await new Promise((r) => setTimeout(r, 3500));

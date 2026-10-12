@@ -32,8 +32,22 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const T = await import('/home/ubuntu/portfolio-victer/backend/src/email/templates.mjs');
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+
+const T = await import(join(AKAR, 'backend', 'src', 'email', 'templates.mjs'));
 
 /** Semua template beserta data contohnya — satu tempat untuk uji menyeluruh. */
 const SEMUA = [

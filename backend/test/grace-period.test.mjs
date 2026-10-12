@@ -25,12 +25,26 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 const DIR = mkdtempSync(join(tmpdir(), 'uji-grace-'));
 process.env.TOKEN_DB_PATH = join(DIR, 'uji.db');
 process.env.DB_PATH = join(DIR, 'uji.db');
 
-const { openDb, getDb } = await import('/home/ubuntu/portfolio-victer/backend/src/db.mjs');
+const { openDb, getDb } = await import(join(AKAR, 'backend', 'src', 'db.mjs'));
 openDb(join(DIR, 'uji.db'));
 
 // ── KENAPA siapkanTabelPengguna() DIPANGGIL ─────────────────────────────────
@@ -40,7 +54,7 @@ openDb(join(DIR, 'uji.db'));
 //
 // Tanpa baris ini: "no such table: users" — dan itu terlihat seperti masalah
 // migrasi, padahal hanya urutan inisialisasi yang kurang.
-const { siapkanTabelPengguna } = await import('/home/ubuntu/portfolio-victer/backend/src/users.mjs');
+const { siapkanTabelPengguna } = await import(join(AKAR, 'backend', 'src', 'users.mjs'));
 siapkanTabelPengguna();
 
 // ── KENAPA MIGRASI DIJALANKAN ULANG SETELAH INI ────────────────────────────
@@ -62,7 +76,7 @@ siapkanTabelPengguna();
 //
 // Memanggil openDb() lagi tidak membantu: ia langsung `return db` kalau
 // sudah terbuka. Jadi migrasinya dijalankan manual di sini.
-const { migrateUlang } = await import('/home/ubuntu/portfolio-victer/backend/src/db.mjs');
+const { migrateUlang } = await import(join(AKAR, 'backend', 'src', 'db.mjs'));
 if (typeof migrateUlang === 'function') migrateUlang();
 
 let lulus = 0, gagal = 0;

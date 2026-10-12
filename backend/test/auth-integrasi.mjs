@@ -16,6 +16,20 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// ── Akar repo dihitung dari lokasi berkas ini ────────────────────────────
+//
+// ── KENAPA TIDAK PATH ABSOLUT ────────────────────────────────────────────
+// Path seperti '/home/ubuntu/portfolio-victer/...' hanya benar di SATU
+// mesin. Di GitHub Actions, checkout berada di
+// /home/runner/work/<repo>/<repo>/ — dan semua tes yang memakai path
+// absolut GAGAL di sana meski lulus di lokal.
+//
+// Menghitung dari lokasi berkas membuat tes bekerja di mana pun.
+const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 
 const DIR = mkdtempSync(join(tmpdir(), 'uji-auth-'));
 const PORT = 47000 + Math.floor(Math.random() * 900);
@@ -41,7 +55,7 @@ const env = {
 };
 
 const server = spawn('node', ['src/server.mjs'], {
-  cwd: '/home/ubuntu/portfolio-victer/backend',
+  cwd: join(AKAR, 'backend'),
   env,
   stdio: ['ignore', 'pipe', 'pipe'],
 });
