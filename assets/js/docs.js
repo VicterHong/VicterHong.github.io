@@ -442,6 +442,36 @@ import { icon, iconHtml } from './icons.js';
     perbaruiDariScroll();
   }
 
+  // ── 2b. Sinkronkan tinggi nyata header & bilah ke CSS variables ───────────
+  // `--docs-header-h`/`--docs-bilah-h` (docs.css) dipakai `.docs-bilah`
+  // (fixed, harus duduk tepat di bawah header) dan `.docs-page`
+  // (padding-top setinggi bilah). Default di CSS diukur sekali; tinggi
+  // SEBENARNYA bisa berbeda setelah font web selesai dimuat (swap font
+  // mengubah tinggi header) atau saat jendela/orientasi berubah.
+  (function () {
+    var akar = document.documentElement;
+    var header = document.querySelector('.site-header');
+    var bilah = document.querySelector('.docs-bilah');
+    if (!header || !bilah) return;
+
+    function ukur() {
+      // Bilah tersembunyi di desktop (display:none) → offsetHeight 0; jangan
+      // timpa default CSS dengan 0 supaya tidak ada lompatan saat resize.
+      if (header.offsetHeight > 0) {
+        akar.style.setProperty('--docs-header-h', header.offsetHeight + 'px');
+      }
+      if (bilah.offsetHeight > 0) {
+        akar.style.setProperty('--docs-bilah-h', bilah.offsetHeight + 'px');
+      }
+    }
+
+    ukur();
+    window.addEventListener('resize', ukur, { passive: true });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(ukur);
+    }
+  })();
+
   // ── 3. Pencarian ───────────────────────────────────────────────────────────
   var search = document.getElementById('docSearch');
   if (!search) return;

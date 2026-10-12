@@ -23,6 +23,26 @@
  * `!important` perlu karena `display: flex` sama-sama spesifisitas 0-1-0. */
 [hidden] { display: none !important; }
 
+/* ══ TINGGI HEADER & BILAH — dipakai elemen `fixed` + padding konten ══════════
+ * `.docs-bilah` keluar dari alur (fixed) dan perlu tahu tinggi header situs
+ * (sticky) supaya duduk TEPAT DI BAWAHNYA, bukan tertutup olehnya.
+ * `.docs-page` perlu tinggi bilah untuk padding-top.
+ *
+ * Nilai di bawah adalah default dari pengukuran (header 74,7px di ≤900px;
+ * bilah 61px = 44px tombol + 2×0,5rem padding + 1px border). `docs.js`
+ * memperbarui keduanya dengan tinggi sebenarnya saat halaman dimuat,
+ * jendela diubah ukuran, atau font web selesai dimuat.
+ *
+ * SEBELUM INI variabel `--docs-header-h` TIDAK PERNAH didefinisikan di mana
+ * pun → fallback 0px dipakai → bilah menempel di y=0, DI BELAKANG header
+ * (z-index header 50 > bilah 40). Terukur 390px: tombol "Daftar isi" tidak
+ * bisa diklik sama sekali — ketukan nyata tembus ke header.
+ * ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --docs-header-h: 75px;
+  --docs-bilah-h: 61px;
+}
+
 
 .docs-page {
   max-width: 1180px;
@@ -284,8 +304,11 @@
 /* ── Konten ───────────────────────────────────────────────────────────────── */
 .doc-content {
   min-width: 0;
-  /* Lebar baca dibatasi — standar tipografi 45–75 karakter per baris. */
-  max-width: 72ch;
+  /* Lebar baca dibatasi — standar tipografi 45–75 karakter per baris.
+     CATATAN TERUKUR: `72ch` di sini menghasilkan 76,6 karakter NYATA per
+     baris di 1440px (unit `ch` = lebar glyph "0", bukan lebar rata-rata
+     karakter teks). 68ch → ≈72,4 karakter nyata, di dalam 60–75. */
+  max-width: 68ch;
 }
 
 .doc-section {
@@ -375,7 +398,10 @@
 
 .code-block code {
   display: block;
-  padding: 1.15rem 1.25rem;
+  /* Ruang atas 3.5rem: tempat tombol salin mengapung (kanan-atas) —
+     baris kode pertama selalu di bawah tombol, tidak pernah tertutup.
+     Pola sama dengan blok kode Stripe: area toolbar di atas kode. */
+  padding: 3.5rem 1.25rem 1.15rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.83rem;
   line-height: 1.7;
@@ -389,8 +415,13 @@
 .code-block code::-webkit-scrollbar { height: 5px; }
 .code-block code::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
-/* Tombol salin — ikon SVG, bukan teks */
-.copy-btn {
+/* Tombol salin — mengapung di kanan-atas blok kode.
+   Spesifisitas .code-block .copy-btn (0,2,0) SENGAJA: interactions.css
+   dimuat setelah berkas ini dan menetapkan `.copy-btn { position: relative }`
+   (0,1,0) untuk efek gelombang tekan. Tanpa selector gabungan, tombol jatuh
+   ke alur normal — terukur di 390px: x=7,4 (blok mulai x=16), terpotong
+   8,6px keluar tepi kiri oleh overflow:hidden. */
+.code-block .copy-btn {
   position: absolute;
   top: 0.6rem;
   right: 0.6rem;
@@ -408,6 +439,14 @@
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .copy-btn:hover { color: var(--text); border-color: var(--text-faint); }
+/* Fokus keyboard: sebelumnya TIDAK ada rule sama sekali — terukur saat Tab:
+   outline default `auto 1px rgb(16,16,16)` di atas latar #16161a ≈ tak
+   terlihat (WCAG 2.4.7 gagal). Cincin aksen 2px sama dengan kontrol lain. */
+.copy-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  color: var(--text);
+}
 .copy-btn.is-done {
   color: #4ade80;
   border-color: rgba(74, 222, 128, 0.4);
@@ -625,14 +664,16 @@
    * ────────────────────────────────────────────────────────────────────────── */
   .docs-bilah {
     position: fixed;
-    top: var(--docs-header-h, 0px);
+    top: var(--docs-header-h, 75px);
     left: 0;
     right: 0;
     z-index: 40;
     display: flex;
     align-items: stretch;
     gap: 0.5rem;
-    height: var(--docs-bilah-h);
+    /* min-height (bukan height): kalau isi bilah tumbuh (font pengguna
+       diperbesar), bilah ikut tumbuh — tidak memotong tombol. */
+    min-height: var(--docs-bilah-h, 61px);
     padding: 0.5rem 1.25rem;
     background: rgba(10, 10, 12, 0.94);
     backdrop-filter: blur(12px);
@@ -643,7 +684,7 @@
   /* Konten digeser turun setinggi bilah — tanpa ini, bagian atas konten
      tertutup bilah yang keluar dari alur. */
   .docs-page {
-    padding-top: calc(var(--docs-bilah-h) + 3rem);
+    padding-top: calc(var(--docs-bilah-h, 61px) + 3rem);
   }
 
   /* Tombol buka daftar isi — mengisi sisa lebar. */
@@ -844,7 +885,9 @@
      (baris ~497) karena di 390px KEDUANYA cocok, dan yang belakangan menang.
      Jadi mengubah hanya blok 900px TIDAK berpengaruh di HP — inilah sebabnya
      perbaikan pertama tidak terlihat saat diukur. Kedua blok harus konsisten. */
-  .docs-page { padding: 3rem 1rem 3rem; }
+  /* Padding atas harus MEMUAT bilah fixed (variabel diisi docs.js dengan
+     tinggi nyata) — kalau tidak, judul "DOKUMENTASI" tertutup bilah. */
+  .docs-page { padding: calc(var(--docs-bilah-h, 61px) + 3rem) 1rem 3rem; }
   .docs-head { margin-bottom: 2rem; padding-bottom: 1.5rem; }
   .docs-head h1 { font-size: 1.75rem; }
   .docs-head > p { font-size: 0.95rem; }
@@ -861,7 +904,10 @@
   .doc-section h3 { font-size: 1rem; margin-top: 1.75rem; }
   .doc-section p, .doc-section ul, .doc-section ol { font-size: 0.9rem; }
 
-  .code-block code { font-size: 0.76rem; padding: 1rem; }
+  .code-block code { font-size: 0.76rem; padding: 3.75rem 1rem 1rem; }
+  /* Tap target tombol salin ≥44px di layar sentuh (WCAG 2.5.5) —
+     sebelumnya terukur 65,3×29,2px. */
+  .copy-btn { min-height: 44px; }
   .doc-table { font-size: 0.82rem; }
   .doc-table th, .doc-table td { padding: 0.6rem 0.7rem; }
 
