@@ -25,7 +25,8 @@
     "verifikasi": "node scripts/verifikasi-dist.mjs",
     "changelog": "node scripts/generate-changelog.mjs",
     "email:preview": "node scripts/preview-email.mjs",
-    "email:test": "cd backend && node src/admin-cli.mjs email-test"
+    "email:test": "cd backend && node src/admin-cli.mjs email-test",
+    "email:domain": "node scripts/setup-domain-email.mjs"
   },
   "dependencies": {
     "cloudflare": "^1.0.0-beta.12"

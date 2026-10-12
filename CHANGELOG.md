@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 349 perubahan dari 351 commit (2026-10-01 → 2026-10-12).
+Total 350 perubahan dari 352 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -25,6 +25,7 @@ Total 349 perubahan dari 351 commit (2026-10-01 → 2026-10-12).
 
 ### Pemeliharaan
 
+- **email**: Kontras footer WCAG AA + tombol sekunder di email kode (`3970285`)
 - **profil**: Kembalikan tab ke kondisi semula (db009ca) (`8a9154e`)
 - **scripts**: Git hook post-commit + pemasangnya (`1e6e9c2`)
 

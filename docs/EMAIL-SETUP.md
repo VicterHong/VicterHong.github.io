@@ -84,33 +84,73 @@ EMAIL_FROM=noreply@domain-anda.com
 **Cocok kalau:** ingin alamat `@victer.is-a.dev` tanpa biaya.
 
 Domain `victer.is-a.dev` **sudah milik Anda** dan is-a.dev **mendukung
-record TXT + MX** — jadi bisa dipakai untuk email. Caranya lewat PR ke repo
-is-a.dev (ada preseden: pengguna lain sudah memverifikasi Resend di domain
-is-a.dev).
+record TXT + MX** — jadi bisa dipakai untuk email korporasi. Semuanya sudah
+**otomatis lewat satu perintah**.
 
-### Langkah ringkas
+### ⚠️ Penting: kenapa pakai subdomain `send.`
 
-1. Verifikasi domain di Resend → dapat record DNS (SPF + DKIM + MX)
-2. Fork **https://github.com/is-a-dev/register**
-3. Tambah record ke `domains/victer.json`:
+`victer.is-a.dev` sudah dipakai situs lewat **CNAME**. Aturan DNS: CNAME
+**tidak bisa** dicampur dengan MX/TXT di record set yang sama.
 
-```json
-{
-  "owner": { "username": "VicterHong", "email": "victerphanjaya@gmail.com" },
-  "records": {
-    "CNAME": "portfolio-victer.pages.dev",
-    "TXT": ["v=spf1 include:amazonses.com ~all"],
-    "MX": [{ "target": "feedback-smtp.us-east-1.amazonses.com", "priority": 10 }]
-  }
-}
+Solusinya (pola yang sudah dipakai domain lain di repo is-a.dev):
+
+```
+victer.is-a.dev                    → CNAME (situs, TIDAK diubah)
+send.victer.is-a.dev               → MX + SPF (pengiriman email)
+resend._domainkey.victer.is-a.dev  → DKIM (tanda tangan)
 ```
 
-> Nilai TXT/MX **harus diambil dari dashboard Resend** — itu spesifik per akun.
+Hasilnya: alamat `noreply@send.victer.is-a.dev` — profesional, dan situs
+sama sekali tidak terganggu.
 
-4. Kirim PR → tunggu merge → verifikasi di Resend
-5. Isi `EMAIL_FROM=VIVASTIC <noreply@victer.is-a.dev>`
+### Cara otomatis (satu perintah)
 
-**Hasil:** alamat email korporasi sungguhan, gratis.
+```bash
+# 1. Daftar gratis di resend.com → API Keys → Create
+# 2. Isi kunci di service.env:
+echo 'RESEND_API_KEY=re_xxxxxxxxxxxx' >> ~/.portfolio-token/service.env
+
+# 3. Jalankan — semua langkah otomatis:
+cd /home/ubuntu/portfolio-victer
+node scripts/setup-domain-email.mjs --siapkan
+```
+
+Perintah itu melakukan **enam langkah**:
+
+```
+1. Tambah send.victer.is-a.dev ke akun Resend
+2. Ambil record DNS (DKIM + SPF + MX) dari Resend
+3. Susun berkas JSON untuk repo is-a.dev
+4. Clone fork + salin berkas ke domains/
+5. Commit + push ke cabang baru
+6. Buat pull request dengan TEMPLATE YANG BENAR
+```
+
+> Langkah 6 penting: repo is-a.dev punya validator otomatis yang **menolak PR**
+> kalau template-nya tidak diisi persis (termasuk komentar penandanya).
+> Skrip sudah mengurus itu.
+
+Setelah PR di-merge:
+
+```bash
+# 4. Minta Resend memeriksa DNS
+node scripts/setup-domain-email.mjs --verifikasi
+
+# 5. Cek status
+node scripts/setup-domain-email.mjs --status
+
+# 6. Isi pengirim + restart
+echo 'EMAIL_FROM=VIVASTIC <noreply@send.victer.is-a.dev>' >> ~/.portfolio-token/service.env
+sudo systemctl restart portfolio-token.service
+
+# 7. Uji kirim sungguhan
+cd backend && node src/admin-cli.mjs email-test --to victerphanjaya@gmail.com
+```
+
+**Hasil:** alamat email korporasi sungguhan, gratis, tanpa mengganggu situs.
+
+> ⏱️ Waktu tunggu: PR is-a.dev direview **relawan** — bisa beberapa jam
+> sampai beberapa hari. Setelah merge, DNS menyebar 1-5 menit.
 
 ---
 

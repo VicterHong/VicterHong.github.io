@@ -16,3 +16,4 @@ dist/
 # Alat pengembang — pratinjau email (dibangun oleh scripts/preview-email.mjs)
 preview-email/
 preview-email.html
+.email-domain/
