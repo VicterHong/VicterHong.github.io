@@ -84,23 +84,33 @@ export const config = {
    */
   // ── PENYEDIA EMAIL ─────────────────────────────────────────────────────────
   //
-  // Dua pilihan, dipilih otomatis oleh email.mjs:
+  // Tiga pilihan, dipilih otomatis oleh email.mjs (urutan: Brevo → Resend →
+  // Cloudflare):
   //
-  //   1. RESEND — bisa dipakai TANPA domain sendiri.
+  //   1. BREVO — satu-satunya yang menerima domain dari Public Suffix List
+  //        BREVO_API_KEY      — kunci dari brevo.com → SMTP & API → API Keys
+  //        BREVO_SENDER_EMAIL — alamat pengirim yang sudah diverifikasi
+  //
+  //        KENAPA BREVO DIPERIKSA PERTAMA: Resend MENOLAK `is-a.dev`
+  //        ("We don't allow free public domains"). Brevo menerimanya —
+  //        terbukti dari repo is-a.dev yang memakai Brevo DKIM.
+  //        Kuota gratis: 300/hari (9.000/bulan).
+  //
+  //   2. RESEND — bisa dipakai TANPA domain sendiri, TAPI tolak domain publik
   //        RESEND_API_KEY  — kunci dari resend.com/api-keys
   //        EMAIL_FROM      — opsional; default `onboarding@resend.dev`
   //
-  //        Tanpa domain terverifikasi, Resend HANYA bisa mengirim ke email
-  //        yang dipakai mendaftar. Cukup untuk uji dan demo.
-  //
-  //   2. CLOUDFLARE EMAIL — butuh domain sendiri yang sudah di-onboard.
+  //   3. CLOUDFLARE EMAIL — butuh domain sendiri yang sudah di-onboard
   //        CF_ACCOUNT_ID   — ID akun Cloudflare
   //        CF_API_TOKEN    — token dengan izin kirim email
   //        EMAIL_FROM      — alamat pengirim di domain terverifikasi
   //
-  // Kalau dua-duanya kosong, email.mjs TIDAK rusak: pemanggil menulis kode
+  // Kalau ketiganya kosong, email.mjs TIDAK rusak: pemanggil menulis kode
   // ke log server sebagai jalur cadangan — supaya alur pengguna tetap bisa
   // diselesaikan (dengan bantuan admin).
+  brevoApiKey: pick('BREVO_API_KEY', ''),
+  brevoSenderEmail: pick('BREVO_SENDER_EMAIL', ''),
+
   resendApiKey: pick('RESEND_API_KEY', ''),
 
   cfAccountId: pick('CF_ACCOUNT_ID', '') || pick('CLOUDFLARE_ACCOUNT_ID', ''),

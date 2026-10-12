@@ -72,11 +72,49 @@ function endpointKirim() {
   return `https://api.cloudflare.com/client/v4/accounts/${config.cfAccountId}/email/sending/send`;
 }
 
+/**
+ * ── PENYEDIA: BREVO ─────────────────────────────────────────────────────────
+ *
+ * ── KENAPA BREVO DITAMBAHKAN ────────────────────────────────────────────────
+ * Resend MENOLAK domain dari Public Suffix List — termasuk `is-a.dev`:
+ *
+ *   "We don't allow free public domains. Please use a domain you own instead."
+ *
+ * Padahal `victer.is-a.dev` adalah domain yang sudah dimiliki pengguna dan
+ * sudah terdaftar resmi di repo is-a.dev. Penolakan itu bukan soal
+ * kepemilikan, tapi soal kebijakan anti-abuse Resend.
+ *
+ * Brevo menerimanya. Terbukti dari repo is-a.dev: beberapa domain memakai
+ * Brevo DKIM (`brevo1._domainkey.<domain>` → CNAME ke `dkim.brevo.com`),
+ * dan PR-nya di-merge (terbaru 2026-10-05).
+ *
+ * Bonus: kuota gratis Brevo 300/hari (9.000/bulan) lebih besar dari
+ * Resend 100/hari (3.000/bulan).
+ *
+ * ── PERBEDAAN BENTUK YANG MUDAH SALAH ───────────────────────────────────────
+ *   1. Header autentikasi `api-key`, BUKAN `Authorization: Bearer`
+ *   2. `sender` dan `to` adalah OBJEK/ARRAY OBJEK, bukan string
+ *   3. Isi HTML di `htmlContent`, teks di `textContent` (bukan `html`/`text`)
+ *   4. `replyTo` camelCase (sama seperti Resend, beda dari Cloudflare)
+ */
+function endpointBrevo() {
+  return 'https://api.brevo.com/v3/smtp/email';
+}
+
 /** Penyedia mana yang aktif. `null` kalau tidak ada yang siap. */
 export function penyediaAktif() {
-  // ── URUTAN: RESEND DULU ────────────────────────────────────────────────────
-  // Resend bisa dipakai TANPA domain sendiri, jadi ia bekerja di lebih banyak
-  // keadaan. Cloudflare WAJIB punya domain yang sudah di-onboard.
+  // ── URUTAN: BREVO → RESEND → CLOUDFLARE ────────────────────────────────────
+  //
+  // Brevo diperiksa PERTAMA karena ia menerima domain dari Public Suffix List
+  // (termasuk `is-a.dev`), sementara Resend menolaknya. Kalau pengguna punya
+  // kedua kunci dan domainnya is-a.dev, Resend akan gagal saat verifikasi
+  // domain — jadi Brevo yang harus menang.
+  //
+  // Urutan lengkapnya berdasarkan "bekerja di paling banyak keadaan":
+  //   1. Brevo     — terima domain publik + tanpa domain (sender tunggal)
+  //   2. Resend    — tanpa domain, tapi TOLAK domain publik
+  //   3. Cloudflare— wajib domain sendiri yang sudah di-onboard
+  if (config.brevoApiKey) return 'brevo';
   if (config.resendApiKey) return 'resend';
   if (config.cfApiToken && config.cfAccountId && config.emailFrom) return 'cloudflare';
   return null;
@@ -96,6 +134,7 @@ export function emailSiap() {
 function alamatPengirim() {
   if (config.emailFrom) return config.emailFrom;
   if (penyediaAktif() === 'resend') return 'VIVASTIC <onboarding@resend.dev>';
+  if (penyediaAktif() === 'brevo') return config.brevoSenderEmail || '';
   return '';
 }
 
@@ -113,14 +152,16 @@ async function kirim({ ke, subjek, html, teks, balasKe }) {
   const dari = alamatPengirim();
 
   try {
-    const res = penyedia === 'resend'
-      ? await kirimResend({ ke, dari, subjek, html, teks, balasKe })
-      : await kirimCloudflare({ ke, dari, subjek, html, teks, balasKe });
+    const res = penyedia === 'brevo'
+      ? await kirimBrevo({ ke, dari, subjek, html, teks, balasKe })
+      : penyedia === 'resend'
+        ? await kirimResend({ ke, dari, subjek, html, teks, balasKe })
+        : await kirimCloudflare({ ke, dari, subjek, html, teks, balasKe });
 
     if (!res.ok) return res;
 
     const data = await res.res.json().catch(() => ({}));
-    return { ok: true, id: data.id, penyedia };
+    return { ok: true, id: data.id ?? data.messageId, penyedia };
 
   } catch (e) {
     // Termasuk AbortError (timeout) dan kegagalan jaringan
@@ -160,6 +201,60 @@ async function kirimResend({ ke, dari, subjek, html, teks, balasKe }) {
     let detail = '';
     try { detail = JSON.stringify(await res.json()).slice(0, 200); } catch { /* bukan JSON */ }
     return { ok: false, res, error: `resend_${res.status}: ${detail}` };
+  }
+
+  return { ok: true, res };
+}
+
+/**
+ * Kirim lewat Brevo.
+ *
+ * ── PERBEDAAN BENTUK DARI DUA PENYEDIA LAIN ─────────────────────────────────
+ *
+ *   1. Header `api-key`, BUKAN `Authorization: Bearer`
+ *   2. `sender` adalah OBJEK { email, name } — bukan string
+ *   3. `to` adalah ARRAY OBJEK [{ email }] — bukan array string
+ *   4. Isi di `htmlContent` / `textContent` — bukan `html` / `text`
+ *
+ * Empat perbedaan ini menghasilkan galat yang tidak jelas kalau tertukar
+ * ("missing parameter sender"), tanpa menyebut mana yang salah.
+ *
+ * ── PARSING NAMA PENGIRIM ───────────────────────────────────────────────────
+ * `EMAIL_FROM` boleh berbentuk "VIVASTIC <noreply@domain.com>". Brevo minta
+ * nama dan alamat sebagai FIELD TERPISAH, jadi string itu harus diurai.
+ * Kalau tidak diurai, Brevo menolak dengan "invalid sender email".
+ */
+async function kirimBrevo({ ke, dari, subjek, html, teks, balasKe }) {
+  // Urai "Nama <alamat@domain>" → { name, email }
+  const cocok = String(dari ?? '').match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/);
+  const pengirim = cocok
+    ? { name: cocok[1] || 'VIVASTIC', email: cocok[2].trim() }
+    : { name: 'VIVASTIC', email: String(dari ?? '').trim() };
+
+  const muatan = {
+    sender: pengirim,
+    to: [{ email: ke }],
+    subject: subjek,
+    htmlContent: html,
+    textContent: teks,
+  };
+  if (balasKe) muatan.replyTo = { email: balasKe };
+
+  const res = await fetch(endpointBrevo(), {
+    method: 'POST',
+    headers: {
+      'api-key': config.brevoApiKey,   // BUKAN Authorization: Bearer
+      'Content-Type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify(muatan),
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!res.ok) {
+    let detail = '';
+    try { detail = JSON.stringify(await res.json()).slice(0, 250); } catch { /* bukan JSON */ }
+    return { ok: false, res, error: `brevo_${res.status}: ${detail}` };
   }
 
   return { ok: true, res };

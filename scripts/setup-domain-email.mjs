@@ -45,7 +45,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
-const DOMAIN_EMAIL = 'send.victer.is-a.dev';       // subdomain pengiriman
+const DOMAIN_EMAIL = 'send.victer.is-a.dev';       // subdomain pengiriman (Resend)
+const DOMAIN_BREVO = 'victer.is-a.dev';            // domain untuk Brevo DKIM
 const DOMAIN_AKAR = 'victer.is-a.dev';             // root (situs, CNAME)
 const FORK = 'VicterHong/register';
 const REPO_UPSTREAM = 'is-a-dev/register';
@@ -90,6 +91,62 @@ async function resend(jalur, opsi = {}) {
   if (!res.ok) {
     const pesan = data?.message ?? data?.error?.message ?? teks.slice(0, 200);
     throw new Error(`Resend ${res.status}: ${pesan}`);
+  }
+  return data;
+}
+
+// ── Brevo ─────────────────────────────────────────────────────────────────────
+//
+// ── KENAPA BREVO, BUKAN RESEND ──────────────────────────────────────────────
+// Resend MENOLAK `is-a.dev` dengan pesan:
+//
+//   "We don't allow free public domains. Please use a domain you own instead."
+//
+// Penyebabnya: `is-a.dev` terdaftar di Public Suffix List, sehingga Resend
+// menganggapnya domain publik — bukan soal kepemilikan, tapi kebijakan
+// anti-abuse mereka.
+//
+// Brevo menerimanya. Terbukti dari repo is-a.dev: beberapa domain memakai
+// Brevo DKIM (`brevo1._domainkey.<domain>` → CNAME `b1.<domain>-is-a-dev.dkim.brevo.com`)
+// dan PR-nya di-merge — terbaru 2026-10-05.
+
+function kunciBrevo() {
+  if (process.env.BREVO_API_KEY) return process.env.BREVO_API_KEY.trim();
+
+  const berkas = process.env.TOKEN_SERVICE_ENV
+    ?? join(process.env.HOME ?? '/home/ubuntu', '.portfolio-token', 'service.env');
+
+  if (!existsSync(berkas)) return null;
+
+  for (const baris of readFileSync(berkas, 'utf8').split('\n')) {
+    const cocok = baris.match(/^\s*BREVO_API_KEY\s*=\s*(.+?)\s*$/);
+    if (cocok) return cocok[1].replace(/^["']|["']$/g, '');
+  }
+  return null;
+}
+
+async function brevo(jalur, opsi = {}) {
+  const kunci = kunciBrevo();
+  if (!kunci) throw new Error('BREVO_API_KEY belum diisi di service.env');
+
+  const res = await fetch(`https://api.brevo.com/v3${jalur}`, {
+    ...opsi,
+    headers: {
+      'api-key': kunci,           // BUKAN Authorization: Bearer
+      'Content-Type': 'application/json',
+      accept: 'application/json',
+      ...(opsi.headers ?? {}),
+    },
+    signal: AbortSignal.timeout(20_000),
+  });
+
+  const teks = await res.text();
+  let data;
+  try { data = teks ? JSON.parse(teks) : {}; } catch { data = { mentah: teks }; }
+
+  if (!res.ok) {
+    const pesan = data?.message ?? data?.error ?? teks.slice(0, 200);
+    throw new Error(`Brevo ${res.status}: ${pesan}`);
   }
   return data;
 }
@@ -159,35 +216,71 @@ async function siapkan() {
   console.log('  ══ MENYIAPKAN DOMAIN EMAIL ══');
   console.log('');
 
-  if (!kunciResend()) {
-    console.error('  ❌ RESEND_API_KEY belum diisi.');
+  // ── PEMILIHAN PENYEDIA ─────────────────────────────────────────────────────
+  //
+  // Brevo diperiksa DULU karena ia menerima domain dari Public Suffix List.
+  // Resend MENOLAK `is-a.dev` — sudah dibuktikan dengan uji langsung:
+  //
+  //   victer.is-a.dev         → ❌ "We don't allow free public domains"
+  //   mail.victer.is-a.dev    → ❌ idem
+  //   send.victer.is-a.dev    → ❌ idem
+  //
+  // Jadi kalau hanya ada kunci Resend, skrip ini berhenti dengan penjelasan
+  // — bukan gagal dengan pesan mentah dari API.
+  const pakaiBrevo = Boolean(kunciBrevo());
+
+  if (!pakaiBrevo && !kunciResend()) {
+    console.error('  ❌ Belum ada kunci penyedia email.');
     console.log('');
-    console.log('  Daftar dulu di https://resend.com → API Keys → Create');
-    console.log('  Lalu tambahkan ke ~/.portfolio-token/service.env:');
-    console.log('    RESEND_API_KEY=re_xxxxxxxxxxxx');
+    console.log('  ── BREVO (disarankan — menerima is-a.dev) ──');
+    console.log('    1. Daftar gratis di https://brevo.com (9.000 email/bulan)');
+    console.log('    2. Buka https://app.brevo.com/settings/keys/api → Create');
+    console.log('    3. Tambahkan ke ~/.portfolio-token/service.env:');
+    console.log('         BREVO_API_KEY=xkeysib-xxxxxxxxxxxx');
+    console.log('         BREVO_SENDER_EMAIL=noreply@victer.is-a.dev');
+    console.log('');
+    console.log('  ── RESEND (TIDAK bisa untuk is-a.dev) ──');
+    console.log('    Resend menolak domain dari Public Suffix List, termasuk is-a.dev.');
+    console.log('    Pakai Brevo, atau daftarkan domain berbayar sendiri.');
     console.log('');
     return 1;
   }
 
-  // ── 1. Tambah domain ke Resend ─────────────────────────────────────────────
-  console.log(`  1. Menambahkan ${DOMAIN_EMAIL} ke Resend...`);
+  if (!pakaiBrevo) {
+    console.log('  ⚠️  Hanya ada RESEND_API_KEY — dan Resend MENOLAK is-a.dev.');
+    console.log('');
+    console.log('  Alasan: is-a.dev terdaftar di Public Suffix List, sehingga Resend');
+    console.log('  menganggapnya "free public domain". Sudah diuji langsung:');
+    console.log('    victer.is-a.dev / mail. / send. / notif. → semua ditolak');
+    console.log('');
+    console.log('  Solusi: pakai BREVO (gratis, 9.000 email/bulan, menerima is-a.dev).');
+    console.log('    1. https://brevo.com → daftar');
+    console.log('    2. https://app.brevo.com/settings/keys/api → Create API Key');
+    console.log('    3. Tambahkan ke ~/.portfolio-token/service.env:');
+    console.log('         BREVO_API_KEY=xkeysib-xxxxxxxxxxxx');
+    console.log('');
+    return 1;
+  }
+
+  console.log('  Penyedia: BREVO (menerima domain is-a.dev)');
+  console.log('');
+
+  // ── 1. Tambah domain ke Brevo ──────────────────────────────────────────────
+  console.log(`  1. Menambahkan ${DOMAIN_BREVO} ke Brevo...`);
 
   let domain;
   try {
-    const ada = await resend('/domains');
-    domain = (ada?.data ?? []).find((d) => d.name === DOMAIN_EMAIL);
+    const ada = await brevo('/senders/domains');
+    domain = (ada?.domains ?? []).find((d) => d.domain_name === DOMAIN_BREVO);
 
     if (domain) {
-      console.log(`     ℹ️  sudah ada (status: ${domain.status})`);
+      console.log(`     ℹ️  sudah ada (verified: ${domain.verified})`);
     } else {
-      domain = await resend('/domains', {
+      domain = await brevo('/senders/domains', {
         method: 'POST',
-        body: JSON.stringify({
-          name: DOMAIN_EMAIL,
-          region: 'us-east-1',   // region dengan latensi terbaik untuk Asia-Pasifik
-        }),
+        body: JSON.stringify({ name: DOMAIN_BREVO }),
       });
-      console.log(`     ✅ ditambahkan (id: ${domain.id})`);
+      console.log('     ✅ ditambahkan');
     }
   } catch (e) {
     console.error(`     ❌ ${e.message}`);
@@ -196,87 +289,84 @@ async function siapkan() {
 
   // ── 2. Ambil record DNS ────────────────────────────────────────────────────
   console.log('');
-  console.log('  2. Mengambil record DNS yang diminta Resend...');
+  console.log('  2. Mengambil record DNS yang diminta Brevo...');
 
   let detail;
   try {
-    detail = await resend(`/domains/${domain.id}`);
+    detail = await brevo('/senders/domains');
+    domain = (detail?.domains ?? []).find((d) => d.domain_name === DOMAIN_BREVO);
   } catch (e) {
     console.error(`     ❌ ${e.message}`);
     return 1;
   }
 
-  const records = detail?.records ?? [];
-  console.log(`     ${records.length} record:`);
-  for (const r of records) {
-    const nilai = String(r.value ?? '').slice(0, 60);
-    console.log(`       • ${r.record}  ${r.name}  →  ${nilai}${String(r.value ?? '').length > 60 ? '…' : ''}`);
+  const dnsBrevo = domain?.dns_records ?? {};
+  const dkim1 = dnsBrevo.dkim_record;
+  const dkim2 = dnsBrevo.dkim_record_2;
+  const brevoCode = dnsBrevo.brevo_code;
+
+  console.log(`     DKIM 1     : ${dkim1 ? dkim1.host_name + ' → ' + String(dkim1.value).slice(0, 45) + '…' : '❌ tidak ada'}`);
+  console.log(`     DKIM 2     : ${dkim2 ? dkim2.host_name + ' → ' + String(dkim2.value).slice(0, 45) + '…' : '❌ tidak ada'}`);
+  console.log(`     Brevo code : ${brevoCode ? String(brevoCode.value).slice(0, 40) + '…' : '❌ tidak ada'}`);
+
+  if (!dkim1 || !dkim2) {
+    console.error('');
+    console.error('     ❌ Record DKIM belum lengkap — coba lagi beberapa detik kemudian.');
+    return 1;
   }
 
   // ── 3. Susun berkas untuk repo is-a.dev ────────────────────────────────────
   //
-  // Pemisahan berkas mengikuti aturan is-a.dev:
-  //   • Label dengan garis bawah (resend._domainkey) WAJIB berkas sendiri
-  //   • MX + TXT di subdomain yang sama boleh satu berkas
+  // ── BENTUK KHUSUS BREVO (dari repo is-a.dev yang sudah merged) ─────────────
+  //
+  //   brevo1._domainkey.<domain>  → CNAME b1.<domain>-is-a-dev.dkim.brevo.com
+  //   brevo2._domainkey.<domain>  → CNAME b2.<domain>-is-a-dev.dkim.brevo.com
+  //   _dmarc.<domain>             → TXT v=DMARC1; p=none;
+  //
+  // Brevo memakai CNAME, BUKAN TXT — jadi TIDAK bentrok dengan CNAME situs
+  // di root domain. Inilah kenapa Brevo bisa bekerja di is-a.dev sementara
+  // Resend (yang butuh MX/TXT di root) tidak.
   console.log('');
   console.log('  3. Menyusun berkas is-a.dev...');
 
-  const dkim = records.find((r) => r.record === 'TXT' && String(r.name).includes('_domainkey'));
-  const spf = records.find((r) => r.record === 'TXT' && String(r.value).startsWith('v=spf1'));
-  const mx = records.find((r) => r.record === 'MX');
-
-  const kurang = [];
-  if (!dkim) kurang.push('DKIM (TXT _domainkey)');
-  if (!spf) kurang.push('SPF (TXT v=spf1)');
-  if (!mx) kurang.push('MX');
-
-  if (kurang.length) {
-    console.error(`     ❌ Record belum lengkap — kurang: ${kurang.join(', ')}`);
-    console.error('        Coba lagi beberapa detik kemudian (Resend kadang butuh waktu).');
-    return 1;
-  }
-
   const PEMILIK = { username: 'VicterHong', email: 'victerphanjaya@gmail.com' };
 
-  // ── KENAPA TANDA KUTIP DIBERSIHKAN ──────────────────────────────────────────
-  // Resend kadang mengembalikan nilai TXT dengan tanda kutip literal
-  // (mis. `"v=spf1 include:amazonses.com ~all"`). Repo is-a.dev SUDAH
-  // membungkus nilai TXT dengan tanda kutip sendiri di dnsconfig.js —
-  // kalau nilai kita masih berisi kutip, hasilnya jadi kutip ganda
-  // (`""v=spf1 ...""`) dan SPF/DKIM tidak terbaca.
-  const bersihkan = (v) => String(v ?? '').replace(/^"|"$/g, '').trim();
+  // Nama host dari Brevo berbentuk "b1.victer-is-a-dev.dkim.brevo.com".
+  const target1 = String(dkim1.value).replace(/\.$/, '');
+  const target2 = String(dkim2.value).replace(/\.$/, '');
 
-  const berkasDkim = {
+  const berkasDkim1 = {
     owner: PEMILIK,
-    description: `DKIM key for Resend transactional emails (${DOMAIN_AKAR})`,
-    records: { TXT: [bersihkan(dkim.value)] },
-    proxied: false,
+    description: `Brevo DKIM record 1 for ${DOMAIN_AKAR}`,
+    records: { CNAME: target1 },
   };
 
-  const berkasSend = {
+  const berkasDkim2 = {
     owner: PEMILIK,
-    description: `SPF and return-path for Resend transactional emails (${DOMAIN_AKAR})`,
-    records: {
-      MX: [{
-        target: bersihkan(mx.value).replace(/\.$/, ''),
-        priority: Number(mx.priority ?? 10),
-      }],
-      TXT: [bersihkan(spf.value)],
-    },
-    proxied: false,
+    description: `Brevo DKIM record 2 for ${DOMAIN_AKAR}`,
+    records: { CNAME: target2 },
+  };
+
+  const berkasDmarc = {
+    owner: PEMILIK,
+    description: `DMARC policy for ${DOMAIN_AKAR}`,
+    records: { TXT: ['v=DMARC1; p=none;'] },
   };
 
   const keluaran = join(ROOT, '.email-domain');
   mkdirSync(keluaran, { recursive: true });
 
-  const jalurDkim = join(keluaran, 'resend._domainkey.victer.json');
-  const jalurSend = join(keluaran, 'send.victer.json');
+  const berkasSemua = [
+    ['brevo1._domainkey.victer.json', berkasDkim1],
+    ['brevo2._domainkey.victer.json', berkasDkim2],
+    ['_dmarc.victer.json', berkasDmarc],
+  ];
 
-  writeFileSync(jalurDkim, JSON.stringify(berkasDkim, null, 2) + '\n', 'utf8');
-  writeFileSync(jalurSend, JSON.stringify(berkasSend, null, 2) + '\n', 'utf8');
-
-  console.log(`     ✅ ${jalurDkim}`);
-  console.log(`     ✅ ${jalurSend}`);
+  for (const [nama, isi] of berkasSemua) {
+    const jalur = join(keluaran, nama);
+    writeFileSync(jalur, JSON.stringify(isi, null, 2) + '\n', 'utf8');
+    console.log(`     ✅ ${nama}`);
+  }
 
   // ── 4. Salin ke clone repo is-a.dev + commit + push ────────────────────────
   console.log('');
@@ -297,13 +387,17 @@ async function siapkan() {
     return 1;
   }
 
-  const tujuanDkim = join(CLONE_DIR, 'domains', 'resend._domainkey.victer.json');
-  const tujuanSend = join(CLONE_DIR, 'domains', 'send.victer.json');
+  const berkasTujuan = [
+    ['brevo1._domainkey.victer.json', berkasDkim1],
+    ['brevo2._domainkey.victer.json', berkasDkim2],
+    ['_dmarc.victer.json', berkasDmarc],
+  ];
 
-  writeFileSync(tujuanDkim, JSON.stringify(berkasDkim, null, 2) + '\n', 'utf8');
-  writeFileSync(tujuanSend, JSON.stringify(berkasSend, null, 2) + '\n', 'utf8');
+  for (const [nama, isi] of berkasTujuan) {
+    writeFileSync(join(CLONE_DIR, 'domains', nama), JSON.stringify(isi, null, 2) + '\n', 'utf8');
+  }
 
-  console.log('     ✅ kedua berkas disalin ke domains/');
+  console.log('     ✅ ketiga berkas disalin ke domains/');
 
   // ── 5. Cabang + commit + push ──────────────────────────────────────────────
   console.log('');
@@ -318,14 +412,20 @@ async function siapkan() {
     } catch { /* cabang belum ada */ }
 
     execFileSync('git', ['-C', CLONE_DIR, 'checkout', '-b', cabang], { stdio: 'pipe' });
-    execFileSync('git', ['-C', CLONE_DIR, 'add', 'domains/resend._domainkey.victer.json', 'domains/send.victer.json'], { stdio: 'pipe' });
+    execFileSync('git', ['-C', CLONE_DIR, 'add',
+      'domains/brevo1._domainkey.victer.json',
+      'domains/brevo2._domainkey.victer.json',
+      'domains/_dmarc.victer.json',
+    ], { stdio: 'pipe' });
     execFileSync('git', ['-C', CLONE_DIR, 'commit', '-m',
-      `Add Resend email records for victer.is-a.dev\n\n`
-      + `Sets up transactional email sending for victer.is-a.dev via Resend.\n\n`
-      + `- send.victer.is-a.dev: SPF (TXT) + return-path (MX)\n`
-      + `- resend._domainkey.victer.is-a.dev: DKIM signing key\n\n`
-      + `The root domain keeps its CNAME to Cloudflare Pages, so email records\n`
-      + `live on the dedicated sending subdomain instead.`,
+      `Add Brevo email authentication records for victer.is-a.dev\n\n`
+      + `Adds DKIM and DMARC records so victer.is-a.dev can send transactional\n`
+      + `email via Brevo (for the contact and account emails on my portfolio).\n\n`
+      + `- brevo1._domainkey.victer.is-a.dev: Brevo DKIM key 1 (CNAME)\n`
+      + `- brevo2._domainkey.victer.is-a.dev: Brevo DKIM key 2 (CNAME)\n`
+      + `- _dmarc.victer.is-a.dev: DMARC policy\n\n`
+      + `Brevo uses CNAME records for DKIM, so these do not conflict with the\n`
+      + `existing CNAME on the root domain that points to Cloudflare Pages.`,
     ], { stdio: 'pipe' });
     execFileSync('git', ['-C', CLONE_DIR, 'push', '-f', 'origin', cabang], { stdio: 'pipe' });
 
@@ -379,27 +479,39 @@ async function siapkan() {
     'https://portfolio-victer.pages.dev',
     '<!-- WEBSITE_PREVIEW_END -->',
     '',
+    '# Website Purpose',
+    '<!-- Please tell us the purpose or motive behind your website in between the start/end markers. For example, it is a portfolio website, etc. -->',
+    '',
+    '<!-- WEBSITE_PURPOSE_START -->',
+    'This is my personal portfolio site as a full-stack developer. This PR does not register a new domain — victer.is-a.dev is already registered and live; it only adds DNS records (DKIM, DMARC) so I can send account and contact emails from the domain via Brevo. Not used for any commercial purpose.',
+    '<!-- WEBSITE_PURPOSE_END -->',
+    '',
     '---',
     '',
     '### Additional context',
     '',
-    `This PR adds email records for \`victer.is-a.dev\` (which I already own) so the domain can send transactional email via Resend.`,
+    'This PR adds email authentication records for `victer.is-a.dev` (already registered and live) so the domain can send transactional email — password resets, account notifications — via Brevo.',
     '',
-    'The root domain keeps its existing CNAME to Cloudflare Pages — DNS does not allow a CNAME alongside MX/TXT records, so the email records live on a dedicated sending subdomain instead:',
+    'Brevo uses **CNAME records** for DKIM, so these do not conflict with the existing CNAME on the root domain that points to Cloudflare Pages:',
     '',
-    '- `send.victer.is-a.dev` — SPF (TXT) + return-path (MX)',
-    '- `resend._domainkey.victer.is-a.dev` — DKIM signing key',
+    '- `brevo1._domainkey.victer.is-a.dev` — Brevo DKIM key 1 (CNAME)',
+    '- `brevo2._domainkey.victer.is-a.dev` — Brevo DKIM key 2 (CNAME)',
+    '- `_dmarc.victer.is-a.dev` — DMARC policy (TXT)',
     '',
-    'This follows the same pattern already used by other domains in this repo.',
+    'This follows the same pattern already used by other domains in this repo (e.g. `brevo1._domainkey.m1st4ck.json`, `brevo1._domainkey.mehdi-kheireddine.json`).',
     '',
     '<details><summary>Records</summary>',
     '',
     '```json',
-    JSON.stringify(berkasSend, null, 2),
+    JSON.stringify(berkasDkim1, null, 2),
     '```',
     '',
     '```json',
-    JSON.stringify(berkasDkim, null, 2),
+    JSON.stringify(berkasDkim2, null, 2),
+    '```',
+    '',
+    '```json',
+    JSON.stringify(berkasDmarc, null, 2),
     '```',
     '',
     '</details>',
@@ -409,7 +521,7 @@ async function siapkan() {
     const url = execFileSync('gh', ['pr', 'create',
       '--repo', REPO_UPSTREAM,
       '--head', `VicterHong:${cabang}`,
-      '--title', 'Add Resend email records for victer.is-a.dev',
+      '--title', 'Add Brevo email records for victer.is-a.dev',
       '--body', bodyPr,
     ], { stdio: 'pipe' }).toString().trim();
 
@@ -441,33 +553,55 @@ async function siapkan() {
 
 async function verifikasi() {
   console.log('');
-  console.log('  ══ VERIFIKASI DOMAIN ══');
+  console.log('  ══ VERIFIKASI DOMAIN (BREVO) ══');
   console.log('');
 
-  if (!kunciResend()) {
-    console.error('  ❌ RESEND_API_KEY belum diisi.');
+  if (!kunciBrevo()) {
+    console.error('  ❌ BREVO_API_KEY belum diisi.');
+    console.log('');
+    console.log('  Daftar di https://brevo.com → Settings → SMTP & API → API Keys');
+    console.log('  Lalu tambahkan ke ~/.portfolio-token/service.env:');
+    console.log('    BREVO_API_KEY=xkeysib-xxxxxxxxxxxx');
+    console.log('');
     return 1;
   }
 
   try {
-    const ada = await resend('/domains');
-    const domain = (ada?.data ?? []).find((d) => d.name === DOMAIN_EMAIL);
+    const hasil = await brevo('/senders/domains');
+    const domain = (hasil?.domains ?? []).find((d) => d.domain_name === DOMAIN_BREVO);
 
     if (!domain) {
-      console.error(`  ❌ ${DOMAIN_EMAIL} belum ditambahkan — jalankan --siapkan dulu`);
+      console.error(`  ❌ ${DOMAIN_BREVO} belum ditambahkan — jalankan --siapkan dulu`);
       return 1;
     }
 
-    console.log(`  Memicu Resend memeriksa DNS untuk ${DOMAIN_EMAIL}...`);
-    await resend(`/domains/${domain.id}/verify`, { method: 'POST' });
-
-    console.log('  ⏳ Resend sedang memeriksa. Tunggu ~30 detik, lalu cek --status.');
+    console.log(`  Domain  : ${domain.domain_name}`);
+    console.log(`  Verified: ${domain.verified ? '✅ ya' : '⏳ belum'}`);
     console.log('');
-    console.log('  DNS butuh waktu menyebar (biasanya 1-5 menit setelah PR merge).');
-    console.log('  Kalau masih pending setelah 15 menit, cek:');
-    console.log(`    dig TXT resend._domainkey.${DOMAIN_EMAIL}`);
-    console.log(`    dig TXT ${DOMAIN_EMAIL}`);
-    console.log(`    dig MX ${DOMAIN_EMAIL}`);
+
+    if (domain.verified) {
+      console.log('  ✅ Domain sudah terverifikasi — Brevo bisa mengirim dari domain ini.');
+      console.log('');
+      return 0;
+    }
+
+    // ── Cek DNS manual (Brevo tidak punya endpoint "verify" terpisah) ────────
+    //
+    // Brevo memeriksa DNS secara berkala sendiri. Yang bisa kita lakukan:
+    // memastikan record-nya sudah ada di DNS publik. Kalau belum, berarti
+    // PR is-a.dev belum di-merge.
+    console.log('  Brevo memeriksa DNS secara berkala sendiri — tidak ada endpoint');
+    console.log('  "verifikasi sekarang". Yang bisa dilakukan: memastikan record');
+    console.log('  sudah ada di DNS publik.');
+    console.log('');
+    console.log('  Jalankan perintah ini untuk memeriksa:');
+    console.log(`    dig CNAME brevo1._domainkey.${DOMAIN_BREVO}`);
+    console.log(`    dig CNAME brevo2._domainkey.${DOMAIN_BREVO}`);
+    console.log(`    dig TXT _dmarc.${DOMAIN_BREVO}`);
+    console.log('');
+    console.log('  Kalau record sudah muncul tapi Brevo masih "belum": tunggu 15-30');
+    console.log('  menit, atau klik "Verify" di dashboard Brevo:');
+    console.log('    https://app.brevo.com/senders/domain/list');
     console.log('');
     return 0;
 
