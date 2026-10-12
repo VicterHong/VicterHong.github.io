@@ -1086,47 +1086,16 @@
     grid-template-columns: 1fr;
   }
 
-  /* ══ TAB MOBILE: TETAP HORIZONTAL, TAPI DIBUAT MUAT ══════════════════════════
-   *
-   * ── MASALAH (terukur di produksi 390px, terlihat di screenshot) ─────────────
-   * Tujuh tab dengan padding 8px 14px + ikon 18px + gap 7px totalnya 791px,
-   * sedangkan ruang hanya ~350px. 441px tersembunyi di balik scroll
-   * horizontal, dan akibatnya:
-   *
-   *   - Tab pertama terpotong ("Keamanan" terbaca "ken akses") karena bar
-   *     sedang dalam posisi tergeser
-   *   - Penghitung di tab Keamanan mengambang di posisi membingungkan
-   *
-   * ── YANG DIUBAH: RAPATKAN, JANGAN SEMBUNYIKAN ────────────────────────────────
-   * Percobaan pertama mengganti tab dengan <select> — itu SALAH, karena
-   * menghilangkan navigasi yang sudah dikenal pengguna. Yang benar: buat
-   * ketujuh tab MUAT.
-   *
-   * Tiga penyesuaian, semuanya mengurangi lebar tanpa mengorbankan keterbacaan:
-   *   1. Ikon disembunyikan — label teks yang penting, ikon hanya hiasan di
-   *      tab yang sempit (menghemat 25px per tab = 175px total)
-   *   2. Padding horizontal 14px → 10px (menghemat 8px per tab = 56px)
-   *   3. Gap 6px → 4px (menghemat 10px)
-   *
-   * Hasil: ~410px untuk 7 tab. Masih sedikit lebih lebar dari 350px di layar
-   * 390px, jadi bar TETAP bisa digeser — tapi sekarang tab pertama TIDAK
-   * terpotong saat halaman dibuka (scroll mulai dari posisi 0), dan pengguna
-   * melihat 5-6 tab sekaligus, bukan 3.
-   *
-   * Di layar ≥430px, ketujuhnya muat penuh tanpa scroll.
-   * ────────────────────────────────────────────────────────────────────────── */
-
   .kam-sisi {
     flex-direction: row;
-    gap: 4px;
+    gap: 6px;
     padding: 0 0 14px;
     border-right: 0;
     border-bottom: 1px solid var(--garis);
     margin-bottom: 18px;
+    /* Bisa digeser kalau bagian bertambah nanti, bukan terpotong. */
     overflow-x: auto;
     scrollbar-width: none;
-    /* Scroll mulai dari kiri — tab pertama SELALU terlihat utuh. */
-    scroll-snap-type: x proximity;
   }
 
   .kam-sisi::-webkit-scrollbar { display: none; }
@@ -1134,22 +1103,7 @@
   .kam-sisi-item {
     width: auto;
     flex-shrink: 0;
-    padding: 8px 10px;
-    /* Ikon disembunyikan — label teks yang penting di tab sempit. */
-    gap: 0;
-    scroll-snap-align: start;
-  }
-
-  /* Ikon tab: sembunyikan di mobile supaya label tidak terdesak. */
-  .kam-sisi-ikon { display: none; }
-
-  /* Penghitung tetap terlihat — ia memberi informasi nyata ("3 cara masuk"),
-     berbeda dari ikon yang hanya hiasan. Ukurannya dikecilkan sedikit supaya
-     tidak mendorong tab jadi lebar. */
-  .kam-sisi-hitung {
-    min-width: 16px;
-    padding: 0 4px;
-    font-size: 10px;
+    padding: 8px 14px;
   }
 
   .kam-panel { padding-left: 0; }
