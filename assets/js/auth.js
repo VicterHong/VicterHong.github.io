@@ -178,12 +178,43 @@
     tombol.setAttribute('aria-busy', memuat ? 'true' : 'false');
   }
 
-  /** Pindah panel dengan animasi masuk. Panel lama langsung disembunyikan
-   *  (bukan di-fade) supaya tinggi kartu tidak melompat dua kali. */
+  // ── PANEL YANG TIDAK MEMAKAI JUDUL KARTU ────────────────────────────────────
+  //
+  // ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+  // Kartu punya judul tetap di atas ("Sign in" + "Sign in to your account")
+  // yang TIDAK ikut berubah saat panel berganti. Saat pengguna membuka panel
+  // pemulihan sandi, kartu menampilkan DUA judul bertumpuk:
+  //
+  //   ┌──────────────────────────────┐
+  //   │         Sign in              │  ← judul kartu (tidak berubah)
+  //   │   Sign in to your account    │
+  //   │                              │
+  //   │  Pemulihan sandi             │  ← judul panel
+  //   │  Masukkan email terdaftar…   │
+  //   │  Email  [___________]        │
+  //
+  // Pengguna tidak yakin sedang di halaman apa: judul terbesar bilang "Sign in",
+  // sementara isinya form reset sandi. Halaman korporat (Stripe, Linear) TIDAK
+  // pernah menaruh judul halaman lain di atas form — judul harus mencerminkan
+  // aksi yang sedang dilakukan.
+  //
+  // ── KENAPA DISEMBUNYIKAN, BUKAN DIUBAH TEKSNYA ──────────────────────────────
+  // Mengubah teks berarti dua sumber kebenaran: judul di HTML dan teks
+  // pengganti di JS. Kalau salah satu diubah, yang lain tertinggal. Panel
+  // sudah punya judulnya sendiri (`h2.auth-panel-title`) — jadi yang perlu
+  // dilakukan hanyalah menyembunyikan judul kartu saat panel itu aktif.
+  //
+  // Panel yang tetap memakai judul kartu: 'masuk' (judulnya memang "Sign in").
+  const PANEL_TANPA_JUDUL_KARTU = new Set(['lupa', 'lupa-selesai', 'sukses', 'gagal']);
+
   function pindahPanel(nama) {
     document.querySelectorAll('.auth-panel').forEach((p) => {
       p.classList.toggle('is-active', p.dataset.panel === nama);
     });
+
+    // Judul kartu disembunyikan saat panel punya judulnya sendiri.
+    const head = document.querySelector('.auth-head');
+    if (head) head.hidden = PANEL_TANPA_JUDUL_KARTU.has(nama);
   }
 
   // ══ Kartu 3D mengikuti kursor ════════════════════════════════════════════

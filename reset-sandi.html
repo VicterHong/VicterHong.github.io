@@ -256,10 +256,25 @@
     -->
     <section class="auth-panel" id="panel-sukses" data-panel="sukses">
       <div class="auth-done">
-        <svg class="auth-check" viewBox="0 0 52 52" aria-hidden="true">
-          <circle class="auth-check-ring" cx="26" cy="26" r="24" fill="none"/>
-          <path class="auth-check-path" fill="none" d="M14 27l8 8 16-16"/>
-        </svg>
+        <!--
+          ── ILUSTRASI SUKSES ─────────────────────────────────────────────────
+          Ganti centang sederhana dengan ilustrasi tiga lapis (cincin
+          atmosferik + badge gradien + centang).
+
+          ── KENAPA BUKAN HANYA CENTANG ───────────────────────────────────────
+          Centang satu lingkaran sudah benar secara fungsi, tapi ia tidak
+          memberi rasa "selesai". Halaman korporat yang menangani momen
+          penting memakai ilustrasi: ada kedalaman, ritme, dan warna.
+
+          ── KENAPA SEBAGAI FILE SVG TERPISAH, BUKAN INLINE ───────────────────
+          Ilustrasi ini 7 KB. Kalau inline di HTML, ia dimuat ulang setiap
+          kali halaman dibuka. Sebagai berkas terpisah, peramban menyimpannya
+          di cache dan memakainya lagi di kunjungan berikutnya.
+
+          `role="img"` + `aria-hidden="true"`: ilustrasi murni dekoratif —
+          pesannya sudah disampaikan judul di bawahnya. -->
+        <img class="auth-sukses-ilustrasi" src="/assets/img/sukses-reset-sandi.svg"
+             width="96" height="96" alt="" aria-hidden="true" decoding="async">
         <h2 class="auth-done-title">Sandi berhasil diganti</h2>
         <p class="auth-done-sub">
           Sekarang masuk dengan sandi baru Anda. Semua sesi lama sudah
