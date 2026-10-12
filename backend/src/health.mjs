@@ -43,20 +43,64 @@ const startedAt = Date.now();
  *
  * Histogram ini bawaan Node (perf_hooks) — tidak menambah dependency dan
  * biayanya nyaris nol (diperbarui oleh timer internal, bukan per request).
+ *
+ * ── PENTING: NILAI MENTAH MEMUAT `resolution` ──────────────────────────────
+ *
+ * `monitorEventLoopDelay` mengukur waktu dari saat timer DIJADWALKAN sampai
+ * ia benar-benar BERJALAN. Karena timer dijadwalkan `resolution` ms ke depan,
+ * nilai minimum yang bisa tercatat adalah `resolution` itu sendiri — bahkan
+ * saat event loop sama sekali tidak diblokir.
+ *
+ * Dibuktikan dengan uji empiris (test/event-loop-jujur.test.mjs):
+ *
+ *   resolution=10 → p50 idle = 10.1ms
+ *   resolution=20 → p50 idle = 20.1ms   ← server IDLE SEMPURNA
+ *   resolution=50 → p50 idle = 50.1ms
+ *
+ *   Blokir nyata 100ms dengan resolution=20 → tercatat 115-118ms
+ *
+ * Artinya nilai mentah SELALU lebih besar dari delay sebenarnya sebesar
+ * `resolution`. Melaporkannya apa adanya menyesatkan:
+ *
+ *   1. Dashboard menampilkan "p50 = 20ms" untuk server yang sehat sempurna —
+ *      operator mencari masalah yang tidak ada.
+ *   2. Ambang `p99 > 50ms` efektifnya jadi "p99 > 30ms" — warning muncul
+ *      untuk blokir yang sebenarnya masih aman.
+ *   3. Angka tidak bisa dibandingkan dengan alat lain yang melaporkan
+ *      delay murni.
+ *
+ * KARENA ITU: nilai dikurangi `resolution` sebelum dilaporkan. Yang keluar
+ * adalah delay MURNI — server idle melaporkan ~0ms, dan blokir 100ms
+ * terlihat sebagai ~100ms.
  */
 
-const loopDelay = monitorEventLoopDelay({ resolution: 20 });
+const RESOLUSI_MS = 20;
+
+const loopDelay = monitorEventLoopDelay({ resolution: RESOLUSI_MS });
 loopDelay.enable();
 
-/** Ringkasan event loop delay dalam milidetik. */
+/**
+ * Ringkasan event loop delay dalam milidetik — DELAY MURNI, bukan nilai mentah.
+ *
+ * Sudah dikurangi `resolution` (lihat penjelasan di atas). Nilai tidak pernah
+ * negatif: timer yang menyala lebih cepat dari jadwal (jarang, tapi mungkin)
+ * menghasilkan selisih negatif kecil yang bukan delay.
+ */
 export function eventLoopStats() {
   // Nilai bawaan adalah nanodetik.
-  const toMs = (ns) => Math.round((Number.isFinite(ns) ? ns : 0) / 1e6 * 10) / 10;
+  const toMs = (ns) => {
+    const mentah = (Number.isFinite(ns) ? ns : 0) / 1e6;
+    // Kurangi resolution, jangan sampai negatif.
+    return Math.round(Math.max(0, mentah - RESOLUSI_MS) * 10) / 10;
+  };
   return {
     p50_ms: toMs(loopDelay.percentile(50)),
     p95_ms: toMs(loopDelay.percentile(95)),
     p99_ms: toMs(loopDelay.percentile(99)),
     max_ms: toMs(loopDelay.max),
+    // Disertakan supaya jelas bahwa angka di atas sudah dikoreksi, dan
+    // supaya koreksi bisa diverifikasi/diubah tanpa membaca kode.
+    resolution_ms: RESOLUSI_MS,
   };
 }
 
