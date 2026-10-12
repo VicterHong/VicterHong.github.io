@@ -60,8 +60,20 @@ describe('kontrak email.mjs', () => {
   });
 
   test('tidak ada pemanggil yang memakai .catch(() => {}) untuk email', () => {
+    // ── KOMENTAR HARUS DIBUANG DULU ─────────────────────────────────────────
+    // Kode yang diperbaiki mendokumentasikan bug lama di komentar:
+    //
+    //   //   kirimEmailResetSandi({...}).catch(() => {});
+    //
+    // Kalau komentar tidak dibuang, tes ini gagal karena dokumentasi —
+    // padahal dokumentasi justru hal yang benar. Yang diperiksa adalah
+    // KODE yang berjalan, bukan penjelasannya.
+    const buangKomentar = (s) => s
+      .replace(/\/\*[\s\S]*?\*\//g, '')   // /* ... */
+      .replace(/\/\/[^\n]*/g, '');        // // ...
+
     for (const berkas of ['src/routes.mjs', 'src/auth-routes.mjs', 'src/checkout.mjs']) {
-      const isi = baca(berkas);
+      const isi = buangKomentar(baca(berkas));
 
       // Cari pola kirimEmail*/kirimKode* yang diikuti .catch kosong.
       const polaBahaya = /kirim[A-Z][A-Za-z]*\([^)]*\)\s*\.catch\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)/;
@@ -115,15 +127,46 @@ describe('endpoint lupa-sandi mencatat outcome sebenarnya', () => {
 
   test('respons tetap SERAGAM (tidak membocorkan keberadaan akun)', () => {
     const isi = baca('src/routes.mjs');
-    const blok = isi.slice(isi.indexOf("pattern: '/api/auth/lupa-sandi'"));
 
-    // Pesan sukses harus sama untuk semua kasus — tidak boleh ada cabang
-    // yang mengubah pesan berdasarkan hasil pengiriman.
-    const pesan = blok.match(/message: '([^']+)'/g) ?? [];
-    const pesanUnik = new Set(pesan);
+    // ── AMBIL HANYA BLOK HANDLER, BUKAN SELURUH BERKAS ──────────────────────
+    // Versi pertama tes ini mengambil dari `pattern: '/api/auth/lupa-sandi'`
+    // sampai AKHIR BERKAS — sehingga ikut membaca 14 endpoint berikutnya
+    // dan menemukan 14 pesan berbeda. Itu bug di tes, bukan di produk.
+    //
+    // Batas blok yang benar: dari pattern ini sampai pattern berikutnya.
+    const mulai = isi.indexOf("pattern: '/api/auth/lupa-sandi'");
+    assert.ok(mulai !== -1, 'endpoint lupa-sandi harus ada');
+
+    const sesudahMulai = isi.slice(mulai + 10);           // lewati pattern ini sendiri
+    const patternBerikut = sesudahMulai.indexOf("pattern: '/api/");
+    const blok = patternBerikut === -1
+      ? isi.slice(mulai)
+      : isi.slice(mulai, mulai + 10 + patternBerikut);
+
+    // ── YANG DIPERIKSA: PESAN SUKSES SAJA ───────────────────────────────────
+    // Blok berisi DUA pesan:
+    //   1. "Email tidak valid."        → respons 400, validasi input
+    //   2. "Kalau email itu terdaftar…" → respons 200, pesan sukses
+    //
+    // Pesan validasi (400) TIDAK membocorkan apa pun — ia menolak input yang
+    // memang salah sebelum akun diperiksa. Yang harus seragam adalah pesan
+    // SUKSES: ia tidak boleh berbeda antara "akun ada" dan "akun tidak ada".
+    const pesanSukses = blok.match(/sendJson\(res,\s*200,\s*\{[^}]*message:\s*'([^']+)'/g) ?? [];
+    const unik = new Set(
+      pesanSukses.map((m) => m.match(/message:\s*'([^']+)'/)?.[1] ?? ''),
+    );
+
+    assert.ok(unik.size > 0, 'handler harus punya pesan sukses (200)');
     assert.equal(
-      pesanUnik.size, 1,
-      `pesan respons harus seragam, ditemukan ${pesanUnik.size} variasi: ${[...pesanUnik].join(' | ')}`,
+      unik.size, 1,
+      `pesan SUKSES harus seragam, ditemukan ${unik.size} variasi: ${[...unik].join(' | ')}`,
+    );
+
+    // Pesan itu harus pesan netral yang tidak mengonfirmasi keberadaan akun.
+    const satu = [...unik][0] ?? '';
+    assert.match(
+      satu, /Kalau email itu terdaftar/,
+      `pesan sukses harus netral ("Kalau email itu terdaftar..."), dapat: ${satu}`,
     );
   });
 });
