@@ -1521,10 +1521,21 @@
         labelSso = String(d?.sso_label || '').slice(0, 40);
       }
     } catch {
-      // Server tidak terjangkau → biarkan semua tombol dalam keadaan awal
-      // (nonaktif). Catatan "segera hadir" sudah ada di HTML, jadi pengunjung
-      // tetap dapat penjelasan tanpa JavaScript tambahan.
-      return;
+      // Server tidak terjangkau → SEMUA penyedia dianggap belum siap.
+      //
+      // ── KENAPA TIDAK `return` DI SINI ────────────────────────────────────────
+      // Versi sebelumnya `return` lebih awal. Akibatnya SELURUH sisa fungsi
+      // dilewati — termasuk menyembunyikan tombol penyedia dan merapikan
+      // tata letak.
+      //
+      // Yang terjadi saat server tak terjangkau (mis. backend sedang restart):
+      // tombol Google/Microsoft/GitHub/LinkedIn tetap dalam keadaan HTML awal
+      // (`disabled`, TAPI terlihat), sehingga pengguna melihat deretan tombol
+      // abu-abu yang tidak bisa diklik — persis yang ingin dihindari oleh
+      // komentar di atas: "tombol pudar tidak profesional".
+      //
+      // Dengan tidak `return`, nilai `aktif` tetap semua-false, dan alur di
+      // bawah menyembunyikan tombol-tombol itu sebagaimana mestinya.
     }
 
     // Penyedia SOSIAL — satu keluarga visual, satu baris.
@@ -1680,6 +1691,45 @@
     // yang belum ada.
     const catatan = document.getElementById('ssoSegera');
     if (catatan) catatan.hidden = true;
+
+    // ── SEMBUNYIKAN SELURUH BAGIAN KALAU TIDAK ADA METODE ALTERNATIF ──────────
+    //
+    // ── MASALAH YANG DIPERBAIKI ──────────────────────────────────────────────
+    // Loop penyedia menyembunyikan TOMBOL yang belum dikonfigurasi, tapi TIDAK
+    // menyembunyikan wadahnya (`.auth-alt`) atau pemisah "atau dengan email"
+    // di dalamnya.
+    //
+    // Akibatnya, saat semua provider belum dikonfigurasi — keadaan sekarang,
+    // karena backend belum punya endpoint OAuth mana pun — halaman masuk
+    // menampilkan:
+    //
+    //   ┌────────────────────────────┐
+    //   │ Sign in to your account    │
+    //   │                            │
+    //   │ ─── atau dengan email ───  │   ← pemisah menggantung
+    //   │                            │      tanpa apa pun di atasnya
+    //   │ Email                      │
+    //
+    // Pemisah yang memisahkan "sesuatu" dari "sesuatu yang tidak ada" bukan
+    // hanya jelek — ia membingungkan: pengguna mencari tombol sosial yang
+    // tidak pernah ada.
+    //
+    // ── KENAPA DI DALAM FUNGSI INI, BUKAN DI PEMANGGIL ───────────────────────
+    // Versi pertama menaruh pemeriksaan ini SETELAH `siapkanSso()` dipanggil —
+    // dan tidak pernah berjalan, karena `siapkanSso()` adalah fungsi async yang
+    // melakukan `await fetch()` di dalamnya. Pemanggilnya tidak menunggu, jadi
+    // pemeriksaan berjalan SEBELUM tombol-tombol selesai disembunyikan.
+    //
+    // Menaruh pemeriksaan di sini — tepat setelah loop yang menyembunyikan
+    // tombol — membuatnya berjalan pada waktu yang benar tanpa perlu
+    // mengubah pemanggil menjadi `await`.
+    const wadahAlt = document.getElementById('altMethods');
+    if (wadahAlt) {
+      const adaTombolTerlihat = [...wadahAlt.querySelectorAll('button')]
+        .some((b) => !b.hidden && getComputedStyle(b).display !== 'none');
+
+      wadahAlt.hidden = !adaTombolTerlihat;
+    }
   }
 
   siapkanSso();
