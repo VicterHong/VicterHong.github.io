@@ -373,7 +373,21 @@ export async function pakaiTokenReset(token, sandiBaru) {
   // Buka kunci akun — pengguna yang berhasil reset tidak boleh tetap terkunci.
   getDb().prepare('UPDATE users SET gagal_masuk = 0, terkunci_sampai = NULL WHERE id = ?').run(row.user_id);
 
-  return { ok: true, userId: row.user_id };
+  // ── EMAIL DIKEMBALIKAN UNTUK LAYAR SUKSES ───────────────────────────────────
+  //
+  // Layar sukses menampilkan akun mana yang sandinya berubah. Email diambil
+  // DI SINI — dari akun yang tokennya cocok — bukan dari input pengguna.
+  //
+  // ── KENAPA TIDAK DARI INPUT ─────────────────────────────────────────────────
+  // Kolom email di halaman reset bisa diisi siapa saja. Kalau layar sukses
+  // menampilkan nilai dari input, penyerang yang membuka tautan orang lain
+  // akan melihat email korbannya. Dari sini, email hanya keluar kalau
+  // tokennya memang sah untuk akun itu.
+  //
+  // Aman dikembalikan: pemanggil sudah membuktikan kepemilikan token.
+  const akun = getDb().prepare('SELECT email FROM users WHERE id = ?').get(row.user_id);
+
+  return { ok: true, userId: row.user_id, email: akun?.email ?? null };
 }
 
 /** Bersihkan token reset yang sudah kedaluwarsa/dipakai. */

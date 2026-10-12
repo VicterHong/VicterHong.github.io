@@ -63,6 +63,10 @@
   const params = new URLSearchParams(location.search);
   const token = (params.get('token') ?? '').trim();
 
+  // Email akun yang sandinya berubah — DIISI DARI RESPONS SERVER, bukan dari
+  // input pengguna. Lihat penjelasan di isiDataSukses().
+  let emailAkun = null;
+
   // ── Panel ──────────────────────────────────────────────────────────────────
   function tampilkanPanel(nama) {
     for (const p of document.querySelectorAll('.auth-panel')) {
@@ -159,6 +163,69 @@
   });
 
   // ══════════════════════════════════════════════════════════════════════════
+  // ── ISI DATA SUKSES ───────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // ── KENAPA MENAMPILKAN EMAIL DAN WAKTU ─────────────────────────────────────
+  //
+  // Layar sukses yang hanya bilang "berhasil" tidak menjawab pertanyaan yang
+  // sebenarnya ada di kepala pengguna:
+  //
+  //   "Akun mana yang tadi saya reset?"        → email
+  //   "Kapan itu terjadi?"                     → waktu
+  //   "Ada yang perlu saya lakukan lagi?"      → catatan konsekuensi
+  //
+  // Menampilkan email juga mencegah kebingungan pada pengguna dengan beberapa
+  // akun — mereka bisa memastikan akun yang benar yang berubah.
+  //
+  // Waktu adalah BUKTI. Kalau pengguna melihat waktu yang tidak dikenali,
+  // itu sinyal ada akses tidak sah — dan mereka bisa segera bertindak.
+  // Tanpa waktu, mereka tidak punya cara tahu.
+  //
+  // ── KENAPA EMAIL DIAMBIL DARI SERVER, BUKAN DARI INPUT ─────────────────────
+  // Kolom email di form BISA diisi siapa saja. Kalau ditampilkan apa adanya,
+  // penyerang yang membuka tautan orang lain akan melihat email korbannya —
+  // dan itu membocorkan informasi. Server hanya mengirim email kalau tokennya
+  // memang sah untuk akun itu.
+  function isiDataSukses() {
+    const elAkun = $('suksesAkun');
+    const elWaktu = $('suksesWaktu');
+
+    if (elAkun) {
+      // `emailAkun` diisi dari respons server (lihat bawah). Kalau tidak ada,
+      // tampilkan tanda pisah — jangan menebak dari input.
+      elAkun.textContent = emailAkun ?? '—';
+    }
+
+    if (elWaktu) {
+      // ── FORMAT WAKTU INDONESIA ──────────────────────────────────────────────
+      // `toLocaleString` dengan locale 'id-ID' dan timeZone 'Asia/Jakarta'.
+      //
+      // ── KENAPA TIMEZONE DITULIS EKSPLISIT ───────────────────────────────────
+      // Tanpa ini, waktu mengikuti zona perangkat. Pengguna yang sedang di
+      // luar negeri akan melihat waktu lokal mereka — padahal yang penting
+      // adalah kapan perubahan terjadi di akun, dalam zona yang mereka kenal
+      // (WIB untuk pengguna Indonesia).
+      //
+      // `hour12: false` — format 24 jam, standar di Indonesia.
+      try {
+        elWaktu.textContent = new Intl.DateTimeFormat('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }).format(new Date()) + ' WIB';
+      } catch {
+        // Peramban lama tanpa Intl lengkap — tampilkan apa adanya.
+        elWaktu.textContent = new Date().toLocaleString('id-ID');
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
   // ── KIRIM ─────────────────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════════
 
@@ -213,6 +280,9 @@
       try { isi = await res.json(); } catch { /* balasan bukan JSON */ }
 
       if (res.ok && isi?.ok) {
+        // Email diambil dari respons server — hanya ada kalau tokennya sah.
+        emailAkun = isi.email ?? null;
+        isiDataSukses();
         tampilkanPanel('sukses');
         return;
       }

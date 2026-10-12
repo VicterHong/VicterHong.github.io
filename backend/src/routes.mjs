@@ -1886,6 +1886,14 @@ export const routes = [
       return sendJson(res, 200, {
         ok: true,
         message: 'Sandi berhasil diganti. Silakan masuk dengan sandi baru Anda.',
+        // ── EMAIL DIKEMBALIKAN UNTUK LAYAR SUKSES ────────────────────────────
+        // Layar sukses menampilkan akun mana yang berubah — itu mencegah
+        // kebingungan pada pengguna dengan beberapa akun, dan memberi bukti
+        // kalau ada perubahan yang tidak mereka kenali.
+        //
+        // Aman: baris ini hanya tercapai kalau tokennya SAH (pakaiTokenReset
+        // sudah memverifikasi). Penyerang tanpa token tidak bisa memanggilnya.
+        email: hasil.email ?? undefined,
       });
     }),
   },

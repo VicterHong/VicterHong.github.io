@@ -2357,84 +2357,160 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   ── ILUSTRASI SUKSES: SANDI BERHASIL DIGANTI ─────────────────────────────────
+   ── PANEL SUKSES — INFORMASI, BUKAN HIASAN ───────────────────────────────────
    ══════════════════════════════════════════════════════════════════════════════
 
-   ── KENAPA ILUSTRASI, BUKAN HANYA CENTANG ───────────────────────────────────
-   Centang sederhana sudah benar secara fungsi, tapi tidak memberi rasa
-   "selesai". Halaman korporat yang menangani momen penting memakai ILUSTRASI:
-   ada kedalaman (lapisan), ritme (elemen pendukung), dan warna (gradien).
+   ── KENAPA VERSI SEBELUMNYA TERLIHAT "AI SLOP" ──────────────────────────────
+   Desain lama: badge gradien emas 78×78, kilau, cincin atmosferik, titik
+   percikan, animasi tiga tahap. Semua itu adalah DEKORASI.
 
-   ── ANIMASI: TIGA TAHAP, BUKAN SATU ─────────────────────────────────────────
-   Urutannya sengaja:
+   Dari spesifikasi Linear yang dipublikasikan:
 
-     1. Badge muncul lebih dulu (skala 0.7 → 1)   — 0ms
-     2. Centang digambar setelahnya               — 180ms
-     3. Titik aksen muncul terakhir               — 320ms
+     "chrome is grayscale near-black; indigo/violet is the only chrome color.
+      Status hues appear only on issue states, labels, and priority icons."
 
-   Kalau semuanya muncul bersamaan, tidak ada yang terasa "dibangun". Urutan
-   ini meniru cara mata membaca: benda dulu, lalu detail di atasnya.
+   Linear tidak memakai warna dekoratif — warna hanya untuk STATUS. Badge emas
+   besar adalah warna dekoratif. Itu sebabnya desain lama terasa seperti
+   template, bukan produk.
 
-   ── KENAPA HANYA TRANSFORM DAN OPACITY ──────────────────────────────────────
-   Keduanya diproses compositor, bukan main thread. Animasi tidak memicu
-   layout atau paint ulang — penting karena kartu juga punya animasi tilt 3D
-   yang berjalan bersamaan. */
+   ── YANG DIPAKAI SEBAGAI GANTINYA ───────────────────────────────────────────
+   Informasi padat: ikon kecil + judul sebaris + dua baris data + catatan.
+   Tidak ada elemen yang hanya "menghias" — setiap baris punya alasan.
 
-.auth-sukses-ilustrasi {
-  display: block;
-  margin: 0 auto 18px;
-  width: 96px;
-  height: 96px;
-  overflow: visible;
+   Skala abu untuk semuanya, kecuali SATU aksen emas pada ikon status.
+*/
+
+/* ── BARIS STATUS: ikon + judul sebaris ─────────────────────────────────────── */
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-/* Badge + cincin: muncul dengan skala dari tengah. */
-.auth-sukses-ilustrasi rect,
-.auth-sukses-ilustrasi circle:not(.auth-sukses-titik) {
-  transform-origin: 60px 60px;
-  animation: sukses-badge-muncul 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+/* Wadah ikon 32px — ukuran "badge status", bukan "ilustrasi".
+   Latar redup + border tipis: sama seperti badge status di aplikasi, di mana
+   ikon kecil duduk di atas permukaan yang sedikit lebih terang. */
+.auth-status-ikon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  /* Emas diredupkan — bukan emas penuh. Ini aksen status, bukan tombol. */
+  color: var(--emas);
+  background: color-mix(in srgb, var(--emas) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--emas) 24%, transparent);
 }
 
-@keyframes sukses-badge-muncul {
-  from { opacity: 0; transform: scale(0.72); }
-  to   { opacity: 1; transform: scale(1); }
+/* Fallback untuk peramban tanpa color-mix: latar transparan masih terbaca
+   karena border dan ikonnya berwarna. Tidak ada yang rusak. */
+
+.auth-status-judul {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--teks);
+  text-align: left;
 }
 
-/* Centang: digambar dari ujung ke ujung.
-   Panjang jalur ≈ 51 unit (diukur dari tiga titiknya), jadi dasharray 52. */
-.auth-sukses-centang {
-  stroke-dasharray: 52;
-  stroke-dashoffset: 52;
-  animation: sukses-centang-digambar 480ms cubic-bezier(0.65, 0, 0.35, 1) 180ms forwards;
+/* ── BARIS DATA: label + nilai ────────────────────────────────────────────────
+   Dua kolom: label kiri (lebar tetap), nilai kanan.
+
+   ── KENAPA LABEL LEBAR TETAP, BUKAN AUTO ────────────────────────────────────
+   Dengan lebar auto, "Akun" dan "Waktu" akan punya lebar berbeda dan nilai
+   di sebelahnya tidak sejajar — terlihat berantakan. Lebar tetap 64px
+   membuat kedua nilai mulai di posisi yang sama, dan mata bisa memindai
+   kolom nilai sebagai satu kolom. */
+.auth-data {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  /* Permukaan lebih gelap dari kartu — pola "inset" yang dipakai Stripe
+     untuk blok data: terasa seperti informasi yang "ditempelkan" ke kartu,
+     bukan bagian dari alurnya. */
+  background: color-mix(in srgb, var(--teks) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--teks) 7%, transparent);
 }
 
-@keyframes sukses-centang-digambar {
-  to { stroke-dashoffset: 0; }
+.auth-data-baris {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
-/* Titik aksen: muncul terakhir, sedikit membesar. */
-.auth-sukses-titik {
-  transform-origin: center;
-  animation: sukses-titik-muncul 380ms cubic-bezier(0.34, 1.56, 0.64, 1) 320ms both;
+.auth-data-baris + .auth-data-baris { margin-top: 8px; }
+
+.auth-data dt {
+  flex: 0 0 64px;
+  font-size: 12.5px;
+  /* Label: abu redup. Nilai di sebelahnya lebih terang — hierarki lewat
+     kecerahan, bukan ukuran atau bobot font. */
+  color: var(--teks-samar);
 }
 
-.auth-sukses-titik-2 { animation-delay: 420ms; }
-
-@keyframes sukses-titik-muncul {
-  from { opacity: 0; transform: scale(0.3); }
-  to   { transform: scale(1); }
+.auth-data dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--teks-redup);
+  /* Email panjang dipotong dengan elipsis, bukan membungkus ke baris kedua —
+     baris data harus tetap satu baris agar bisa dipindai. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ── HORMATI PREFERENSI GERAKAN MINIMAL ──────────────────────────────────────
-   Pengguna yang mematikan animasi tetap mendapat ILUSTRASI lengkap — hanya
-   tanpa gerakan. Yang hilang hanya transisinya, bukan informasinya. */
+/* ── CATATAN KONSEKUENSI ────────────────────────────────────────────────────── */
+.auth-status-catatan {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--teks-redup);
+  text-align: left;
+}
+
+/* ── JALAN KELUAR ───────────────────────────────────────────────────────────── */
+.auth-status-bantuan {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--teks-samar);
+  text-align: center;
+}
+
+.auth-status-bantuan a {
+  color: var(--teks-redup);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--teks-redup) 40%, transparent);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.auth-status-bantuan a:hover,
+.auth-status-bantuan a:focus-visible {
+  color: var(--emas);
+  text-decoration-color: currentColor;
+}
+
+/* ── ANIMASI: SATU, BUKAN TIGA ────────────────────────────────────────────────
+   Hanya baris status yang muncul dengan fade + geser 4px. Bukan animasi
+   "perayaan" — hanya konfirmasi bahwa layar berganti.
+
+   Dari Linear Method: "Motion is instant and snappy — never bouncy or slow."
+   Durasi 200ms, kurva ease-out. Tidak ada spring, tidak ada bounce. */
+.auth-status {
+  animation: status-muncul 200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes status-muncul {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .auth-sukses-ilustrasi rect,
-  .auth-sukses-ilustrasi circle:not(.auth-sukses-titik),
-  .auth-sukses-centang,
-  .auth-sukses-titik {
-    animation: none;
-    opacity: 1;
-    stroke-dashoffset: 0;
-  }
+  .auth-status { animation: none; }
 }

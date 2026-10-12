@@ -254,36 +254,130 @@
       Backend memang mencabut semua sesi lama — itu disebutkan di pesan supaya
       pengguna tidak bingung kenapa perangkat lain minta masuk ulang.
     -->
+    <!--
+      ══════════════════════════════════════════════════════════════════════════
+      ── PANEL: SANDI BERHASIL DIGANTI ────────────────────────────────────────
+      ══════════════════════════════════════════════════════════════════════════
+
+      ── KENAPA DESAIN INI BERBEDA DARI SEBELUMNYA ────────────────────────────
+      Versi sebelumnya memakai badge gradien emas 78×78 dengan kilau, cincin
+      atmosferik, titik percikan, dan animasi tiga tahap. Itu SEMUA tanda
+      template generik — "AI slop".
+
+      Dari spesifikasi Linear yang dipublikasikan:
+
+        "chrome is grayscale near-black; indigo/violet is the only chrome
+         color. Status hues appear only on issue states."
+
+      Linear TIDAK memakai warna dekoratif. Warna hanya untuk STATUS. Badge
+      emas besar adalah warna dekoratif — persis yang tidak dilakukan produk
+      premium.
+
+      ── YANG DIPAKAI SEBAGAI GANTINYA: INFORMASI, BUKAN HIASAN ───────────────
+      Layar sukses yang baik menjawab tiga pertanyaan pengguna:
+
+        1. Apa yang berubah?      → "Sandi berhasil diganti"
+        2. Akun yang mana?        → email (diisi JS dari sesi/token)
+        3. Apa konsekuensinya?    → "Semua sesi lain sudah dihentikan"
+
+      Ketiganya ditampilkan sebagai BARIS DATA, bukan paragraf prosa. Pola ini
+      dipakai di struk Stripe, ringkasan deploy Vercel, dan panel detail Linear
+      — informasi padat yang bisa dipindai, bukan teks yang harus dibaca.
+    -->
     <section class="auth-panel" id="panel-sukses" data-panel="sukses">
-      <div class="auth-done">
+
+      <!--
+        ── BARIS STATUS: ikon kecil + judul sebaris ──────────────────────────
+        Ikon 32px di SEBELAH judul, bukan 96px di ATAS judul.
+
+        Bedanya bukan ukuran — bedanya BAHASA. Ikon besar di tengah membaca
+        sebagai "ilustrasi" (bahasa template marketing). Ikon kecil di samping
+        judul membaca sebagai "penanda status" (bahasa aplikasi) — sama seperti
+        badge status di Linear atau ikon di daftar Vercel.
+      -->
+      <div class="auth-status">
         <!--
-          ── ILUSTRASI SUKSES ─────────────────────────────────────────────────
-          Ganti centang sederhana dengan ilustrasi tiga lapis (cincin
-          atmosferik + badge gradien + centang).
+          Ikon centang: lingkaran + jalur, 20px di dalam wadah 32px.
 
-          ── KENAPA BUKAN HANYA CENTANG ───────────────────────────────────────
-          Centang satu lingkaran sudah benar secara fungsi, tapi ia tidak
-          memberi rasa "selesai". Halaman korporat yang menangani momen
-          penting memakai ilustrasi: ada kedalaman, ritme, dan warna.
+          ── KENAPA TIDAK MEMAKAI WARNA HIJAU ────────────────────────────────
+          Hijau adalah konvensi "sukses" yang lazim, tapi di sini emas adalah
+          warna brand. Memakai hijau akan terasa seperti komponen dari produk
+          lain. Emas dipakai HANYA pada ikon ini — satu aksen, sesuai prinsip
+          "restraint in color".
 
-          ── KENAPA SEBAGAI FILE SVG TERPISAH, BUKAN INLINE ───────────────────
-          Ilustrasi ini 7 KB. Kalau inline di HTML, ia dimuat ulang setiap
-          kali halaman dibuka. Sebagai berkas terpisah, peramban menyimpannya
-          di cache dan memakainya lagi di kunjungan berikutnya.
-
-          `role="img"` + `aria-hidden="true"`: ilustrasi murni dekoratif —
-          pesannya sudah disampaikan judul di bawahnya. -->
-        <img class="auth-sukses-ilustrasi" src="/assets/img/sukses-reset-sandi.svg"
-             width="96" height="96" alt="" aria-hidden="true" decoding="async">
-        <h2 class="auth-done-title">Sandi berhasil diganti</h2>
-        <p class="auth-done-sub">
-          Sekarang masuk dengan sandi baru Anda. Semua sesi lama sudah
-          dihentikan, jadi perangkat lain perlu masuk ulang.
-        </p>
-        <a class="auth-submit" href="/sign-in">
-          <span class="auth-submit-label">Masuk sekarang</span>
-        </a>
+          Bentuk centangnya yang menyampaikan "berhasil" — warna hanya
+          memperkuat, bukan menyampaikan.
+        -->
+        <span class="auth-status-ikon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+               stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </span>
+        <h2 class="auth-status-judul">Sandi berhasil diganti</h2>
       </div>
+
+      <!--
+        ── BARIS DATA: fakta, bukan prosa ────────────────────────────────────
+        Dua baris yang diisi JavaScript: email akun dan waktu perubahan.
+
+        ── KENAPA EMAIL DITAMPILKAN ────────────────────────────────────────────
+        Pengguna yang membuka tautan reset dari email mungkin punya beberapa
+        akun. Menampilkan email menegaskan AKUN MANA yang sandinya berubah —
+        dan itu mencegah kebingungan ("apakah tadi saya reset akun yang benar?").
+
+        ── KENAPA WAKTU DITAMPILKAN ────────────────────────────────────────────
+        Waktu adalah bukti. Kalau pengguna melihat waktu yang tidak dikenali,
+        itu sinyal bahwa ada yang mengakses akunnya — dan mereka bisa segera
+        bertindak. Tanpa waktu, mereka tidak punya cara tahu.
+
+        ── KENAPA PAKAI <dl> ───────────────────────────────────────────────────
+        Ini pasangan label-nilai, bukan paragraf. <dl>/<dt>/<dd> adalah elemen
+        yang benar secara semantik, dan pembaca layar mengumumkannya sebagai
+        pasangan — bukan sebagai dua baris teks terpisah tanpa hubungan.
+      -->
+      <dl class="auth-data">
+        <div class="auth-data-baris">
+          <dt>Akun</dt>
+          <dd id="suksesAkun">—</dd>
+        </div>
+        <div class="auth-data-baris">
+          <dt>Waktu</dt>
+          <dd id="suksesWaktu">—</dd>
+        </div>
+      </dl>
+
+      <!--
+        ── KONSEKUENSI ───────────────────────────────────────────────────────
+        Satu paragraf yang menyebut apa yang BERUBAH di sistem. Ini bukan
+        basa-basi: pengguna yang tidak tahu sesinya dicabut akan bingung
+        kenapa ponselnya minta login lagi, dan mungkin mengira ada masalah.
+
+        Backend memang mencabut semua sesi lain saat sandi diganti — jadi
+        ini melaporkan fakta, bukan klaim pemasaran.
+      -->
+      <p class="auth-status-catatan">
+        Semua sesi lain sudah dihentikan. Perangkat yang masih masuk perlu
+        masuk ulang dengan sandi baru.
+      </p>
+
+      <a class="auth-submit" href="/sign-in">
+        <span class="auth-submit-label">Masuk sekarang</span>
+      </a>
+
+      <!--
+        ── JALAN KELUAR ──────────────────────────────────────────────────────
+        Kalau pengguna TIDAK mengenali waktu atau akun di atas, mereka butuh
+        jalan cepat untuk melapor. Tanpa ini, satu-satunya pilihan adalah
+        mencari alamat dukungan di halaman lain — dan pada saat seperti itu,
+        kecepatan itu penting.
+      -->
+      <p class="auth-status-bantuan">
+        Tidak mengenali aktivitas ini?
+        <a href="mailto:support@victer.is-a.dev">Hubungi dukungan</a>
+      </p>
+
     </section>
 
     <!--
