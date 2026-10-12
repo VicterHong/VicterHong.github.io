@@ -255,20 +255,56 @@
   }
 
   // ── SITE KEY TURNSTILE ──────────────────────────────────────────────────────
-  // Diambil dari /api/config (endpoint publik). Nilainya memang dirancang
-  // untuk dipasang di HTML publik — bukan rahasia.
-  (async () => {
-    try {
-      const r = await fetch('/api/config', { cache: 'no-store', credentials: 'same-origin' });
-      if (!r.ok) return;
-      const d = await r.json();
-      if (d?.turnstile_site_key) {
-        window.__TURNSTILE_SITEKEY__ = d.turnstile_site_key;
-        siapkanTurnstile();
+  //
+  // ── MASALAH YANG DIPERBAIKI DI SINI ─────────────────────────────────────────
+  // Versi pertama mengambil site key dari /api/config dengan nama field yang
+  // SALAH:
+  //
+  //   if (d?.turnstile_site_key)          ← field ini TIDAK ADA
+  //
+  // Respons sebenarnya berbentuk:
+  //
+  //   { "turnstile": { "enabled": true, "site_key": "0x4AAA…" } }
+  //
+  // Karena field-nya salah, `window.__TURNSTILE_SITEKEY__` tidak pernah terisi,
+  // widget tidak dirender, dan server menolak setiap permintaan dengan
+  // "Selesaikan verifikasi keamanan dulu, lalu kirim ulang" — pesan yang
+  // membingungkan karena tidak ada widget untuk diselesaikan.
+  //
+  // ── KENAPA TIDAK LAGI MENGAMBIL DARI API SAMA SEKALI ────────────────────────
+  // Site key sekarang ditulis langsung di HTML (lihat lupa-sandi.html), sama
+  // seperti halaman masuk dan daftar. Itu membuat widget bisa dirender SEGERA
+  // tanpa menunggu perjalanan jaringan — dan tetap bekerja kalau /api/config
+  // sedang tidak bisa diakses.
+  //
+  // Blok ini hanya menjadi jaring pengaman: kalau site key belum ada (mis.
+  // HTML di-cache versi lama), coba ambil dari API dengan nama field yang BENAR.
+  if (!window.__TURNSTILE_SITEKEY__) {
+    (async () => {
+      try {
+        const r = await fetch('/api/config', { cache: 'no-store', credentials: 'same-origin' });
+        if (!r.ok) return;
+        const d = await r.json();
+        // Nama field yang BENAR: `turnstile.site_key` (nested), bukan
+        // `turnstile_site_key` (flat).
+        const kunci = d?.turnstile?.site_key;
+        if (kunci) {
+          window.__TURNSTILE_SITEKEY__ = kunci;
+          siapkanTurnstile();
+        }
+      } catch {
+        // Tidak bisa ambil config — server akan menolak permintaan tanpa token
+        // kalau Turnstile memang wajib. Menahan form karena ini lebih buruk.
       }
-    } catch {
-      // Tidak bisa ambil config — server akan menolak permintaan tanpa token
-      // kalau Turnstile memang wajib. Menahan form karena ini lebih buruk.
-    }
-  })();
+    })();
+  } else {
+    // Site key sudah ada dari HTML — render widget segera.
+    // Tunggu satu frame supaya skrip Turnstile sempat dimuat (ia `async defer`).
+    const coba = (sisa) => {
+      if (typeof window.turnstile !== 'undefined') { siapkanTurnstile(); return; }
+      if (sisa <= 0) return;
+      setTimeout(() => coba(sisa - 1), 200);
+    };
+    coba(25);   // ~5 detik
+  }
 })();

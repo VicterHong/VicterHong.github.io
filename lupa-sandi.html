@@ -223,6 +223,55 @@
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script src="/assets/js/cf-gate-i18n.js" defer></script>
 <script src="/assets/js/cf-gate.js" defer></script>
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  ── KONFIGURASI TURNSTILE ────────────────────────────────────────────────────
+  ══════════════════════════════════════════════════════════════════════════════
+
+  ── MASALAH YANG DIPERBAIKI DI SINI ──────────────────────────────────────────
+  Versi pertama halaman ini TIDAK punya blok ini. Akibatnya:
+
+    • Widget Turnstile tidak pernah dirender (site key tidak diketahui)
+    • Pengguna menekan "Kirim tautan reset" tanpa token
+    • Server menolak: "Selesaikan verifikasi keamanan dulu, lalu kirim ulang"
+    • Pengguna terjebak: diminta verifikasi, tapi tidak ada widget untuk
+      menyelesaikannya
+
+  Persis bug yang sama pernah terjadi di halaman masuk (tercatat di komentar
+  sign-in.html): "Pengunjung TERKUNCI — tidak ada widget, tidak ada cara
+  verifikasi."
+
+  ── KENAPA SITE KEY DITULIS DI HTML, BUKAN DIAMBIL DARI /api/config ──────────
+  Halaman masuk dan daftar sudah memakai pola ini: site key ditulis langsung
+  sebagai nilai awal. Alasannya:
+
+    1. Widget bisa dirender SEGERA, tanpa menunggu satu perjalanan jaringan
+       ke /api/config. Pada koneksi lambat, menunggu berarti pengguna melihat
+       form tanpa widget selama 1-2 detik.
+
+    2. Kalau /api/config gagal (backend sedang restart), widget tetap muncul.
+       Dengan pola ambil-dari-API, kegagalan itu berarti halaman tidak bisa
+       dipakai sama sekali.
+
+  Site key MEMANG dirancang untuk dipasang di HTML publik — Cloudflare
+  menyebutnya "site key", bukan "secret key". Secret-nya ada di server.
+
+  ── KENAPA verifyEndpoint RELATIF ────────────────────────────────────────────
+  Path relatif membuat permintaan melewati Pages Function yang mem-proxy ke
+  backend. Kalau absolut ke workers.dev, cookie akan disimpan untuk domain
+  yang salah dan tidak pernah terkirim saat peramban meminta halaman dari
+  pages.dev.
+-->
+<script>
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    verifyEndpoint: '/api/verify-turnstile'
+  };
+  // Formulir di halaman ini memakai site key yang sama untuk widget-nya.
+  window.__TURNSTILE_SITEKEY__ = window.CF_GATE_CONFIG.siteKey;
+</script>
+
 <script src="/assets/js/lupa-sandi.js" defer></script>
 
 <script type="module" src="/assets/js/logo-mount.js"></script>
