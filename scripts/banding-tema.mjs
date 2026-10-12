@@ -89,13 +89,63 @@ const PETA_WARNA = {
 };
 
 // Gradient atmosferik: GitHub tidak memakainya — hapus.
-const POLA_ATMO = /radial-gradient\([^)]*245,197,66[^)]*\)/g;
+//
+// ── KENAPA CARI POSISI, BUKAN REGEX ─────────────────────────────────────────
+// Gradient atmosferik punya KURUNG BERSARANG:
+//
+//   radial-gradient(ellipse 420px ... , rgba(245,197,66,0.07) 0%, ...)
+//                  └─ kurung luar ─┘ └─ kurung dalam ─┘
+//
+// Regex apa pun untuk ini rapuh — `[^)]*` berhenti di kurung dalam pertama,
+// dan pola bersarang yang benar jadi sulit dibaca serta mudah salah.
+//
+// Lebih andal: cari AWAL deklarasi, lalu hitung kurung sampai seimbang.
+// Itu bekerja untuk kedalaman berapa pun tanpa pola yang rumit.
+function hapusGradientAtmosferik(html, pengganti) {
+  const penanda = 'radial-gradient(';
+  let hasil = html;
+  let posisi = hasil.indexOf(penanda);
+
+  while (posisi !== -1) {
+    // Hitung kurung dari karakter '(' pertama setelah penanda.
+    const mulaiKurung = posisi + penanda.length - 1; // posisi '(' itu sendiri
+    let kedalaman = 0;
+    let akhir = -1;
+
+    for (let i = mulaiKurung; i < hasil.length; i++) {
+      if (hasil[i] === '(') kedalaman += 1;
+      else if (hasil[i] === ')') {
+        kedalaman -= 1;
+        if (kedalaman === 0) { akhir = i; break; }
+      }
+    }
+
+    if (akhir === -1) break;   // kurung tidak seimbang — berhenti, jangan rusak
+
+    const seluruh = hasil.slice(posisi, akhir + 1);
+
+    // Hanya hapus kalau ini gradient ATMOSFERIK (mengandung warna emas).
+    // Garis aksen di tepi kartu juga gradient, tapi warnanya sudah diganti
+    // hijau sebelum fungsi ini dipanggil — jadi tidak akan cocok.
+    if (seluruh.includes('245,197,66')) {
+      hasil = hasil.slice(0, posisi) + pengganti + hasil.slice(akhir + 1);
+    }
+
+    posisi = hasil.indexOf(penanda, posisi + pengganti.length);
+  }
+
+  return hasil;
+}
 
 function keGithub(html) {
   let hasil = html;
 
   // Hapus gradient atmosferik (GitHub memakai latar rata).
-  hasil = hasil.replace(POLA_ATMO, 'none');
+  //
+  // Diganti dengan gradient SOLID satu warna, bukan 'none' — kalau 'none',
+  // properti background-image-nya kosong dan sebagian klien email
+  // menampilkan latar putih di area itu.
+  hasil = hapusGradientAtmosferik(hasil, 'linear-gradient(#0d1117,#0d1117)');
 
   // Ganti setiap warna sesuai peta. Urutan tidak penting karena nilainya unik.
   for (const [dari, ke] of Object.entries(PETA_WARNA)) {
