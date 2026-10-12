@@ -358,9 +358,26 @@ export const config = {
   checkoutBatalUrl: pick('CHECKOUT_BATAL_URL', 'https://portfolio-victer.pages.dev/pricing'),
   };
 
+/**
+ * Peringatan konfigurasi — diisi oleh validateConfig(), TIDAK memblokir startup.
+ *
+ * Kapan sesuatu masuk sini: kalau ia hanya bisa diperiksa BENTUKNYA di sini,
+ * sementara kebenarannya bergantung pada keadaan luar (status verifikasi di
+ * penyedia email, ketersediaan jaringan). Config tidak punya cara mengetahui
+ * keadaan itu, jadi ia tidak boleh mematikan layanan.
+ *
+ * Contoh nyata: EMAIL_FROM memakai domain pihak lain (is-a.dev) — dulu ini
+ * memblokir startup, dan layanan mati justru SETELAH domainnya berhasil
+ * diverifikasi. Sekarang ia hanya peringatan.
+ */
+const warnings = [];
+
 /** Apakah konfigurasi cukup untuk menjalankan layanan produksi. */
 export function validateConfig() {
   const problems = [];
+  // Peringatan TIDAK memblokir startup — lihat penjelasan di
+  // validateWarnings() dan pemeriksaan EMAIL_FROM di bawah.
+  warnings.length = 0;
   if (!config.secret || config.secret.length < 24) {
     problems.push('SERVICE_SECRET wajib diisi (minimal 24 karakter) di ' + ENV_FILE);
   }
@@ -425,54 +442,82 @@ export function validateConfig() {
   //   Validate your sender or authenticate your domain
   //
   // Penyebabnya: domain `is-a.dev` dikelola lewat PR GitHub — pemiliknya
-  // TIDAK BISA menambah DNS record yang diminta Brevo. Jadi domain itu
-  // tidak akan pernah bisa diverifikasi, dan setiap email yang memakai
-  // alamat itu akan SELALU ditolak.
+  // TIDAK BISA menambah DNS record sembarangan. Alamat dari domain itu
+  // tidak akan bisa dipakai sampai domainnya benar-benar diverifikasi.
   //
-  // Kegagalan ini tidak terlihat dari dalam: API Brevo menjawab sukses
-  // (permintaan diterima), lalu menolak di sisi pengiriman. Tanpa
-  // pemeriksaan ini, masalahnya baru ketahuan setelah pengguna komplain
-  // tidak menerima email.
+  // ── PENTING: PEMERIKSAAN INI TIDAK BOLEH MEMBLOKIR STARTUP ───────────────
   //
-  // Pemeriksaan di sini hanya bisa memeriksa BENTUK, bukan apakah Brevo
-  // benar-benar menerima alamatnya — itu perlu panggilan API, dan config
-  // tidak boleh bergantung pada jaringan. Yang dicegah: alamat kosong,
-  // alamat tanpa `@`, dan alamat dari domain yang tidak bisa diverifikasi
-  // (is-a.dev, github.io, pages.dev — semuanya domain pihak lain).
+  // Versi pertama pemeriksaan ini menambahkan masalah ke `problems`, dan
+  // `server.mjs` memanggil `process.exit(1)` kalau ada masalah apa pun.
+  //
+  // Akibatnya nyata: setelah domain `victer.is-a.dev` BERHASIL diverifikasi
+  // di Brevo, layanan justru MATI — pemeriksaan ini masih menganggap
+  // domain itu tidak valid, padahal statusnya sudah berubah. Layanan masuk
+  // restart-loop dan seluruh situs tidak bisa diakses.
+  //
+  // Pelajarannya: pemeriksaan yang hanya bisa memeriksa BENTUK tidak boleh
+  // memblokir startup. Ia tidak punya cara mengetahui apakah domain sudah
+  // diverifikasi di penyedia — itu fakta runtime, bukan fakta konfigurasi.
+  // Yang boleh memblokir hanyalah hal yang PASTI salah (kredensial kosong).
+  //
+  // Karena itu pemeriksaan ini sekarang mengembalikan `warnings`, bukan
+  // `problems`. Server mencatatnya sebagai peringatan dan tetap jalan.
   if (config.emailFrom || config.brevoApiKey || config.resendApiKey) {
     const alamat = config.emailFrom || config.brevoSenderEmail || '';
     const cocok = alamat.match(/<([^>]+)>/) ?? [null, alamat];
     const surel = (cocok[1] ?? '').trim();
 
     if (!surel) {
+      // Alamat kosong = email tidak akan bisa dikirim sama sekali.
+      // Ini fakta konfigurasi yang pasti salah → tetap blokir.
       problems.push('EMAIL_FROM kosong padahal penyedia email diisi — '
         + 'email tidak akan bisa dikirim. Isi di ' + ENV_FILE);
     } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(surel)) {
+      // Bentuk tidak sah → pasti salah → tetap blokir.
       problems.push(`EMAIL_FROM bukan alamat email yang sah: "${surel}". `
         + 'Format yang diterima: "Nama <alamat@domain>" atau "alamat@domain". '
         + 'Isi di ' + ENV_FILE);
     } else {
-      // Domain pihak lain yang tidak bisa ditambahi DNS record.
-      const domainTidakBisaDiverifikasi = ['is-a.dev', 'github.io', 'pages.dev', 'workers.dev'];
+      // Domain pihak lain — HANYA PERINGATAN, bukan blokir.
+      // Domain seperti ini MEMANG BISA dipakai kalau sudah diverifikasi di
+      // penyedia (terbukti: victer.is-a.dev berhasil diverifikasi Brevo).
+      // Config tidak punya cara mengetahui status verifikasi, jadi ia tidak
+      // boleh mengambil keputusan yang mematikan layanan.
+      const domainPihakLain = ['is-a.dev', 'github.io', 'pages.dev', 'workers.dev'];
       const domain = surel.split('@')[1] ?? '';
-      const kena = domainTidakBisaDiverifikasi.find(
+      const kena = domainPihakLain.find(
         (d) => domain === d || domain.endsWith('.' + d),
       );
 
       if (kena) {
-        problems.push(
-          `EMAIL_FROM memakai domain "${domain}" yang TIDAK BISA diverifikasi `
-          + `(dikelola pihak lain — tidak ada akses DNS). Penyedia email `
-          + `(Brevo/Resend) akan MENOLAK setiap pengiriman dari alamat ini. `
-          + `Ganti EMAIL_FROM ke alamat yang sudah terverifikasi di dashboard `
-          + `penyedia, atau verifikasi domain Anda sendiri dulu. `
-          + `Isi di ${ENV_FILE}`,
+        warnings.push(
+          `EMAIL_FROM memakai domain "${domain}" (dikelola pihak lain). `
+          + `Ini BEKERJA kalau domain sudah diverifikasi di dashboard penyedia `
+          + `email, tapi GAGAL kalau belum — penyedia akan menolak setiap `
+          + `pengiriman dengan "sender is not valid". `
+          + `Cek status di dashboard penyedia sebelum mengandalkannya. `
+          + `Kalau belum terverifikasi, pakai alamat yang sudah terverifikasi.`,
         );
       }
     }
   }
 
   return problems;
+}
+
+/**
+ * Peringatan konfigurasi — layanan TETAP JALAN.
+ *
+ * Dipisahkan dari `validateConfig()` karena keduanya punya konsekuensi
+ * berbeda: `problems` menghentikan startup, `warnings` hanya dicatat.
+ *
+ * Kapan sesuatu masuk `warnings`: kalau ia hanya bisa diperiksa BENTUKNYA
+ * di sini, sementara kebenarannya bergantung pada keadaan luar (status
+ * verifikasi di penyedia, ketersediaan jaringan). Config tidak punya cara
+ * mengetahui keadaan itu, jadi ia tidak boleh mematikan layanan.
+ */
+export function validateWarnings() {
+  return warnings;
 }
 
 export { ENV_FILE };

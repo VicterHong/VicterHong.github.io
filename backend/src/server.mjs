@@ -6,7 +6,7 @@
  */
 
 import { createServer } from 'node:http';
-import { config, validateConfig, ENV_FILE } from './config.mjs';
+import { config, validateConfig, validateWarnings, ENV_FILE } from './config.mjs';
 import { initRoutes, resolveRoute, handlePreflight, rateLimited } from './routes.mjs';
 import { applyCors, sendJson } from './http-util.mjs';
 import { closeDb } from './db.mjs';
@@ -53,6 +53,18 @@ if (problems.length) {
   console.error('  SALES_EMAIL=<email sales>');
   process.exit(1);
 }
+
+// Peringatan konfigurasi — layanan TETAP JALAN.
+//
+// Dipisahkan dari `problems` karena keduanya punya konsekuensi berbeda.
+// Peringatan muncul untuk hal yang hanya bisa diperiksa BENTUKNYA di sini,
+// sementara kebenarannya bergantung pada keadaan luar — misalnya apakah
+// domain EMAIL_FROM sudah diverifikasi di dashboard penyedia email.
+//
+// Versi pertama pemeriksaan ini memblokir startup, dan akibatnya layanan
+// MATI justru setelah domainnya berhasil diverifikasi. Peringatan tidak
+// boleh mematikan layanan.
+for (const w of validateWarnings()) console.warn('[startup] peringatan:', w);
 
 initRoutes();
 
