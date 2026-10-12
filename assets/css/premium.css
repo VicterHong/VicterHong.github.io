@@ -61,6 +61,19 @@
   transition: box-shadow var(--dur-fast) var(--ease-out-quad);
 }
 
+/* ── CINCIN FOKUS TOMBOL (BUG YANG DIPERBAIKI) ─────────────────────────────────
+   `.btn-primary` mendefinisikan box-shadow-nya sendiri di interactions.css —
+   berspesifisitas sama (0,1,0) dengan `:focus-visible` di atas, dan
+   interactions.css dimuat SETELAH premium.css, sehingga bayangan tombol
+   MENIMPA cincin fokus. Terukur via Tab: `.btn-primary` aktif `:focus-visible`
+   tapi box-shadow = bayangan tombol, bukan cincin — tidak terlihat sama sekali
+   saat dinavigasi keyboard (gagal WCAG 2.4.7). Spesifisitas (0,2,0) di bawah
+   memastikan cincin selalu menang, di file mana pun aturan tombol berada. */
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
 /* ── KARTU: SURFACE LADDER + STACKED SHADOW ────────────────────────────────────
    Kartu naik satu tingkat luminansi dari latar, dengan hairline dan stacked
    shadow. Hover menaikkan satu tingkat lagi — bukan menggeser posisi. */

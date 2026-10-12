@@ -261,6 +261,22 @@ function prosesHtml(isi) {
  * Komentar kondisional IE (`<!--[if ...]>`) juga dibiarkan — beberapa
  * proxy lama masih membacanya, dan menghapusnya bisa mengubah perilaku.
  */
+/** Elemen level-blok (dan elemen <head> yang tidak dirender). Spasi di antara
+ *  dua tag blok diabaikan browser, jadi aman dihapus saat minifikasi.
+ *  Spasi yang menyentuh elemen inline adalah KONTEN — harus dipertahankan.
+ *  Daftar ini sengaja eksplisit: elemen yang tidak ada di sini diperlakukan
+ *  inline (spasi dipertahankan) — lebih aman daripada sebaliknya. */
+const ELEMEN_BLOK = new Set([
+  'html', 'head', 'body', 'meta', 'link', 'base', 'title', 'style', 'script',
+  'noscript', 'template',
+  'address', 'article', 'aside', 'blockquote', 'details', 'dialog', 'div',
+  'dl', 'dt', 'dd', 'fieldset', 'figcaption', 'figure', 'footer', 'form',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hgroup', 'hr', 'li', 'main',
+  'menu', 'nav', 'ol', 'p', 'pre', 'search', 'section', 'summary', 'ul',
+  'table', 'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr',
+  'td', 'th', 'legend',
+]);
+
 function minifyHtml(isi) {
   const simpan = new Map();
 
@@ -278,8 +294,28 @@ function minifyHtml(isi) {
   hasil = hasil
     // Komentar HTML — kecuali kondisional IE
     .replace(/<!--(?!\[if)[\s\S]*?-->/g, '')
-    // Spasi di antara tag
-    .replace(/>\s+</g, '><')
+    // ── SPASI DI ANTARA TAG (BUG PRODUKSI YANG DIPERBAIKI) ─────────────────
+    //
+    // Sebelumnya: `>\s+<` → `><` untuk SEMUA pasangan tag. Itu menghapus
+    // spasi yang merupakan KONTEN saat kedua tag bersifat inline —
+    // browser merender spasi itu sebagai pemisah kata.
+    //
+    // Terukur di produksi: judul hero "perangkat lama</span> <span>berguna
+    // kembali." kehilangan spasinya → tampil "perangkat lamaberguna kembali."
+    // (celah antar kata normal 9,2px; di titik itu 0px). Bug yang sama
+    // berpotensi di 142 pasangan inline-inline lain (tombol, label, ikon).
+    //
+    // Aturan sekarang: hapus spasi HANYA kalau salah satu tag elemen blok
+    // (spasi di sekitar blok memang diabaikan browser). Kalau dua-duanya
+    // inline, pertahankan satu spasi.
+    .replace(
+      /(<\/?([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*>)\s+(?=<\/?([a-zA-Z][a-zA-Z0-9-]*)\b)/g,
+      (utuh, tag, nama1, nama2) => {
+        const a = nama1.toLowerCase();
+        const b = nama2.toLowerCase();
+        return ELEMEN_BLOK.has(a) || ELEMEN_BLOK.has(b) ? tag : `${tag} `;
+      },
+    )
     // Beberapa spasi/baris baru berturut-turut → satu spasi
     .replace(/\s{2,}/g, ' ')
     // Spasi di awal baris

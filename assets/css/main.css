@@ -972,9 +972,16 @@ a { color: inherit; text-decoration: none; }
 .hero-stats dt { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); order: 2; }
 .hero-stats dd { margin: 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; order: 1; font-family: 'JetBrains Mono', monospace; }
 
+/* Di layar sempit, stats TETAP satu baris 3 kolom (pola Linear/Stripe:
+   statistik = satu ringkasan sekali pandang, bukan daftar menurun).
+   Versi lama menumpuknya jadi 3 baris — terukur 252px tinggi di 390px,
+   mendorong hero keluar viewport dan terbaca seperti daftar.
+   Dengan 3 kolom: 77px (390/360) · 94px (320, label panjang wrap 2 baris).
+   Padding dikecilkan supaya angka "1.428" tidak menyentuh pemisah kolom. */
 @media (max-width: 560px) {
-  .hero-stats { grid-template-columns: 1fr; gap: 0.9rem; }
-  .hero-stats div { padding: 0; border-left: none; }
+  .hero-stats div { padding: 0 0.75rem; }
+  .hero-stats dd { font-size: 1.5rem; }
+  .hero-stats dt { font-size: 0.64rem; letter-spacing: 0.04em; }
 }
 
 /* ── BAGIAN UMUM ─────────────────────────────────────────────────────────────── */
