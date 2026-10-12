@@ -12,3 +12,7 @@ backend/node_modules/
 
 # Hasil build (CSS terminifikasi) — dihasilkan ulang oleh build-css.mjs
 dist/
+
+# Alat pengembang — pratinjau email (dibangun oleh scripts/preview-email.mjs)
+preview-email/
+preview-email.html

@@ -23,7 +23,9 @@
     "build": "node scripts/build-css.mjs",
     "deploy:aman": "node scripts/deploy-aman.mjs",
     "verifikasi": "node scripts/verifikasi-dist.mjs",
-    "changelog": "node scripts/generate-changelog.mjs"
+    "changelog": "node scripts/generate-changelog.mjs",
+    "email:preview": "node scripts/preview-email.mjs",
+    "email:test": "cd backend && node src/admin-cli.mjs email-test"
   },
   "dependencies": {
     "cloudflare": "^1.0.0-beta.12"

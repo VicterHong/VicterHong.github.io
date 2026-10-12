@@ -208,7 +208,18 @@ console.log(`  JS : ${jsFiles.length} berkas · ${totalJsAsli} → ${totalJsMin}
   `(hemat ${100 - Math.round((totalJsMin / totalJsAsli) * 100)}%)`);
 
 // ── 4. Tulis ulang HTML: .css → .min.css, .js → .min.js ─────────────────────
-const htmlFiles = readdirSync(ROOT).filter((f) => f.endsWith('.html'));
+//
+// ── KENAPA preview-email.html DIKECUALIKAN ──────────────────────────────────
+// Berkas itu adalah alat pengembang: berisi SEMUA template email dengan data
+// contoh, dan sengaja memuat komentar bersyarat Outlook (`<!--[if mso]>`).
+// Minifier HTML menganggap komentar bersyarat itu "tidak seimbang" dan
+// membatalkan build.
+//
+// Selain itu, isinya tidak boleh publik — bentuk email internal cukup untuk
+// dilihat pengembang, tidak untuk pengunjung situs.
+const htmlFiles = readdirSync(ROOT)
+  .filter((f) => f.endsWith('.html'))
+  .filter((f) => f !== 'preview-email.html');
 let nHtml = 0;
 
 function prosesHtml(isi) {

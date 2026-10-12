@@ -383,6 +383,84 @@ async function main() {
       return 1;
     }
 
+    case 'email-test': {
+      // ── KENAPA PERINTAH INI ADA ─────────────────────────────────────────────
+      // Email adalah satu-satunya bagian sistem yang tidak bisa diperiksa
+      // pengembang setelah dikirim. Sebelum mengandalkannya untuk reset sandi
+      // atau struk, harus ada cara membuktikan bahwa konfigurasinya benar —
+      // tanpa menunggu ada pengguna sungguhan yang kehilangan emailnya.
+      //
+      // Perintah ini mengirim SATU email nyata ke alamat yang diberikan,
+      // memakai jalur kode yang PERSIS SAMA dengan produksi.
+      const ke = args.to || args._[1];
+      if (!ke) {
+        console.log('');
+        console.log('  Pakai: admin-cli email-test --to alamat@email.com');
+        console.log('  Atau : admin-cli email-test alamat@email.com');
+        console.log('');
+        console.log('  Perintah ini mengirim email uji NYATA lewat penyedia yang aktif,');
+        console.log('  memakai template reset sandi dengan tautan contoh.');
+        console.log('');
+        return 1;
+      }
+
+      const email = await import('./email.mjs');
+      const penyedia = email.penyediaAktif();
+
+      console.log('');
+      console.log('  ── KONFIGURASI ─────────────────────────────────────────────');
+      console.log(`     Penyedia aktif : ${penyedia ?? '❌ TIDAK ADA'}`);
+      console.log(`     Pengirim       : ${config.emailFrom || '(default penyedia)'}`);
+      console.log(`     Tujuan uji     : ${ke}`);
+      console.log('');
+
+      if (!penyedia) {
+        console.log('  ❌ Belum ada penyedia email yang siap.');
+        console.log('');
+        console.log('  Pilih salah satu:');
+        console.log('    1. RESEND (bisa tanpa domain sendiri):');
+        console.log('       RESEND_API_KEY=re_...        (dari resend.com/api-keys)');
+        console.log('');
+        console.log('    2. CLOUDFLARE EMAIL (butuh domain sendiri):');
+        console.log('       CF_ACCOUNT_ID=...');
+        console.log('       CF_API_TOKEN=...             (izin Email Sending)');
+        console.log('       EMAIL_FROM=noreply@domain.com');
+        console.log('');
+        console.log('  Tambahkan ke: ~/.portfolio-token/service.env');
+        console.log('  Lalu restart: sudo systemctl restart portfolio-token.service');
+        console.log('');
+        return 1;
+      }
+
+      console.log('  Mengirim email uji...');
+      const hasil = await email.kirimEmailResetSandi({
+        ke,
+        nama: 'Uji Konfigurasi',
+        token: 'contoh-token-uji-konfigurasi',
+      });
+
+      console.log('');
+      if (hasil.ok) {
+        console.log(`  ✅ Email terkirim lewat ${hasil.penyedia}`);
+        if (hasil.id) console.log(`     ID pesan: ${hasil.id}`);
+        console.log('');
+        console.log('  Periksa kotak masuk (dan folder spam). Kalau email tidak');
+        console.log('  sampai, periksa DNS domain pengirim: SPF dan DKIM harus ada.');
+        console.log('');
+        return 0;
+      }
+
+      console.error(`  ❌ Gagal: ${hasil.error}`);
+      console.log('');
+      console.log('  Penyebab umum:');
+      console.log('    • Resend tanpa domain: tujuan HARUS email yang dipakai');
+      console.log('      mendaftar Resend (batasan mode uji)');
+      console.log('    • Cloudflare: domain belum di-onboard untuk Email Sending');
+      console.log('    • Token kurang izin Email Sending');
+      console.log('');
+      return 1;
+    }
+
     default:
       console.error(`Perintah tidak dikenal: ${cmd}`);
       usage();
