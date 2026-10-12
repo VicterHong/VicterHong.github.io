@@ -461,6 +461,34 @@ async function tanganiTransaksi(payload) {
 
   console.log(`[midtrans] ✅ ${orderId} dibayar — token ${token.id} diterbitkan untuk ${bayar.email}`);
 
+  // ── STRUK PEMBAYARAN ───────────────────────────────────────────────────────
+  //
+  // Dikirim SETELAH token terbit dan pembayaran tersimpan. Kalau email gagal,
+  // pembayaran tetap sah — `kirimStrukPembayaran` tidak melempar dan hanya
+  // mencatat ke log. Pembeli masih bisa melihat pesanannya di /pesanan.
+  //
+  // Tidak di-await: webhook Midtrans punya batas waktu balasan, dan menunggu
+  // SMTP di jalur kritis bisa membuat Midtrans menganggap webhook gagal lalu
+  // mengirim ulang — pembayaran tercatat dua kali.
+  (async () => {
+    try {
+      const { kirimStrukPembayaran } = await import('./email.mjs');
+      await kirimStrukPembayaran({
+        ke: bayar.email,
+        nama: bayar.nama,
+        email: bayar.email,
+        nomorPesanan: orderId,
+        paket: bayar.tier === 'profesional' ? 'Profesional' : 'Standar',
+        periode: bayar.periode === 'tahunan' ? 'Tahunan (12 bulan)' : 'Bulanan',
+        jumlah: rupiah(payload.gross_amount ?? bayar.jumlah),
+        status: 'Lunas',
+        waktu: Date.now(),
+      });
+    } catch (err) {
+      console.error('[midtrans] struk gagal dikirim:', err?.message ?? err);
+    }
+  })();
+
   return {
     pesan: 'Pembayaran berhasil, token diterbitkan',
     tokenId: token.id,
@@ -471,6 +499,19 @@ async function tanganiTransaksi(payload) {
     tier: bayar.tier,
     periode: bayar.periode,
   };
+}
+
+/**
+ * Format angka rupiah untuk struk.
+ *
+ * Midtrans mengirim `gross_amount` sebagai string desimal ("150000.00").
+ * Tanpa pembersihan, struk menampilkan "Rp150000.00" — terlihat seperti
+ * kesalahan sistem, padahal cuma format.
+ */
+function rupiah(nilai) {
+  const angka = Number(String(nilai ?? 0).split('.')[0]);
+  if (!Number.isFinite(angka)) return String(nilai ?? '-');
+  return 'Rp' + angka.toLocaleString('id-ID');
 }
 
 /* ── Cek status ─────────────────────────────────────────────────────────── */

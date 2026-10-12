@@ -76,6 +76,12 @@ console.log(`  CSS: ${files.length} berkas · ${totalAsli} → ${totalMin} byte 
 const LEWATI_DIR = new Set(['node_modules', '.git', '.github', '.wrangler', 'dist',
   'backend', 'workers', 'scripts', 'design', 'tests', 'docs', '.hermes']);
 
+// ── BERKAS YANG TIDAK BOLEH IKUT DEPLOY ─────────────────────────────────────
+// preview-email.html adalah alat pengembang: isinya semua template email
+// dengan data contoh. Kalau ikut ter-deploy, siapa pun bisa membukanya di
+// /preview-email.html — dan bentuk email internal jadi publik.
+const LEWATI_BERKAS = new Set(['preview-email.html']);
+
 function salin(dir, rel = '') {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name.startsWith('.') && entry.name !== '.well-known') continue;
@@ -91,6 +97,8 @@ function salin(dir, rel = '') {
     // CSS ditangani di langkah 2, JS di langkah 2b, HTML di langkah 4
     if (entry.name.endsWith('.css') || entry.name.endsWith('.html')) continue;
     if (entry.name.endsWith('.js')) continue;
+    // Alat pengembang — jangan ikut deploy
+    if (LEWATI_BERKAS.has(entry.name)) continue;
     // Berkas yang tidak perlu ikut deploy
     if (/^(package|package-lock|yarn|tsconfig|wrangler|eslint|prettier|commitlint|greptile)/.test(entry.name)) continue;
 

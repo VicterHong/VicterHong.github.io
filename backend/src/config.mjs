@@ -103,8 +103,8 @@ export const config = {
   // diselesaikan (dengan bantuan admin).
   resendApiKey: pick('RESEND_API_KEY', ''),
 
-  cfAccountId: pick('CF_ACCOUNT_ID', ''),
-  cfApiToken: pick('CF_API_TOKEN', ''),
+  cfAccountId: pick('CF_ACCOUNT_ID', '') || pick('CLOUDFLARE_ACCOUNT_ID', ''),
+  cfApiToken: pick('CF_API_TOKEN', '') || pick('CLOUDFLARE_API_TOKEN', ''),
   emailFrom: pick('EMAIL_FROM', ''),
 
   /** URL situs publik — dipakai untuk menyusun tautan reset sandi.

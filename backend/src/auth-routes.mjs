@@ -2482,8 +2482,22 @@ function ruteSso() {
           // email. Static import berarti SEMUA request membayar biaya itu.
           //
           // Pola yang sama dipakai di sini supaya konsisten.
-          const { kirimEmailResetSandi } = await import('./email.mjs');
-          const r = await kirimEmailResetSandi({ ke: pengguna.email, token: kode, nama: pengguna.nama });
+          // ── TEMPLATE KHUSUS, BUKAN TEMPLATE RESET SANDI ────────────────────
+          // Sebelumnya alur ini memakai `kirimEmailResetSandi` — pengguna yang
+          // meminta HAPUS AKUN menerima email berjudul "Ganti sandi Anda".
+          // Pada alur berbahaya, kebingungan seperti itu berbahaya: pengguna
+          // tidak tahu kode itu untuk apa, dan bisa menyerahkannya ke orang lain.
+          //
+          // `kirimKodeHapusAkun` mengirim email yang tepat: kode besar, nada
+          // tegas, dan peringatan masa tenggang yang jelas.
+          const { kirimKodeHapusAkun } = await import('./email.mjs');
+          const r = await kirimKodeHapusAkun({
+            ke: pengguna.email,
+            kode,
+            nama: pengguna.nama,
+            berlakuMenit: 15,
+            sisaHari: 30,
+          });
           terkirim = Boolean(r?.ok);
         } catch (err) {
           console.warn('[hapus-akun] email gagal:', err?.message ?? err);
@@ -2796,8 +2810,21 @@ function ruteSso() {
         let terkirim = false;
         try {
           // Dynamic import — lihat penjelasan di endpoint hapus-mulai.
-          const { kirimEmailResetSandi } = await import('./email.mjs');
-          const r = await kirimEmailResetSandi({ ke: email, token: kode, nama: cek.nama });
+          //
+          // Template KHUSUS pembatalan: sebelumnya memakai template reset sandi,
+          // jadi pengguna yang ingin MEMULIHKAN akun menerima email berjudul
+          // "Ganti sandi Anda". Sekarang emailnya menyebut pemulihan secara
+          // eksplisit, plus sisa hari masa tenggang.
+          const { kirimKodeBatalHapus } = await import('./email.mjs');
+          const r = await kirimKodeBatalHapus({
+            ke: email,
+            kode,
+            nama: cek.nama,
+            berlakuMenit: 15,
+            sisaHari: cek.dihapus_pada
+              ? Math.max(0, Math.ceil((Number(cek.dihapus_pada) + 30 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000)))
+              : undefined,
+          });
           terkirim = Boolean(r?.ok);
         } catch (err) {
           console.warn('[batal-hapus] email gagal:', err?.message ?? err);

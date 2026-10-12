@@ -17,16 +17,6 @@
  *   2. CF_* lengkap           → pakai Cloudflare
  *   3. dua-duanya kosong      → tulis kode ke log (fallback)
  *
- * ── KENAPA RESEND DIPERIKSA DULU ─────────────────────────────────────────────
- *
- * Resend bisa dipakai TANPA domain — jadi ia bekerja di lebih banyak keadaan.
- * Kalau Cloudflare diperiksa dulu, orang yang sudah mengisi RESEND_API_KEY
- * tapi belum punya domain akan mendapat "belum dikonfigurasi" padahal
- * sebenarnya siap.
- *
- * Begitu domain tersedia, isi CF_* DAN hapus RESEND_API_KEY — otomatis
- * berpindah ke Cloudflare.
- *
  * ══════════════════════════════════════════════════════════════════════════════
  * ── PRINSIP: KEGAGALAN EMAIL TIDAK BOLEH MERUSAK ALUR ────────────────────────
  * ══════════════════════════════════════════════════════════════════════════════
@@ -42,31 +32,41 @@
  * Kalau tidak ada penyedia yang siap, fungsi mengembalikan
  * { ok: false, error: 'belum_dikonfigur' } dan PEMANGGIL menulis kode ke log
  * sebagai fallback — supaya alur pengguna tetap bisa diselesaikan.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * ── STRUKTUR: MESIN DI SINI, DESAIN DI src/email/ ────────────────────────────
+ * ══════════════════════════════════════════════════════════════════════════════
+ *
+ * Berkas ini hanya tahu CARA MENGIRIM. Bentuk setiap email ada di:
+ *   • src/email/layout.mjs    → kerangka (tabel, preheader, dark mode)
+ *   • src/email/templates.mjs → satu template per alur
+ *
+ * Pemisahan ini membuat template bisa diuji tanpa jaringan sama sekali —
+ * cukup periksa HTML yang dihasilkan.
  */
 
 import { config } from './config.mjs';
 
+import {
+  templateResetSandi,
+  templateKodeHapusAkun,
+  templateKodeBatalHapus,
+  templateSelamatDatang,
+  templateMasukPerangkatBaru,
+  templateStrukPembayaran,
+  templateAkunDinonaktifkan,
+  templateKodeMasuk,
+} from './email/templates.mjs';
+
 /**
  * ── PENYEDIA: CLOUDFLARE EMAIL SERVICE ──────────────────────────────────────
  *
- * Dipilih setelah membaca skill `cloudflare-email-service` dan dokumentasi
- * resminya. Alasan:
- *   • Satu platform dengan hosting situs — tidak ada akun pihak ketiga lagi
- *   • REST API sederhana: cukup fetch, tidak perlu pustaka SMTP
- *     (proyek ini sengaja nol dependensi)
- *   • Domain sudah di Cloudflare, jadi verifikasi SPF/DKIM lebih singkat
- *
- * ── PERBEDAAN DARI RESEND YANG PERLU DICATAT ────────────────────────────────
- * Dokumentasi resmi menyebutkan dua jebakan yang mudah salah:
- *
- *   1. `from` adalah STRING untuk REST API ("nama@domain.com"), bukan objek
- *      { address, name }. Objek dipakai di Workers binding — tertukar akan
- *      ditolak. (Skill: "Use { address, name } for REST, { email, name } for
- *      Workers")
- *   2. Field-nya snake_case (`reply_to`), bukan camelCase (`replyTo`).
- *
  * Endpoint: POST /accounts/{account_id}/email/sending/send
- * Auth:     Authorization: Bearer <API_TOKEN>
+ * Auth:     Authorization: Bearer <token>
+ *
+ * Dua jebakan yang mudah salah (dari dokumentasi resmi):
+ *   1. `from` adalah STRING untuk REST API ("nama@domain.com"), bukan objek
+ *   2. Field-nya snake_case (`reply_to`), bukan camelCase (`replyTo`)
  */
 function endpointKirim() {
   return `https://api.cloudflare.com/client/v4/accounts/${config.cfAccountId}/email/sending/send`;
@@ -75,13 +75,8 @@ function endpointKirim() {
 /** Penyedia mana yang aktif. `null` kalau tidak ada yang siap. */
 export function penyediaAktif() {
   // ── URUTAN: RESEND DULU ────────────────────────────────────────────────────
-  //
   // Resend bisa dipakai TANPA domain sendiri, jadi ia bekerja di lebih banyak
   // keadaan. Cloudflare WAJIB punya domain yang sudah di-onboard.
-  //
-  // Kalau Cloudflare diperiksa dulu, orang yang sudah mengisi RESEND_API_KEY
-  // tapi belum punya domain akan mendapat "belum dikonfigurasi" padahal
-  // sebenarnya siap mengirim.
   if (config.resendApiKey) return 'resend';
   if (config.cfApiToken && config.cfAccountId && config.emailFrom) return 'cloudflare';
   return null;
@@ -95,25 +90,21 @@ export function emailSiap() {
 /**
  * Alamat pengirim yang dipakai.
  *
- * ── KENAPA RESEND PUNYA DEFAULT, CLOUDFLARE TIDAK ───────────────────────────
- *
  * Resend menyediakan `onboarding@resend.dev` untuk mode uji — bisa dipakai
- * tanpa verifikasi domain apa pun. Cloudflare TIDAK punya padanan itu: alamat
- * pengirimnya WAJIB di domain yang sudah di-onboard, jadi tidak ada default
- * yang masuk akal.
+ * tanpa verifikasi domain. Cloudflare TIDAK punya padanan itu.
  */
 function alamatPengirim() {
   if (config.emailFrom) return config.emailFrom;
-  if (penyediaAktif() === 'resend') return 'onboarding@resend.dev';
+  if (penyediaAktif() === 'resend') return 'VIVASTIC <onboarding@resend.dev>';
   return '';
 }
 
 /**
- * Kirim satu email HTML + teks.
+ * Kirim satu email (HTML + teks).
  *
- * @returns {Promise<{ok: boolean, error?: string, id?: string}>}
+ * @returns {Promise<{ok: boolean, error?: string, id?: string, penyedia?: string}>}
  */
-async function kirim({ ke, subjek, html, teks }) {
+async function kirim({ ke, subjek, html, teks, balasKe }) {
   const penyedia = penyediaAktif();
   if (!penyedia) {
     return { ok: false, error: 'belum_dikonfigur' };
@@ -123,8 +114,8 @@ async function kirim({ ke, subjek, html, teks }) {
 
   try {
     const res = penyedia === 'resend'
-      ? await kirimResend({ ke, dari, subjek, html, teks })
-      : await kirimCloudflare({ ke, dari, subjek, html, teks });
+      ? await kirimResend({ ke, dari, subjek, html, teks, balasKe })
+      : await kirimCloudflare({ ke, dari, subjek, html, teks, balasKe });
 
     if (!res.ok) return res;
 
@@ -140,29 +131,28 @@ async function kirim({ ke, subjek, html, teks }) {
 /**
  * Kirim lewat Resend.
  *
- * ── BENTUK YANG BERBEDA DARI CLOUDFLARE ─────────────────────────────────────
- *
- *   1. `to` adalah ARRAY, bukan string — Cloudflare memakai string
- *   2. `from` boleh berisi nama: "Vivastic <onboarding@resend.dev>"
+ * Tiga perbedaan dari Cloudflare yang mudah tertukar:
+ *   1. `to` adalah ARRAY, bukan string
+ *   2. `from` boleh berisi nama: "VIVASTIC <alamat@domain>"
  *   3. Field-nya camelCase (`replyTo`), Cloudflare snake_case (`reply_to`)
- *
- * Ketiga perbedaan ini mudah tertukar, dan tertukarnya menghasilkan galat
- * yang tidak jelas ("invalid to field") tanpa menyebut mana yang salah.
  */
-async function kirimResend({ ke, dari, subjek, html, teks }) {
+async function kirimResend({ ke, dari, subjek, html, teks, balasKe }) {
+  const muatan = {
+    from: dari,
+    to: [ke],                    // ARRAY — beda dari Cloudflare
+    subject: subjek,
+    html,
+    text: teks,
+  };
+  if (balasKe) muatan.reply_to = balasKe;
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.resendApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      from: dari,
-      to: [ke],                    // ARRAY — beda dari Cloudflare
-      subject: subjek,
-      html,
-      text: teks,
-    }),
+    body: JSON.stringify(muatan),
     signal: AbortSignal.timeout(10_000),
   });
 
@@ -178,26 +168,26 @@ async function kirimResend({ ke, dari, subjek, html, teks }) {
 /**
  * Kirim lewat Cloudflare Email Service.
  *
- * ── DUA JEBAKAN YANG MUDAH SALAH (dari dokumentasi resmi) ───────────────────
- *
- *   1. `from` adalah STRING ("nama@domain.com"), BUKAN objek { address, name }.
- *      Objek dipakai di Workers binding — tertukar akan ditolak.
- *   2. Field-nya snake_case (`reply_to`), bukan camelCase (`replyTo`).
+ *  1. `from` adalah STRING ("nama@domain.com"), BUKAN objek { address, name }
+ *  2. Field-nya snake_case (`reply_to`), bukan camelCase
  */
-async function kirimCloudflare({ ke, dari, subjek, html, teks }) {
+async function kirimCloudflare({ ke, dari, subjek, html, teks, balasKe }) {
+  const muatan = {
+    to: ke,                      // STRING — beda dari Resend
+    from: dari,
+    subject: subjek,
+    html,
+    text: teks,
+  };
+  if (balasKe) muatan.reply_to = balasKe;
+
   const res = await fetch(endpointKirim(), {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.cfApiToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      to: ke,                      // STRING — beda dari Resend
-      from: dari,
-      subject: subjek,
-      html,
-      text: teks,
-    }),
+    body: JSON.stringify(muatan),
     signal: AbortSignal.timeout(10_000),
   });
 
@@ -210,81 +200,142 @@ async function kirimCloudflare({ ke, dari, subjek, html, teks }) {
   return { ok: true, res };
 }
 
-/** Bentuk dasar email agar konsisten: latar gelap, aksen emas, tanpa gambar. */
-function bungkusHtml({ judul, isi }) {
-  return `<!DOCTYPE html>
-<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#0a0a0b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-  <div style="max-width:520px;margin:0 auto;padding:40px 24px">
-    <div style="width:32px;height:32px;border-radius:10px;background:#f5c542;margin-bottom:24px"></div>
-    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#f4f4f5;letter-spacing:-0.02em">${judul}</h1>
-    ${isi}
-    <hr style="margin:32px 0 16px;border:none;border-top:1px solid rgba(255,255,255,0.09)">
-    <p style="margin:0;font-size:12px;color:#71717a">
-      Email otomatis dari area klien Victer. Jangan balas pesan ini.
-    </p>
-  </div>
-</body></html>`;
+/**
+ * Kirim email dari template, dengan jalur cadangan log.
+ *
+ * ── KENAPA SATU PEMBUNGKUS UNTUK SEMUA ───────────────────────────────────────
+ * Setiap alur butuh perilaku yang sama saat gagal:
+ *   1. Catat kegagalannya (untuk diagnosa)
+ *   2. Jangan lempar (alur pengguna tidak boleh rusak)
+ *   3. Tulis data penting ke log supaya bisa diteruskan manual
+ *
+ * Menyalin ketiganya ke delapan fungsi berarti delapan kesempatan untuk
+ * salah. Pembungkus ini membuat perilaku gagal konsisten.
+ *
+ * @param {object} opsi
+ * @param {string} opsi.ke          - alamat tujuan
+ * @param {object} opsi.template    - hasil template*() → { subjek, html, teks }
+ * @param {string} [opsi.label]     - nama alur untuk log
+ * @param {string} [opsi.cadangan]  - teks yang ditulis ke log kalau gagal
+ */
+async function kirimTemplate({ ke, template, label = 'email', cadangan = '' }) {
+  const hasil = await kirim({
+    ke,
+    subjek: template.subjek,
+    html: template.html,
+    teks: template.teks,
+  });
+
+  if (!hasil.ok) {
+    console.error(`[email] GAGAL kirim ${label} ke ${ke}: ${hasil.error}`);
+    if (cadangan) console.error(`[email] CADANGAN ${label} untuk ${ke}: ${cadangan}`);
+  }
+
+  return hasil;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── FUNGSI PUBLIK — satu per alur ────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Kirim tautan reset sandi.
  *
  * ── TAUTAN MEMUAT TOKEN DI QUERY STRING ─────────────────────────────────────
- * Ini praktik standar untuk reset sandi. Risikonya: token bisa tercatat di
- * log server/proxy. Mitigasi yang dipakai:
- *   • TTL 1 jam — jendela penyalahgunaan sempit
- *   • sekali pakai — begitu dipakai, tidak berlaku lagi
- *   • permintaan baru membatalkan token lama
- *   • yang disimpan di database hanya HASH token
+ * Ini praktik standar. Risikonya: token bisa tercatat di log server/proxy.
+ * Mitigasi: TTL 1 jam, sekali pakai, permintaan baru membatalkan token lama,
+ * dan yang disimpan di database hanya HASH token.
  */
 export async function kirimEmailResetSandi({ ke, nama, token }) {
   const dasar = config.siteUrl || 'https://portfolio-victer.pages.dev';
   const tautan = `${dasar}/reset-sandi?token=${encodeURIComponent(token)}`;
-  const sapa = nama ? `Halo ${nama},` : 'Halo,';
 
-  const teks = `${sapa}
+  const template = templateResetSandi({ nama, tautan, berlakuMenit: 60 });
 
-Kami menerima permintaan untuk mengganti sandi akun Anda.
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'reset-sandi',
+    cadangan: `TAUTAN RESET MANUAL → ${tautan}`,
+  });
+}
 
-Buka tautan ini untuk membuat sandi baru:
-${tautan}
+/**
+ * Kirim kode konfirmasi penghapusan akun.
+ *
+ * ── KENAPA BUKAN templateResetSandi ─────────────────────────────────────────
+ * Versi sebelumnya memakai template reset sandi untuk kode hapus akun —
+ * pengguna menerima email berjudul "Ganti sandi Anda" saat meminta hapus akun.
+ * Membingungkan, dan pada alur berbahaya seperti ini kebingungan berarti
+ * pengguna menyerahkan kode ke orang yang salah.
+ */
+export async function kirimKodeHapusAkun({ ke, nama, kode, berlakuMenit = 15, sisaHari = 30 }) {
+  const template = templateKodeHapusAkun({ nama, kode, berlakuMenit, sisaHari });
 
-Tautan berlaku 1 jam dan hanya bisa dipakai sekali.
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'kode-hapus-akun',
+    cadangan: `KODE HAPUS AKUN → ${kode} (berlaku ${berlakuMenit} menit)`,
+  });
+}
 
-Kalau Anda tidak meminta ini, abaikan email ini — sandi Anda tidak berubah.`;
+/** Kirim kode pembatalan penghapusan akun (pemulihan). */
+export async function kirimKodeBatalHapus({ ke, nama, kode, berlakuMenit = 15, sisaHari }) {
+  const template = templateKodeBatalHapus({ nama, kode, berlakuMenit, sisaHari });
 
-  const html = bungkusHtml({
-    judul: 'Ganti sandi Anda',
-    isi: `
-      <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#a1a1aa">${sapa}</p>
-      <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#a1a1aa">
-        Kami menerima permintaan untuk mengganti sandi akun Anda.
-      </p>
-      <a href="${tautan}"
-         style="display:inline-block;padding:12px 24px;background:#f5c542;color:#0a0a0b;font-size:15px;font-weight:600;text-decoration:none;border-radius:8px">
-        Buat sandi baru
-      </a>
-      <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#71717a">
-        Tautan berlaku <strong style="color:#a1a1aa">1 jam</strong> dan hanya bisa dipakai sekali.
-      </p>
-      <p style="margin:16px 0 0;font-size:13px;line-height:1.6;color:#71717a">
-        Kalau Anda tidak meminta ini, abaikan email ini — sandi Anda tidak berubah.
-      </p>
-    `,
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'kode-batal-hapus',
+    cadangan: `KODE BATAL HAPUS → ${kode} (berlaku ${berlakuMenit} menit)`,
+  });
+}
+
+/** Kirim email selamat datang setelah pendaftaran. */
+export async function kirimSelamatDatang({ ke, nama, email, tautanVerifikasi }) {
+  const template = templateSelamatDatang({ nama, email: email ?? ke, tautanVerifikasi });
+
+  return kirimTemplate({ ke, template, label: 'selamat-datang' });
+}
+
+/** Kirim peringatan masuk dari perangkat baru. */
+export async function kirimPeringatanMasukBaru({
+  ke, nama, perangkat, lokasi, ip, waktu, tautanAmankan,
+}) {
+  const template = templateMasukPerangkatBaru({
+    nama, perangkat, lokasi, ip, waktu, tautanAmankan,
   });
 
-  const hasil = await kirim({ ke, subjek: 'Ganti sandi akun Victer', html, teks });
+  return kirimTemplate({ ke, template, label: 'masuk-perangkat-baru' });
+}
 
-  if (!hasil.ok) {
-    // ── JALUR CADANGAN: TULIS KE LOG ─────────────────────────────────────────
-    // Kalau email belum dikonfigurasi atau gagal, tautan ditulis ke log server
-    // supaya pemilik bisa meneruskannya manual. Ini menjaga alur reset tetap
-    // bisa dipakai sebelum Resend disiapkan — lebih baik daripada fitur yang
-    // tampak ada tapi diam-diam tidak mengirim apa pun.
-    console.error(`[email] GAGAL kirim reset ke ${ke}: ${hasil.error}`);
-    console.error(`[email] TAUTAN RESET MANUAL untuk ${ke}: ${tautan}`);
-  }
+/** Kirim struk pembayaran setelah pembayaran berhasil. */
+export async function kirimStrukPembayaran({
+  ke, nama, email, nomorPesanan, paket, periode, jumlah, status, waktu, tautanPesanan,
+}) {
+  const template = templateStrukPembayaran({
+    nama, email: email ?? ke, nomorPesanan, paket, periode, jumlah, status, waktu, tautanPesanan,
+  });
 
-  return hasil;
+  return kirimTemplate({ ke, template, label: 'struk-pembayaran' });
+}
+
+/** Kirim pemberitahuan akun dinonaktifkan (masa tenggang dimulai). */
+export async function kirimAkunDinonaktifkan({ ke, nama, sisaHari = 30, tautanPulihkan }) {
+  const template = templateAkunDinonaktifkan({ nama, sisaHari, tautanPulihkan });
+
+  return kirimTemplate({ ke, template, label: 'akun-dinonaktifkan' });
+}
+
+/** Kirim kode masuk (2FA / verifikasi langkah tambahan). */
+export async function kirimKodeMasuk({ ke, nama, kode, berlakuMenit = 10, lokasi, ip }) {
+  const template = templateKodeMasuk({ nama, kode, berlakuMenit, lokasi, ip });
+
+  return kirimTemplate({
+    ke,
+    template,
+    label: 'kode-masuk',
+    cadangan: `KODE MASUK → ${kode} (berlaku ${berlakuMenit} menit)`,
+  });
 }

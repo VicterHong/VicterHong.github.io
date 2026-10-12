@@ -173,23 +173,51 @@ console.log('\n  ══ 6. REGRESI: IMPORT EMAIL ══');
 // "email gagal terkirim" dan email TIDAK PERNAH terkirim, bahkan dengan SMTP
 // aktif.
 //
+// ── PEMBARUAN: LEBIH DARI SATU FUNGSI EMAIL ────────────────────────────────
+//
+// Dulu hanya ada SATU fungsi email (kirimEmailResetSandi) dan ia dipakai untuk
+// semua alur — termasuk kode hapus akun, yang salah konteks. Sekarang setiap
+// alur punya fungsinya sendiri (kirimKodeHapusAkun, kirimKodeBatalHapus, dst).
+//
+// Karena itu pemeriksaan di bawah TIDAK lagi mencari satu nama tertentu, tapi
+// SEMUA fungsi yang dipanggil dari modul email — supaya fungsi email baru
+// otomatis ikut diperiksa.
+//
 // ── KENAPA DIPERIKSA LEWAT SUMBER, BUKAN DIPANGGIL ──────────────────────────
 //
 // Memanggil fungsinya butuh konfigurasi SMTP. Yang perlu dibuktikan lebih
-// sederhana: setiap pemanggilan `kirimEmailResetSandi` harus punya import
-// yang sesuai di file yang sama.
+// sederhana: setiap pemanggilan fungsi email harus punya import yang sesuai
+// di file yang sama.
 //
 // Ini menangkap kelas bug yang sama untuk fungsi apa pun di masa depan.
 const fs = await import('node:fs');
 const sumber = fs.readFileSync('/home/ubuntu/portfolio-victer/backend/src/auth-routes.mjs', 'utf8');
 
-const jumlahPanggil = (sumber.match(/await kirimEmailResetSandi\(/g) || []).length;
+// Semua fungsi email yang mungkin dipanggil (pola: await kirimXxx(...)).
+const polaPanggilan = /await (kirim[A-Z]\w*)\(/g;
+const dipanggil = [...sumber.matchAll(polaPanggilan)].map((m) => m[1]);
+
 const jumlahImport = (sumber.match(/await import\('\.\/email\.mjs'\)/g) || []).length;
 
-console.log(`    ℹ️  panggilan: ${jumlahPanggil}, import: ${jumlahImport}`);
-cek('setiap panggilan email punya import', jumlahPanggil <= jumlahImport, true);
-cek('setidaknya ada 1 panggilan email', jumlahPanggil > 0, true);
+console.log(`    ℹ️  fungsi email dipanggil: ${[...new Set(dipanggil)].join(', ') || '(tidak ada)'}`);
+console.log(`    ℹ️  import dinamis email.mjs: ${jumlahImport}`);
+
+cek('setiap panggilan email punya import', dipanggil.length <= jumlahImport, true);
+cek('setidaknya ada 1 panggilan email', dipanggil.length > 0, true);
 cek('tidak ada import statis email.mjs (harus dinamis)', /^import .* from '\.\/email\.mjs'/m.test(sumber), false);
+
+// ── SETIAP FUNGSI YANG DIPANGGIL HARUS BENAR-BENAR DIEKSPOR ────────────────
+//
+// Import yang ada TIDAK cukup kalau nama fungsinya salah — `const { kirimSalah }
+// = await import(...)` tidak melempar saat import, tapi menghasilkan undefined
+// dan gagal saat dipanggil. Karena itu nama-namanya diperiksa terhadap ekspor
+// modul email yang sebenarnya.
+const sumberEmail = fs.readFileSync('/home/ubuntu/portfolio-victer/backend/src/email.mjs', 'utf8');
+const diekspor = [...sumberEmail.matchAll(/export async function (kirim\w+)/g)].map((m) => m[1]);
+
+for (const nama of [...new Set(dipanggil)]) {
+  cek(`fungsi ${nama} benar-benar diekspor email.mjs`, diekspor.includes(nama), true);
+}
 
 // ── FUNGSI YANG DIPAKAI DI ENDPOINT HARUS DIIMPORT ──────────────────────────
 //
