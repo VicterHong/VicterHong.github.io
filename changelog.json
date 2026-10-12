@@ -1,15 +1,15 @@
 {
- "dibuat": "2026-10-12T07:05:30.150Z",
- "totalCommit": 359,
- "totalDicatat": 357,
+ "dibuat": "2026-10-12T07:24:29.396Z",
+ "totalCommit": 361,
+ "totalDicatat": 359,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-12",
  "rilis": [
   {
    "tanggal": "2026-10-12",
-   "jumlah": 19,
+   "jumlah": 21,
    "ringkasan": {
-    "fitur": 8,
+    "fitur": 10,
     "perbaikan": 6,
     "performa": 0,
     "dokumentasi": 0,
@@ -21,6 +21,16 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "6f233f8",
+       "teks": "5 template siklus langganan — termasuk pengingat kedaluwarsa",
+       "scope": "email"
+      },
+      {
+       "hash": "cd3bab3",
+       "teks": "Importer desain dari platform visual (Stripo/Beefree/dll)",
+       "scope": "email"
+      },
       {
        "hash": "22c676b",
        "teks": "Migrasi ke MJML + sistem variabel {{...}}",

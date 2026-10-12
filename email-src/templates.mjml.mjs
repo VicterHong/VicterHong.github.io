@@ -49,16 +49,55 @@
  */
 
 // ── Palet — sama dengan situs, supaya email dan halaman terasa satu produk ────
+// ══════════════════════════════════════════════════════════════════════════════
+// ── PALET: SURFACE LADDER, BUKAN DUA WARNA ─────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//
+// ── MASALAH DESAIN SEBELUMNYA ───────────────────────────────────────────────
+// Versi lama hanya punya DUA tingkat permukaan: latar (#0a0a0b) dan kartu
+// (#16161a). Akibatnya semua elemen duduk di bidang yang sama rata — dan
+// email terasa datar, seperti template yang dipakai apa adanya.
+//
+// ── YANG DILAKUKAN SISTEM DESAIN MAHAL (Linear, Vercel, Stripe) ─────────────
+// Mereka memakai TANGGA PERMUKAAN: 4-5 tingkat gelap yang sangat berdekatan.
+// Hierarki dibangun dari perbedaan tingkat itu + garis rambut (hairline),
+// BUKAN dari bayangan (yang tidak didukung Outlook).
+//
+//   Linear: kanvas #010102 → panel #0f1011 → #141516 → #18191a → #191a1b
+//
+// Perbedaannya halus (2-3% kecerahan) tapi mata membacanya sebagai kedalaman.
+// Inilah yang membuat desain terasa "dirancang" vs "datar".
+//
+// ── KENAPA DARK-NYA BIRU SEDIKIT, BUKAN HITAM MURNI ────────────────────────
+// Linear memakai #010102 (sedikit biru), bukan #000000. Hitam murni terasa
+// mati; sedikit warna membuat latar terasa seperti material, bukan lubang.
+// Kita pakai sedikit hangat (bukan biru) karena brand kita emas.
 const WARNA = {
-  latar: '#0a0a0b',
-  kartu: '#16161a',
-  kartuLembut: '#121214',
-  garis: '#26262c',
-  garisLembut: '#1e1e23',
-  teks: '#f4f4f6',
-  teksRedup: '#a1a1aa',
+  // ── Tangga permukaan (4 tingkat + kanvas) ────────────────────────────────
+  kanvas: '#08080a',        // paling luar — sedikit lebih dalam dari sebelumnya
+  latar: '#0a0a0b',         // badan email
+  permukaan1: '#111113',    // kartu dalam / kotak kode
+  permukaan2: '#16161a',    // kartu utama
+  permukaan3: '#1c1c21',    // elemen di atas kartu (tombol sekunder, sel)
+  kartuLembut: '#111113',   // alias lama → permukaan1
+
+  // ── Garis rambut (hairline) ──────────────────────────────────────────────
+  // Tiga tingkat, seperti Linear. Garis tipis yang lebih terang dari latar
+  // memberi batas tanpa perlu bayangan.
+  garisHalus: '#1a1a1f',
+  garisLembut: '#232329',
+  garis: '#2e2e36',
+
+  // ── Teks ─────────────────────────────────────────────────────────────────
+  teks: '#f5f5f7',
+  teksRedup: '#a8a8b3',
   teksSamar: '#9d9da8',
+  teksBisu: '#6e6e78',      // untuk metadata paling kecil
+
+  // ── Aksen ────────────────────────────────────────────────────────────────
   emas: '#f5c542',
+  emasTerang: '#ffd970',
+  emasGelap: '#c9a02c',
   hijau: '#34d399',
   merah: '#f87171',
 };
@@ -132,18 +171,53 @@ function kerangka({ preheader, isi, catatanKaki = '' }) {
 
   <mj-body background-color="${WARNA.latar}" width="600px">
 
+    <!--
+      ══════════════════════════════════════════════════════════════════════════
+      ── GRADIENT ATMOSFERIK DI ATAS ──────────────────────────────────────────
+      ══════════════════════════════════════════════════════════════════════════
+
+      Ini yang paling membedakan email "dirancang" dari "template". Stripe
+      memakai gradient mesh, Linear memakai radial glow halus di belakang
+      konten. Efeknya: latar tidak terasa seperti bidang mati.
+
+      ── CARA KERJA DI EMAIL ──────────────────────────────────────────────────
+      Gradient CSS (radial-gradient) TIDAK didukung Outlook. Tapi bukan
+      berarti tidak bisa dipakai:
+
+        • Gmail, Apple Mail, Yahoo, Thunderbird, iOS/Android → gradient tampil
+        • Outlook → melihat warna solid sebagai cadangan
+
+      Jadi gradient ditulis di properti background, dan bgcolor tetap
+      diisi warna solid. Klien yang tidak paham gradient mengabaikannya dan
+      memakai warna solid — tidak ada yang rusak.
+
+      Gradient-nya SANGAT halus (emas 7% opacity memudar dalam 420px).
+      Kalau terlihat jelas, itu sudah salah — tujuannya kesan "hangat dari
+      atas", bukan hiasan.
+    -->
+    <mj-section padding="0" background-color="${WARNA.latar}">
+      <mj-column padding="0">
+        <mj-raw>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${WARNA.latar}"
+                 style="background-image:radial-gradient(ellipse 420px 220px at 50% -60px, rgba(245,197,66,0.07) 0%, rgba(245,197,66,0.02) 40%, rgba(10,10,11,0) 70%);">
+            <tr><td height="1" style="height:1px;line-height:1px;font-size:0">&nbsp;</td></tr>
+          </table>
+        </mj-raw>
+      </mj-column>
+    </mj-section>
+
     <!-- Kepala: logo + nama perusahaan -->
-    <mj-section padding="40px 0 0 0">
+    <mj-section padding="44px 0 0 0">
       <mj-column>
         <mj-table padding="0 0 0 32px">
           <tr>
-            <td width="36" height="36" bgcolor="${WARNA.emas}"
-                style="width:36px;height:36px;border-radius:10px;text-align:center;vertical-align:middle;font-family:${FONT};font-size:18px;font-weight:700;color:#0a0a0b;line-height:36px">
+            <td width="38" height="38" bgcolor="${WARNA.emas}"
+                style="width:38px;height:38px;border-radius:11px;text-align:center;vertical-align:middle;font-family:${FONT};font-size:19px;font-weight:700;color:#0a0a0b;line-height:38px">
               <img src="https://victer.is-a.dev/assets/img/vivastic-mark-72.png"
-                   width="36" height="36" alt=""
-                   style="display:block;width:36px;height:36px;border:0;border-radius:10px" />
+                   width="38" height="38" alt=""
+                   style="display:block;width:38px;height:38px;border:0;border-radius:11px" />
             </td>
-            <td style="padding-left:12px;vertical-align:middle;font-family:${FONT};font-size:15px;font-weight:600;color:${WARNA.teks};letter-spacing:0.06em">
+            <td style="padding-left:13px;vertical-align:middle;font-family:${FONT};font-size:15px;font-weight:600;color:${WARNA.teks};letter-spacing:0.14em">
               VIVASTIC
             </td>
           </tr>
@@ -151,33 +225,79 @@ function kerangka({ preheader, isi, catatanKaki = '' }) {
       </mj-column>
     </mj-section>
 
-    <!-- Kartu isi -->
-    <mj-section background-color="${WARNA.kartu}" border-radius="14px" border="1px solid ${WARNA.garis}"
-                padding="28px 32px 8px 32px">
-      <mj-column>
-        <mj-text color="${WARNA.teks}" font-size="23px" font-weight="600" line-height="1.3"
-                 letter-spacing="-0.02em" padding="0 0 20px 0">
-          {{judul}}
-        </mj-text>
-${isi}
-      </mj-column>
-    </mj-section>
+    <!--
+      ══════════════════════════════════════════════════════════════════════════
+      ── KARTU UTAMA: TIGA LAPIS, BUKAN SATU BIDANG RATA ─────────────────────
+      ══════════════════════════════════════════════════════════════════════════
 
-    <!-- Catatan kaki di dalam kartu -->
-    <mj-section background-color="${WARNA.kartu}" border-radius="0 0 14px 14px"
-                padding="8px 32px 28px 32px" border-left="1px solid ${WARNA.garis}"
-                border-right="1px solid ${WARNA.garis}" border-bottom="1px solid ${WARNA.garis}">
-      <mj-column>
-        <mj-divider border-color="${WARNA.garisLembut}" border-width="1px" padding="0 0 20px 0" />
-${catatanKaki ? `        <mj-text font-size="13px" color="${WARNA.teksSamar}" padding="0 0 12px 0">${catatanKaki}</mj-text>` : ''}
-        <mj-text font-size="12px" color="${WARNA.teksSamar}" padding="0">
-          Email otomatis dari VIVASTIC. Pesan ini dikirim karena ada aktivitas pada akun Anda — mohon jangan dibalas.
-        </mj-text>
+      ── MASALAH SEBELUMNYA ───────────────────────────────────────────────────
+      Kartu lama cuma satu <mj-section> dengan border. Rata, tanpa kedalaman.
+
+      ── YANG DILAKUKAN SEKARANG ──────────────────────────────────────────────
+      Tiga lapis yang saling menumpuk, masing-masing 2-3% lebih terang:
+
+        1. Bingkai luar   (permukaan1) — memberi "ketebalan" pada kartu
+        2. Kartu isi      (permukaan2) — bidang utama
+        3. Sel elemen     (permukaan3) — untuk kotak kode, tabel detail
+
+      Plus GARIS AKSEN EMAS 2px di tepi atas kartu. Satu detail kecil ini
+      yang membuat kartu terasa "punya identitas" — dipakai Stripe, Linear,
+      dan hampir semua produk yang desainnya dianggap mahal.
+
+      ── KENAPA TANPA BAYANGAN (box-shadow) ───────────────────────────────────
+      Outlook tidak mendukung box-shadow sama sekali. Hierarki dibangun dari
+      perbedaan tingkat permukaan + garis rambut, bukan bayangan — jadi
+      terlihat sama baik di Outlook maupun Gmail.
+    -->
+
+    <!-- Lapis 1: bingkai luar — memberi ketebalan -->
+    <mj-section background-color="${WARNA.permukaan1}" border-radius="18px"
+                padding="1px" css-class="bingkai-kartu">
+      <mj-column padding="0">
+        <!--
+          ── KENAPA TIDAK mj-section DI DALAM mj-column ──────────────────────
+          MJML melarang <mj-section> di dalam <mj-column> — section hanya boleh
+          di dalam mj-body atau mj-wrapper. Kedalaman bertingkat dibuat dengan
+          mj-table mentah, bukan dengan section bersarang.
+        -->
+        <mj-table padding="0">
+          <tr>
+            <td bgcolor="${WARNA.permukaan2}" style="border-radius:17px;padding:0">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td height="2" style="height:2px;line-height:2px;font-size:0;background:linear-gradient(90deg, rgba(245,197,66,0) 0%, ${WARNA.emas} 18%, ${WARNA.emasTerang} 50%, ${WARNA.emas} 82%, rgba(245,197,66,0) 100%);">&nbsp;</td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:30px 32px 0 32px">
+                    <div style="font-family:${FONT};font-size:24px;font-weight:600;line-height:1.28;letter-spacing:-0.025em;color:${WARNA.teks};margin:0 0 22px 0">
+                      {{judul}}
+                    </div>
+                    ${isi}
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:4px 32px 30px 32px">
+                    <div style="border-top:1px solid ${WARNA.garisHalus};padding-top:18px">
+${catatanKaki ? `                      <p style="margin:0 0 10px;font-family:${FONT};font-size:13px;line-height:1.6;color:${WARNA.teksSamar}">${catatanKaki}</p>` : ''}
+                      <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.6;color:${WARNA.teksBisu}">
+                        Email otomatis dari VIVASTIC. Pesan ini dikirim karena ada aktivitas pada akun Anda — mohon jangan dibalas.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </mj-table>
       </mj-column>
     </mj-section>
 
     <!-- Kaki halaman di luar kartu -->
-    <mj-section padding="28px 0 40px 0">
+    <mj-section padding="30px 0 44px 0">
       <mj-column>
         <mj-text align="center" font-size="12px" color="${WARNA.teksSamar}" padding="0 0 14px 0"
                  letter-spacing="0.02em">
@@ -203,13 +323,31 @@ ${catatanKaki ? `        <mj-text font-size="13px" color="${WARNA.teksSamar}" pa
 // ── TEMPLATE — satu per alur ─────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** Kotak kode besar (OTP) — dipakai beberapa template. */
+/**
+ * Kotak kode besar (OTP) — dipakai beberapa template.
+ *
+ * ── KENAPA TAMPILANNYA DIUBAH ───────────────────────────────────────────────
+ * Versi lama: kotak abu rata dengan border 1px. Fungsional, tapi terlihat
+ * seperti input form biasa.
+ *
+ * Versi baru:
+ *   • Latar LEBIH GELAP dari kartu (permukaan1, bukan permukaan2) — kode
+ *     terasa "masuk ke dalam" kartu, bukan menempel di atasnya
+ *   • Garis aksen emas di tepi atas — mengaitkan kotak dengan brand
+ *   • Huruf monospace 34px dengan letter-spacing 10px — angka terpisah jelas
+ *   • Border 1px yang lebih halus + radius 12px
+ */
 function kotakKode() {
-  return `        <mj-table padding="0 0 24px 0">
+  return `        <mj-table padding="0 0 26px 0">
           <tr>
-            <td align="center" bgcolor="${WARNA.kartuLembut}"
-                style="border:1px solid ${WARNA.garis};border-radius:10px;padding:20px 16px">
-              <div style="font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:${WARNA.emas};line-height:1">
+            <td align="center" bgcolor="${WARNA.permukaan1}"
+                style="border:1px solid ${WARNA.garisHalus};border-radius:12px;padding:0;overflow:hidden">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td height="2" style="height:2px;line-height:2px;font-size:0;background:linear-gradient(90deg, rgba(245,197,66,0) 0%, rgba(245,197,66,0.55) 50%, rgba(245,197,66,0) 100%);">&nbsp;</td>
+                </tr>
+              </table>
+              <div style="font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:${WARNA.emas};line-height:1;padding:22px 16px 24px 16px;text-indent:10px">
                 {{kode}}
               </div>
             </td>
@@ -217,36 +355,57 @@ function kotakKode() {
         </mj-table>`;
 }
 
-/** Kotak catatan (info / peringatan / sukses). */
+/**
+ * Kotak catatan (info / peringatan / sukses).
+ *
+ * ── PERUBAHAN ───────────────────────────────────────────────────────────────
+ * Sebelumnya: latar abu seragam untuk semua jenis, hanya warna garis yang
+ * berbeda. Akibatnya catatan "peringatan" dan "info" terlihat hampir sama.
+ *
+ * Sekarang: setiap jenis punya latar berwarna sendiri yang SANGAT redup
+ * (bukan abu netral) — peringatan terasa hangat-merah, sukses terasa
+ * hijau dingin. Perbedaan itu terbaca sekilas tanpa perlu membaca teksnya.
+ */
 function kotakCatatan({ teks, jenis = 'info' }) {
   const gaya = {
-    info: { garis: WARNA.garis, latar: WARNA.kartuLembut, aksen: WARNA.teksSamar },
-    peringatan: { garis: '#7c2d12', latar: '#1c1210', aksen: WARNA.merah },
-    sukses: { garis: '#064e3b', latar: '#0f1a17', aksen: WARNA.hijau },
-  }[jenis] ?? { garis: WARNA.garis, latar: WARNA.kartuLembut, aksen: WARNA.teksSamar };
+    info: { latar: WARNA.permukaan1, aksen: WARNA.teksBisu, teks: WARNA.teksRedup },
+    peringatan: { latar: '#171010', aksen: WARNA.merah, teks: '#e8c4c4' },
+    sukses: { latar: '#0d1614', aksen: WARNA.hijau, teks: '#c4e8dc' },
+  }[jenis] ?? { latar: WARNA.permukaan1, aksen: WARNA.teksBisu, teks: WARNA.teksRedup };
 
-  return `        <mj-table padding="0 0 24px 0">
+  return `        <mj-table padding="0 0 26px 0">
           <tr>
-            <td bgcolor="${gaya.latar}" style="border-left:3px solid ${gaya.aksen};border-radius:6px;padding:14px 16px">
-              <p style="margin:0;font-family:${FONT};font-size:13px;line-height:1.6;color:${WARNA.teksRedup}">${teks}</p>
+            <td bgcolor="${gaya.latar}" style="border-left:2px solid ${gaya.aksen};border-radius:0 8px 8px 0;padding:15px 18px">
+              <p style="margin:0;font-family:${FONT};font-size:13.5px;line-height:1.65;color:${gaya.teks}">${teks}</p>
             </td>
           </tr>
         </mj-table>`;
 }
 
-/** Tabel detail (label kiri, nilai kanan) — untuk struk. */
+/**
+ * Tabel detail (label kiri, nilai kanan) — untuk struk dan ringkasan.
+ *
+ * ── PERUBAHAN ───────────────────────────────────────────────────────────────
+ * Sebelumnya: border 1px penuh mengelilingi, latar transparan.
+ * Sekarang: latar LEBIH GELAP dari kartu (permukaan1) tanpa border penuh —
+ * hanya garis pemisah antar baris. Terasa seperti panel data, bukan tabel
+ * yang ditempel.
+ *
+ * Label memakai huruf kapital kecil dengan letter-spacing — pola yang dipakai
+ * Stripe untuk metadata: terbaca sebagai "keterangan", bukan "isi".
+ */
 function tabelDetail(baris) {
   const isi = baris.map(([label, nilai], i) => {
-    const garis = i === 0 ? '' : `border-top:1px solid ${WARNA.garisLembut};`;
+    const garis = i === 0 ? '' : `border-top:1px solid ${WARNA.garisHalus};`;
     return `          <tr>
-            <td style="${garis}padding:11px 0 0;font-family:${FONT};font-size:14px;color:${WARNA.teksSamar};vertical-align:top;width:45%">${label}</td>
-            <td style="${garis}padding:11px 0 0;font-family:${FONT};font-size:14px;color:${WARNA.teks};text-align:right;vertical-align:top">${nilai}</td>
+            <td style="${garis}padding:12px 0 0;font-family:${FONT};font-size:12px;color:${WARNA.teksBisu};vertical-align:top;width:44%;text-transform:uppercase;letter-spacing:0.07em">${label}</td>
+            <td style="${garis}padding:12px 0 0;font-family:${FONT};font-size:14px;color:${WARNA.teks};text-align:right;vertical-align:top">${nilai}</td>
           </tr>`;
   }).join('\n');
 
-  return `        <mj-table padding="0 0 24px 0">
+  return `        <mj-table padding="0 0 26px 0">
           <tr>
-            <td style="border:1px solid ${WARNA.garis};border-radius:10px;padding:18px 20px">
+            <td bgcolor="${WARNA.permukaan1}" style="border:1px solid ${WARNA.garisHalus};border-radius:12px;padding:20px 22px">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 ${isi}
               </table>
@@ -304,7 +463,7 @@ ${kotakCatatan({
           Kalau Anda tidak meminta penghapusan, abaikan email ini. Akun Anda tidak akan berubah, dan kami sarankan Anda segera mengganti sandi.
         </mj-text>
         <mj-text font-size="13px" color="${WARNA.teksSamar}" padding="0 0 8px 0">Ingin memeriksa aktivitas akun Anda dulu?</mj-text>
-        <mj-button href="https://victer.is-a.dev/keamanan" background-color="${WARNA.kartu}" color="${WARNA.teks}"
+        <mj-button href="https://victer.is-a.dev/keamanan" background-color="${WARNA.permukaan3}" color="${WARNA.teks}"
                    border="1px solid ${WARNA.garis}" padding="0 0 8px 0">Buka pengaturan keamanan</mj-button>`,
       catatanKaki: 'Anda menerima email ini karena ada permintaan penghapusan akun dari perangkat Anda.',
     }),
@@ -345,7 +504,7 @@ ${tabelDetail([
           <tr><td style="padding:0 0 8px;font-family:${FONT};font-size:14px;line-height:1.6;color:${WARNA.teksRedup}"><span style="color:${WARNA.emas}">›</span>&nbsp; Aktifkan verifikasi 2 langkah untuk keamanan tambahan</td></tr>
           <tr><td style="padding:0 0 8px;font-family:${FONT};font-size:14px;line-height:1.6;color:${WARNA.teksRedup}"><span style="color:${WARNA.emas}">›</span>&nbsp; Pantau aktivitas masuk akun Anda</td></tr>
         </mj-table>
-        <mj-button href="https://victer.is-a.dev/keamanan" background-color="${WARNA.kartu}" color="${WARNA.teks}"
+        <mj-button href="https://victer.is-a.dev/keamanan" background-color="${WARNA.permukaan3}" color="${WARNA.teks}"
                    border="1px solid ${WARNA.garis}" padding="0 0 8px 0">Buka dasbor</mj-button>`,
     }),
   },
@@ -535,7 +694,7 @@ ${tabelDetail([
           Token dan konfigurasi Anda tidak berubah — tidak ada yang perlu
           diatur ulang.
         </mj-text>
-        <mj-button href="https://victer.is-a.dev/pesanan" background-color="${WARNA.kartu}" color="${WARNA.teks}"
+        <mj-button href="https://victer.is-a.dev/pesanan" background-color="${WARNA.permukaan3}" color="${WARNA.teks}"
                    border="1px solid ${WARNA.garis}">Lihat detail pesanan</mj-button>`,
       catatanKaki: 'Simpan email ini sebagai bukti perpanjangan langganan Anda.',
     }),

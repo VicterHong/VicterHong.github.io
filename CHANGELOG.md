@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 357 perubahan dari 359 commit (2026-10-01 → 2026-10-12).
+Total 359 perubahan dari 361 commit (2026-10-01 → 2026-10-12).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,6 +10,8 @@ Total 357 perubahan dari 359 commit (2026-10-01 → 2026-10-12).
 
 ### Fitur baru
 
+- **email**: 5 template siklus langganan — termasuk pengingat kedaluwarsa (`6f233f8`)
+- **email**: Importer desain dari platform visual (Stripo/Beefree/dll) (`cd3bab3`)
 - **email**: Migrasi ke MJML + sistem variabel {{...}} (`22c676b`)
 - **email**: Halaman input kunci dukung Brevo + Resend (deteksi otomatis) (`1e3d0a8`)
 - **email**: Dukung Brevo — satu-satunya penyedia yang terima domain is-a.dev (`71365cb`)
