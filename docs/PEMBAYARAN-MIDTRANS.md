@@ -310,6 +310,47 @@ transaksi kedua.
 
 ---
 
+## Verifikasi 2FA untuk tindakan sensitif
+
+Kalau akun memakai 2FA, DUA tindakan berikut butuh kode authenticator —
+tautan/kode email saja TIDAK cukup:
+
+| Tindakan | Endpoint | Tanpa kode 2FA |
+|---|---|---|
+| Lupa sandi | `POST /api/auth/reset-sandi` | `403 perlu_2fa` |
+| Hapus akun | `POST /api/auth/akun/hapus-mulai` **dan** `/akun/hapus` | `403 perlu_2fa` |
+
+**Alasan:** tautan email adalah bukti pertama; kode authenticator adalah bukti
+kedua. Tanpa keduanya, siapa pun yang menguasai kotak masuk (email diteruskan,
+perangkat dipinjam, inbox diretas) bisa memakai "lupa sandi" untuk mengambil
+alih akun — faktor kedua tidak pernah diminta di jalur yang paling sering
+dipakai penyerang. Pola yang sama dipakai Microsoft (SSPR) dan GitHub
+(sudo mode).
+
+### Urutan yang tidak boleh dibalik — reset sandi
+
+```
+1. Token reset diperiksa   (ambilTokenReset — TIDAK mengubah apa pun)
+2. Kode 2FA diperiksa      (kalau akun memakainya)
+3. BARU sandi diganti      (pakaiTokenReset)
+```
+
+Kalau kode diperiksa setelah sandi berubah, penyerang bisa mengganti sandi lalu
+meninggalkan halaman — akun tetap terkunci bagi pemiliknya walaupun 2FA-nya
+menolak.
+
+### Halaman yang menyesuaikan diri
+
+`GET /api/auth/reset-sandi/konteks?token=…` memberi tahu halaman reset apakah
+akun memakai 2FA — kolom kode muncul sejak awal, bukan sebagai penolakan di
+akhir. Email dikembalikan **disamarkan** (`b***i@perusahaan.com`): cukup untuk
+dikenali pemiliknya, tidak cukup untuk membocorkan alamatnya ke orang yang
+melihat layar.
+
+Akun **tanpa** 2FA tidak melihat perubahan apa pun di kedua alur.
+
+---
+
 ## Yang Belum Dibangun
 
 | # | Item | Catatan |
