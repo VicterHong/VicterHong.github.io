@@ -5,7 +5,7 @@
 
 .narrative-video {
   margin: 0 0 2rem;
-  border-radius: 14px;
+  border-radius: var(--radius);
   overflow: hidden;
   border: 1px solid var(--line-soft);
   background: var(--surface, #131316);
@@ -14,7 +14,7 @@
 .narrative-frame {
   position: relative;
   width: 100%;
-  background: #0a0a0b;
+  background: var(--bg);
   overflow: hidden;
 }
 
@@ -43,7 +43,7 @@
   left: 0.85rem;
   background: rgba(10, 10, 11, 0.82);
   border: 1px solid rgba(245, 197, 66, 0.4);
-  color: #f7d77a;
+  color: var(--accent-light);
   font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.1em;

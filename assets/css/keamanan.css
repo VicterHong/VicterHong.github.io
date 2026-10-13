@@ -1752,8 +1752,8 @@
 
 /* Warna tepi kiri menandai jenis pesan. Tepi, bukan seluruh latar —
    latar penuh berwarna akan terlalu mencolok untuk notifikasi kecil. */
-.kam-toast.is-sukses { border-left: 3px solid #4ade80; }
-.kam-toast.is-galat  { border-left: 3px solid #f87171; }
+.kam-toast.is-sukses { border-left: 3px solid var(--sukses); }
+.kam-toast.is-galat  { border-left: 3px solid var(--galat); }
 .kam-toast.is-info   { border-left: 3px solid var(--accent, #f5c542); }
 
 .kam-toast-ikon {
@@ -1762,8 +1762,8 @@
   height: 18px;
   margin-top: 1px;
 }
-.kam-toast.is-sukses .kam-toast-ikon { color: #4ade80; }
-.kam-toast.is-galat  .kam-toast-ikon { color: #f87171; }
+.kam-toast.is-sukses .kam-toast-ikon { color: var(--sukses); }
+.kam-toast.is-galat  .kam-toast-ikon { color: var(--galat); }
 .kam-toast.is-info   .kam-toast-ikon { color: var(--accent, #f5c542); }
 
 .kam-toast-teks {
@@ -2094,7 +2094,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  color: #f87171;
+  color: var(--galat);
   background: rgba(248, 113, 113, 0.12);
 }
 
@@ -2102,7 +2102,7 @@
   margin: 0 0 3px;
   font-size: var(--fs-3);
   font-weight: 600;
-  color: #f87171;
+  color: var(--galat);
 }
 
 .kam-danger-ket {
@@ -2163,7 +2163,7 @@
 .btn-bahaya:active { background: #991b1b; }
 
 .btn-bahaya:focus-visible {
-  outline: 2px solid #f87171;
+  outline: 2px solid var(--galat);
   outline-offset: 2px;
 }
 
@@ -2225,7 +2225,7 @@
 
 .kam-hapus-input:focus {
   outline: 0;
-  border-color: #f87171;
+  border-color: var(--galat);
   box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
 }
 
@@ -2555,7 +2555,7 @@
   .kam-dialog-kotak .auth-otp-cell {
     aspect-ratio: 1 / 1.15;
     font-size: var(--fs-4);
-    border-radius: 9px;
+    border-radius: var(--radius-sm, 9px);
   }
 }
 

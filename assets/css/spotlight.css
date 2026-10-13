@@ -174,7 +174,7 @@
   /* Kartu dipusatkan pada titik tengah track. Karena track kini berukuran
      sama dengan kartu, margin-nya setengah dari ukuran kartu itu sendiri. */
   margin: -11.5rem 0 0 -8.75rem;
-  border-radius: 14px;
+  border-radius: var(--radius);
   /* ── `overflow: hidden` DIHAPUS DARI SINI ────────────────────────────────
      BUG: kartu ini punya `overflow: hidden` untuk membulatkan gambar di
      dalamnya. Masalahnya: saat kartu di-scale (efek napas) dan diputar

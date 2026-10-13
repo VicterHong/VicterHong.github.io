@@ -206,7 +206,7 @@
    membingungkan saat keyboard berhenti di pilihan yang tidak aktif. */
 .periode-input:checked + .periode-teks {
   background: var(--pr-accent);
-  color: #0a0a0b;
+  color: var(--pr-bg);
 }
 
 /* Fokus keyboard harus terlihat jelas di kedua keadaan */
@@ -228,7 +228,7 @@
 /* Radio terpilih yang ditekan: tetap kuning, hanya diredupkan sedikit. */
 .periode-input:checked:active + .periode-teks {
   background: var(--pr-accent-light);
-  color: #0a0a0b;
+  color: var(--pr-bg);
 }
 
 .periode-catatan {
@@ -284,7 +284,7 @@
    latar kuning — tanpa ini, teks kuning di atas kuning jadi tak terbaca. */
 .periode-input:checked + .periode-teks .periode-catatan {
   background: rgba(10, 10, 11, 0.16);
-  color: #0a0a0b;
+  color: var(--pr-bg);
 }
 
 /* ── Keterangan di bawah harga ─────────────────────────────────────────── */
@@ -491,7 +491,7 @@
   padding: 0.3rem 0.85rem;
   border-radius: 999px;
   background: var(--pr-accent);
-  color: #0a0a0b;
+  color: var(--pr-bg);
   font-size: var(--fs-1);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -705,7 +705,7 @@
 
 .harga-ikon--cek {
   background: var(--pr-accent);
-  color: #0a0a0b;
+  color: var(--pr-bg);
 }
 
 .harga-ikon--strip {
@@ -774,7 +774,7 @@
 .tombol--utama {
   background: var(--pr-accent);
   border-color: var(--pr-accent);
-  color: #0a0a0b;
+  color: var(--pr-bg);
   width: 100%;
 }
 

@@ -448,7 +448,7 @@
   color: var(--text);
 }
 .copy-btn.is-done {
-  color: #4ade80;
+  color: var(--sukses);
   border-color: rgba(74, 222, 128, 0.4);
   background: rgba(74, 222, 128, 0.08);
 }
@@ -697,7 +697,7 @@
     min-height: 44px;
     padding: 0.6rem 0.85rem;
     border: 1px solid var(--line);
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     background: var(--bg-card);
     color: var(--text);
     font: inherit;
@@ -736,7 +736,7 @@
     width: 44px;                /* target sentuh WCAG 2.5.5 */
     min-height: 44px;
     border: 1px solid var(--line);
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     background: var(--bg-card);
     color: var(--text);
     cursor: pointer;
@@ -1031,7 +1031,7 @@
   min-height: 44px;                 /* target sentuh WCAG 2.5.5 */
   padding: 0.55rem 2.2rem 0.55rem 0.75rem;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   background: var(--bg-card);
   color: var(--text);
   font: inherit;

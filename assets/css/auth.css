@@ -1216,7 +1216,7 @@ select.auth-input {
   width: 11px;
   height: 11px;
   pointer-events: none;   /* sama alasannya — jangan serap klik */
-  color: #0a0a0b;             /* gelap di atas emas — kontras tinggi */
+  color: var(--latar);             /* gelap di atas emas — kontras tinggi */
   opacity: 0;
   transform: scale(0.5);
   transition:
@@ -1442,7 +1442,7 @@ select.auth-input {
   font-family: inherit;
   font-size: var(--fs-3);
   font-weight: 600;
-  color: #0a0a0b;
+  color: var(--latar);
   /* ── SOLID, BUKAN GRADIENT ────────────────────────────────────────────────
      Versi sebelumnya memakai linear-gradient 180deg dari emas-terang ke emas.
      Selisihnya hanya 2 tingkat kecerahan — mata hampir tidak bisa membedakan,
@@ -1542,7 +1542,7 @@ select.auth-input {
   width: 19px;
   height: 19px;
   border: 2.2px solid rgba(10, 10, 11, 0.28);
-  border-top-color: #0a0a0b;
+  border-top-color: var(--latar);
   border-radius: 50%;
   opacity: 0;
   transform: scale(0.7);

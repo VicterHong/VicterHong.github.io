@@ -204,7 +204,7 @@
 
 .tabel-cek {
   background: var(--tbl-aksen);
-  color: #0a0a0b;
+  color: var(--bg);
 }
 
 .tabel-strip {
@@ -280,7 +280,7 @@
 .tabel-aksi .tombol--utama {
   background: var(--tbl-aksen);
   border-color: var(--tbl-aksen);
-  color: #0a0a0b;
+  color: var(--bg);
 }
 
 .tabel-aksi .tombol--utama:hover {
