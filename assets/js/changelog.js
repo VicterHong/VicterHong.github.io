@@ -133,11 +133,15 @@
         b.className = 'cl-filter-item';
         b.dataset.kunci = o[0];
         b.textContent = o[1];
+        // aria-pressed: pembaca layar perlu tahu filter mana yang aktif —
+        // kelas .is-aktif hanya sinyal visual. Konvensi sama dgn auth.js.
+        b.setAttribute('aria-pressed', o[0] === 'semua' ? 'true' : 'false');
         if (o[0] === 'semua') b.classList.add('is-aktif');
         b.addEventListener('click', function () {
           saring = o[0];
           filterWadah.querySelectorAll('.cl-filter-item').forEach(function (x) {
             x.classList.toggle('is-aktif', x === b);
+            x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
           });
           render();
           // Setelah memilih di panel mobile, tutup supaya hasilnya terlihat.
@@ -186,7 +190,7 @@
         var kepala = document.createElement('div');
         kepala.className = 'cl-hari-kepala';
         kepala.innerHTML =
-          '<h2 class="cl-hari-tanggal">' + formatTanggal(r.tanggal) + '</h2>' +
+          '<h2 class="cl-hari-tanggal"><time datetime="' + r.tanggal + '">' + formatTanggal(r.tanggal) + '</time></h2>' +
           '<span class="cl-hari-jarak">' + jarakHari(r.tanggal) + '</span>' +
           '<span class="cl-hari-jumlah">' + r.jumlah + ' perubahan</span>';
         seksi.appendChild(kepala);

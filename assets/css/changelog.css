@@ -43,6 +43,9 @@
 }
 
 .cl-filter-item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* WCAG 2.5.8 — sebelumnya 41px di 390px */
   padding: 0.32rem 0.7rem;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -340,9 +343,10 @@
     outline-offset: 2px;
   }
 
-  /* Penyaring di panel: lebih lega supaya nyaman disentuh. */
+  /* Penyaring di panel: lebih lega supaya nyaman disentuh.
+     44px — sebelumnya 38px, di bawah minimum WCAG 2.5.8. */
   .cl-filter-item {
-    min-height: 38px;
+    min-height: 44px;
     padding: 0.5rem 0.85rem;
     font-size: var(--fs-2);
   }
