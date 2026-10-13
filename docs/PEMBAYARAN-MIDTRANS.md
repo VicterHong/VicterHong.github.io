@@ -205,7 +205,9 @@ sekarang, pembeli membayar lagi dan token baru diterbitkan.
 ## Endpoint
 
 ```
-POST /api/checkout            Mulai pembayaran
+GET  /api/checkout/konteks    Siapa yang masuk & apakah perlu step-up 2FA
+POST /api/checkout/2fa        Step-up: verifikasi kode, buka jendela sudo
+POST /api/checkout            Mulai pembayaran (WAJIB sesi + email akun + sudo)
 GET  /api/pesanan/:id         Cek status pembayaran (menyertakan url_pembayaran
                               saat masih pending, untuk tombol "lanjutkan")
 POST /api/midtrans/webhook    Terima webhook dari Midtrans
@@ -255,13 +257,52 @@ penyedia diganti lagi, hanya `midtrans.mjs` yang berubah.
 ## Alur checkout (sudah jalan)
 
 ```
-/pricing                Tombol paket → dialog email (assets/js/pricing.js)
-   ↓ POST /api/checkout  server membuat transaksi Snap → { url }
+/pricing                Tombol paket → dialog (assets/js/pricing.js)
+   ↓ GET  /api/checkout/konteks   siapa yang masuk? perlu 2FA?
+   │
+   ├─ belum masuk  → /sign-in?lanjut=/pricing?paket=…  (pembelian TIDAK anonim)
+   ├─ perlu 2FA    → POST /api/checkout/2fa  (step-up, buka jendela sudo 30 menit)
+   └─ siap         → POST /api/checkout
+   ↓ server membuat transaksi Snap → { url }
 halaman pembayaran Midtrans
    ↓ selesai
-/pesanan                 Midtrans mengembalikan ke CHECKOUT_SUKSES_URL;
-                         halaman membaca status dari GET /api/pesanan/:id
+/pesanan                Midtrans mengembalikan ke CHECKOUT_SUKSES_URL;
+                        halaman membaca status dari GET /api/pesanan/:id
 ```
+
+### Gerbang korporat di /api/checkout
+
+Tiga pemeriksaan, berurutan, SEMUA di server (klien tidak dipercaya):
+
+| # | Aturan | Jawaban kalau gagal |
+|---|---|---|
+| 1 | Wajib sesi | `401 belum_masuk` + `saran: masuk` |
+| 2 | Email harus akun yang sedang masuk | `403 email_tidak_cocok` + `email_sesi` |
+| 3 | Kalau 2FA aktif, sesi harus sudah step-up | `403 perlu_2fa` + `saran: verifikasi_2fa` |
+
+Email & nama diambil dari AKUN, bukan dari body permintaan — body bisa berisi
+apa saja. Tanpa aturan (2), pengguna yang masuk sebagai a@perusahaan.com bisa
+memulai pembayaran atas nama b@perusahaan.com hanya dengan mengetik emailnya,
+dan token aksesnya terbit untuk b.
+
+### Step-up 2FA (pola GitHub sudo mode)
+
+Kolom `sessions.sudo_until` menyimpan batas waktu sampai kapan SESI ini boleh
+melakukan aksi sensitif tanpa memasukkan kode lagi. Jendelanya 30 menit
+(`SUDO_MS` di `sessions.mjs`).
+
+- **Login yang baru melewati 2FA** langsung membuka jendela sudo — pengguna
+  tidak diminta kode dua kali berturut-turut.
+- **Sesi token biasa** (atau sesi lama) mulai dengan `sudo_until = 0`; aksi
+  sensitif akan meminta kode lebih dulu.
+- **Sudo melekat pada SESI, bukan token.** Membuka sudo di laptop tidak
+  membuka sudo di ponsel — kalau disimpan di token, satu verifikasi akan
+  membuka semua perangkat sekaligus.
+- **Endpoint step-up tidak memakai Turnstile.** Ia hanya bisa dipanggil dengan
+  cookie sesi sah, dan `verifikasi2fa` sudah membatasi 5 percobaan gagal →
+  identitas diblokir sementara. Dialog pembayaran tidak merender widget
+  Turnstile, jadi memaksanya berarti step-up SELALU gagal (`token_kosong`) dan
+  pembeli ber-2FA tidak akan pernah bisa membayar.
 
 Kunci idempotensi dibuat sekali saat dialog dibuka dan dipakai ulang untuk
 setiap percobaan ulang — order_id Midtrans yang sama tidak menghasilkan
