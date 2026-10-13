@@ -88,13 +88,13 @@
       <span class="brand-text">VIVASTIC</span>
     </a>
     <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
-      <a href="/#s6ahns">Tentang</a>
-      <a href="/#utqvwf">Proyek</a>
-      <a href="/#cckxsk">Layanan</a>
+      <a href="/home#s6ahns">Tentang</a>
+      <a href="/home#utqvwf">Proyek</a>
+      <a href="/home#cckxsk">Layanan</a>
       <a href="/pricing" aria-current="page">Harga</a>
       <a href="/docs">Panduan</a>
       <a href="/changelog">Changelog</a>
-      <a href="/#89fk39">Kontak</a>
+      <a href="/home#89fk39">Kontak</a>
     </nav>
     <!-- Grup akun — TERPISAH dari nav. -->
       <div class="nav-akun" id="navAkun">
@@ -150,7 +150,7 @@
         <p class="pricing-error-teks">
           Harga dimuat langsung dari server supaya angkanya selalu yang berlaku ,
           dan itu memerlukan JavaScript. Nyalakan JavaScript, atau
-          <a href="/#89fk39">hubungi saya</a> untuk penawaran.
+          <a href="/home#89fk39">hubungi saya</a> untuk penawaran.
         </p>
       </div>
     </noscript>
@@ -220,7 +220,7 @@
         atau buat penyesuaian kalau memang perlu.
       </p>
       <div class="cta-tombol">
-        <a class="tombol tombol--utama" href="/#89fk39">
+        <a class="tombol tombol--utama" href="/home#89fk39">
           Bicara dulu
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
         </a>
@@ -231,6 +231,36 @@
     </section>
 
   </div>
+    <!-- ══ DIALOG PEMBAYARAN ═══════════════════════════════════════════════
+         Muncul saat tombol paket berbayar diklik. Email diminta di sini
+         karena struk dan informasi akses dikirim ke email setelah pembayaran
+         terkonfirmasi — dan Midtrans memakainya untuk halaman pembayaran.
+
+         <dialog> asli browser: fokus terkurung otomatis, Escape menutup, dan
+         latar belakang inert — tanpa satu baris pun JavaScript untuk itu. -->
+    <dialog class="dialog-bayar" id="dialogBayar" aria-labelledby="dialogBayarJudul">
+      <form class="dialog-bayar-form" id="formBayar" method="dialog">
+        <h2 class="dialog-bayar-judul" id="dialogBayarJudul">Langganan</h2>
+        <p class="dialog-bayar-sub" id="dialogBayarSub"></p>
+
+        <label class="dialog-bayar-label" for="bayarEmail">Email untuk struk &amp; akses</label>
+        <input class="dialog-bayar-input" id="bayarEmail" name="email" type="email"
+               inputmode="email" autocomplete="email" required
+               placeholder="nama@contoh.com">
+
+        <p class="dialog-bayar-galat" id="bayarGalat" role="alert" hidden></p>
+
+        <div class="dialog-bayar-aksi">
+          <button class="tombol tombol--sekunder" id="bayarBatal" type="button">Batal</button>
+          <button class="tombol tombol--utama" id="bayarLanjut" type="submit">Lanjut ke pembayaran</button>
+        </div>
+
+        <p class="dialog-bayar-catatan">
+          Pembayaran diproses Midtrans. Setelah selesai, Anda kembali ke halaman pesanan.
+        </p>
+      </form>
+    </dialog>
+
 </main>
 
 <footer class="site-footer">

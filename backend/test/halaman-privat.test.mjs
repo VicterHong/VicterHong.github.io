@@ -131,7 +131,7 @@ describe('semua halaman bermark — skrip logo dimuat', () => {
   // dimuat. Halaman seperti itu menampilkan kotak kosong di header tanpa
   // error apa pun di konsol.
   const KANDIDAT = [
-    'home.html', 'pricing.html', 'docs.html', 'changelog.html',
+    'home.html', 'pricing.html', 'pesanan.html', 'docs.html', 'changelog.html',
     'privasi.html', 'syarat.html', '404.html',
     ...HALAMAN_PRIVAT,
   ];

@@ -2,14 +2,39 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 360 perubahan dari 362 commit (2026-10-01 → 2026-10-12).
+Total 395 perubahan dari 397 commit (2026-10-01 → 2026-10-13).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
+
+## 2026-10-13
+
+### Fitur baru
+
+- **g1**: RSS changelog + twitter meta + temuan domain canonical (`560f7eb`)
+
+### Perbaikan
+
+- **db**: Migrasi kolom midtrans_* untuk database skema Xendit (`056c80d`)
+- **a6**: Tap target auth — reveal & copy 34→44px (WCAG 2.5.8) (`8940f5f`)
+- **a5**: Changelog — filter 44px + aria-pressed + <time> semantik (`d1191d5`)
+
+### Pemeliharaan
+
+- A11y + kosmetik hero: axe-core 10 halaman bersih, fix bug ikon .tok (`be38957`)
+- A11y: audit axe-core 10 halaman + fix 2 pelanggaran kontras WCAG AA (`e048998`)
+- F1(e): tokenisasi 22 durasi gerak yang punya padanan token persis (`8879e26`)
+- F1(d): tokenisasi 34 nilai mentah (radius/aksen/status) di 9 berkas CSS (`3ea3a0c`)
+- Hapus skrip cek sekali-pakai (audit-a5.mjs tetap) (`987b3b7`)
+- **tipografi**: Konsolidasi ke skala 5 tingkat via token --fs-1..5 (`f5eb78c`)
 
 ## 2026-10-12
 
 ### Fitur baru
 
+- **auth**: Halaman auth jadi ruang pribadi — logo saja, tanpa navigasi (`5006653`)
+- **ui**: Hapus link duplikat + animasi sandi gaya Cloudflare (`873ae1b`)
+- **auth**: Halaman /lupa-sandi terpisah — seperti Stripe (`1168db5`)
+- **ui**: Rapikan panel pemulihan sandi + ilustrasi sukses profesional (`5419e77`)
 - **email**: 5 template siklus langganan — termasuk pengingat kedaluwarsa (`6f233f8`)
 - **email**: Importer desain dari platform visual (Stripo/Beefree/dll) (`cd3bab3`)
 - **email**: Migrasi ke MJML + sistem variabel {{...}} (`22c676b`)
@@ -23,6 +48,23 @@ Total 360 perubahan dari 362 commit (2026-10-01 → 2026-10-12).
 
 ### Perbaikan
 
+- **a11y**: Fokus keyboard tidak lagi mengubah bentuk elemen + tap target header 44px (`a70cda4`)
+- **home-a4**: Tap target CTA proyek 44px, jarak dots carousel, lebar baca catatan seksi (`ed075b8`)
+- **docs**: Bilah navigasi mobile tidak bisa diklik + fokus salin + lebar baca (`fd011ce`)
+- **pricing**: Toggle periode meluber di 320px + tap target 40px + state :active (`5941bfb`)
+- **minifier+hero**: Spasi antar-tag inline hilang di produksi + stats mobile 3 kolom + cincin fokus tombol (`92e9a75`)
+- **profil**: Logo hilang + header belum jadi ruang pribadi (`20e7401`)
+- **ci**: 7 tes gagal di GitHub Actions — tes bergantung lingkungan server (`abacfb5`)
+- **turnstile**: Tambah victer.is-a.dev ke daftar hostname yang diizinkan (`7925f02`)
+- **auth**: Pemisah "atau dengan email" menggantung + return awal mematikan rapi-rapi (`b78cea3`)
+- **css**: Bentrok nama kelas .auth-alt merusak halaman sign-in (`b02ac7c`)
+- **auth**: Buat halaman /reset-sandi yang selama ini 404 (`1490323`)
+- **config**: Peringatan EMAIL_FROM tidak boleh mematikan layanan (`b628fb4`)
+- **email**: Catat kegagalan kirim + cegah EMAIL_FROM tidak valid (`2c076c7`)
+- **backup**: Off-site gagal 4 hari — PATH wrangler + source env (`8dc0f5f`)
+- **health**: Event loop delay dilaporkan jujur — kurangi resolution (`a74d896`)
+- **email**: Penghapusan gradient atmosferik pakai penghitung kurung (`5d66fb5`)
+- **test**: Path absolut → relatif — perbaiki 11 tes yang gagal di CI (`8c2fdb1`)
 - **email**: Perbaiki pembacaan record DNS Brevo (`d9d3282`)
 - **error**: Satukan pelindung error — rute auth tidak lagi lapor 400 untuk bug server (`fe572f8`)
 - **aktivitas**: Hanya tampilkan peristiwa pengguna, bukan log admin/sistem (`9d4bff1`)
@@ -32,6 +74,10 @@ Total 360 perubahan dari 362 commit (2026-10-01 → 2026-10-12).
 
 ### Pemeliharaan
 
+- **sukses**: Ganti desain "AI slop" dengan pola Linear/Stripe (`d44caa2`)
+- **email**: Kunci regresi fatal — peringatan tidak boleh matikan layanan (`4f399d5`)
+- **email**: Perbaiki 2 tes yang salah menandai kode benar (`d257541`)
+- **email**: Tambah tema GitHub sebagai varian — untuk perbandingan (`dbda716`)
 - **email**: Rombak total — surface ladder + gradient + aksen emas (`b7796a3`)
 - **email**: Logo PNG asli, domain profesional, tombol & tabel diperbaiki (`05d90c3`)
 - **email**: Perbarui uji domain untuk jalur Brevo (`a237e56`)

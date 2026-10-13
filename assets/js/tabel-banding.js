@@ -22,7 +22,7 @@ const JALUR_API = '/api/pricing';
 const TIMEOUT_MS = 8000;
 
 /** Halaman kontak — tujuan semua tautan ajakan. */
-const HREF_KONTAK = '/#89fk39';
+const HREF_KONTAK = '/home#89fk39';
 
 const NS = 'http://www.w3.org/2000/svg';
 const JALUR_CEK = 'M20 6 9 17l-5-5';

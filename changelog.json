@@ -1,16 +1,16 @@
 {
- "dibuat": "2026-10-12T07:39:32.617Z",
- "totalCommit": 362,
- "totalDicatat": 360,
+ "dibuat": "2026-10-13T15:32:19.380Z",
+ "totalCommit": 397,
+ "totalDicatat": 395,
  "hariPertama": "2026-10-01",
- "hariTerakhir": "2026-10-12",
+ "hariTerakhir": "2026-10-13",
  "rilis": [
   {
-   "tanggal": "2026-10-12",
-   "jumlah": 22,
+   "tanggal": "2026-10-13",
+   "jumlah": 10,
    "ringkasan": {
-    "fitur": 10,
-    "perbaikan": 6,
+    "fitur": 1,
+    "perbaikan": 3,
     "performa": 0,
     "dokumentasi": 0,
     "data": 0,
@@ -21,6 +21,108 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "560f7eb",
+       "teks": "RSS changelog + twitter meta + temuan domain canonical",
+       "scope": "g1"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "056c80d",
+       "teks": "Migrasi kolom midtrans_* untuk database skema Xendit",
+       "scope": "db"
+      },
+      {
+       "hash": "8940f5f",
+       "teks": "Tap target auth — reveal & copy 34→44px (WCAG 2.5.8)",
+       "scope": "a6"
+      },
+      {
+       "hash": "d1191d5",
+       "teks": "Changelog — filter 44px + aria-pressed + <time> semantik",
+       "scope": "a5"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "be38957",
+       "teks": "A11y + kosmetik hero: axe-core 10 halaman bersih, fix bug ikon .tok",
+       "scope": ""
+      },
+      {
+       "hash": "e048998",
+       "teks": "A11y: audit axe-core 10 halaman + fix 2 pelanggaran kontras WCAG AA",
+       "scope": ""
+      },
+      {
+       "hash": "8879e26",
+       "teks": "F1(e): tokenisasi 22 durasi gerak yang punya padanan token persis",
+       "scope": ""
+      },
+      {
+       "hash": "3ea3a0c",
+       "teks": "F1(d): tokenisasi 34 nilai mentah (radius/aksen/status) di 9 berkas CSS",
+       "scope": ""
+      },
+      {
+       "hash": "987b3b7",
+       "teks": "Hapus skrip cek sekali-pakai (audit-a5.mjs tetap)",
+       "scope": ""
+      },
+      {
+       "hash": "f5eb78c",
+       "teks": "Konsolidasi ke skala 5 tingkat via token --fs-1..5",
+       "scope": "tipografi"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-12",
+   "jumlah": 47,
+   "ringkasan": {
+    "fitur": 14,
+    "perbaikan": 23,
+    "performa": 0,
+    "dokumentasi": 0,
+    "data": 0,
+    "pemeliharaan": 10
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "5006653",
+       "teks": "Halaman auth jadi ruang pribadi — logo saja, tanpa navigasi",
+       "scope": "auth"
+      },
+      {
+       "hash": "873ae1b",
+       "teks": "Hapus link duplikat + animasi sandi gaya Cloudflare",
+       "scope": "ui"
+      },
+      {
+       "hash": "1168db5",
+       "teks": "Halaman /lupa-sandi terpisah — seperti Stripe",
+       "scope": "auth"
+      },
+      {
+       "hash": "5419e77",
+       "teks": "Rapikan panel pemulihan sandi + ilustrasi sukses profesional",
+       "scope": "ui"
+      },
       {
        "hash": "6f233f8",
        "teks": "5 template siklus langganan — termasuk pengingat kedaluwarsa",
@@ -78,6 +180,91 @@
      "label": "Perbaikan",
      "item": [
       {
+       "hash": "a70cda4",
+       "teks": "Fokus keyboard tidak lagi mengubah bentuk elemen + tap target header 44px",
+       "scope": "a11y"
+      },
+      {
+       "hash": "ed075b8",
+       "teks": "Tap target CTA proyek 44px, jarak dots carousel, lebar baca catatan seksi",
+       "scope": "home-a4"
+      },
+      {
+       "hash": "fd011ce",
+       "teks": "Bilah navigasi mobile tidak bisa diklik + fokus salin + lebar baca",
+       "scope": "docs"
+      },
+      {
+       "hash": "5941bfb",
+       "teks": "Toggle periode meluber di 320px + tap target 40px + state :active",
+       "scope": "pricing"
+      },
+      {
+       "hash": "92e9a75",
+       "teks": "Spasi antar-tag inline hilang di produksi + stats mobile 3 kolom + cincin fokus tombol",
+       "scope": "minifier+hero"
+      },
+      {
+       "hash": "20e7401",
+       "teks": "Logo hilang + header belum jadi ruang pribadi",
+       "scope": "profil"
+      },
+      {
+       "hash": "abacfb5",
+       "teks": "7 tes gagal di GitHub Actions — tes bergantung lingkungan server",
+       "scope": "ci"
+      },
+      {
+       "hash": "7925f02",
+       "teks": "Tambah victer.is-a.dev ke daftar hostname yang diizinkan",
+       "scope": "turnstile"
+      },
+      {
+       "hash": "b78cea3",
+       "teks": "Pemisah \"atau dengan email\" menggantung + return awal mematikan rapi-rapi",
+       "scope": "auth"
+      },
+      {
+       "hash": "b02ac7c",
+       "teks": "Bentrok nama kelas .auth-alt merusak halaman sign-in",
+       "scope": "css"
+      },
+      {
+       "hash": "1490323",
+       "teks": "Buat halaman /reset-sandi yang selama ini 404",
+       "scope": "auth"
+      },
+      {
+       "hash": "b628fb4",
+       "teks": "Peringatan EMAIL_FROM tidak boleh mematikan layanan",
+       "scope": "config"
+      },
+      {
+       "hash": "2c076c7",
+       "teks": "Catat kegagalan kirim + cegah EMAIL_FROM tidak valid",
+       "scope": "email"
+      },
+      {
+       "hash": "8dc0f5f",
+       "teks": "Off-site gagal 4 hari — PATH wrangler + source env",
+       "scope": "backup"
+      },
+      {
+       "hash": "a74d896",
+       "teks": "Event loop delay dilaporkan jujur — kurangi resolution",
+       "scope": "health"
+      },
+      {
+       "hash": "5d66fb5",
+       "teks": "Penghapusan gradient atmosferik pakai penghitung kurung",
+       "scope": "email"
+      },
+      {
+       "hash": "8c2fdb1",
+       "teks": "Path absolut → relatif — perbaiki 11 tes yang gagal di CI",
+       "scope": "test"
+      },
+      {
        "hash": "d9d3282",
        "teks": "Perbaiki pembacaan record DNS Brevo",
        "scope": "email"
@@ -113,6 +300,26 @@
      "kunci": "pemeliharaan",
      "label": "Pemeliharaan",
      "item": [
+      {
+       "hash": "d44caa2",
+       "teks": "Ganti desain \"AI slop\" dengan pola Linear/Stripe",
+       "scope": "sukses"
+      },
+      {
+       "hash": "4f399d5",
+       "teks": "Kunci regresi fatal — peringatan tidak boleh matikan layanan",
+       "scope": "email"
+      },
+      {
+       "hash": "d257541",
+       "teks": "Perbaiki 2 tes yang salah menandai kode benar",
+       "scope": "email"
+      },
+      {
+       "hash": "dbda716",
+       "teks": "Tambah tema GitHub sebagai varian — untuk perbandingan",
+       "scope": "email"
+      },
       {
        "hash": "b7796a3",
        "teks": "Rombak total — surface ladder + gradient + aksen emas",

@@ -1,0 +1,188 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   PESANAN — halaman status setelah pembayaran
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── STRUKTUR ────────────────────────────────────────────────────────────────
+   Mengikuti pola "Order Confirmation" (Stripe, Vercel):
+
+     1. Kepala    — satu kalimat keadaan, bukan judul pemasaran
+     2. Kartu     — lencana status + rincian pesanan
+     3. Tindakan  — cek ulang / kembali
+
+   ── PRINSIP ─────────────────────────────────────────────────────────────────
+   1. Status adalah hal PERTAMA yang terbaca — lencana besar di atas
+   2. Angka dan nomor pesanan memakai huruf mono supaya tidak salah baca
+   3. Kontras ≥ 4.5:1; target sentuh ≥ 44px
+   4. `prefers-reduced-motion` dihormati
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.pesanan-page {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4rem) 1.5rem 4rem;
+}
+
+.pesanan-head {
+  text-align: center;
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.pesanan-judul {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-5);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pesanan-sub {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-3);
+  line-height: 1.6;
+}
+
+/* ── Kartu status ───────────────────────────────────────────────────────── */
+
+.pesanan-kartu {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: var(--bg-card);
+}
+
+.pesanan-lencana {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pesanan-lencana::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Warna status — memakai token situs yang sama dengan halaman lain. */
+.pesanan-lencana.is-dibayar { color: var(--sukses); border-color: rgba(74, 222, 128, 0.4); }
+.pesanan-lencana.is-pending { color: var(--accent); border-color: var(--accent-line); }
+.pesanan-lencana.is-gagal,
+.pesanan-lencana.is-kedaluwarsa { color: var(--galat); border-color: rgba(248, 113, 113, 0.4); }
+
+.pesanan-status-judul {
+  margin: 0;
+  font-size: var(--fs-4);
+  font-weight: 700;
+}
+
+.pesanan-status-teks {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-3);
+  line-height: 1.65;
+}
+
+.pesanan-status-teks strong { color: var(--text); }
+
+/* ── Rincian ─────────────────────────────────────────────────────────────── */
+
+.pesanan-rincian {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem 1.25rem;
+  margin: 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-soft);
+  font-size: var(--fs-2);
+}
+
+.pesanan-rincian dt {
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.pesanan-rincian dd {
+  margin: 0;
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.pesanan-rincian .mono { font-size: var(--fs-1); }
+
+/* ── Tindakan ────────────────────────────────────────────────────────────── */
+
+.pesanan-aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Keadaan tanpa nomor / tidak ditemukan ───────────────────────────────── */
+
+.pesanan-kosong {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: clamp(2rem, 6vw, 3rem) 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 1.25rem;
+  text-align: center;
+}
+
+.pesanan-kosong-judul {
+  margin: 0;
+  font-size: var(--fs-4);
+  font-weight: 700;
+}
+
+.pesanan-kosong-teks {
+  margin: 0;
+  max-width: 26rem;
+  color: var(--text-dim);
+  font-size: var(--fs-2);
+  line-height: 1.6;
+}
+
+/* ── Skeleton ────────────────────────────────────────────────────────────── */
+
+@keyframes pesanan-denyut {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.pesanan-skeleton {
+  animation: pesanan-denyut 1.4s ease-in-out infinite;
+}
+
+.pesanan-skeleton-baris {
+  height: 1rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.pesanan-skeleton-baris.sk-lebar-40 { width: 40%; }
+.pesanan-skeleton-baris.sk-lebar-70 { width: 70%; }
+.pesanan-skeleton-baris.sk-lebar-90 { width: 90%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pesanan-skeleton { animation: none; }
+}
+
+@media (max-width: 420px) {
+  .pesanan-rincian { grid-template-columns: 1fr; gap: 0.2rem 0; }
+  .pesanan-rincian dd { text-align: left; padding-bottom: 0.5rem; }
+}

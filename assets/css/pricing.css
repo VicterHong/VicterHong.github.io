@@ -1271,3 +1271,115 @@
   }
 }
 
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DIALOG PEMBAYARAN
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA <dialog> ASLI BROWSER ────────────────────────────────────────────
+   Elemen <dialog> sudah membawa perilaku yang kalau dibuat manual harus
+   ditulis sendiri dan mudah salah: fokus terkurung di dalam dialog,
+   Escape menutup, latar belakang inert (tidak bisa di-tab), dan lapisan
+   ::backdrop. Menggunakan yang asli berarti tidak ada satu pun dari itu
+   yang perlu diuji ulang.
+
+   Dialog ini berada di dalam .pricing-page, jadi token --pr-* berlaku. */
+
+.dialog-bayar {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--pr-line-strong);
+  border-radius: 1.25rem;
+  background: var(--pr-card);
+  color: var(--pr-text);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+.dialog-bayar::backdrop {
+  background: rgba(6, 6, 8, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.dialog-bayar-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pr-3);
+  padding: clamp(var(--pr-5), 4vw, var(--pr-6));
+}
+
+.dialog-bayar-judul {
+  margin: 0;
+  font-size: var(--fs-4);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.dialog-bayar-sub {
+  margin: 0;
+  font-size: var(--fs-2);
+  line-height: 1.55;
+  color: var(--pr-text-dim);
+}
+
+.dialog-bayar-label {
+  margin-top: var(--pr-2);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--pr-text);
+}
+
+.dialog-bayar-input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--pr-line-strong);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pr-text);
+  font: inherit;
+  /* 16px — di bawah ini iOS memperbesar halaman saat input difokuskan */
+  font-size: var(--fs-3);
+}
+
+.dialog-bayar-input::placeholder { color: var(--pr-text-faint); }
+
+.dialog-bayar-input:focus-visible {
+  outline: 2px solid var(--pr-accent);
+  outline-offset: 2px;
+  border-color: var(--pr-accent-line);
+}
+
+/* Pesan galat: warna merah token situs + latar tipis, bukan teks polos —
+   supaya terbaca sebagai keadaan, bukan sebagai kalimat biasa. */
+.dialog-bayar-galat {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 0.6rem;
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+  font-size: var(--fs-2);
+  line-height: 1.5;
+}
+
+.dialog-bayar-aksi {
+  display: flex;
+  gap: var(--pr-3);
+  margin-top: var(--pr-2);
+}
+
+.dialog-bayar-aksi .tombol { flex: 1; }
+
+.dialog-bayar-catatan {
+  margin: 0;
+  font-size: var(--fs-1);
+  line-height: 1.5;
+  color: var(--pr-text-faint);
+  text-align: center;
+}
+
+/* Di layar sempit tombol berdampingan menjadi terlalu sempit untuk label
+   "Lanjut ke pembayaran" — ditumpuk supaya tetap satu baris per tombol. */
+@media (max-width: 420px) {
+  .dialog-bayar-aksi { flex-direction: column-reverse; }
+}
+

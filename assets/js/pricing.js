@@ -100,11 +100,8 @@ const JALUR_CEK = 'M20 6 9 17l-5-5';
 const JALUR_STRIP = 'M5 12h14';
 const JALUR_PANAH_LUAR = 'M7 7h10v10 M7 17 17 7';
 
-/** Tombol dengan panah keluar. */
-function tombol(teks, gaya, href) {
-  const a = el('a', `tombol tombol--${gaya}`);
-  a.href = href;
-
+/** Panah keluar — dipakai tombol tautan maupun tombol aksi. */
+function panahKeluar() {
   // Panah digambar sebagai dua elemen supaya bisa digabung dalam satu path
   // tanpa `M` ganda — beberapa renderer memperlakukannya berbeda.
   const svg = document.createElementNS(NS, 'svg');
@@ -122,9 +119,186 @@ function tombol(teks, gaya, href) {
   const p2 = document.createElementNS(NS, 'path');
   p2.setAttribute('d', 'M7 17 17 7');
   svg.append(p1, p2);
+  return svg;
+}
 
-  a.append(teks, ' ', svg);
+/** Tombol TAUTAN dengan panah keluar — untuk berpindah halaman. */
+function tombol(teks, gaya, href) {
+  const a = el('a', `tombol tombol--${gaya}`);
+  a.href = href;
+  a.append(teks, ' ', panahKeluar());
   return a;
+}
+
+/**
+ * Tombol paket: <button> untuk paket berbayar, <a> untuk yang tanpa harga.
+ *
+ * ── KENAPA DIBEDAKAN, PADAHAL TAMPILANNYA SAMA ─────────────────────────────
+ * Paket berbayar MEMULAI PEMBAYARAN — itu tindakan di halaman ini, bukan
+ * pindah halaman. Bug yang pernah terjadi: tombol beli dirender sebagai
+ * tautan ke anchor kontak `/#89fk39`, dan karena `/` dilayani index.html
+ * (gerbang) yang tidak punya anchor itu, pengguna terlempar ke atas beranda
+ * — pembayaran tidak pernah mulai.
+ *
+ * Paket tanpa harga (Enterprise) memang mengajak bicara; untuk itu <a> ke
+ * bagian kontak sudah benar.
+ */
+function tombolPaket(paket, periode, hrefKontak) {
+  const berbayar = paket.harga?.normal != null;
+
+  if (!berbayar) {
+    return tombol(paket.cta?.teks ?? 'Hubungi saya', paket.cta?.gaya ?? 'sekunder', hrefKontak);
+  }
+
+  const b = el('button', `tombol tombol--${paket.cta?.gaya ?? 'seragam'}`);
+  b.type = 'button';
+  b.append(paket.cta?.teks ?? 'Mulai', ' ', panahKeluar());
+  b.addEventListener('click', () => bukaDialogBayar(paket, periode));
+  return b;
+}
+
+/* ── Dialog pembayaran ──────────────────────────────────────────────────── */
+
+/**
+ * Dialog email → POST /api/checkout → halaman pembayaran Midtrans.
+ *
+ * ── KENAPA EMAIL DIMINTA DI SINI ───────────────────────────────────────────
+ * Struk dan informasi akses dikirim ke email setelah pembayaran terkonfirmasi,
+ * jadi email harus ada SEBELUM transaksi dibuat — bukan sesudah. Midtrans juga
+ * memakainya untuk halaman pembayaran.
+ *
+ * ── KENAPA REDIRECT, BUKAN POPUP snap.pay() ────────────────────────────────
+ * Server mengembalikan `url` halaman pembayaran Snap. Membukanya langsung
+ * bekerja di semua perangkat, termasuk ponsel, tanpa memuat skrip pihak
+ * ketiga di halaman harga dan tanpa mengekspos client key. Setelah pembayaran,
+ * Midtrans mengembalikan pembeli ke /pesanan (callbacks.finish =
+ * CHECKOUT_SUKSES_URL).
+ *
+ * ── KENAPA KUNCI IDEMPOTENSI DIBUAT DI SINI ────────────────────────────────
+ * Yang tahu "ini percobaan ulang dari klik yang sama" adalah browser. Kunci
+ * dibuat SEKALI saat dialog dibuka dan dipakai ulang untuk setiap percobaan
+ * ulang selama dialog hidup — server memakai kunci ini sebagai order_id
+ * Midtrans, jadi dobel-klik tidak menghasilkan dobel tagih.
+ */
+
+let _dialog = null;
+
+function elemenDialog() {
+  if (!_dialog) _dialog = document.getElementById('dialogBayar');
+  return _dialog;
+}
+
+function tampilkanGalatDialog(galat, pesan) {
+  if (!galat) return;
+  galat.textContent = pesan;
+  galat.hidden = false;
+}
+
+function bukaDialogBayar(paket, periode) {
+  const d = elemenDialog();
+  if (!d) return;
+
+  const form = d.querySelector('#formBayar');
+  const judul = d.querySelector('#dialogBayarJudul');
+  const sub = d.querySelector('#dialogBayarSub');
+  const galat = d.querySelector('#bayarGalat');
+  const lanjut = d.querySelector('#bayarLanjut');
+  const email = d.querySelector('#bayarEmail');
+  if (!form || !judul || !sub || !lanjut) return;
+
+  // Konteks pembelian disimpan di form — handler submit membacanya.
+  form.dataset.tier = paket.id;
+  form.dataset.periode = periode;
+  // Kunci BARU setiap dialog dibuka; dipertahankan selama dialog hidup.
+  form.dataset.kunci = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `k${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+
+  const f = formatHarga(paket, periode);
+  judul.textContent = `Langganan ${paket.nama}`;
+  sub.textContent = `${f.angka}${f.satuan ?? ''}` +
+    (f.total ? ` — ditagih ${f.total} per tahun.` : '.') +
+    ' Token akses dikirim ke email ini setelah pembayaran terkonfirmasi.';
+
+  if (galat) galat.hidden = true;
+  lanjut.disabled = false;
+  lanjut.textContent = 'Lanjut ke pembayaran';
+
+  if (!d.open) d.showModal();
+  email?.focus();
+}
+
+function pasangDialogBayar() {
+  const d = elemenDialog();
+  if (!d) return;
+
+  const form = d.querySelector('#formBayar');
+  const galat = d.querySelector('#bayarGalat');
+  const lanjut = d.querySelector('#bayarLanjut');
+  const batal = d.querySelector('#bayarBatal');
+
+  batal?.addEventListener('click', () => d.close());
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (lanjut.disabled) return;
+
+    const inputEmail = form.querySelector('#bayarEmail');
+    const email = String(inputEmail?.value ?? '').trim();
+
+    // Validasi ringan di klien untuk umpan balik cepat; server tetap
+    // memvalidasi ulang dan itulah yang menentukan.
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      tampilkanGalatDialog(galat, 'Alamat email belum benar. Contoh: nama@contoh.com');
+      inputEmail?.focus();
+      return;
+    }
+
+    lanjut.disabled = true;
+    lanjut.textContent = 'Menyiapkan…';
+    if (galat) galat.hidden = true;
+
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          tier: form.dataset.tier,
+          periode: form.dataset.periode,
+          email,
+          idempotency_key: form.dataset.kunci,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.ok) {
+        // Pesan + saran dari server ditulis untuk pembaca — tampilkan apa adanya.
+        const pesan = [data?.message, data?.saran].filter(Boolean).join(' ');
+        throw new Error(pesan || `Server menjawab ${res.status}.`);
+      }
+
+      // Sudah dibayar sebelumnya dengan kunci yang sama → tidak perlu bayar lagi.
+      if (data.sudah_dibayar) {
+        location.href = `/pesanan?order_id=${encodeURIComponent(data.pembayaran_id)}&status=sukses`;
+        return;
+      }
+
+      if (!data.url) throw new Error('Server tidak mengembalikan tautan pembayaran.');
+
+      // Simpan nomor pesanan — halaman /pesanan memakainya sebagai cadangan
+      // kalau Midtrans tidak menyertakan order_id di URL kembali.
+      try { sessionStorage.setItem('pesanan_terakhir', data.pembayaran_id); } catch { /* storage diblokir */ }
+
+      // Buka halaman pembayaran Snap Midtrans.
+      location.href = data.url;
+    } catch (err) {
+      tampilkanGalatDialog(galat, err?.message ?? 'Pembayaran tidak bisa dimulai.');
+      lanjut.disabled = false;
+      lanjut.textContent = 'Lanjut ke pembayaran';
+    }
+  });
 }
 
 /* ── Penggambar ─────────────────────────────────────────────────────────── */
@@ -330,7 +504,7 @@ function gambarKartu(paket, hrefKontak, periode) {
   }
   kartu.appendChild(ul);
 
-  kartu.appendChild(tombol(paket.cta?.teks ?? 'Mulai', paket.cta?.gaya ?? 'sekunder', hrefKontak));
+  kartu.appendChild(tombolPaket(paket, periode, hrefKontak));
 
   return kartu;
 }
@@ -569,7 +743,7 @@ function tampilkanError(root, pesan) {
   coba.addEventListener('click', () => location.reload());
   aksi.appendChild(coba);
 
-  const kontak = tombol('Hubungi saya', 'sekunder', '/#89fk39');
+  const kontak = tombol('Hubungi saya', 'sekunder', '/home#89fk39');
   aksi.appendChild(kontak);
   kotak.appendChild(aksi);
 
@@ -589,7 +763,11 @@ async function mulai() {
   const root = document.querySelector('.pricing-page');
   if (!root) return;
 
-  const hrefKontak = '/#89fk39';
+  // Dialog pembayaran dipasang lebih dulu — elemennya statis di pricing.html,
+  // jadi tidak perlu menunggu data harga tiba.
+  pasangDialogBayar();
+
+  const hrefKontak = '/home#89fk39';
 
   // Skeleton tampil lebih dulu — sebelum permintaan jaringan dikirim.
   // Kalau menunggu dulu, ada jeda kosong yang justru itulah masalahnya.

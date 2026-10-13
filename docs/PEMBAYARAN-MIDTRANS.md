@@ -229,15 +229,30 @@ penyedia diganti lagi, hanya `midtrans.mjs` yang berubah.
 
 ---
 
+## Alur checkout (sudah jalan)
+
+```
+/pricing                Tombol paket → dialog email (assets/js/pricing.js)
+   ↓ POST /api/checkout  server membuat transaksi Snap → { url }
+halaman pembayaran Midtrans
+   ↓ selesai
+/pesanan                 Midtrans mengembalikan ke CHECKOUT_SUKSES_URL;
+                         halaman membaca status dari GET /api/pesanan/:id
+```
+
+Kunci idempotensi dibuat sekali saat dialog dibuka dan dipakai ulang untuk
+setiap percobaan ulang — order_id Midtrans yang sama tidak menghasilkan
+transaksi kedua.
+
+---
+
 ## Yang Belum Dibangun
 
 | # | Item | Catatan |
 |---|---|---|
-| 1 | Tombol checkout di halaman harga | Sekarang masih ke form kontak |
-| 2 | Halaman `/pesanan` setelah bayar | Menampilkan status + token |
-| 3 | Kirim token lewat email | Sekarang token dikembalikan di log webhook |
-| 4 | Perpanjangan otomatis | Belum ada; pembeli bayar lagi secara manual |
-| 5 | Refund lewat API | Belum ada; lewat dashboard Midtrans |
+| 1 | Kirim token lewat email | Struk sudah dikirim (`kirimStrukPembayaran`), tapi token aksesnya belum ikut — untuk sekarang hanya ada di log webhook |
+| 2 | Perpanjangan otomatis | Belum ada; pembeli bayar lagi secara manual |
+| 3 | Refund lewat API | Belum ada; lewat dashboard Midtrans |
 
 ---
 
