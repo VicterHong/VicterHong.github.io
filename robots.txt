@@ -21,3 +21,4 @@ Allow: /
 
 Sitemap: https://portfolio-victer.pages.dev/sitemap.xml
 # llms.txt: https://portfolio-victer.pages.dev/llms.txt
+# feed.xml: https://portfolio-victer.pages.dev/feed.xml

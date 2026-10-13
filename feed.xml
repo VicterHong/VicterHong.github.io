@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>VIVASTIC — Changelog</title>
+    <link>https://portfolio-victer.pages.dev/changelog</link>
+    <description>Semua perubahan penting pada layanan VIVASTIC, dikelompokkan per tanggal — fitur baru, perbaikan, dan performa.</description>
+    <language>id</language>
+    <lastBuildDate>Tue, 13 Oct 2026 03:49:13 GMT</lastBuildDate>
+    <atom:link href="https://portfolio-victer.pages.dev/feed.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>12 Oktober 2026 — 22 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-12</link>
+      <guid isPermaLink="false">changelog-2026-10-12</guid>
+      <pubDate>Mon, 12 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: 5 template siklus langganan — termasuk pengingat kedaluwarsa; Importer desain dari platform visual (Stripo/Beefree/dll) · Perbaikan: Perbaiki pembacaan record DNS Brevo; Satukan pelindung error — rute auth tidak lagi lapor 400 untuk bug server · Pemeliharaan: Rombak total — surface ladder + gradient + aksen emas; Logo PNG asli, domain profesional, tombol &amp; tabel diperbaiki</description>
+    </item>
+    <item>
+      <title>11 Oktober 2026 — 20 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-11</link>
+      <guid isPermaLink="false">changelog-2026-10-11</guid>
+      <pubDate>Sun, 11 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: Sidebar gaya Claude Code Docs — grup + item terbuka; Bilah fixed, pemilih bahasa, breadcrumb, menu titik tiga · Perbaikan: Navigasi mobile jadi tombol buka-tutup, bukan chip scroll; Widget Turnstile terpotong di ponsel ≤400px · Data: Perbarui WhatsApp Family Assistant dengan hasil produksi</description>
+    </item>
+    <item>
+      <title>10 Oktober 2026 — 30 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-10</link>
+      <guid isPermaLink="false">changelog-2026-10-10</guid>
+      <pubDate>Sat, 10 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: Watchdog CPU — bersihkan proses nyasar otomatis saat beban tinggi; Adaptasi teknik BlackRay.Studio ke sistem cinematic yang ada · Perbaikan: Sinyal layar menang saat platform bertentangan; Nama ISP, deteksi perangkat di OAuth, badge terpotong · Performa: Minifikasi JS — 619 KB → 251 KB (hemat 59%) · Dokumentasi: Analisis mekanisme BlackRay.Studio + demo replikasi; Status integrasi + panduan setup komponen React · Pemeliharaan: Hapus log pelacak sementara dari /api/auth/masuk; Log sementara lacak perangkat di /api/auth/masuk</description>
+    </item>
+    <item>
+      <title>9 Oktober 2026 — 36 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-09</link>
+      <guid isPermaLink="false">changelog-2026-10-09</guid>
+      <pubDate>Fri, 09 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: Field Organisasi + waktu masuk terakhir; Kartu identitas dengan avatar — pola settings GitHub/Vercel · Perbaikan: Pupil Saweria presisi — oval vertikal + offset ke dalam; Pupil mata Saweria — hilangkan kesan seram · Dokumentasi: LinkedIn — status + cara mengaktifkan (self-serve, tanpa review); Status provider + keputusan tidak memakai Apple · Pemeliharaan: Hapus field organisasi + bersihkan pola &quot;AI slop&quot;; Hapus IdP Apple tiruan dan seluruh jejaknya</description>
+    </item>
+    <item>
+      <title>8 Oktober 2026 — 38 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-08</link>
+      <guid isPermaLink="false">changelog-2026-10-08</guid>
+      <pubDate>Thu, 08 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: SSO perusahaan lewat OIDC generik — berfungsi untuk semua IdP; Avatar pengguna dibuat di edge — tanpa backend, tanpa penyimpanan · Perbaikan: Total-bytes menghitung CSS dua kali — preflight memblokir deploy; Email akun kerja tidak terbaca + uji tidak rapuh · Pemeliharaan: Subjudul disederhanakan jadi pola korporat; Bersihkan em dash dari data harga di backend</description>
+    </item>
+    <item>
+      <title>7 Oktober 2026 — 6 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-07</link>
+      <guid isPermaLink="false">changelog-2026-10-07</guid>
+      <pubDate>Wed, 07 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: 7 endpoint 2FA + integrasi gerbang login; 2FA end-to-end — enrollment, verifikasi, kode pemulihan · Perbaikan: Animasi berbasis WAKTU, bukan frame — konsisten di semua perangkat; Minifikasi HTML — selesaikan pelanggaran anggaran 90 KB</description>
+    </item>
+    <item>
+      <title>6 Oktober 2026 — 46 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-06</link>
+      <guid isPermaLink="false">changelog-2026-10-06</guid>
+      <pubDate>Tue, 06 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: Script analisis lengkap + catatan sudo; Rating keamanan komposit + kartu visual · Perbaikan: Konversi semua waktu UTC → WIB (UTC+7); &apos;Terima semua&apos; tidak mencentang toggle analitik · Performa: Hilangkan sisa glitch — hysteresis, z-index halus, layer GPU tetap; Optimasi bayangan berjenjang + hemat decode video · Dokumentasi: Perbaiki komentar yang tidak akurat soal X-Client-IP · Pemeliharaan: Perbarui lastmod sitemap ke 2026-10-06</description>
+    </item>
+    <item>
+      <title>5 Oktober 2026 — 36 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-05</link>
+      <guid isPermaLink="false">changelog-2026-10-05</guid>
+      <pubDate>Mon, 05 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: Video narasi di bagian publik + font halaman proyek; Aksen kuning premium #f5c542 — ganti oranye, plus i18n gate · Perbaikan: Grid prinsip 2x2 + teks kartu rata (diukur); Scroll-spy — pilih section yang mengandung garis aktif · Performa: Batch 2 — motion tokens + prefers-reduced-motion menyeluruh; A4 + A6 — index filter audit + rate limiter tahan serangan · Dokumentasi: Perbandingan desain dengan referensi Kombai Gallery; PRD perbaikan desain dari audit GPT-6 Luna · Pemeliharaan: Hapus sampul proyek — penilaian visual dari pemilik; A7 + A8 — backup off-site terenkripsi + moderasi komentar</description>
+    </item>
+    <item>
+      <title>4 Oktober 2026 — 40 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-04</link>
+      <guid isPermaLink="false">changelog-2026-10-04</guid>
+      <pubDate>Sun, 04 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: Efek gelombang saat tekan tombol + tombol kaca transparan; Bilah memanjang penuh + animasi lebih responsif · Perbaikan: Gelombang tidak terlihat + tidak ada di menu navigasi; Tautan menu tidak bisa disentuh — scrim menutupi panel · Performa: Hapus HEAD probe, pakai native &lt;source&gt; fallback; Optimasi fase 1-3 untuk production · Pemeliharaan: Hilangkan semua emoji — ganti dengan ikon SVG + samakan UI docs; Update actions ke v5 — hilangkan peringatan deprecation</description>
+    </item>
+    <item>
+      <title>3 Oktober 2026 — 49 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-03</link>
+      <guid isPermaLink="false">changelog-2026-10-03</guid>
+      <pubDate>Sat, 03 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: SEO production + uptime monitoring (PRD §8); Efek depth tingkat Framer/Awwwards — scroll-stand, tilt berlapis, glare, spotlight · Perbaikan: Guard init ganda + jaring pengaman 6 detik; Minimum realistis nama/perusahaan + pesan token kosong kustom · Dokumentasi: Runbook production lengkap + PRD v3.0; Perbarui komentar agar konsisten dengan tombol &apos;Buka&apos; · Pemeliharaan: &apos;Detail teknis&apos; jadi tombol utama solid, repo sekunder; Tombol tetap &apos;Buka&apos; saat terkunci + gaya disabled jelas</description>
+    </item>
+    <item>
+      <title>2 Oktober 2026 — 26 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-02</link>
+      <guid isPermaLink="false">changelog-2026-10-02</guid>
+      <pubDate>Fri, 02 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Perbaikan: Video hero kurang terlihat — naikkan opacity + text-shadow; Video hero tidak terlihat di HP — poster + retry autoplay · Dokumentasi: Tandai v2.2 selesai di PRD roadmap; Tandai v1.2 selesai (hero video tanpa watermark) · Pemeliharaan: Kembalikan video hero ke opacity 0.55 (versi yang disukai pengguna); V2.2: video narasi per proyek — dibuat programatik, tanpa AI, tanpa watermark</description>
+    </item>
+    <item>
+      <title>1 Oktober 2026 — 11 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-01</link>
+      <guid isPermaLink="false">changelog-2026-10-01</guid>
+      <pubDate>Thu, 01 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Dokumentasi: Panduan operasional + README lapisan akses · Pemeliharaan: PRD v2.0: tandai selesai + catatan implementasi; Pratinjau terkunci tidak lagi membocorkan istilah internal</description>
+    </item>
+  </channel>
+</rss>

@@ -89,6 +89,7 @@ function buildRobots() {
     '',
     `Sitemap: ${ORIGIN}/sitemap.xml`,
     `# llms.txt: ${ORIGIN}/llms.txt`,
+    `# feed.xml: ${ORIGIN}/feed.xml`,
     '',
   ].join('\n');
 }
@@ -143,6 +144,87 @@ function buildLlmsTxt({ profile, projects }) {
   return lines.join('\n');
 }
 
+// ── RSS CHANGELOG ────────────────────────────────────────────────────────────
+//
+// Sumber: changelog.json (sudah terstruktur per tanggal + kategori). Membaca
+// JSON lebih andal daripada mem-parsing CHANGELOG.md — formatnya stabil.
+// Feed ini statis: ikut berubah setiap `generate-discovery.mjs` dijalankan,
+// sama seperti sitemap.xml.
+
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function escXml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/** RFC 822 untuk pubDate RSS — tanggal rilis, tengah malam WIB. */
+function rfc822(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const hari = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getUTCDay()];
+  const bln = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getUTCMonth()];
+  return `${hari}, ${String(d).padStart(2, '0')} ${bln} ${y} 00:00:00 +0700`;
+}
+
+function judulHari(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${BULAN[m - 1]} ${y}`;
+}
+
+function buildRss() {
+  let data;
+  try {
+    data = JSON.parse(readFileSync(resolve(ROOT, 'changelog.json'), 'utf8'));
+  } catch {
+    console.log('⚠ changelog.json tidak ada — feed.xml dilewati');
+    return null;
+  }
+  const rilis = (data.rilis || []).slice(0, 30);
+  if (!rilis.length) return null;
+
+  const items = rilis.map((r) => {
+    // Deskripsi: 2 item pertama per kategori — cukup untuk preview di reader,
+    // tanpa membanjiri. Pemisah " · " antar kategori.
+    const potongan = [];
+    for (const k of r.kategori || []) {
+      const teks = (k.item || []).slice(0, 2).map((i) => i.teks).join('; ');
+      if (teks) potongan.push(`${k.label}: ${teks}`);
+    }
+    const desc = potongan.join(' · ') || `${r.jumlah} perubahan.`;
+    return [
+      '    <item>',
+      `      <title>${escXml(`${judulHari(r.tanggal)} — ${r.jumlah} perubahan`)}</title>`,
+      `      <link>${ORIGIN}/changelog#tgl-${r.tanggal}</link>`,
+      `      <guid isPermaLink="false">changelog-${r.tanggal}</guid>`,
+      `      <pubDate>${rfc822(r.tanggal)}</pubDate>`,
+      `      <description>${escXml(desc)}</description>`,
+      '    </item>',
+    ].join('\n');
+  });
+
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+    '  <channel>',
+    '    <title>VIVASTIC — Changelog</title>',
+    `    <link>${ORIGIN}/changelog</link>`,
+    '    <description>Semua perubahan penting pada layanan VIVASTIC, dikelompokkan per tanggal — fitur baru, perbaikan, dan performa.</description>',
+    '    <language>id</language>',
+    `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>`,
+    `    <atom:link href="${ORIGIN}/feed.xml" rel="self" type="application/rss+xml"/>`,
+    ...items,
+    '  </channel>',
+    '</rss>',
+    '',
+  ].join('\n');
+  return { xml, count: items.length };
+}
+
 // ── JALANKAN ─────────────────────────────────────────────────────────────────
 
 const data = await loadData();
@@ -156,6 +238,12 @@ console.log('✓ robots.txt');
 
 writeFileSync(resolve(ROOT, 'llms.txt'), buildLlmsTxt(data), 'utf8');
 console.log('✓ llms.txt');
+
+const rss = buildRss();
+if (rss) {
+  writeFileSync(resolve(ROOT, 'feed.xml'), rss.xml, 'utf8');
+  console.log(`✓ feed.xml (${rss.count} item)`);
+}
 
 console.log(`\nOrigin: ${ORIGIN}`);
 console.log(`Proyek terdaftar: ${data.projects.length}`);
