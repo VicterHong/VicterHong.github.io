@@ -1075,9 +1075,18 @@ export const routes = [
         return sendJson(res, 200, { ok: true, sudo: true, pesan: 'Akun ini tidak memakai 2FA.' });
       }
 
-      const gate = await turnstileGate(req, body, { action: 'checkout_2fa' });
-      if (!gate.ok) return sendJson(res, gate.status, gate.body);
-
+      // ── KENAPA TIDAK ADA TURNSTILE DI SINI ────────────────────────────────
+      // Endpoint ini hanya bisa dipanggil dengan cookie sesi yang sah
+      // (httpOnly + Secure), dan pembatas brute force-nya sudah ada di
+      // `verifikasi2fa`: 5 percobaan gagal → identitas diblokir sementara.
+      // Dengan 1.000.000 kemungkinan kode, 5 percobaan per jendela blokir
+      // bukan ancaman nyata.
+      //
+      // Menambahkan Turnstile berarti merender widget di dalam dialog
+      // pembayaran — gesekan tambahan bagi pembeli yang sah (dan satu titik
+      // gagal lagi di alur uang) demi keuntungan keamanan yang marjinal.
+      // GitHub sudo mode pun tidak memakai CAPTCHA; ia mengandalkan kode
+      // TOTP + pembatas percobaan.
       const kode = String(body.code ?? '').replace(/\D/g, '').slice(0, 6);
       if (kode.length !== 6) {
         return sendJson(res, 400, { ok: false, error: 'kode_tidak_lengkap', message: 'Masukkan 6 digit kode.' });

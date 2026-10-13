@@ -71,14 +71,19 @@ let server = null;
 let log = '';
 
 /** Panggilan HTTP dengan cookie opsional. */
-async function panggil(path, { method = 'GET', body = null, cookie = '' } = {}) {
+async function panggil(path, { method = 'GET', body = null, cookie = '', turnstile = true } = {}) {
   const headers = { Accept: 'application/json' };
   if (body) headers['Content-Type'] = 'application/json';
   if (cookie) headers.Cookie = cookie;
   const r = await fetch(BASE + path, {
     method,
     headers,
-    body: body ? JSON.stringify({ 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX', ...body }) : undefined,
+    // Endpoint step-up pembayaran tidak memakai Turnstile (lihat komentar di
+    // routes.mjs) — tes harus memanggilnya TANPA token, persis seperti
+    // dialog pembayaran memanggilnya.
+    body: body
+      ? JSON.stringify(turnstile ? { 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX', ...body } : body)
+      : undefined,
     signal: AbortSignal.timeout(15000),
   });
   const teks = await r.text();
@@ -240,7 +245,7 @@ describe('step-up 2FA', () => {
 
   test('kode SALAH: 401 dan sudo TIDAK terbuka', async () => {
     const r = await panggil('/api/checkout/2fa', {
-      method: 'POST', cookie, body: { code: '000000' },
+      method: 'POST', cookie, turnstile: false, body: { code: '000000' },
     });
     assert.equal(r.status, 401);
     assert.notEqual(r.data.ok, true);
@@ -262,7 +267,7 @@ describe('step-up 2FA', () => {
     const kode = buatTotp(secret);
 
     const verif = await panggil('/api/checkout/2fa', {
-      method: 'POST', cookie, body: { code: kode },
+      method: 'POST', cookie, turnstile: false, body: { code: kode },
     });
     assert.equal(verif.status, 200, `step-up harus 200: ${verif.teks.slice(0, 200)}`);
     assert.equal(verif.data.sudo, true);
