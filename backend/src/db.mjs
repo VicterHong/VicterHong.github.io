@@ -79,7 +79,21 @@ CREATE TABLE IF NOT EXISTS sessions (
   -- yang TIDAK ikut berubah saat mode itu aktif.
   platform    TEXT NOT NULL DEFAULT '',
   model       TEXT NOT NULL DEFAULT '',
-  jenis       TEXT NOT NULL DEFAULT ''
+  jenis       TEXT NOT NULL DEFAULT '',
+
+  -- ══ SUDO MODE (step-up 2FA) ══════════════════════════════════════════════
+  -- Batas waktu (epoch ms) sampai kapan sesi ini boleh melakukan aksi
+  -- sensitif TANPA memasukkan kode 2FA lagi. 0 = belum pernah diverifikasi.
+  --
+  -- ── KENAPA DI SESI, BUKAN DI TOKEN ───────────────────────────────────────
+  -- Verifikasi ulang terikat pada PERANGKAT yang sedang dipakai, bukan pada
+  -- akun. Kalau disimpan di token (identitas), membuka sudo di laptop akan
+  -- membuka sudo di ponsel juga — dan itu justru melemahkan tujuannya.
+  --
+  -- Pola ini mengikuti GitHub "sudo mode": setelah re-autentikasi, aksi
+  -- sensitif diizinkan selama jendela waktu tertentu; setiap aksi menyegarkan
+  -- jendelanya. Lihat SUDO_MS di routes.mjs.
+  sudo_until  INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_id);
@@ -640,6 +654,12 @@ function migrate(handle) {
   addColumn('sessions', 'platform', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'model', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'jenis', "TEXT NOT NULL DEFAULT ''");
+
+  // ── SUDO MODE (step-up 2FA untuk pembayaran) ─────────────────────────────
+  // Database lama belum punya kolom ini; tanpa migrasi, UPDATE-nya gagal
+  // dengan "no such column: sudo_until" dan step-up tidak pernah bisa
+  // membuka akses — pembeli yang punya 2FA akan selamanya ditolak.
+  addColumn('sessions', 'sudo_until', 'INTEGER NOT NULL DEFAULT 0');
 
   // A8: status moderasi komentar.
   // Baris LAMA diisi 'approved' — komentar yang sudah tayang sebelum

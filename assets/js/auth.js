@@ -109,10 +109,18 @@
     // Tombol menuju halaman daftar. Email dibawa lewat query string supaya
     // pengguna tidak perlu mengetiknya dua kali — sumber kesalahan yang
     // paling sering saat mendaftar setelah gagal masuk.
+    //
+    // `lanjut` ikut diteruskan: kalau pengguna sedang dalam alur pembelian
+    // dan ternyata belum punya akun, ia harus tetap kembali ke halaman harga
+    // setelah daftar — bukan mendarat di beranda.
     const tautan = kotak.querySelector('#tautanDaftar');
     if (tautan) {
       const bersih = String(email || '').trim().slice(0, 320);
-      tautan.href = bersih ? `/sign-up?email=${encodeURIComponent(bersih)}` : '/sign-up';
+      const lanjut = tujuanLanjut();
+      const q = [];
+      if (bersih) q.push(`email=${encodeURIComponent(bersih)}`);
+      if (lanjut) q.push(`lanjut=${encodeURIComponent(lanjut)}`);
+      tautan.href = '/sign-up' + (q.length ? `?${q.join('&')}` : '');
     }
   }
 
@@ -147,7 +155,11 @@
     const tautan = kotak.querySelector('#tautanMasuk');
     if (tautan) {
       const bersih = String(email || '').trim().slice(0, 320);
-      tautan.href = bersih ? `/sign-in?email=${encodeURIComponent(bersih)}` : '/sign-in';
+      const lanjut = tujuanLanjut();
+      const q = [];
+      if (bersih) q.push(`email=${encodeURIComponent(bersih)}`);
+      if (lanjut) q.push(`lanjut=${encodeURIComponent(lanjut)}`);
+      tautan.href = '/sign-in' + (q.length ? `?${q.join('&')}` : '');
     }
   }
 
@@ -1113,7 +1125,11 @@
       // (pengguna sendiri yang mengetiknya), dan halaman masuk akan
       // memvalidasinya lagi saat submit.
       if (!kurangiGerak) {
-        const tujuan = `/sign-in?email=${encodeURIComponent(email)}`;
+        // `lanjut` diteruskan supaya pengguna yang mendaftar di tengah alur
+        // pembelian kembali ke halaman harga setelah masuk — bukan ke beranda.
+        const lanjut = tujuanLanjut();
+        const tujuan = `/sign-in?email=${encodeURIComponent(email)}`
+          + (lanjut ? `&lanjut=${encodeURIComponent(lanjut)}` : '');
         setTimeout(() => { window.location.href = tujuan; }, 2200);
       }
     } catch (err) {
@@ -1152,9 +1168,41 @@
    */
   let timerAlih = null;
 
+  /**
+   * Tujuan setelah masuk berhasil.
+   *
+   * ── KENAPA ?lanjut= DIUTAMAKAN ────────────────────────────────────────────
+   * Pengguna yang menekan "Masuk untuk melanjutkan" dari halaman harga harus
+   * KEMBALI ke sana — bukan dilempar ke beranda lalu harus mencari paketnya
+   * lagi. Tanpa ini, alur pembelian terputus di tengah.
+   *
+   * ── KENAPA HANYA PATH INTERNAL ────────────────────────────────────────────
+   * Nilai dari URL bisa diisi siapa saja. Menerima URL absolut berarti
+   * halaman masuk bisa dipakai untuk mengarahkan pengguna ke situs lain
+   * setelah mereka mengetik sandi — open redirect, dan itu alat phishing
+   * yang meyakinkan. Hanya path yang diawali '/' tunggal yang diterima;
+   * '//host' ditolak karena browser memperlakukannya sebagai absolut.
+   */
+  function tujuanLanjut() {
+    let nilai;
+    try {
+      nilai = new URLSearchParams(location.search).get('lanjut');
+    } catch {
+      return null;
+    }
+    if (!nilai) return null;
+
+    const s = String(nilai);
+    if (!s.startsWith('/')) return null;
+    if (s.startsWith('//')) return null;
+    if (s.includes('\\')) return null;
+    // Batasi panjangnya — URL yang wajar tidak sepanjang ini.
+    return s.slice(0, 300);
+  }
+
   function selesai(proyek, data) {
     if (proyek) proyekAktif = proyek;
-    const tujuan = data?.redirect || (proyek ? `/${proyek}` : '/home');
+    const tujuan = tujuanLanjut() || data?.redirect || (proyek ? `/${proyek}` : '/home');
     const tautan = $('#btnGoProject');
     if (tautan) tautan.href = tujuan;
 
@@ -1492,7 +1540,9 @@
       }
 
       pesan(msgToken, 'Berhasil. Mengalihkan…', 'sukses');
-      window.location.href = hasil.redirect || '/';
+      // `lanjut` menang atas redirect bawaan — pengguna yang datang dari alur
+      // pembelian harus kembali ke halaman harga, bukan ke beranda.
+      window.location.href = tujuanLanjut() || hasil.redirect || '/';
 
     } catch (err) {
       pulihkan();
@@ -1648,7 +1698,13 @@
               // dibuat, hanya tanpa data perangkat.
             }
 
-            window.location.href = p.url;
+            // `lanjut` diteruskan ke alur OAuth: backend menyimpannya di
+            // state dan mengembalikan pengguna ke sana setelah callback —
+            // jadi alur pembelian tidak putus di tengah.
+            const lanjut = tujuanLanjut();
+            window.location.href = lanjut
+              ? `${p.url}?lanjut=${encodeURIComponent(lanjut)}`
+              : p.url;
           });
         } else {
           // Belum dikonfigurasi → sembunyikan sepenuhnya.
@@ -1666,6 +1722,13 @@
       if (aktif.sso) {
         btnSso.disabled = false;
         btnSso.removeAttribute('title');
+        // Bawa tujuan kembali — sama seperti tombol provider lain.
+        btnSso.addEventListener('click', () => {
+          const lanjut = tujuanLanjut();
+          if (lanjut) {
+            window.location.href = `/api/auth/sso?lanjut=${encodeURIComponent(lanjut)}`;
+          }
+        });
 
         // ── Label dari server, bukan hardcoded ───────────────────────────────
         //

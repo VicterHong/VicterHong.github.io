@@ -1383,3 +1383,81 @@
   .dialog-bayar-aksi { flex-direction: column-reverse; }
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   DIALOG PEMBAYARAN — KEADAAN (masuk / 2FA / siap)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Baris status saat dialog memeriksa akun. Tingginya dijaga minimal supaya
+   dialog tidak "melompat" saat teksnya hilang setelah konteks tiba. */
+.dialog-bayar-status {
+  margin: 0;
+  min-height: 1.25rem;
+  font-size: var(--fs-2);
+  color: var(--pr-text-dim);
+}
+
+.dialog-bayar-blok {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pr-3);
+}
+
+.dialog-bayar-info {
+  margin: 0;
+  font-size: var(--fs-2);
+  line-height: 1.6;
+  color: var(--pr-text-dim);
+}
+
+.dialog-bayar-info--kecil {
+  font-size: var(--fs-1);
+  color: var(--pr-text-faint);
+}
+
+.dialog-bayar-info a {
+  color: var(--pr-accent-light);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Tombol selebar dialog — dipakai tautan "Masuk untuk melanjutkan". */
+.dialog-bayar-lebar {
+  width: 100%;
+  text-decoration: none;
+}
+
+/* Kolom kode: angka besar & berjarak lebar supaya 6 digit mudah dibaca
+   sekilas, dan `letter-spacing` membuat salah baca antar digit lebih sulit. */
+.dialog-bayar-kode {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-4);
+  letter-spacing: 0.35em;
+  text-align: center;
+  padding-left: 0.35em;   /* imbangi letter-spacing di tepi kiri */
+}
+
+/* Ringkasan sebelum bayar — dua kolom label/nilai. */
+.dialog-bayar-ringkas {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+  padding: var(--pr-3) var(--pr-4);
+  border: 1px solid var(--pr-line);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: var(--fs-2);
+}
+
+.dialog-bayar-ringkas dt {
+  color: var(--pr-text-faint);
+  white-space: nowrap;
+}
+
+.dialog-bayar-ringkas dd {
+  margin: 0;
+  color: var(--pr-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+

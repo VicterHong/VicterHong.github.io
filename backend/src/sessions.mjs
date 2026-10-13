@@ -10,6 +10,15 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { getDb, now, transaction } from './db.mjs';
 
+/**
+ * Jendela sudo — berapa lama satu verifikasi 2FA berlaku untuk aksi sensitif.
+ *
+ * Dipakai di dua tempat: sesi baru yang BARU melewati 2FA (langsung sudo),
+ * dan step-up yang memverifikasi ulang sebelum pembayaran. Satu konstanta
+ * supaya kedua jalur tidak pernah berbeda jendela.
+ */
+export const SUDO_MS = 30 * 60 * 1000;
+
 /** ID acak untuk sesi (256-bit, hex). */
 function sessionId() {
   return 'sess_' + randomBytes(32).toString('hex');
@@ -43,10 +52,18 @@ export function createSession({
   kota = '', wilayah = '', asn = '', zonaWaktu = '', org = '',
   platform = '', model = '', jenis = '',
   durationHours = 24, maxDevices = null,
+  sudoMs = 0,
 }) {
   const id = sessionId();
   const at = now();
   const expiresAt = at + durationHours * 3_600_000;
+
+  // ── SUDO MODE ─────────────────────────────────────────────────────────────
+  // Login yang BARU SAJA melewati 2FA sudah membuktikan faktor kedua, jadi
+  // sesinya langsung "sudo" — pengguna tidak diminta memasukkan kode dua kali
+  // berturut-turut. Login tanpa 2FA (atau sesi token biasa) memulai dengan 0:
+  // aksi sensitif akan meminta verifikasi lebih dulu.
+  const sudoUntil = sudoMs > 0 ? at + sudoMs : 0;
 
   // Kalau maxDevices tidak disediakan, baca dari token row
   let effectiveMaxDevices = maxDevices;
@@ -77,14 +94,14 @@ export function createSession({
         id, token_id, device_fp, ip, country, user_agent,
         kota, wilayah, asn, zona_waktu, org,
         platform, model, jenis,
-        created_at, last_seen, expires_at
+        created_at, last_seen, expires_at, sudo_until
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       hashSession(id, secret), tokenId, deviceFp, ip, country, userAgent,
       kota, wilayah, asn, zonaWaktu, org,
       platform, model, jenis,
-      at, at, expiresAt,
+      at, at, expiresAt, sudoUntil,
     );
   });
 
@@ -140,6 +157,28 @@ export function destroySession(sessionId, secret) {
 }
 
 /**
+ /**
+  * Beri jendela sudo pada satu sesi (step-up 2FA berhasil).
+  *
+  * `sessionId` adalah ID MENTAH dari cookie — di-hash di sini supaya pemanggil
+  * tidak perlu tahu format penyimpanannya.
+  */
+ export function setSudoUntil(sessionId, secret, ms) {
+   if (!sessionId || !secret || !(ms > 0)) return false;
+   const hash = hashSession(sessionId, secret);
+   const info = getDb().prepare(
+     'UPDATE sessions SET sudo_until = ? WHERE id = ? AND expires_at > ?'
+   ).run(now() + ms, hash, now());
+   return info.changes > 0;
+ }
+
+ /** Apakah sesi ini sedang dalam jendela sudo? */
+ export function sudoAktif(sessionRow) {
+   if (!sessionRow) return false;
+   return Number(sessionRow.sudo_until ?? 0) > now();
+ }
+
+ /**
  * Hapus semua sesi expired (cleanup).
  */
 export function cleanupExpiredSessions() {

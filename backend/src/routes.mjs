@@ -43,7 +43,10 @@ import {
   setujuiPenghapusan, tolakPenghapusan, bersihkanAkunKedaluwarsa,
   sisaHariHapus, adaLanggananAktif,
 } from './purge-akun.mjs';
-import { createSession, validateSession, destroySession, cleanupExpiredSessions } from './sessions.mjs';
+import {
+  createSession, validateSession, destroySession, cleanupExpiredSessions,
+  setSudoUntil, sudoAktif, SUDO_MS,
+} from './sessions.mjs';
 import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
 import { enforceAbuseRules, revokeMessage } from './guard.mjs';
 import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
@@ -665,6 +668,122 @@ function verifySession(req, { projectSlug = '', action = 'content' } = {}) {
   }
 
 /**
+ * Jendela sudo — berapa lama satu verifikasi 2FA berlaku untuk aksi sensitif.
+ *
+ * ── KENAPA 30 MENIT ────────────────────────────────────────────────────────
+ * GitHub memakai 2 jam untuk sudo mode-nya. Pembayaran di sini adalah aksi
+ * tunggal yang jarang diulang, jadi 30 menit sudah lebih dari cukup: pembeli
+ * membuka dialog → verifikasi → bayar, semuanya dalam hitungan menit. Jendela
+ * lebih pendek = lebih sedikit waktu bagi perangkat yang tidak dijaga.
+ *
+ * ── APA YANG DILINDUNGI ────────────────────────────────────────────────────
+ * Tanpa step-up, siapa pun yang menemukan laptop dalam keadaan terbuka bisa
+ * membelanjakan uang pemilik akun. Dengan step-up, ia butuh kode dari
+ * authenticator — sesuatu yang tidak ada di laptop itu.
+ *
+ * Nilainya ada di sessions.mjs — dipakai juga saat login, supaya kedua jalur
+ * tidak pernah berbeda jendela.
+ */
+
+/**
+ * Sesi lengkap (token + baris sesi) dari cookie, atau null.
+ *
+ * `sesiDariRequest()` mengembalikan tokenRow saja — cukup untuk identitas,
+ * tapi TIDAK cukup untuk sudo: status sudo melekat pada SESI (perangkat),
+ * bukan pada token (akun). Endpoint yang butuh keduanya memakai ini.
+ */
+function sesiLengkap(req) {
+  const cookies = parseCookies(req);
+  const sessionId = cookies.portfolio_session ?? '';
+  if (!sessionId) return null;
+
+  const hasil = validateSession(sessionId, config.secret);
+  if (!hasil) return null;
+
+  const problem = tokenProblem(hasil.tokenRow);
+  if (problem) return null;
+
+  return { ...hasil, sessionId };
+}
+
+/**
+ * Pastikan permintaan boleh memulai pembayaran: sesi sah + identitas cocok +
+ * sudo (2FA) aktif.
+ *
+ * ── URUTAN YANG TIDAK BOLEH DIBALIK ────────────────────────────────────────
+ *   1. Ada sesi?             → belum masuk = tolak (korporat: wajib akun)
+ *   2. Identitas sesi cocok dengan email yang diminta?
+ *   3. Sudo aktif?
+ *
+ * Pemeriksaan (2) penting: tanpa itu, pengguna yang masuk sebagai
+ * a@perusahaan.com bisa memulai pembayaran atas nama b@perusahaan.com hanya
+ * dengan mengetik emailnya — dan token aksesnya dikirim ke b.
+ *
+ * Mengembalikan { ok: true, pengguna } atau { ok: false, status, body }.
+ */
+function wajibSudoPembayaran(req, emailDiminta) {
+  const sesi = sesiLengkap(req);
+  if (!sesi) {
+    return {
+      ok: false,
+      status: 401,
+      body: {
+        ok: false,
+        error: 'belum_masuk',
+        message: 'Masuk dulu untuk melanjutkan pembayaran.',
+        saran: 'masuk',
+      },
+    };
+  }
+
+  const pengguna = cariPengguna(sesi.tokenRow.issued_to);
+  if (!pengguna || pengguna.status !== 'aktif') {
+    return {
+      ok: false,
+      status: 403,
+      body: {
+        ok: false,
+        error: 'akun_tidak_aktif',
+        message: 'Akun ini tidak bisa dipakai untuk pembayaran. Hubungi dukungan.',
+      },
+    };
+  }
+
+  const emailSesi = normalEmail(pengguna.email);
+  if (emailDiminta && normalEmail(emailDiminta) !== emailSesi) {
+    return {
+      ok: false,
+      status: 403,
+      body: {
+        ok: false,
+        error: 'email_tidak_cocok',
+        message: `Sesi ini masuk sebagai ${emailSesi}. Pembayaran hanya bisa dimulai untuk akun yang sedang masuk.`,
+        email_sesi: emailSesi,
+      },
+    };
+  }
+
+  // ── Step-up 2FA ───────────────────────────────────────────────────────────
+  // Hanya berlaku kalau akun memang punya 2FA. Akun tanpa 2FA tidak bisa
+  // "dinaikkan" ke sesuatu yang tidak ada — dan menolaknya berarti mereka
+  // tidak pernah bisa membeli.
+  if (totpAktif(emailSesi) && !sudoAktif(sesi.sessionRow)) {
+    return {
+      ok: false,
+      status: 403,
+      body: {
+        ok: false,
+        error: 'perlu_2fa',
+        message: 'Masukkan kode dari aplikasi authenticator untuk melanjutkan pembayaran.',
+        saran: 'verifikasi_2fa',
+      },
+    };
+  }
+
+  return { ok: true, pengguna, sesi };
+}
+
+/**
  * Verifikasi Turnstile untuk aksi sensitif (gerbang token, sesi).
  *
  * Dipakai SEBELUM token diperiksa — jadi bot tidak bisa menebak token
@@ -865,9 +984,158 @@ export const routes = [
   },
 
   {
+    // ══ KONTEKS PEMBAYARAN ═══════════════════════════════════════════════════
+    //
+    // Dipanggil halaman harga SEBELUM dialog dibuka, supaya UI tahu keadaan
+    // pengguna dan bisa menampilkan langkah yang tepat:
+    //
+    //   belum masuk       → tombol "Masuk untuk melanjutkan" (bukan form email)
+    //   masuk, tanpa 2FA  → langsung lanjut ke pembayaran
+    //   masuk, 2FA aktif  → minta kode 6 digit dulu (step-up)
+    //
+    // ── KENAPA KEADAAN DIKIRIM KE KLIEN, PADAHAL SERVER TETAP MEMERIKSA ────
+    // Server TIDAK PERNAH mempercayai klien — setiap permintaan checkout
+    // diperiksa ulang di handler-nya. Yang dikirim ke sini hanya untuk
+    // MENAMPILKAN langkah yang benar; kalau klien memalsukannya, permintaan
+    // checkout-nya tetap ditolak.
+    method: 'GET',
+    pattern: '/api/checkout/konteks',
+    handler: safe(async (req, res) => {
+      const sesi = sesiLengkap(req);
+
+      if (!sesi) {
+        return sendJson(res, 200, {
+          ok: true,
+          masuk: false,
+          // Dipakai dialog untuk mengarahkan pengguna ke halaman masuk
+          // dengan kembali ke halaman harga setelah selesai.
+          masuk_url: '/sign-in?lanjut=%2Fpricing',
+        });
+      }
+
+      const pengguna = cariPengguna(sesi.tokenRow.issued_to);
+      if (!pengguna || pengguna.status !== 'aktif') {
+        return sendJson(res, 200, { ok: true, masuk: false, masuk_url: '/sign-in?lanjut=%2Fpricing' });
+      }
+
+      const email = normalEmail(pengguna.email);
+      const punya2fa = totpAktif(email);
+      const sudo = sudoAktif(sesi.sessionRow);
+
+      return sendJson(res, 200, {
+        ok: true,
+        masuk: true,
+        email,
+        nama: pengguna.nama || '',
+        punya_2fa: punya2fa,
+        // Sudo aktif = tidak perlu kode lagi (baru saja masuk lewat 2FA,
+        // atau baru saja memverifikasi). Jendela 30 menit.
+        sudo,
+        perlu_verifikasi: punya2fa && !sudo,
+        sudo_berlaku_menit: Math.round(SUDO_MS / 60000),
+      });
+    }),
+  },
+
+  {
+    // ══ STEP-UP 2FA UNTUK PEMBAYARAN ═════════════════════════════════════════
+    //
+    // ── KENAPA TERPISAH DARI /api/auth/2fa ──────────────────────────────────
+    // Endpoint itu memverifikasi email + SANDI + kode, lalu MEMBUAT SESI BARU.
+    // Di sini pengguna sudah punya sesi — yang dibutuhkan hanya membuktikan
+    // faktor kedua pada perangkat ini, lalu membuka jendela sudo.
+    //
+    // Memakai /api/auth/2fa berarti meminta sandi lagi di tengah pembelian,
+    // dan itu justru mendorong pengguna memilih sandi lemah supaya cepat.
+    // Pola korporat (GitHub sudo mode, Stripe) meminta FAKTOR KEDUA saja.
+    method: 'POST',
+    pattern: '/api/checkout/2fa',
+    handler: safe(async (req, res) => {
+      const body = await readJson(req);
+
+      const sesi = sesiLengkap(req);
+      if (!sesi) {
+        return sendJson(res, 401, {
+          ok: false, error: 'belum_masuk',
+          message: 'Sesi tidak ditemukan. Masuk dulu.',
+          saran: 'masuk',
+        });
+      }
+
+      const pengguna = cariPengguna(sesi.tokenRow.issued_to);
+      if (!pengguna || pengguna.status !== 'aktif') {
+        return sendJson(res, 403, { ok: false, error: 'akun_tidak_aktif', message: 'Akun tidak aktif.' });
+      }
+
+      const email = normalEmail(pengguna.email);
+      if (!totpAktif(email)) {
+        // Tidak punya 2FA = tidak ada yang perlu diverifikasi. Balas ok supaya
+        // klien bisa melanjutkan, bukan menggantung menunggu kode yang
+        // tidak pernah ada.
+        return sendJson(res, 200, { ok: true, sudo: true, pesan: 'Akun ini tidak memakai 2FA.' });
+      }
+
+      const gate = await turnstileGate(req, body, { action: 'checkout_2fa' });
+      if (!gate.ok) return sendJson(res, gate.status, gate.body);
+
+      const kode = String(body.code ?? '').replace(/\D/g, '').slice(0, 6);
+      if (kode.length !== 6) {
+        return sendJson(res, 400, { ok: false, error: 'kode_tidak_lengkap', message: 'Masukkan 6 digit kode.' });
+      }
+
+      const hasil = verifikasi2fa(email, kode, config, { ip: clientIp(req) });
+      if (!hasil.ok) {
+        recordEvent({
+          projectSlug: '', action: 'checkout_step_up', outcome: 'gagal',
+          detail: hasil.alasan, ip: clientIp(req),
+          userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        });
+        return sendJson(res, 401, {
+          ok: false,
+          error: hasil.alasan ?? 'kode_salah',
+          message: hasil.pesan ?? 'Kode tidak cocok.',
+          sisa_percobaan: hasil.sisa_percobaan,
+        });
+      }
+
+      // Kode sah → buka jendela sudo pada SESI INI (perangkat ini saja).
+      setSudoUntil(sesi.sessionId, config.secret, SUDO_MS);
+
+      recordEvent({
+        projectSlug: '', action: 'checkout_step_up', outcome: 'ok',
+        ip: clientIp(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        detail: hasil.metode === 'kode_pemulihan' ? 'kode_pemulihan' : 'totp',
+      });
+
+      return sendJson(res, 200, {
+        ok: true,
+        sudo: true,
+        metode: hasil.metode,
+        berlaku_menit: Math.round(SUDO_MS / 60000),
+        // Peringatan kalau kode pemulihan yang dipakai — pengguna perlu tahu
+        // supaya membuat kode baru.
+        ...(hasil.metode === 'kode_pemulihan' && hasil.kode_pemulihan_tersisa <= 2
+          ? { peringatan: `Sisa ${hasil.kode_pemulihan_tersisa} kode pemulihan. Segera buat yang baru.` }
+          : {}),
+      });
+    }),
+  },
+
+  {
     // ── Mulai pembayaran langganan ──────────────────────────────────────────
     //
-    // Publik — pembeli tidak perlu punya akun dulu.
+    // WAJIB MASUK + WAJIB AKUN TERDAFTAR + step-up 2FA kalau aktif.
+    //
+    // ── KENAPA TIDAK LAGI PUBLIK ────────────────────────────────────────────
+    // Sebelumnya siapa pun bisa memulai pembayaran dengan email apa saja —
+    // termasuk email orang lain yang sudah punya akun. Akibatnya: token akses
+    // terbit untuk akun yang tidak memintanya, dan riwayat pembelian orang
+    // itu bertambah tanpa sepengetahuannya.
+    //
+    // Model korporat (GitHub, Stripe, Vercel): pembelian terikat pada akun
+    // yang sedang masuk, dan aksi yang mengeluarkan uang butuh pembuktian
+    // ulang faktor kedua. Lihat wajibSudoPembayaran().
     //
     // ── KENAPA IDEMPOTENCY_KEY DARI KLIEN ──────────────────────────────────
     // Kuncinya datang dari browser, bukan dibuat di server. Yang tahu "ini
@@ -883,6 +1151,28 @@ export const routes = [
     handler: safe(async (req, res) => {
       const body = await readJson(req);
 
+      // ══ GERBANG KORPORAT ══════════════════════════════════════════════════
+      //
+      //  1. Wajib masuk — tidak ada pembelian anonim
+      //  2. Email yang diminta harus akun yang sedang masuk (bukan email
+      //     orang lain yang kebetulan diketik)
+      //  3. Kalau akun punya 2FA, sesi ini harus sudah lewat step-up
+      //
+      // ── KENAPA DIPERIKSA DI SINI, BUKAN DI KLIEN ──────────────────────────
+      // Klien bisa dimatikan, disunting, atau dilewati dengan curl. Satu-
+      // satunya tempat yang tidak bisa dilewati adalah server — jadi semua
+      // aturan hidup di sini. Frontend hanya menyiapkan langkahnya.
+      const gerbang = wajibSudoPembayaran(req, String(body.email ?? '').trim());
+      if (!gerbang.ok) {
+        recordEvent({
+          projectSlug: '', action: 'checkout_gerbang',
+          outcome: gerbang.body.error ?? 'ditolak',
+          ip: clientIp(req),
+          userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        });
+        return sendJson(res, gerbang.status, gerbang.body);
+      }
+
       // ── KENAPA ERROR DITANGKAP DI SINI, BUKAN DIBIARKAN KE safe() ─────────
       // `safe()` menyembunyikan pesan error 5xx jadi "kesalahan_internal" —
       // itu benar untuk mencegah kebocoran detail sistem.
@@ -894,11 +1184,13 @@ export const routes = [
       // dikirim adalah pesan + saran yang sudah disiapkan di checkout.mjs —
       // keduanya ditulis khusus untuk pembaca, bukan untuk developer.
       try {
+        // Email & nama diambil dari AKUN, bukan dari body. Body bisa berisi
+        // apa saja; yang sah adalah identitas yang sudah diverifikasi.
         const hasil = await mulaiPembayaran({
           tier: String(body.tier ?? '').trim(),
           periode: String(body.periode ?? 'bulanan').trim(),
-          email: String(body.email ?? '').trim(),
-          nama: String(body.nama ?? '').trim(),
+          email: normalEmail(gerbang.pengguna.email),
+          nama: String(gerbang.pengguna.nama ?? '').trim(),
           idempotencyKey: String(body.idempotency_key ?? '').trim(),
         });
 
@@ -1346,6 +1638,10 @@ export const routes = [
         jenis: det.jenis,
         durationHours: config.sessionDurationHours,
         maxDevices: row.max_devices ?? config.maxDevices,
+        // Login ini BARU melewati 2FA — faktor kedua sudah dibuktikan pada
+        // perangkat ini. Sesi dimulai dalam jendela sudo supaya pengguna
+        // tidak diminta kode lagi saat membayar beberapa menit kemudian.
+        sudoMs: SUDO_MS,
       });
 
       recordFingerprint({
@@ -1782,6 +2078,8 @@ export const routes = [
         jenis: det.jenis,
         durationHours: config.sessionDurationHours,
         maxDevices: tokenRow.max_devices ?? config.maxDevices,
+        // Login ini BARU melewati 2FA — lihat catatan di /api/token/2fa.
+        sudoMs: SUDO_MS,
       });
 
       setCookie(res, 'portfolio_session', session.id, {

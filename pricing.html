@@ -232,33 +232,94 @@
 
   </div>
     <!-- ══ DIALOG PEMBAYARAN ═══════════════════════════════════════════════
-         Muncul saat tombol paket berbayar diklik. Email diminta di sini
-         karena struk dan informasi akses dikirim ke email setelah pembayaran
-         terkonfirmasi — dan Midtrans memakainya untuk halaman pembayaran.
+         Muncul saat tombol paket berbayar diklik.
+
+         ── TIGA KEADAAN, SATU DIALOG ─────────────────────────────────────────
+         Isinya menyesuaikan keadaan akun, bukan menampilkan form yang sama
+         untuk semua orang:
+
+           belum masuk  → ajakan masuk (pembelian TIDAK bisa anonim)
+           perlu 2FA    → kolom kode 6 digit (step-up sebelum uang keluar)
+           siap         → ringkasan + tombol bayar
+
+         ── KENAPA EMAIL TIDAK DIMINTA DI SINI ────────────────────────────────
+         Email pembelian adalah email AKUN yang sedang masuk. Meminta email
+         berarti membuka dua masalah: pengguna bisa mengetik email orang lain
+         (dan tokennya terbit untuk akun yang tidak memintanya), atau salah
+         ketik dan tokennya dikirim ke alamat yang salah. Dengan mengambilnya
+         dari akun, keduanya tidak mungkin terjadi.
 
          <dialog> asli browser: fokus terkurung otomatis, Escape menutup, dan
          latar belakang inert — tanpa satu baris pun JavaScript untuk itu. -->
     <dialog class="dialog-bayar" id="dialogBayar" aria-labelledby="dialogBayarJudul">
-      <form class="dialog-bayar-form" id="formBayar" method="dialog">
+      <div class="dialog-bayar-form">
         <h2 class="dialog-bayar-judul" id="dialogBayarJudul">Langganan</h2>
         <p class="dialog-bayar-sub" id="dialogBayarSub"></p>
 
-        <label class="dialog-bayar-label" for="bayarEmail">Email untuk struk &amp; akses</label>
-        <input class="dialog-bayar-input" id="bayarEmail" name="email" type="email"
-               inputmode="email" autocomplete="email" required
-               placeholder="nama@contoh.com">
+        <p class="dialog-bayar-status" id="bayarStatus" role="status" aria-live="polite">
+          Memeriksa akun…
+        </p>
+
+        <!-- ── Keadaan 1: belum masuk ───────────────────────────────────── -->
+        <div class="dialog-bayar-blok" id="bayarBlokMasuk" hidden>
+          <p class="dialog-bayar-info">
+            Pembelian terikat pada akun, jadi Anda perlu masuk dulu.
+            Setelah masuk, Anda kembali ke halaman ini.
+          </p>
+          <a class="tombol tombol--utama dialog-bayar-lebar" id="bayarKeMasuk"
+             href="/sign-in?lanjut=%2Fpricing">Masuk untuk melanjutkan</a>
+          <p class="dialog-bayar-info dialog-bayar-info--kecil">
+            Belum punya akun?
+            <a id="bayarKeDaftar" href="/sign-up?lanjut=%2Fpricing">Daftar dulu</a> — tidak sampai satu menit.
+          </p>
+        </div>
+
+        <!-- ── Keadaan 2: perlu 2FA ─────────────────────────────────────── -->
+        <div class="dialog-bayar-blok" id="bayarBlok2fa" hidden>
+          <p class="dialog-bayar-info">
+            Akun ini memakai verifikasi dua langkah. Masukkan kode dari
+            aplikasi authenticator untuk melanjutkan pembayaran.
+          </p>
+          <label class="dialog-bayar-label" for="bayarKode">Kode 6 digit</label>
+          <input class="dialog-bayar-input dialog-bayar-kode" id="bayarKode"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" pattern="[0-9]{6}" placeholder="000000"
+                 aria-describedby="bayarKodeBantuan">
+          <p class="dialog-bayar-info dialog-bayar-info--kecil" id="bayarKodeBantuan">
+            Kehilangan akses ke authenticator? Masukkan kode pemulihan Anda
+            (format XXXXX-XXXXX).
+          </p>
+        </div>
+
+        <!-- ── Keadaan 3: siap bayar ────────────────────────────────────── -->
+        <div class="dialog-bayar-blok" id="bayarBlokSiap" hidden>
+          <dl class="dialog-bayar-ringkas">
+            <dt>Akun</dt>
+            <dd id="bayarAkun">—</dd>
+            <dt>Total</dt>
+            <dd id="bayarTotal">—</dd>
+          </dl>
+          <p class="dialog-bayar-info dialog-bayar-info--kecil" id="bayarSudoInfo" hidden>
+            Kode 2FA sudah diverifikasi di perangkat ini.
+          </p>
+        </div>
 
         <p class="dialog-bayar-galat" id="bayarGalat" role="alert" hidden></p>
 
         <div class="dialog-bayar-aksi">
           <button class="tombol tombol--sekunder" id="bayarBatal" type="button">Batal</button>
-          <button class="tombol tombol--utama" id="bayarLanjut" type="submit">Lanjut ke pembayaran</button>
+          <button class="tombol tombol--utama" id="bayarVerifikasi" type="button" hidden>
+            Verifikasi kode
+          </button>
+          <button class="tombol tombol--utama" id="bayarLanjut" type="button" hidden>
+            Lanjut ke pembayaran
+          </button>
         </div>
 
         <p class="dialog-bayar-catatan">
           Pembayaran diproses Midtrans. Setelah selesai, Anda kembali ke halaman pesanan.
         </p>
-      </form>
+      </div>
     </dialog>
 
 </main>

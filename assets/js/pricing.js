@@ -160,25 +160,55 @@ function tombolPaket(paket, periode, hrefKontak) {
 /* ── Dialog pembayaran ──────────────────────────────────────────────────── */
 
 /**
- * Dialog email → POST /api/checkout → halaman pembayaran Midtrans.
+ * Dialog pembayaran — tiga keadaan, satu komponen.
  *
- * ── KENAPA EMAIL DIMINTA DI SINI ───────────────────────────────────────────
- * Struk dan informasi akses dikirim ke email setelah pembayaran terkonfirmasi,
- * jadi email harus ada SEBELUM transaksi dibuat — bukan sesudah. Midtrans juga
- * memakainya untuk halaman pembayaran.
+ * ══════════════════════════════════════════════════════════════════════════
+ * KEADAAN YANG DITANGANI
+ * ══════════════════════════════════════════════════════════════════════════
  *
- * ── KENAPA REDIRECT, BUKAN POPUP snap.pay() ────────────────────────────────
+ *   1. BELUM MASUK  → ajakan masuk. Pembelian TIDAK bisa anonim: token akses
+ *      dan riwayat pembelian terikat pada akun, jadi identitas harus ada
+ *      sebelum uang bergerak.
+ *
+ *   2. PERLU 2FA    → kolom kode 6 digit. Ini "step-up": sesi sudah sah,
+ *      tapi aksi yang mengeluarkan uang butuh pembuktian ulang faktor kedua
+ *      pada perangkat ini. Pola yang sama dipakai GitHub (sudo mode) dan
+ *      Stripe sebelum perubahan sensitif.
+ *
+ *   3. SIAP         → ringkasan akun + total, lalu tombol bayar.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA EMAIL TIDAK LAGI DIMINTA DI SINI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Sebelumnya dialog meminta email, dan server memakainya apa adanya. Dua
+ * masalah nyata dari situ:
+ *
+ *   • Pengguna bisa mengetik email ORANG LAIN yang sudah punya akun — dan
+ *     token aksesnya terbit untuk akun itu, tanpa pemiliknya tahu.
+ *   • Salah ketik satu huruf = token dikirim ke alamat yang salah, dan
+ *     pembeli tidak pernah menerima aksesnya.
+ *
+ * Sekarang email diambil dari akun yang sedang masuk. Keduanya tidak mungkin
+ * terjadi, dan pengguna tidak perlu mengetik apa pun.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA REDIRECT, BUKAN POPUP snap.pay()
+ * ══════════════════════════════════════════════════════════════════════════
+ *
  * Server mengembalikan `url` halaman pembayaran Snap. Membukanya langsung
  * bekerja di semua perangkat, termasuk ponsel, tanpa memuat skrip pihak
- * ketiga di halaman harga dan tanpa mengekspos client key. Setelah pembayaran,
- * Midtrans mengembalikan pembeli ke /pesanan (callbacks.finish =
- * CHECKOUT_SUKSES_URL).
+ * ketiga di halaman harga dan tanpa mengekspos client key. Setelah selesai,
+ * Midtrans mengembalikan pembeli ke /pesanan.
  *
- * ── KENAPA KUNCI IDEMPOTENSI DIBUAT DI SINI ────────────────────────────────
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA KUNCI IDEMPOTENSI DIBUAT DI SINI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
  * Yang tahu "ini percobaan ulang dari klik yang sama" adalah browser. Kunci
- * dibuat SEKALI saat dialog dibuka dan dipakai ulang untuk setiap percobaan
- * ulang selama dialog hidup — server memakai kunci ini sebagai order_id
- * Midtrans, jadi dobel-klik tidak menghasilkan dobel tagih.
+ * dibuat SEKALI saat dialog dibuka dan dipakai ulang selama dialog hidup —
+ * server memakainya sebagai order_id Midtrans, jadi dobel-klik tidak
+ * menghasilkan dobel tagih.
  */
 
 let _dialog = null;
@@ -194,111 +224,298 @@ function tampilkanGalatDialog(galat, pesan) {
   galat.hidden = false;
 }
 
+function sembunyikanGalatDialog(galat) {
+  if (!galat) return;
+  galat.hidden = true;
+  galat.textContent = '';
+}
+
+/** Tampilkan satu blok keadaan, sembunyikan yang lain. */
+function tampilkanBlok(d, nama) {
+  for (const id of ['bayarBlokMasuk', 'bayarBlok2fa', 'bayarBlokSiap']) {
+    const el = d.querySelector(`#${id}`);
+    if (el) el.hidden = id !== nama;
+  }
+}
+
+function aturTombol(d, { verifikasi = false, lanjut = false }) {
+  const bVerif = d.querySelector('#bayarVerifikasi');
+  const bLanjut = d.querySelector('#bayarLanjut');
+  if (bVerif) bVerif.hidden = !verifikasi;
+  if (bLanjut) bLanjut.hidden = !lanjut;
+}
+
+/** Kunci idempotensi baru per dialog. */
+function kunciBaru() {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `k${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+}
+
 function bukaDialogBayar(paket, periode) {
   const d = elemenDialog();
   if (!d) return;
 
-  const form = d.querySelector('#formBayar');
   const judul = d.querySelector('#dialogBayarJudul');
   const sub = d.querySelector('#dialogBayarSub');
+  const status = d.querySelector('#bayarStatus');
   const galat = d.querySelector('#bayarGalat');
-  const lanjut = d.querySelector('#bayarLanjut');
-  const email = d.querySelector('#bayarEmail');
-  if (!form || !judul || !sub || !lanjut) return;
+  if (!judul || !sub) return;
 
-  // Konteks pembelian disimpan di form — handler submit membacanya.
-  form.dataset.tier = paket.id;
-  form.dataset.periode = periode;
-  // Kunci BARU setiap dialog dibuka; dipertahankan selama dialog hidup.
-  form.dataset.kunci = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `k${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+  // Konteks pembelian disimpan di dataset dialog — dibaca handler tombol.
+  d.dataset.tier = paket.id;
+  d.dataset.periode = periode;
+  d.dataset.kunci = kunciBaru();
 
   const f = formatHarga(paket, periode);
   judul.textContent = `Langganan ${paket.nama}`;
   sub.textContent = `${f.angka}${f.satuan ?? ''}` +
-    (f.total ? ` — ditagih ${f.total} per tahun.` : '.') +
-    ' Token akses dikirim ke email ini setelah pembayaran terkonfirmasi.';
+    (f.total ? ` — ditagih ${f.total} per tahun.` : '.');
 
-  if (galat) galat.hidden = true;
-  lanjut.disabled = false;
-  lanjut.textContent = 'Lanjut ke pembayaran';
+  const akun = d.querySelector('#bayarAkun');
+  if (akun) akun.textContent = '—';
+  const total = d.querySelector('#bayarTotal');
+  if (total) total.textContent = `${f.angka}${f.satuan ?? ''}`;
+  const infoSudo = d.querySelector('#bayarSudoInfo');
+  if (infoSudo) infoSudo.hidden = true;
+
+  sembunyikanGalatDialog(galat);
+  tampilkanBlok(d, '');   // semua blok tersembunyi sampai konteks tiba
+  aturTombol(d, {});
+  if (status) status.textContent = 'Memeriksa akun…';
 
   if (!d.open) d.showModal();
-  email?.focus();
+
+  periksaKonteks(d, paket, periode);
+}
+
+/**
+ * Tanya server siapa yang sedang masuk, lalu tampilkan langkah yang tepat.
+ *
+ * ── KENAPA SERVER, BUKAN COOKIE DI BROWSER ─────────────────────────────────
+ * Cookie sesi httpOnly — JavaScript tidak bisa membacanya (dan memang tidak
+ * boleh: itu yang membuatnya tidak bisa dicuri lewat XSS). Satu-satunya cara
+ * tahu keadaan akun adalah bertanya ke server.
+ */
+async function periksaKonteks(d, paket, periode) {
+  const status = d.querySelector('#bayarStatus');
+  const galat = d.querySelector('#bayarGalat');
+
+  let ctx = null;
+  try {
+    const res = await fetch('/api/checkout/konteks', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    });
+    ctx = await res.json().catch(() => null);
+  } catch {
+    if (status) status.textContent = '';
+    tampilkanGalatDialog(galat, 'Tidak bisa memeriksa akun. Periksa koneksi Anda, lalu coba lagi.');
+    aturTombol(d, {});
+    return;
+  }
+
+  if (!ctx?.ok) {
+    if (status) status.textContent = '';
+    tampilkanGalatDialog(galat, 'Tidak bisa memeriksa akun. Coba lagi sebentar lagi.');
+    return;
+  }
+
+  // ── Belum masuk ───────────────────────────────────────────────────────────
+  if (!ctx.masuk) {
+    if (status) status.textContent = '';
+    tampilkanBlok(d, 'bayarBlokMasuk');
+    const tautan = d.querySelector('#bayarKeMasuk');
+    if (tautan) {
+      // Bawa tujuan kembali + paket yang tadi dipilih, supaya setelah masuk
+      // pengguna tidak perlu mencari paketnya lagi.
+      const lanjut = `/pricing?paket=${encodeURIComponent(paket.id)}&periode=${encodeURIComponent(periode)}`;
+      tautan.href = `/sign-in?lanjut=${encodeURIComponent(lanjut)}`;
+    }
+    const daftar = d.querySelector('#bayarKeDaftar');
+    if (daftar) {
+      const lanjut = `/pricing?paket=${encodeURIComponent(paket.id)}&periode=${encodeURIComponent(periode)}`;
+      daftar.href = `/sign-up?lanjut=${encodeURIComponent(lanjut)}`;
+    }
+    aturTombol(d, {});
+    return;
+  }
+
+  // ── Sudah masuk ───────────────────────────────────────────────────────────
+  const akun = d.querySelector('#bayarAkun');
+  if (akun) akun.textContent = ctx.email || '—';
+
+  // Perlu step-up 2FA?
+  if (ctx.perlu_verifikasi) {
+    if (status) status.textContent = '';
+    tampilkanBlok(d, 'bayarBlok2fa');
+    aturTombol(d, { verifikasi: true });
+    d.querySelector('#bayarKode')?.focus();
+    return;
+  }
+
+  // Siap bayar.
+  if (status) status.textContent = '';
+  tampilkanBlok(d, 'bayarBlokSiap');
+  aturTombol(d, { lanjut: true });
+  const infoSudo = d.querySelector('#bayarSudoInfo');
+  if (infoSudo && ctx.sudo) infoSudo.hidden = false;
+  d.querySelector('#bayarLanjut')?.focus();
+}
+
+/** Kirim kode step-up ke server. */
+async function kirimKodeStepUp(d) {
+  const galat = d.querySelector('#bayarGalat');
+  const tombol = d.querySelector('#bayarVerifikasi');
+  const input = d.querySelector('#bayarKode');
+  const kode = String(input?.value ?? '').trim();
+
+  // Terima 6 digit TOTP ATAU kode pemulihan (XXXXX-XXXXX).
+  if (!/^\d{6}$/.test(kode) && !/^[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$/.test(kode)) {
+    tampilkanGalatDialog(galat, 'Masukkan 6 digit kode, atau kode pemulihan Anda.');
+    input?.focus();
+    return;
+  }
+
+  tombol.disabled = true;
+  tombol.textContent = 'Memverifikasi…';
+  sembunyikanGalatDialog(galat);
+
+  try {
+    const res = await fetch('/api/checkout/2fa', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ code: kode }),
+    });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.message || `Server menjawab ${res.status}.`);
+    }
+
+    // Verifikasi lolos → langsung ke keadaan siap bayar.
+    tampilkanBlok(d, 'bayarBlokSiap');
+    aturTombol(d, { lanjut: true });
+    const infoSudo = d.querySelector('#bayarSudoInfo');
+    if (infoSudo) infoSudo.hidden = false;
+    if (data.peringatan) tampilkanGalatDialog(galat, data.peringatan);
+    d.querySelector('#bayarLanjut')?.focus();
+  } catch (err) {
+    tampilkanGalatDialog(galat, err?.message ?? 'Kode tidak bisa diverifikasi.');
+    if (input) input.value = '';
+    input?.focus();
+  } finally {
+    tombol.disabled = false;
+    tombol.textContent = 'Verifikasi kode';
+  }
+}
+
+/** Mulai pembayaran setelah semua gerbang lolos. */
+async function mulaiPembayaranDariDialog(d) {
+  const galat = d.querySelector('#bayarGalat');
+  const tombol = d.querySelector('#bayarLanjut');
+
+  tombol.disabled = true;
+  tombol.textContent = 'Menyiapkan…';
+  sembunyikanGalatDialog(galat);
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        tier: d.dataset.tier,
+        periode: d.dataset.periode,
+        idempotency_key: d.dataset.kunci,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data?.ok) {
+      // ── Sesi kedaluwarsa / 2FA dicabut di tab lain ────────────────────────
+      // Server memeriksa ulang setiap kali, jadi keadaan bisa berubah antara
+      // dialog dibuka dan tombol ditekan. Kembalikan ke langkah yang benar
+      // alih-alih menampilkan galat yang membingungkan.
+      if (data?.error === 'belum_masuk') {
+        tampilkanBlok(d, 'bayarBlokMasuk');
+        aturTombol(d, {});
+        throw new Error('Sesi Anda sudah berakhir. Masuk lagi untuk melanjutkan.');
+      }
+      if (data?.error === 'perlu_2fa') {
+        tampilkanBlok(d, 'bayarBlok2fa');
+        aturTombol(d, { verifikasi: true });
+        throw new Error('Verifikasi 2FA diperlukan lagi untuk pembayaran ini.');
+      }
+      throw new Error([data?.message, data?.saran].filter(Boolean).join(' ') || `Server menjawab ${res.status}.`);
+    }
+
+    if (data.sudah_dibayar) {
+      location.href = `/pesanan?order_id=${encodeURIComponent(data.pembayaran_id)}&status=sukses`;
+      return;
+    }
+
+    if (!data.url) throw new Error('Server tidak mengembalikan tautan pembayaran.');
+
+    try { sessionStorage.setItem('pesanan_terakhir', data.pembayaran_id); } catch { /* storage diblokir */ }
+    location.href = data.url;
+  } catch (err) {
+    tampilkanGalatDialog(galat, err?.message ?? 'Pembayaran tidak bisa dimulai.');
+    tombol.disabled = false;
+    tombol.textContent = 'Lanjut ke pembayaran';
+  }
 }
 
 function pasangDialogBayar() {
   const d = elemenDialog();
   if (!d) return;
 
-  const form = d.querySelector('#formBayar');
-  const galat = d.querySelector('#bayarGalat');
-  const lanjut = d.querySelector('#bayarLanjut');
-  const batal = d.querySelector('#bayarBatal');
+  d.querySelector('#bayarBatal')?.addEventListener('click', () => d.close());
+  d.querySelector('#bayarVerifikasi')?.addEventListener('click', () => kirimKodeStepUp(d));
+  d.querySelector('#bayarLanjut')?.addEventListener('click', () => mulaiPembayaranDariDialog(d));
 
-  batal?.addEventListener('click', () => d.close());
-
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (lanjut.disabled) return;
-
-    const inputEmail = form.querySelector('#bayarEmail');
-    const email = String(inputEmail?.value ?? '').trim();
-
-    // Validasi ringan di klien untuk umpan balik cepat; server tetap
-    // memvalidasi ulang dan itulah yang menentukan.
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      tampilkanGalatDialog(galat, 'Alamat email belum benar. Contoh: nama@contoh.com');
-      inputEmail?.focus();
-      return;
-    }
-
-    lanjut.disabled = true;
-    lanjut.textContent = 'Menyiapkan…';
-    if (galat) galat.hidden = true;
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          tier: form.dataset.tier,
-          periode: form.dataset.periode,
-          email,
-          idempotency_key: form.dataset.kunci,
-        }),
-      });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok || !data?.ok) {
-        // Pesan + saran dari server ditulis untuk pembaca — tampilkan apa adanya.
-        const pesan = [data?.message, data?.saran].filter(Boolean).join(' ');
-        throw new Error(pesan || `Server menjawab ${res.status}.`);
-      }
-
-      // Sudah dibayar sebelumnya dengan kunci yang sama → tidak perlu bayar lagi.
-      if (data.sudah_dibayar) {
-        location.href = `/pesanan?order_id=${encodeURIComponent(data.pembayaran_id)}&status=sukses`;
-        return;
-      }
-
-      if (!data.url) throw new Error('Server tidak mengembalikan tautan pembayaran.');
-
-      // Simpan nomor pesanan — halaman /pesanan memakainya sebagai cadangan
-      // kalau Midtrans tidak menyertakan order_id di URL kembali.
-      try { sessionStorage.setItem('pesanan_terakhir', data.pembayaran_id); } catch { /* storage diblokir */ }
-
-      // Buka halaman pembayaran Snap Midtrans.
-      location.href = data.url;
-    } catch (err) {
-      tampilkanGalatDialog(galat, err?.message ?? 'Pembayaran tidak bisa dimulai.');
-      lanjut.disabled = false;
-      lanjut.textContent = 'Lanjut ke pembayaran';
-    }
+  // Enter di kolom kode = verifikasi. Tanpa ini, pengguna harus memindahkan
+  // tangan ke tombol setelah mengetik 6 digit.
+  d.querySelector('#bayarKode')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); kirimKodeStepUp(d); }
   });
+
+  // Bersihkan kode dari DOM saat dialog ditutup — kode TOTP berumur pendek,
+  // tapi tidak ada alasan meninggalkannya di halaman.
+  d.addEventListener('close', () => {
+    const input = d.querySelector('#bayarKode');
+    if (input) input.value = '';
+  });
+}
+
+/**
+ * Setelah kembali dari halaman masuk, buka lagi dialog untuk paket yang tadi
+ * dipilih — supaya pengguna tidak perlu mencari tombolnya lagi.
+ *
+ * Dipanggil dari mulai() saat URL membawa ?paket=...
+ */
+async function lanjutkanPembayaranDariUrl(data) {
+  const p = new URLSearchParams(location.search);
+  const idPaket = p.get('paket');
+  if (!idPaket) return;
+
+  const periode = p.get('periode') || data?.periode?.default || 'bulanan';
+  const paket = (data?.paket ?? []).find((x) => x.id === idPaket);
+  if (!paket || paket.harga?.normal == null) return;
+
+  // Tunggu kartu selesai digambar supaya dialog tidak muncul di halaman kosong.
+  await new Promise((r) => setTimeout(r, 250));
+  bukaDialogBayar(paket, periode);
+
+  // Bersihkan query supaya memuat ulang halaman tidak membuka dialog lagi.
+  try {
+    const bersih = new URL(location.href);
+    bersih.searchParams.delete('paket');
+    bersih.searchParams.delete('periode');
+    history.replaceState(null, '', bersih.pathname + bersih.search + bersih.hash);
+  } catch { /* gagal membersihkan bukan alasan menggagalkan semuanya */ }
 }
 
 /* ── Penggambar ─────────────────────────────────────────────────────────── */
@@ -840,6 +1057,12 @@ async function mulai() {
     for (const sel of ['#wadahKartu', '#wadahFaq']) {
       root.querySelector(sel)?.setAttribute('aria-busy', 'false');
     }
+
+    // ── KEMBALI DARI HALAMAN MASUK ──────────────────────────────────────────
+    // Pengguna yang menekan "Masuk untuk melanjutkan" kembali ke sini dengan
+    // ?paket=... — dialognya dibuka lagi supaya ia tidak perlu mencari
+    // tombol paket yang tadi dipilih.
+    lanjutkanPembayaranDariUrl(data);
   } catch (err) {
     const pesan = err?.name === 'AbortError'
       ? 'Server tidak menjawab dalam 8 detik.'
