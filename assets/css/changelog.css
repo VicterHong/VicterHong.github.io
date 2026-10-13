@@ -261,7 +261,9 @@
   vertical-align: 0.05em;
 }
 
-/* Hash commit — bisa diklik mata untuk verifikasi, tapi tidak mengganggu. */
+/* Hash commit — bisa diklik mata untuk verifikasi, tapi tidak mengganggu.
+   Tanpa opacity: pada opacity 0.7 kontras jatuh ke 3,2:1 dan gagal WCAG AA.
+   Warna --text-faint (5,6:1) sudah cukup membuat chip ini terasa sekunder. */
 .cl-hash {
   flex: 0 0 auto;
   padding: 0.1rem 0.4rem;
@@ -270,7 +272,6 @@
   color: var(--text-faint);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: var(--fs-1);
-  opacity: 0.7;
 }
 
 /* ── Keadaan awal: kerangka ───────────────────────────────────────────────── */

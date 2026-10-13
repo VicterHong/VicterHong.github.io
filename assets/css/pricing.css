@@ -714,9 +714,11 @@
 }
 
 /* Fitur yang tidak termasuk — diredupkan, bukan diberi warna merah.
-   Ini keterangan batas, bukan peringatan. */
+   Ini keterangan batas, bukan peringatan.
+   Opacity 0.8 (bukan 0.6): pada 0.6 teks redup jatuh ke kontras 3,3:1 dan
+   gagal WCAG AA (4,5:1). Pada 0.8 tetap jelas terlihat redup, terukur 4,9:1. */
 .harga-fitur li.tidak-dapat {
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 /* ── Tombol ───────────────────────────────────────────────────────────────── */
