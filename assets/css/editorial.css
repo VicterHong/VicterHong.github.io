@@ -56,14 +56,14 @@
   align-items: center;
   gap: 0.55rem;
   padding: 0.3rem 0;
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   color: var(--text-faint);
   transition: color 0.25s var(--ease);
 }
 
 .section-rail-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.68rem;
+  font-size: var(--fs-1);
   letter-spacing: 0.05em;
   opacity: 0.55;
   transition: opacity 0.25s var(--ease), color 0.25s var(--ease);
@@ -137,7 +137,7 @@
 }
 
 .marquee-item {
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
   font-weight: 400;
   letter-spacing: 0.02em;
   color: var(--text-faint);

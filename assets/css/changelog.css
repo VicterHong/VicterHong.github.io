@@ -17,7 +17,7 @@
 .cl-ringkas {
   margin-top: 0.9rem;
   color: var(--text-dim);
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -29,7 +29,7 @@
 .cl-filter-label {
   margin: 0 0 0.5rem;
   color: var(--text-dim);
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -49,7 +49,7 @@
   background: transparent;
   color: var(--text-dim);
   font: inherit;
-  font-size: 0.76rem;
+  font-size: var(--fs-1);
   font-weight: 500;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
@@ -87,7 +87,7 @@
   border-radius: 6px;
   color: var(--text-dim);
   text-decoration: none;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   transition: color 0.15s, background 0.15s;
 }
 
@@ -114,7 +114,7 @@
   border-radius: 999px;
   background: var(--bg-soft);
   color: var(--text-faint);
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   font-variant-numeric: tabular-nums;
 }
 
@@ -145,7 +145,7 @@
 
 .cl-hari-tanggal {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: var(--fs-4);
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -157,14 +157,14 @@
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent);
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   font-weight: 600;
 }
 
 .cl-hari-jumlah {
   margin-left: auto;
   color: var(--text-faint);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-variant-numeric: tabular-nums;
 }
 
@@ -182,7 +182,7 @@
   align-items: center;
   gap: 0.45rem;
   margin: 0 0 0.5rem;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--text);
@@ -240,7 +240,7 @@
   flex: 1;
   min-width: 0;
   color: var(--text-dim);
-  font-size: 0.88rem;
+  font-size: var(--fs-2);
   overflow-wrap: anywhere;
 }
 
@@ -254,7 +254,7 @@
   background: var(--bg-soft);
   color: var(--text-faint);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   vertical-align: 0.05em;
 }
 
@@ -266,7 +266,7 @@
   background: var(--bg-soft);
   color: var(--text-faint);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   opacity: 0.7;
 }
 
@@ -302,7 +302,7 @@
 .cl-kosong {
   padding: 2rem 0;
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   text-align: center;
 }
 
@@ -327,7 +327,7 @@
     background: var(--bg-card);
     color: var(--text);
     font: inherit;
-    font-size: 0.88rem;
+    font-size: var(--fs-2);
     font-weight: 600;
     text-align: left;
     cursor: pointer;
@@ -344,13 +344,13 @@
   .cl-filter-item {
     min-height: 38px;
     padding: 0.5rem 0.85rem;
-    font-size: 0.82rem;
+    font-size: var(--fs-2);
   }
 
   /* Tanggal di panel: 44px supaya nyaman disentuh. */
   .cl-nav-tanggal {
     min-height: 44px;
-    font-size: 0.86rem;
+    font-size: var(--fs-2);
   }
 
   /* Konten: jarak antar-hari sedikit dirapatkan. */

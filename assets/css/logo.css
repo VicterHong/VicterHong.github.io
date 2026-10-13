@@ -58,7 +58,7 @@ a:focus-visible > .brand-logo {
   height: 28px;
   flex: none;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 17px;
+  font-size: var(--fs-3);
   font-weight: 600;
   line-height: 1;
   color: #0e1116;

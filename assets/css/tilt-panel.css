@@ -61,7 +61,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.13em;
@@ -131,7 +131,7 @@
 }
 
 .tech-name {
-  font-size: 0.68rem;
+  font-size: var(--fs-1);
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-faint);
   text-align: center;
@@ -156,7 +156,7 @@
   .tech-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; }
   .tech-icon { width: 28px; height: 28px; }
   .tech-icon svg { border-radius: 6px; }
-  .tech-name { font-size: 0.62rem; }
+  .tech-name { font-size: var(--fs-1); }
   .tilt-panel { padding: 1.35rem 1.1rem; }
 }
 
@@ -164,7 +164,7 @@
   .tech-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3rem; }
   .tech-icon { width: 24px; height: 24px; }
   .tech-icon svg { border-radius: 5px; }
-  .tech-name { font-size: 0.56rem; }
+  .tech-name { font-size: var(--fs-1); }
 }
 
 /* ── Layout section Tentang ──────────────────────────────────────────────────── */

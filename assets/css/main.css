@@ -21,6 +21,23 @@
   --maxw: 1080px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
+  /* ── SKALA TIPOGRAFI — LIMA TINGKAT ─────────────────────────────────────────
+     Satu skala untuk seluruh situs. Sebelumnya ada 74 nilai berbeda (11,5 ·
+     12,48 · 13,12 · 13,92 px) — cukup mirip untuk terlihat seperti salah,
+     cukup beda untuk tidak bisa diprediksi. Sekarang lima, tidak lebih:
+       --fs-1  12px        mikro   — lencana, label, meta, hash commit
+       --fs-2  14px        kecil   — navigasi, keterangan, teks sekunder
+       --fs-3  16px        dasar   — badan teks & input (16px = tanpa zoom iOS)
+       --fs-4  24px        judul   — judul bagian, angka besar
+       --fs-5  28–44px     display — judul halaman (fluid, clamp)
+     Halaman auth memuat auth.css (bukan main.css) — token di bawah HARUS
+     sama persis dengan main.css; kalau diubah, ubah di kedua tempat. */
+  --fs-1: 0.75rem;
+  --fs-2: 0.875rem;
+  --fs-3: 1rem;
+  --fs-4: 1.5rem;
+  --fs-5: clamp(1.75rem, 6vw, 2.75rem);
+
   /* ── TOKEN GERAK ─────────────────────────────────────────────────────────────
    Tiga tingkat durasi supaya gerak konsisten. Nilai dari analisis 13.561
    desain (Kombai Gallery): rentang 150-200ms adalah konsensus untuk UI.
@@ -98,7 +115,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
-  font-size: 16px;
+  font-size: var(--fs-3);
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -271,7 +288,7 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 0 14px var(--accent-line);
 }
 
-.site-nav { display: flex; gap: 1.6rem; font-size: 0.9rem; color: var(--text-dim); }
+.site-nav { display: flex; gap: 1.6rem; font-size: var(--fs-2); color: var(--text-dim); }
 .site-nav a { transition: color 0.2s var(--ease); }
 .site-nav a:hover { color: var(--text); }
 
@@ -339,7 +356,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   white-space: nowrap;
   transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
@@ -388,7 +405,7 @@ a { color: inherit; text-decoration: none; }
   gap: 0.5rem;
   padding: 0.3rem 0.7rem 0.3rem 0.35rem;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--text);
   background: transparent;
@@ -425,7 +442,7 @@ a { color: inherit; text-decoration: none; }
   place-items: center;
   width: 26px;
   height: 26px;
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   font-weight: 700;
   letter-spacing: 0.02em;
   color: #0b0b0c;
@@ -488,7 +505,7 @@ a { color: inherit; text-decoration: none; }
 
 .nav-akun-kepala {
   padding: 0.5rem 0.65rem 0.5rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   color: var(--muted, #9a9a9f);
   border-bottom: 1px solid var(--line);
   margin-bottom: 0.35rem;
@@ -508,7 +525,7 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
   padding: 0.55rem 0.65rem;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   text-align: left;
   color: var(--text);
   background: transparent;
@@ -595,7 +612,7 @@ a { color: inherit; text-decoration: none; }
 .nav-akun-badge {
   padding: 0.15rem 0.45rem;
   border-radius: 6px;
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.01em;
   border: 1px solid transparent;
@@ -733,7 +750,7 @@ a { color: inherit; text-decoration: none; }
 
   .site-nav a {
     padding: 0.9rem 1.25rem;
-    font-size: 0.95rem;
+    font-size: var(--fs-3);
     /* Kontras dinaikkan (--text-dim → --text) supaya tautan jelas terbaca
        di atas panel gelap — standar aksesibilitas WCAG AA. */
     color: var(--text);
@@ -781,7 +798,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (max-width: 480px) {
-  .brand-text { font-size: 0.95rem; }
+  .brand-text { font-size: var(--fs-3); }
 }
 
 /* ── PEMBUKA ─────────────────────────────────────────────────────────────────── */
@@ -808,14 +825,14 @@ a { color: inherit; text-decoration: none; }
 .hero-copy { min-width: 0; }
 
 .hero-kicker {
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   letter-spacing: 0.01em;
   color: var(--accent);
   margin: 0 0 1.4rem;
 }
 
 .hero-title {
-  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+  font-size: var(--fs-5);
   line-height: 1.08;
   letter-spacing: -0.035em;
   font-weight: 700;
@@ -853,7 +870,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .hero-lede {
-  font-size: clamp(1rem, 2vw, 1.16rem);
+  font-size: var(--fs-3);
   color: var(--text-dim);
   max-width: 52ch;
   margin: 0 0 2.2rem;
@@ -877,7 +894,7 @@ a { color: inherit; text-decoration: none; }
     0 0 0 1px rgba(255, 255, 255, 0.03) inset;
   overflow: hidden;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   line-height: 1.75;
 }
 
@@ -902,7 +919,7 @@ a { color: inherit; text-decoration: none; }
 
 .terminal-title {
   margin-left: 0.5rem;
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   color: var(--text-faint);
 }
 
@@ -944,7 +961,7 @@ a { color: inherit; text-decoration: none; }
   gap: 0.5rem;
   padding: 0.72rem 1.35rem;
   border-radius: var(--radius-sm);
-  font-size: 0.92rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   border: 1px solid transparent;
   /* Transisi tekan, efek gelombang, dan gaya kaca tombol ada di
@@ -952,8 +969,12 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* Warna dasar tombol. Efek hover/tekan & lapisan kaca ditangani
-   interactions.css supaya tidak ada dua aturan yang bertabrakan. */
-.btn-primary { color: #1a0d06; }
+   interactions.css supaya tidak ada dua aturan yang bertabrakan.
+   PENTING: latar primary HARUS ada di sini juga — 404.html tidak memuat
+   interactions.css, sehingga tanpa baris ini tombol "Kembali ke beranda"
+   tampil sebagai teks gelap di latar gelap (kontras nyaris nol). Halaman
+   yang memuat interactions.css menimpanya dengan gradient (dimuat akhir). */
+.btn-primary { background: var(--accent); color: #1a0d06; }
 .btn-ghost { border-color: var(--line); color: var(--text-dim); }
 
 /* Stats: blok ber-batas dengan pemisah antar item — bukan deretan angka
@@ -977,8 +998,8 @@ a { color: inherit; text-decoration: none; }
 }
 .hero-stats div:first-child { padding-left: 0; border-left: none; }
 
-.hero-stats dt { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); order: 2; }
-.hero-stats dd { margin: 0; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; order: 1; font-family: 'JetBrains Mono', monospace; }
+.hero-stats dt { font-size: var(--fs-1); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); order: 2; }
+.hero-stats dd { margin: 0; font-size: var(--fs-4); font-weight: 600; letter-spacing: -0.02em; order: 1; font-family: 'JetBrains Mono', monospace; }
 
 /* Di layar sempit, stats TETAP satu baris 3 kolom (pola Linear/Stripe:
    statistik = satu ringkasan sekali pandang, bukan daftar menurun).
@@ -988,8 +1009,8 @@ a { color: inherit; text-decoration: none; }
    Padding dikecilkan supaya angka "1.428" tidak menyentuh pemisah kolom. */
 @media (max-width: 560px) {
   .hero-stats div { padding: 0 0.75rem; }
-  .hero-stats dd { font-size: 1.5rem; }
-  .hero-stats dt { font-size: 0.64rem; letter-spacing: 0.04em; }
+  .hero-stats dd { font-size: var(--fs-4); }
+  .hero-stats dt { font-size: var(--fs-1); letter-spacing: 0.04em; }
 }
 
 /* ── BAGIAN UMUM ─────────────────────────────────────────────────────────────── */
@@ -1003,7 +1024,7 @@ a { color: inherit; text-decoration: none; }
 .section-head { margin-bottom: 2.6rem; }
 
 .section-title {
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-size: var(--fs-4);
   letter-spacing: -0.025em;
   font-weight: 650;
   margin: 0 0 0.6rem;
@@ -1013,7 +1034,7 @@ a { color: inherit; text-decoration: none; }
    max-width 56ch = 575px, tapi glyph rata-rata nyata hanya 6,5px sementara
    ch (lebar glyph "0") 10,3px — hasilnya 86 karakter nyata per baris, di atas
    batas 75. 46ch = 473px → ≈72 karakter nyata, masuk rentang 60-75. */
-.section-note { color: var(--text-faint); font-size: 0.94rem; margin: 0; max-width: 46ch; }
+.section-note { color: var(--text-faint); font-size: var(--fs-2); margin: 0; max-width: 46ch; }
 
 /* ── PROYEK UNGGULAN ─────────────────────────────────────────────────────────── */
 
@@ -1064,25 +1085,25 @@ a { color: inherit; text-decoration: none; }
 .project-art__metrics { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 .project-art__metric { display: flex; flex-direction: column; gap: .15rem; }
 .project-art__metric dd {
-  margin: 0; font-size: 1.6rem; font-weight: 700;
+  margin: 0; font-size: var(--fs-4); font-weight: 700;
   letter-spacing: -.03em; color: var(--text); line-height: 1;
 }
 .project-art__metric dt {
-  font-size: .68rem; text-transform: uppercase;
+  font-size: var(--fs-1); text-transform: uppercase;
   letter-spacing: .08em; color: var(--text-faint);
 }
 .project-art__stack { display: flex; gap: .4rem; flex-wrap: wrap; }
 .project-art__chip {
-  font-size: .7rem; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1); font-family: 'JetBrains Mono', ui-monospace, monospace;
   padding: .2rem .55rem; border: 1px solid var(--line);
   border-radius: 999px; color: var(--text-dim); white-space: nowrap;
 }
 .project-art__label {
-  font-size: .72rem; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1); font-family: 'JetBrains Mono', ui-monospace, monospace;
   text-transform: uppercase; letter-spacing: .1em; color: var(--accent);
 }
 .project-art__title {
-  font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em;
+  font-size: var(--fs-4); font-weight: 700; letter-spacing: -.02em;
   margin: 0; color: var(--text);
 }
 
@@ -1135,8 +1156,8 @@ a { color: inherit; text-decoration: none; }
    (satu aturan untuk semua kartu, muncul saat hover). */
 
 .project-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem; margin-bottom: 0.35rem; }
-.project-name { font-size: 1.5rem; font-weight: 650; letter-spacing: -0.02em; margin: 0; }
-.project-sub { color: var(--text-faint); font-size: 0.9rem; }
+.project-name { font-size: var(--fs-4); font-weight: 650; letter-spacing: -0.02em; margin: 0; }
+.project-sub { color: var(--text-faint); font-size: var(--fs-2); }
 
 .project-summary { color: var(--text-dim); max-width: 68ch; margin: 0.9rem 0 1.5rem; }
 
@@ -1145,7 +1166,7 @@ a { color: inherit; text-decoration: none; }
   padding-left: 1rem;
   margin: 0 0 1.7rem;
   color: var(--text-faint);
-  font-size: 0.93rem;
+  font-size: var(--fs-2);
   max-width: 66ch;
 }
 
@@ -1165,12 +1186,12 @@ a { color: inherit; text-decoration: none; }
 
 .highlight h4 {
   margin: 0 0 0.4rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   color: var(--text);
 }
 
-.highlight p { margin: 0; font-size: 0.87rem; color: var(--text-dim); line-height: 1.6; }
+.highlight p { margin: 0; font-size: var(--fs-2); color: var(--text-dim); line-height: 1.6; }
 
 .project-foot {
   display: flex;
@@ -1184,13 +1205,13 @@ a { color: inherit; text-decoration: none; }
 
 .project-metrics { display: flex; flex-wrap: wrap; gap: 1.6rem; }
 .project-metrics div { display: flex; flex-direction: column; }
-.project-metrics dt { font-size: 0.7rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-faint); order: 2; }
-.project-metrics dd { margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 1.16rem; font-weight: 500; color: var(--accent); order: 1; }
+.project-metrics dt { font-size: var(--fs-1); letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-faint); order: 2; }
+.project-metrics dd { margin: 0; font-family: 'JetBrains Mono', monospace; font-size: var(--fs-4); font-weight: 500; color: var(--accent); order: 1; }
 
 .stack { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 
 .tag {
-  font-size: 0.74rem;
+  font-size: var(--fs-1);
   font-family: 'JetBrains Mono', monospace;
   color: var(--text-faint);
   border: 1px solid var(--line-soft);
@@ -1205,7 +1226,7 @@ a { color: inherit; text-decoration: none; }
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--accent);
   white-space: nowrap;
@@ -1234,7 +1255,7 @@ a { color: inherit; text-decoration: none; }
   color: #1a0d06;
   border: 1px solid var(--accent);
   border-radius: 999px;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   transition: background 0.2s var(--ease), transform 0.2s var(--ease);
 }
@@ -1262,10 +1283,10 @@ a { color: inherit; text-decoration: none; }
 
 .side-project:hover { border-color: var(--accent-line); transform: translateY(-2px); }
 
-.side-project h3 { margin: 0 0 0.4rem; font-size: 1rem; font-weight: 600; }
-.side-project p { margin: 0 0 0.85rem; font-size: 0.94rem; color: var(--text-dim); line-height: 1.6; }
+.side-project h3 { margin: 0 0 0.4rem; font-size: var(--fs-3); font-weight: 600; }
+.side-project p { margin: 0 0 0.85rem; font-size: var(--fs-2); color: var(--text-dim); line-height: 1.6; }
 .side-project .stack { gap: 0.35rem; }
-.side-project .tag { font-size: 0.7rem; padding: 0.18rem 0.55rem; }
+.side-project .tag { font-size: var(--fs-1); padding: 0.18rem 0.55rem; }
 
 /* ── PRINSIP ─────────────────────────────────────────────────────────────────── */
 
@@ -1304,8 +1325,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .principle:hover { border-top-color: var(--accent-line); }
-.principle h3 { margin: 0 0 0.5rem; font-size: 1.02rem; font-weight: 600; }
-.principle p { margin: 0; font-size: 0.89rem; color: var(--text-dim); line-height: 1.62; }
+.principle h3 { margin: 0 0 0.5rem; font-size: var(--fs-3); font-weight: 600; }
+.principle p { margin: 0; font-size: var(--fs-2); color: var(--text-dim); line-height: 1.62; }
 
 /* ── TENTANG ─────────────────────────────────────────────────────────────────── */
 
@@ -1408,7 +1429,7 @@ a { color: inherit; text-decoration: none; }
 
 .service-card p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   color: var(--text-dim);
   line-height: 1.65;
 }
@@ -1419,7 +1440,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .service-card h3 {
-  font-size: 1.06rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   margin: 0 0 0.6rem;
 }
@@ -1496,7 +1517,7 @@ a { color: inherit; text-decoration: none; }
   padding: 0.7rem 1.25rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   color: var(--text-dim);
   transition: border-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease);
 }
@@ -1561,7 +1582,7 @@ a { color: inherit; text-decoration: none; }
   .contact-link {
     padding: 0.65rem 0.85rem;
     gap: 0.45rem;
-    font-size: 0.85rem;
+    font-size: var(--fs-2);
   }
 
   /* ── IKON DI PONSEL: 20px, BUKAN 16px ─────────────────────────────────────
@@ -1620,7 +1641,7 @@ a { color: inherit; text-decoration: none; }
   padding: 2rem 1.5rem 3rem;
   border-top: 1px solid var(--line-soft);
   color: var(--text-faint);
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
 }
 
 .site-footer p { margin: 0; }
@@ -1794,7 +1815,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 }
 
 .footer-merek-teks {
-  font-size: 1.05rem;
+  font-size: var(--fs-3);
   font-weight: 700;
   letter-spacing: 0.06em;
 }
@@ -1802,7 +1823,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 .footer-deskripsi {
   margin: 0;
   max-width: 34ch;
-  font-size: 0.875rem;
+  font-size: var(--fs-2);
   line-height: 1.65;
   color: var(--text-faint);
 }
@@ -1832,7 +1853,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 }
 
 .footer-sosial-teks a {
-  font-size: 0.875rem;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   text-decoration: none;
   transition: color 0.18s var(--ease);
@@ -1860,7 +1881,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 
 .footer-kolom-judul {
   margin: 0 0 1rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1876,7 +1897,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 }
 
 .footer-kolom a {
-  font-size: 0.875rem;
+  font-size: var(--fs-2);
   color: var(--text-faint);
   text-decoration: none;
   transition: color 0.18s var(--ease);
@@ -1910,7 +1931,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 .footer-hak,
 .footer-legal {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   color: var(--text-faint);
 }
 

@@ -78,7 +78,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--accent);
@@ -88,7 +88,7 @@
 .docs-eyebrow .icon { opacity: 0.9; }
 
 .docs-head h1 {
-  font-size: clamp(1.9rem, 4.5vw, 2.75rem);
+  font-size: var(--fs-5);
   letter-spacing: -0.025em;
   line-height: 1.12;
   margin-bottom: 0.9rem;
@@ -97,7 +97,7 @@
 
 .docs-head > p {
   color: var(--text-dim);
-  font-size: 1.05rem;
+  font-size: var(--fs-3);
   max-width: 68ch;
   line-height: 1.65;
 }
@@ -128,7 +128,7 @@
   border-radius: var(--radius-sm);
   color: var(--text);
   padding: 0.8rem 3.5rem 0.8rem 2.75rem;
-  font-size: 0.92rem;
+  font-size: var(--fs-2);
   font-family: inherit;
   transition: border-color 0.2s, background 0.2s;
 }
@@ -145,7 +145,7 @@
   right: 0.8rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 0.68rem;
+  font-size: var(--fs-1);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   color: var(--text-faint);
   border: 1px solid var(--line);
@@ -254,7 +254,7 @@
   margin: 0 0 0.3rem;
   padding: 0 0.6rem;
   color: var(--text);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -280,7 +280,7 @@
   display: block;
   color: var(--text-dim);
   text-decoration: none;
-  font-size: 0.84rem;
+  font-size: var(--fs-2);
   padding: 0.42rem 0.6rem;
   border-radius: 6px;
   transition: color 0.15s, background 0.15s;
@@ -321,7 +321,7 @@
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  font-size: 1.55rem;
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.02em;
   margin-bottom: 1.25rem;
@@ -331,7 +331,7 @@
 
 .doc-section h2 .sec-num {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   color: var(--accent);
   letter-spacing: 0.06em;
   padding: 0.25rem 0.5rem;
@@ -343,7 +343,7 @@
 }
 
 .doc-section h3 {
-  font-size: 1.08rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   margin: 2rem 0 0.85rem;
   color: var(--text);
@@ -354,7 +354,7 @@
   color: var(--text-dim);
   line-height: 1.75;
   margin-bottom: 1rem;
-  font-size: 0.94rem;
+  font-size: var(--fs-2);
 }
 .doc-section p:last-child { margin-bottom: 0; }
 
@@ -362,7 +362,7 @@
   color: var(--text-dim);
   line-height: 1.75;
   margin: 0 0 1.15rem 1.35rem;
-  font-size: 0.94rem;
+  font-size: var(--fs-2);
 }
 .doc-section li { margin-bottom: 0.45rem; padding-left: 0.15rem; }
 .doc-section li::marker { color: var(--text-faint); }
@@ -378,7 +378,7 @@
 
 .doc-section code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.84em;
+  font-size: var(--fs-2);
   background: var(--bg-card);
   border: 1px solid var(--line-soft);
   padding: 0.1rem 0.4rem;
@@ -403,7 +403,7 @@
      Pola sama dengan blok kode Stripe: area toolbar di atas kode. */
   padding: 3.5rem 1.25rem 1.15rem;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.83rem;
+  font-size: var(--fs-2);
   line-height: 1.7;
   color: var(--text);
   overflow-x: auto;
@@ -431,7 +431,7 @@
   background: var(--bg-soft);
   border: 1px solid var(--line);
   color: var(--text-faint);
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   font-family: inherit;
   padding: 0.35rem 0.65rem;
   border-radius: 6px;
@@ -465,7 +465,7 @@
 .doc-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.87rem;
+  font-size: var(--fs-2);
   min-width: 100%;
 }
 .doc-table th {
@@ -473,7 +473,7 @@
   padding: 0.7rem 0.95rem;
   color: var(--text-faint);
   font-weight: 600;
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--line);
@@ -491,7 +491,7 @@
 .doc-table td:first-child { color: var(--text); font-weight: 500; }
 .doc-table code {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.8em;
+  font-size: var(--fs-2);
   background: var(--bg);
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
@@ -508,7 +508,7 @@
   border-radius: var(--radius-sm);
   padding: 1rem 1.15rem;
   margin: 1.35rem 0;
-  font-size: 0.89rem;
+  font-size: var(--fs-2);
   line-height: 1.7;
   color: var(--text-dim);
 }
@@ -555,7 +555,7 @@
   background: var(--accent-soft);
   border: 1px solid var(--accent-line);
   color: var(--accent);
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -566,11 +566,11 @@
 .step-body strong {
   display: block;
   margin-bottom: 0.35rem;
-  font-size: 0.94rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   color: var(--text);
 }
-.step-body p { margin-bottom: 0.6rem; font-size: 0.89rem; }
+.step-body p { margin-bottom: 0.6rem; font-size: var(--fs-2); }
 .step-body p:last-child { margin-bottom: 0; }
 .step-body .code-block { margin: 0.6rem 0 0; }
 
@@ -583,7 +583,7 @@
   text-align: center;
   padding: 3.5rem 1.5rem;
   color: var(--text-faint);
-  font-size: 0.92rem;
+  font-size: var(--fs-2);
   border: 1px dashed var(--line);
   border-radius: var(--radius-sm);
 }
@@ -701,7 +701,7 @@
     background: var(--bg-card);
     color: var(--text);
     font: inherit;
-    font-size: 0.86rem;
+    font-size: var(--fs-2);
     font-weight: 600;
     text-align: left;
     cursor: pointer;
@@ -723,7 +723,7 @@
     flex: 0 0 auto;
     color: var(--text-dim);
     font-weight: 500;
-    font-size: 0.76rem;
+    font-size: var(--fs-1);
   }
 
   /* ── Tombol titik tiga ──────────────────────────────────────────────────── */
@@ -779,7 +779,7 @@
     background: transparent;
     color: var(--text);
     font: inherit;
-    font-size: 0.85rem;
+    font-size: var(--fs-2);
     text-align: left;
     cursor: pointer;
   }
@@ -837,7 +837,7 @@
     padding-bottom: 0.65rem;
     border-bottom: 1px solid var(--line);
     color: var(--text-dim);
-    font-size: 0.72rem;
+    font-size: var(--fs-1);
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -854,7 +854,7 @@
   .toc-grup {
     margin: 0 0 0.2rem;
     padding: 0 0.2rem;
-    font-size: 0.8rem;
+    font-size: var(--fs-1);
   }
 
   .toc-sub {
@@ -869,7 +869,7 @@
     padding: 0.6rem 0.2rem;
     white-space: normal;
     overflow-wrap: anywhere;
-    font-size: 0.86rem;
+    font-size: var(--fs-2);
   }
 
   .doc-content { max-width: none; }
@@ -889,34 +889,34 @@
      tinggi nyata) — kalau tidak, judul "DOKUMENTASI" tertutup bilah. */
   .docs-page { padding: calc(var(--docs-bilah-h, 61px) + 3rem) 1rem 3rem; }
   .docs-head { margin-bottom: 2rem; padding-bottom: 1.5rem; }
-  .docs-head h1 { font-size: 1.75rem; }
-  .docs-head > p { font-size: 0.95rem; }
+  .docs-head h1 { font-size: var(--fs-5); }
+  .docs-head > p { font-size: var(--fs-3); }
   .docs-search-wrap { max-width: none; }
-  .docs-search { padding: 0.75rem 3rem 0.75rem 2.6rem; font-size: 0.88rem; }
+  .docs-search { padding: 0.75rem 3rem 0.75rem 2.6rem; font-size: var(--fs-2); }
 
   .doc-section { margin-bottom: 2.75rem; }
   .doc-section h2 {
-    font-size: 1.3rem;
+    font-size: var(--fs-4);
     flex-direction: column;
     align-items: flex-start;
     gap: 0.6rem;
   }
-  .doc-section h3 { font-size: 1rem; margin-top: 1.75rem; }
-  .doc-section p, .doc-section ul, .doc-section ol { font-size: 0.9rem; }
+  .doc-section h3 { font-size: var(--fs-3); margin-top: 1.75rem; }
+  .doc-section p, .doc-section ul, .doc-section ol { font-size: var(--fs-2); }
 
-  .code-block code { font-size: 0.76rem; padding: 3.75rem 1rem 1rem; }
+  .code-block code { font-size: var(--fs-1); padding: 3.75rem 1rem 1rem; }
   /* Tap target tombol salin ≥44px di layar sentuh (WCAG 2.5.5) —
      sebelumnya terukur 65,3×29,2px. */
   .copy-btn { min-height: 44px; }
-  .doc-table { font-size: 0.82rem; }
+  .doc-table { font-size: var(--fs-2); }
   .doc-table th, .doc-table td { padding: 0.6rem 0.7rem; }
 
   .step { padding: 0.95rem; gap: 0.85rem; }
-  .step::before { width: 26px; height: 26px; font-size: 0.65rem; }
-  .step-body strong { font-size: 0.9rem; }
-  .step-body p { font-size: 0.86rem; }
+  .step::before { width: 26px; height: 26px; font-size: var(--fs-1); }
+  .step-body strong { font-size: var(--fs-2); }
+  .step-body p { font-size: var(--fs-2); }
 
-  .note { padding: 0.9rem 1rem; font-size: 0.86rem; }
+  .note { padding: 0.9rem 1rem; font-size: var(--fs-2); }
 }
 
 /* ── Cetak ────────────────────────────────────────────────────────────────── */
@@ -953,7 +953,7 @@
   align-items: center;
   gap: 0.45rem;
   margin-top: 1.1rem;
-  font-size: 0.84rem;
+  font-size: var(--fs-2);
   line-height: 1.4;
 }
 
@@ -1012,7 +1012,7 @@
 
 .toc-bahasa-label {
   color: var(--text-dim);
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1035,7 +1035,7 @@
   background: var(--bg-card);
   color: var(--text);
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   cursor: pointer;
   /* Tampilan bawaan browser dihapus supaya konsisten dengan sisa UI. */

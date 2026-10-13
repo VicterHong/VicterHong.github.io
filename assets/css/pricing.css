@@ -102,7 +102,7 @@
 }
 
 .pricing-title {
-  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  font-size: var(--fs-5);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
@@ -114,7 +114,7 @@
 
 .pricing-sub {
   max-width: 34rem;
-  font-size: clamp(0.9rem, 2.2vw, 1.05rem);
+  font-size: var(--fs-3);
   line-height: 1.6;
   color: var(--pr-text-dim);
   margin: 0;
@@ -191,7 +191,7 @@
   /* 0.88rem = ukuran teks UI yang sudah dipakai .faq-tanya & .cta-sub.
      Sebelumnya 0.84rem — nilai ketiga yang nyaris sama; disatukan supaya
      skala tipografi halaman ini tidak punya dua ukuran yang tak terbedakan. */
-  font-size: 0.88rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   color: var(--pr-text-dim);
   white-space: nowrap;
@@ -236,7 +236,7 @@
   align-items: center;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: var(--fs-1);
   font-weight: 700;
   letter-spacing: 0.01em;
   /* Saat belum terpilih: aksen di atas latar gelap */
@@ -276,7 +276,7 @@
 
   .periode-catatan {
     padding-inline: 0.35rem;
-    font-size: 0.62rem;
+    font-size: var(--fs-1);
   }
 }
 
@@ -291,7 +291,7 @@
 
 .harga-total {
   margin: var(--pr-2) 0 0;
-  font-size: 0.74rem;
+  font-size: var(--fs-1);
   color: var(--pr-text-faint);
 }
 
@@ -492,7 +492,7 @@
   border-radius: 999px;
   background: var(--pr-accent);
   color: #0a0a0b;
-  font-size: 0.68rem;
+  font-size: var(--fs-1);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -506,14 +506,14 @@
 }
 
 .harga-nama {
-  font-size: 1.05rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--pr-text);
   margin: 0;
 }
 
 .harga-desc {
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   line-height: 1.5;
   color: var(--pr-text-dim);
   margin: 0;
@@ -572,7 +572,7 @@
 .harga-angka {
   /* 22px di ponsel, 28px di desktop — ukuran dokumen harga korporat,
      bukan angka raksasa ala landing page */
-  font-size: clamp(1.375rem, 4vw, 1.75rem);
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.15;
@@ -598,7 +598,7 @@
 }
 
 .harga-coret {
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   color: var(--pr-text-faint);
   /* Coretan tipis, bukan tebal — harga lama bukan hal yang perlu ditonjolkan */
   text-decoration: line-through;
@@ -614,7 +614,7 @@
   background: var(--pr-accent-soft);
   border: 1px solid var(--pr-accent-line);
   color: var(--pr-accent-light);
-  font-size: 0.68rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
@@ -655,7 +655,7 @@
 
 
 .harga-periode {
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-weight: 400;
   color: var(--pr-text-faint);
   /* Jarak kecil dari angka — "/bulan" adalah keterangan, bukan bagian
@@ -665,7 +665,7 @@
 }
 
 .harga-catatan {
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   color: var(--pr-text-faint);
   margin: var(--pr-2) 0 0;
 }
@@ -687,7 +687,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--pr-3);
-  font-size: 0.84rem;
+  font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--pr-text-dim);
 }
@@ -732,7 +732,7 @@
   border: 1px solid transparent;
   border-radius: 999px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
@@ -878,7 +878,7 @@
 .harga-angka--teks {
   /* Ukuran & bobot SAMA dengan angka harga di kartu lain.
      Yang membedakan hanya isinya (kata, bukan angka) — bukan gayanya. */
-  font-size: clamp(1.375rem, 4vw, 1.75rem);
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.15;
@@ -897,7 +897,7 @@
 }
 
 .bagian-judul {
-  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--pr-text);
@@ -906,7 +906,7 @@
 }
 
 .bagian-sub {
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   line-height: 1.5;
   color: var(--pr-text-dim);
   text-align: center;
@@ -944,7 +944,7 @@
   /* Target sentuh 44px */
   min-height: 2.75rem;
   padding: var(--pr-4) var(--pr-5);
-  font-size: 0.88rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--pr-text);
   cursor: pointer;
@@ -978,7 +978,7 @@
 
 .faq-jawab {
   padding: 0 var(--pr-5) var(--pr-5);
-  font-size: 0.84rem;
+  font-size: var(--fs-2);
   line-height: 1.6;
   color: var(--pr-text-dim);
   margin: 0;
@@ -1008,7 +1008,7 @@
 }
 
 .cta-judul {
-  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--pr-text);
@@ -1016,7 +1016,7 @@
 }
 
 .cta-sub {
-  font-size: 0.88rem;
+  font-size: var(--fs-2);
   line-height: 1.55;
   color: var(--pr-text-dim);
   margin: 0;
@@ -1248,14 +1248,14 @@
 }
 
 .pricing-error-judul {
-  font-size: 1.05rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--pr-text);
   margin: 0;
 }
 
 .pricing-error-teks {
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   line-height: 1.55;
   color: var(--pr-text-dim);
   margin: 0;

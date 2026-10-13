@@ -39,7 +39,7 @@
   align-items: center;
   gap: 0.9rem;
   margin: 0 0 1.1rem;
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -56,7 +56,7 @@
 
 .spotlight-title {
   margin: 0;
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-size: var(--fs-5);
   line-height: 1.15;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -402,7 +402,7 @@
   border-radius: 0;
   background: none;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 4.2rem;
+  font-size: var(--fs-5);
   font-weight: 600;
   letter-spacing: 0.01em;
   color: color-mix(in srgb, var(--card-accent, #f5c542) 34%, transparent);
@@ -451,7 +451,7 @@
   align-items: center;
   justify-content: center;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 4.2rem;
+  font-size: var(--fs-5);
   font-weight: 600;
   color: color-mix(in srgb, var(--card-accent, #f5c542) 34%, transparent);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
@@ -495,7 +495,7 @@
   align-items: center;
 }
 .spotlight-card.is-textonly .spotlight-card-title {
-  font-size: 1.15rem;
+  font-size: var(--fs-4);
   line-height: 1.25;
 }
 
@@ -575,7 +575,7 @@
 .spotlight-card-body { display: flex; flex-direction: column; gap: 0.35rem; }
 
 .spotlight-card-label {
-  font-size: 0.62rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -597,7 +597,7 @@
 
 .spotlight-card-title {
   margin: 0;
-  font-size: 1.28rem;
+  font-size: var(--fs-4);
   line-height: 1.2;
   font-weight: 600;
   color: var(--text);
@@ -605,7 +605,7 @@
 
 .spotlight-card-meta {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   line-height: 1.45;
   color: var(--text-dim);
 }
@@ -630,7 +630,7 @@
 .spotlight-front-title {
   margin: 0;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.6rem;
+  font-size: var(--fs-4);
   line-height: 1.2;
   color: var(--text);
 }
@@ -643,7 +643,7 @@
 .spotlight-front-sub {
   margin: 0.35rem auto 0;
   max-width: 52ch;
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
   line-height: 1.5;
   color: var(--text-dim);
 }
@@ -737,11 +737,11 @@
      dari layar dan carousel kehilangan kesan "deretan". */
   .spotlight-stage { height: 26rem; }
   .spotlight-card { width: 15rem; height: 20rem; margin: -10rem 0 0 -7.5rem; }
-  .spotlight-card-title { font-size: 1.1rem; }
-  .spotlight-card-meta { font-size: 0.74rem; }
+  .spotlight-card-title { font-size: var(--fs-3); }
+  .spotlight-card-meta { font-size: var(--fs-1); }
   /* Info sudah satu kolom terpusat di CSS dasar — tidak perlu override
      grid lagi. Baris .spotlight-counter dihapus bersama elemennya. */
-  .spotlight-front-title { font-size: 1.35rem; }
+  .spotlight-front-title { font-size: var(--fs-4); }
   /* .spotlight-foot tidak perlu override — sudah satu baris terpusat di
      CSS dasar, dan dots tetap muat di layar sempit. */
 }

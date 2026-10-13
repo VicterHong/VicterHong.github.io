@@ -91,7 +91,7 @@
   gap: 10px;
   padding: 28px 4px;
   color: var(--teks-redup);
-  font-size: 13.5px;
+  font-size: var(--fs-2);
 }
 
 .kam-spinner {
@@ -140,7 +140,7 @@
 
 .kam-judul {
   margin: 0 0 12px;
-  font-size: 12px;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -155,14 +155,14 @@
 }
 
 .kam-hitung {
-  font-size: 11.5px;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
   font-variant-numeric: tabular-nums;
 }
 
 .kam-keterangan {
   margin: 0 0 14px;
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.55;
   color: var(--teks-redup);
   /* Batas lebar baris. Di kartu sempit ini jarang tercapai, tapi kalau
@@ -187,14 +187,14 @@
 .kam-baris:last-child { border-bottom: 0; }
 
 .kam-baris dt {
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--teks-samar);
   flex-shrink: 0;
 }
 
 .kam-baris dd {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   color: var(--teks);
   text-align: right;
   word-break: break-word;
@@ -355,7 +355,7 @@
 /* Nilai adalah jawabannya — karena itu ia yang paling besar dan paling terang.
  * Label di bawahnya hanya menjelaskan angka mana ini. */
 .kam-petak-nilai {
-  font-size: 17px;
+  font-size: var(--fs-4);
   font-weight: 600;
   color: var(--teks);
   font-variant-numeric: tabular-nums;
@@ -364,7 +364,7 @@
 .kam-petak-nilai.is-aktif { color: var(--emas); }
 
 .kam-petak-label {
-  font-size: 11.5px;
+  font-size: var(--fs-1);
   color: var(--teks-redup);
 }
 
@@ -382,7 +382,7 @@
   background: transparent;
   color: var(--teks-redup);
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   cursor: pointer;
   transition: color var(--durasi-cepat) var(--pegas),
               border-color var(--durasi-cepat) var(--pegas),
@@ -405,7 +405,7 @@
 
 .kam-item-judul {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks);
   display: flex;
@@ -428,7 +428,7 @@
  * warna yang terlalu redup untuk dibaca. */
 .kam-item-ket {
   margin: 3px 0 0;
-  font-size: 11.5px;
+  font-size: var(--fs-1);
   color: var(--teks-redup);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -496,7 +496,7 @@
   background: rgba(255, 255, 255, 0.04);
   color: var(--teks-redup);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-1);
   cursor: pointer;
   transition: color var(--durasi-cepat) var(--pegas),
               border-color var(--durasi-cepat) var(--pegas),
@@ -530,14 +530,14 @@
 
 .kam-tambah-judul {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks);
 }
 
 .kam-tambah-ket {
   margin: 3px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-1);
   line-height: 1.5;
   color: var(--teks-samar);
 }
@@ -547,14 +547,14 @@
 
 .kam-kosong-judul {
   margin: 0 0 6px;
-  font-size: 15px;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--teks);
 }
 
 .kam-kosong-teks {
   margin: 0 0 18px;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   line-height: 1.6;
   color: var(--teks-redup);
 }
@@ -570,7 +570,7 @@
 }
 
 .kam-keluar {
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
   text-decoration: none;
   transition: color var(--durasi-cepat) var(--pegas);
@@ -618,14 +618,14 @@
 
 .kam-dialog-judul {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--teks);
 }
 
 .kam-dialog-teks {
   margin: 0 0 20px;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   line-height: 1.6;
   color: var(--teks-redup);
 }
@@ -717,7 +717,7 @@
 .kam-ubah {
   padding: 0.3rem 0.75rem;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks, #e8e8ea);
   background: transparent;
@@ -750,7 +750,7 @@
 }
 
 .kam-field label {
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks-redup, #9a9aa0);
 }
@@ -764,7 +764,7 @@
   width: 100%;
   padding: 0.65rem 0.8rem;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
   color: var(--teks, #e8e8ea);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--garis, rgba(255, 255, 255, 0.14));
@@ -788,7 +788,7 @@
 
 .kam-field-catatan {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   line-height: 1.5;
   color: var(--teks-redup, #9a9aa0);
 }
@@ -808,13 +808,13 @@
   width: auto;
   min-width: 7rem;
   padding: 0.6rem 1.1rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
 }
 
 .kam-batal {
   padding: 0.6rem 1rem;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   color: var(--teks-redup, #9a9aa0);
   background: transparent;
   border: 0;
@@ -932,7 +932,7 @@
   background: transparent;
   color: var(--teks-redup);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--fs-2);
   text-align: left;
   cursor: pointer;
   /* Underline untuk tab aktif: elemen semu, bukan border — supaya bisa
@@ -1033,7 +1033,7 @@
   padding: 1px 5px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
-  font-size: 10.5px;
+  font-size: var(--fs-1);
   font-weight: 600;
   line-height: 1.5;
   text-align: center;
@@ -1166,7 +1166,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 18px;
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--emas);
@@ -1185,7 +1185,7 @@
 
 .kam-identitas-nama {
   margin: 0 0 2px;
-  font-size: 15px;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--teks);
   overflow-wrap: anywhere;
@@ -1194,7 +1194,7 @@
 
 .kam-identitas-email {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--teks-samar);
   overflow-wrap: anywhere;
   line-height: 1.4;
@@ -1227,7 +1227,7 @@
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--teks-redup);
-  font-size: 12px;
+  font-size: var(--fs-1);
   cursor: pointer;
   transition: color var(--durasi-cepat) var(--pegas),
               border-color var(--durasi-cepat) var(--pegas),
@@ -1288,7 +1288,7 @@
   background: transparent;
   color: var(--teks-redup);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-1);
   cursor: pointer;
   transition: color var(--durasi-cepat) var(--pegas),
               border-color var(--durasi-cepat) var(--pegas),
@@ -1309,7 +1309,7 @@
 .kam-foto-pesan {
   margin: 6px 0 0;
   min-height: 15px;
-  font-size: 11.5px;
+  font-size: var(--fs-1);
   line-height: 1.35;
   color: var(--teks-redup);
 }
@@ -1320,7 +1320,7 @@
 /* Di layar sempit, avatar sedikit lebih kecil supaya nama tidak terpotong. */
 @media (max-width: 400px) {
   .kam-avatar { width: 44px; height: 44px; }
-  .kam-avatar-inisial { font-size: 16px; }
+  .kam-avatar-inisial { font-size: var(--fs-3); }
 }
 
 /* ══ LABEL "OPSIONAL" ══════════════════════════════════════════════════════════
@@ -1339,7 +1339,7 @@
  * hierarkinya terbaca tanpa perlu warna yang mencolok.
  * ──────────────────────────────────────────────────────────────────────────── */
 .kam-opsional {
-  font-size: 11px;
+  font-size: var(--fs-1);
   font-weight: 400;
   letter-spacing: 0.02em;
   color: var(--teks-samar);
@@ -1398,7 +1398,7 @@
   width: fit-content;
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: var(--fs-1);
   font-weight: 500;
   letter-spacing: 0.01em;
   /* `nowrap` supaya "PERANGKAT INI" tidak terbelah jadi dua baris di ponsel. */
@@ -1468,7 +1468,7 @@
 
 .kam-status2fa-teks {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.55;
   color: var(--teks-redup);
   max-width: 62ch;
@@ -1501,7 +1501,7 @@
   align-items: flex-start;
   gap: 7px;
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.45;
   color: var(--teks-redup);
 }
@@ -1737,7 +1737,7 @@
   background: var(--bg-card, #16161a);
   border: 1px solid var(--line, #26262c);
   color: var(--text, #f4f4f6);
-  font-size: 0.875rem;
+  font-size: var(--fs-2);
   line-height: 1.45;
   /* Bayangan: toast harus terlihat "mengambang" di atas konten, bukan
      menempel di dalamnya. Tanpa bayangan, ia terlihat seperti bagian
@@ -1953,14 +1953,14 @@
 
 .kam-pref-judul {
   margin: 0 0 2px;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks);
 }
 
 .kam-pref-ket {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   line-height: 1.45;
   color: var(--teks-samar);
 }
@@ -2100,14 +2100,14 @@
 
 .kam-danger-judul {
   margin: 0 0 3px;
-  font-size: 1rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: #f87171;
 }
 
 .kam-danger-ket {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   color: var(--teks-samar);
 }
 
@@ -2126,14 +2126,14 @@
 
 .kam-danger-nama {
   margin: 0 0 4px;
-  font-size: 0.92rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks);
 }
 
 .kam-danger-detail {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   line-height: 1.5;
   color: var(--teks-samar);
 }
@@ -2153,7 +2153,7 @@
   background: #dc2626;
   color: #fff;
   font: inherit;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.16s ease;
@@ -2198,7 +2198,7 @@
 .kam-hapus-label {
   display: block;
   margin-bottom: 6px;
-  font-size: 0.84rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks-redup);
 }
@@ -2211,7 +2211,7 @@
   background: rgba(255, 255, 255, 0.03);
   color: var(--teks);
   font: inherit;
-  font-size: 1.35rem;
+  font-size: var(--fs-4);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.4em;
   text-align: center;
@@ -2231,7 +2231,7 @@
 
 .kam-hapus-bantuan {
   margin: 8px 0 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
 }
 
@@ -2319,14 +2319,14 @@
 
 .kam-setting-judul {
   margin: 0 0 3px;
-  font-size: 0.92rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks);
 }
 
 .kam-setting-ket {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--teks-samar);
 }
@@ -2390,7 +2390,7 @@
    Yang butuh akan mencarinya; yang tidak butuh tidak terganggu. */
 .kam-manual {
   margin: 0 0 14px;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
 }
 
@@ -2410,7 +2410,7 @@
   background: rgba(255, 255, 255, 0.05);
   /* Monospace + jarak huruf: kode base32 dibaca per karakter. */
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   letter-spacing: 0.08em;
   color: var(--teks);
   /* Bisa dibungkus — kode base32 panjangnya 32 karakter dan bisa meluber. */
@@ -2444,7 +2444,7 @@
 .kam-pemulihan li {
   padding: 6px 0;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   letter-spacing: 0.1em;
   color: var(--teks);
   user-select: all;
@@ -2554,7 +2554,7 @@
   .kam-dialog-kotak .auth-otp { gap: 5px; }
   .kam-dialog-kotak .auth-otp-cell {
     aspect-ratio: 1 / 1.15;
-    font-size: 17px;
+    font-size: var(--fs-4);
     border-radius: 9px;
   }
 }

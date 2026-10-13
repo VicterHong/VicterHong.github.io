@@ -37,6 +37,23 @@
   --galat: #f87171;
   --sukses: #4ade80;
 
+  /* ── SKALA TIPOGRAFI — LIMA TINGKAT ─────────────────────────────────────────
+     Satu skala untuk seluruh situs. Sebelumnya ada 74 nilai berbeda (11,5 ·
+     12,48 · 13,12 · 13,92 px) — cukup mirip untuk terlihat seperti salah,
+     cukup beda untuk tidak bisa diprediksi. Sekarang lima, tidak lebih:
+       --fs-1  12px        mikro   — lencana, label, meta, hash commit
+       --fs-2  14px        kecil   — navigasi, keterangan, teks sekunder
+       --fs-3  16px        dasar   — badan teks & input (16px = tanpa zoom iOS)
+       --fs-4  24px        judul   — judul bagian, angka besar
+       --fs-5  28–44px     display — judul halaman (fluid, clamp)
+     Halaman auth memuat auth.css (bukan main.css) — token di bawah HARUS
+     sama persis dengan main.css; kalau diubah, ubah di kedua tempat. */
+  --fs-1: 0.75rem;
+  --fs-2: 0.875rem;
+  --fs-3: 1rem;
+  --fs-4: 1.5rem;
+  --fs-5: clamp(1.75rem, 6vw, 2.75rem);
+
   /* Gerak — satu tempat untuk semua durasi & easing */
   --durasi-kilat: 140ms;
   --durasi-cepat: 220ms;
@@ -71,7 +88,7 @@ html, body {
   background: var(--latar);
   color: var(--teks);
   font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-3);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -180,7 +197,7 @@ html, body {
   align-items: center;
   gap: 0.55rem;
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--fs-3);
   letter-spacing: -0.01em;
   color: var(--teks);
   text-decoration: none;
@@ -315,7 +332,7 @@ html, body {
   min-height: var(--tinggi-input);
   padding: 0 14px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--teks);
   background: rgba(0, 0, 0, 0.32);
   border: 1px solid var(--garis);
@@ -398,7 +415,7 @@ select.auth-input {
    Skala tetap pada kelipatan 2px yang dipakai seluruh berkas. */
 .auth-panel-title {
   margin: 0 0 10px;
-  font-size: 19px;
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -428,7 +445,7 @@ select.auth-input {
  */
 .auth-legal {
   margin: 14px 0 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.6;
   color: var(--teks-samar);
   text-align: center;
@@ -445,7 +462,7 @@ select.auth-input {
 
 .auth-opsional {
   font-weight: 400;
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
 }
 
@@ -469,7 +486,7 @@ select.auth-input {
   border: none;
   padding: 0;
   font: inherit;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   color: var(--emas);
   cursor: pointer;
   text-decoration: none;
@@ -494,7 +511,7 @@ select.auth-input {
 .auth-alt-bawah {
   margin: 18px 0 0;
   text-align: center;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   color: var(--teks-redup);
 }
 .auth-alt-bawah a {
@@ -511,7 +528,7 @@ select.auth-input {
    font-size < 16px saat input difokuskan. Zoom itu menggeser tata letak dan
    membuat pengguna tersesat. */
 @media (max-width: 460px) {
-  .auth-input { font-size: 16px; }
+  .auth-input { font-size: var(--fs-3); }
 }
 
 /* ══ Panggung & kartu ══════════════════════════════════════════════════════ */
@@ -636,14 +653,14 @@ select.auth-input {
 
 .auth-title {
   margin: 0 0 5px;
-  font-size: 25px;
+  font-size: var(--fs-4);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .auth-sub {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   color: var(--teks-redup);
 }
 
@@ -682,7 +699,7 @@ select.auth-input {
    menemukan awal setiap baris tanpa mencari. */
 .auth-panel-desc {
   margin: 0 0 20px;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   line-height: 1.55;
   color: var(--teks-redup);
   text-align: left;
@@ -698,7 +715,7 @@ select.auth-input {
 .auth-field { display: grid; gap: 7px; }
 
 .auth-field label {
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   font-weight: 500;
   color: var(--teks-redup);
   letter-spacing: 0.01em;
@@ -715,7 +732,7 @@ select.auth-input {
   width: 100%;
   padding: 12px 14px;
   font-family: inherit;
-  font-size: 14.5px;
+  font-size: var(--fs-3);
   color: var(--teks);
   background: rgba(0, 0, 0, 0.32);
   border: 1px solid var(--garis);
@@ -871,7 +888,7 @@ select.auth-input {
   gap: 12px;
 }
 
-.auth-link-kecil { font-size: 11.5px; }
+.auth-link-kecil { font-size: var(--fs-1); }
 
 /* ── GRID PENYEDIA SOSIAL: 4 TOMBOL IKON ───────────────────────────────────
    Google, Microsoft, Apple, GitHub — ikon saja, satu baris.
@@ -1020,7 +1037,7 @@ select.auth-input {
      antar field. Jarak ke footer juga jadi wajar, tidak menyisakan ruang
      kosong besar di bawah tombol terakhir. */
   margin-bottom: 0;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
 }
 
 /* ── CATATAN "SEGERA HADIR" ─────────────────────────────────────────────────
@@ -1028,7 +1045,7 @@ select.auth-input {
    terasa belum jadi. */
 .auth-sso-segera {
   margin: 0 0 12px;
-  font-size: 11px;
+  font-size: var(--fs-1);
   line-height: 1.5;
   text-align: center;
   color: var(--teks-samar);
@@ -1047,7 +1064,7 @@ select.auth-input {
 
 .auth-foot-aksi {
   margin: 0;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   color: var(--teks-redup);
 }
 
@@ -1073,7 +1090,7 @@ select.auth-input {
   justify-content: center;
   gap: 6px;
   margin: 10px 0 0;
-  font-size: 11px;
+  font-size: var(--fs-1);
   line-height: 1.5;
   color: var(--teks-samar);
 }
@@ -1091,7 +1108,7 @@ select.auth-input {
    bersaing dengan tindakan utama. Kecil, redup, tetap bisa diklik. */
 .auth-legal {
   margin-top: 10px;
-  font-size: 11px;
+  font-size: var(--fs-1);
   line-height: 1.6;
   color: var(--teks-samar);
 }
@@ -1101,7 +1118,7 @@ select.auth-input {
 
 .auth-hint {
   margin: 0;
-  font-size: 11.5px;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
   line-height: 1.45;
 }
@@ -1138,7 +1155,7 @@ select.auth-input {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.45;
   color: var(--teks-redup);
   cursor: pointer;
@@ -1249,7 +1266,7 @@ select.auth-input {
   border: 0;
   background: none;
   font: inherit;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
   text-align: center;
   cursor: pointer;
@@ -1375,7 +1392,7 @@ select.auth-input {
 
 .auth-saran-teks {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.5;
   color: var(--teks-redup);
 }
@@ -1384,7 +1401,7 @@ select.auth-input {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
+  font-size: var(--fs-2);
   font-weight: 600;
   color: var(--emas);
   text-decoration: none;
@@ -1417,7 +1434,7 @@ select.auth-input {
   min-height: var(--tinggi-input);
   padding: 0 20px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: #0a0a0b;
   /* ── SOLID, BUKAN GRADIENT ────────────────────────────────────────────────
@@ -1549,7 +1566,7 @@ select.auth-input {
   aspect-ratio: 1 / 1.18;
   padding: 0;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 21px;
+  font-size: var(--fs-4);
   font-weight: 500;
   text-align: center;
   color: var(--teks);
@@ -1592,7 +1609,7 @@ select.auth-input {
      sepenuhnya. Begitu ada pesan, ia muncul dan mendorong footer turun —
      perilaku yang benar: pesan status memang harus terlihat. */
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.5;
   text-align: center;
   color: var(--teks-samar);
@@ -1622,7 +1639,7 @@ select.auth-input {
   justify-self: center;
   padding: 6px 10px;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   color: var(--teks-redup);
   background: transparent;
   border: 0;
@@ -1651,13 +1668,13 @@ select.auth-input {
 
 .auth-done-title {
   margin: 0 0 6px;
-  font-size: 19px;
+  font-size: var(--fs-4);
   font-weight: 700;
 }
 
 .auth-done-sub {
   margin: 0 0 18px;
-  font-size: 13.5px;
+  font-size: var(--fs-2);
   color: var(--teks-redup);
 }
 
@@ -1681,7 +1698,7 @@ select.auth-input {
   background: var(--garis);
 }
 .auth-divider span {
-  font-size: 11.5px;
+  font-size: var(--fs-1);
   color: var(--teks-samar);
   text-transform: lowercase;
 }
@@ -1698,7 +1715,7 @@ select.auth-input {
   padding: 0 16px;
   margin-bottom: 9px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--teks);
   background: rgba(255, 255, 255, 0.035);
@@ -1732,7 +1749,7 @@ select.auth-input {
   position: absolute;
   right: 12px;
   padding: 2.5px 8px;
-  font-size: 10px;
+  font-size: var(--fs-1);
   font-style: normal;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -1760,7 +1777,7 @@ select.auth-input {
   border-top: 1px solid var(--garis);
   text-align: center;
 }
-.auth-foot p { margin: 0; font-size: 12.5px; color: var(--teks-samar); }
+.auth-foot p { margin: 0; font-size: var(--fs-1); color: var(--teks-samar); }
 .auth-foot a {
   color: var(--emas);
   text-decoration: none;
@@ -1773,9 +1790,9 @@ select.auth-input {
 
 @media (max-width: 460px) {
   .auth-card { padding: 24px 20px; }
-  .auth-title { font-size: 22px; }
+  .auth-title { font-size: var(--fs-4); }
   .auth-otp { gap: 6px; }
-  .auth-otp-cell { font-size: 18px; border-radius: 8px; }
+  .auth-otp-cell { font-size: var(--fs-4); border-radius: 8px; }
 }
 
 /* ══ LAYAR SEMPIT: KURANGI PADDING AGAR WIDGET TURNSTILE TIDAK TERPOTONG ═══════
@@ -1835,8 +1852,8 @@ select.auth-input {
  * ────────────────────────────────────────────────────────────────────────── */
 
 @media (max-width: 380px) {
-  .auth-title { font-size: 21px; }
-  .auth-sub { font-size: 13px; }
+  .auth-title { font-size: var(--fs-4); }
+  .auth-sub { font-size: var(--fs-2); }
 }
 
 /* ══ Hormati preferensi pengurangan gerak ══════════════════════════════════
@@ -1956,7 +1973,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 
 .auth-secret-detail summary {
   padding: 10px 13px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   color: var(--teks-redup);
   cursor: pointer;
   border-radius: 10px;
@@ -1990,7 +2007,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   flex: 1;
   padding: 9px 11px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   letter-spacing: 0.09em;
   color: var(--emas);
   background: rgba(0, 0, 0, 0.42);
@@ -2041,14 +2058,14 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 
 .auth-recovery-title {
   margin: 0 0 7px;
-  font-size: 19px;
+  font-size: var(--fs-4);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .auth-recovery-sub {
   margin: 0 0 18px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.6;
   color: var(--teks-redup);
 }
@@ -2066,7 +2083,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 .auth-recovery-list li {
   padding: 9px 6px;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   letter-spacing: 0.05em;
   color: var(--teks);
   background: rgba(0, 0, 0, 0.35);
@@ -2089,7 +2106,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   gap: 8px;
   margin-bottom: 16px;
 }
-.auth-recovery-actions .auth-oauth { margin-bottom: 0; font-size: 13px; }
+.auth-recovery-actions .auth-oauth { margin-bottom: 0; font-size: var(--fs-2); }
 
 .auth-recovery-confirm {
   display: flex;
@@ -2097,7 +2114,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   gap: 9px;
   margin-bottom: 14px;
   padding: 11px 13px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.5;
   text-align: left;
   color: var(--teks-redup);
@@ -2194,7 +2211,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 }
 
 .auth-pulih-angka {
-  font-size: 1.6rem;
+  font-size: var(--fs-4);
   font-weight: 700;
   line-height: 1;
   color: var(--emas, #f5c542);
@@ -2202,7 +2219,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 }
 
 .auth-pulih-label {
-  font-size: 0.84rem;
+  font-size: var(--fs-2);
   line-height: 1.35;
   color: var(--teks-redup, #b8b8b8);
 }
@@ -2220,7 +2237,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
     flex-direction: column;
     gap: 4px;
   }
-  .auth-pulih-angka { font-size: 1.4rem; }
+  .auth-pulih-angka { font-size: var(--fs-4); }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -2260,7 +2277,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   line-height: 1.35;
   color: var(--teks-redup, #a1a1aa);
   transition: color 0.18s ease;
@@ -2311,7 +2328,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   justify-content: center;
   min-height: 44px;
   margin-top: 4px;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   color: var(--teks-redup, #b8b8b8);
   text-decoration: none;
   transition: color 0.15s ease;
@@ -2410,7 +2427,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 
 .auth-status-judul {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -2447,7 +2464,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 
 .auth-data dt {
   flex: 0 0 64px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   /* Label: abu redup. Nilai di sebelahnya lebih terang — hierarki lewat
      kecerahan, bukan ukuran atau bobot font. */
   color: var(--teks-samar);
@@ -2456,7 +2473,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 .auth-data dd {
   margin: 0;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--teks-redup);
   /* Email panjang dipotong dengan elipsis, bukan membungkus ke baris kedua —
      baris data harus tetap satu baris agar bisa dipindai. */
@@ -2468,7 +2485,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 /* ── CATATAN KONSEKUENSI ────────────────────────────────────────────────────── */
 .auth-status-catatan {
   margin: 0 0 20px;
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.55;
   color: var(--teks-redup);
   text-align: left;
@@ -2477,7 +2494,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 /* ── JALAN KELUAR ───────────────────────────────────────────────────────────── */
 .auth-status-bantuan {
   margin: 14px 0 0;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.5;
   color: var(--teks-samar);
   text-align: center;
@@ -2595,7 +2612,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 /* ── LABEL KEKUATAN ─────────────────────────────────────────────────────────── */
 .auth-meter-label {
   margin: 0 0 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.4;
   color: var(--teks-samar);
   /* Tinggi minimum supaya tata letak tidak bergeser saat label muncul. */
@@ -2621,7 +2638,7 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 12.5px;
+  font-size: var(--fs-1);
   line-height: 1.4;
   /* Abu redup (7.72:1 terhadap kartu) — lulus WCAG AA. Bukan --teks-samar
      yang hanya 4.09:1 dan gagal ambang. */

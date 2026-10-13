@@ -89,7 +89,7 @@
   background: none;
   border: none;
   color: #fff;
-  font-size: 1.25rem;
+  font-size: var(--fs-4);
   cursor: pointer;
   padding: 0.5rem;
   transition: color 0.2s ease;
@@ -101,7 +101,7 @@
 }
 
 .video-time {
-  font-size: 0.875rem;
+  font-size: var(--fs-2);
   color: rgba(255, 255, 255, 0.8);
   font-variant-numeric: tabular-nums;
   margin-left: auto;
@@ -133,12 +133,12 @@
   }
   
   .video-btn {
-    font-size: 1rem;
+    font-size: var(--fs-3);
     padding: 0.375rem;
   }
   
   .video-time {
-    font-size: 0.75rem;
+    font-size: var(--fs-1);
   }
 }
 

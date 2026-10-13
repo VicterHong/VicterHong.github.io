@@ -13,7 +13,7 @@
   display: inline-block;
   margin-bottom: 2rem;
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   transition: color 0.2s var(--ease);
 }
 
@@ -35,7 +35,7 @@
 
 .project-kicker {
   margin: 0 0 0.75rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -44,21 +44,21 @@
 
 .project-title {
   margin: 0;
-  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-size: var(--fs-5);
   line-height: 1.05;
   letter-spacing: -0.03em;
 }
 
 .project-subtitle {
   margin: 0.5rem 0 1.25rem;
-  font-size: 1.15rem;
+  font-size: var(--fs-4);
   color: var(--text-dim);
 }
 
 .project-lede {
   max-width: 62ch;
   margin: 0 0 1.75rem;
-  font-size: 1.05rem;
+  font-size: var(--fs-3);
   color: var(--text-dim);
 }
 
@@ -71,13 +71,13 @@
 
 .project-facts dd {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 .project-facts dt {
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   color: var(--text-faint);
 }
 
@@ -89,7 +89,7 @@
 
 .public-section h2 {
   margin: 0 0 0.9rem;
-  font-size: 1.35rem;
+  font-size: var(--fs-4);
   letter-spacing: -0.01em;
 }
 
@@ -109,7 +109,7 @@
 .public-list li { margin-bottom: 0.6rem; }
 
 .public-list .mono {
-  font-size: 0.9em;
+  font-size: var(--fs-2);
   color: var(--text);
 }
 
@@ -131,7 +131,7 @@
 
 .locked-head h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: var(--fs-4);
 }
 
 .locked-badge {
@@ -139,7 +139,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.3rem 0.7rem;
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-weight: 500;
   color: var(--accent);
   background: var(--accent-soft);
@@ -178,7 +178,7 @@
 
 .locked-preview h3 {
   margin: 0 0 0.35rem;
-  font-size: 1.05rem;
+  font-size: var(--fs-3);
 }
 
 .locked-preview p {
@@ -208,12 +208,12 @@
 
 .gate-title {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  font-size: var(--fs-3);
 }
 
 .gate-note {
   margin: 0 0 1.25rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   color: var(--text-dim);
 }
 
@@ -243,7 +243,7 @@
   flex: 1 1 14rem;
   min-width: 0;
   padding: 0.7rem 0.85rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   color: var(--text);
   background: var(--bg-soft);
   border: 1px solid var(--line);
@@ -259,7 +259,7 @@
 .gate-status {
   min-height: 1.25rem;
   margin: 0.85rem 0 0;
-  font-size: 0.87rem;
+  font-size: var(--fs-2);
   color: var(--text-dim);
 }
 
@@ -271,7 +271,7 @@
 .link-btn {
   padding: 0;
   font: inherit;
-  font-size: 0.87rem;
+  font-size: var(--fs-2);
   color: var(--text-dim);
   background: none;
   border: none;
@@ -298,19 +298,19 @@
 
 .locked-content-head h2 {
   margin: 0 0 0.4rem;
-  font-size: 1.4rem;
+  font-size: var(--fs-4);
 }
 
 .locked-issued {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   color: var(--accent);
 }
 
 .locked-content-note {
   margin: 0 0 1.75rem;
   padding: 0.85rem 1rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   color: var(--text-dim);
   background: var(--bg-soft);
   border-left: 2px solid var(--accent-line);
@@ -321,7 +321,7 @@
 
 .locked-content-section h3 {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  font-size: var(--fs-3);
 }
 
 .locked-content-section p {
@@ -342,7 +342,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.25rem 0.65rem;
-  font-size: 0.75rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   border-radius: 999px;
   margin-left: 0.75rem;
@@ -368,7 +368,7 @@
   right: 1.5rem;
   z-index: 9999;
   padding: 0.5rem 1rem;
-  font-size: 0.75rem;
+  font-size: var(--fs-1);
   font-weight: 500;
   color: rgba(255, 255, 255, 0.25);
   background: rgba(0, 0, 0, 0.4);
@@ -390,7 +390,7 @@
 
 .request-section h2 {
   margin: 0 0 0.6rem;
-  font-size: 1.35rem;
+  font-size: var(--fs-4);
 }
 
 .request-note {
@@ -408,7 +408,7 @@
 .field { display: grid; gap: 0.4rem; }
 
 .field label {
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--text-dim);
 }
@@ -422,7 +422,7 @@
 /* Pesan error per field — hanya muncul saat ada isi. */
 .field-error {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   color: #ff8b6b;
 }
 
@@ -437,7 +437,7 @@
 
 .field-note {
   margin: 0.75rem 0 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   color: var(--text-dim);
 }
 
@@ -446,7 +446,7 @@
 .field textarea {
   padding: 0.7rem 0.85rem;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
   color: var(--text);
   background: var(--bg-card);
   border: 1px solid var(--line);
@@ -495,7 +495,7 @@
 .request-status {
   min-height: 1.25rem;
   margin: 0;
-  font-size: 0.87rem;
+  font-size: var(--fs-2);
   color: var(--text-dim);
 }
 
@@ -598,7 +598,7 @@
 
 .decision h3 {
   margin: 0 0 0.5rem;
-  font-size: 1.05rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--text);
 }
@@ -606,7 +606,7 @@
 .decision p {
   margin: 0;
   max-width: 68ch;
-  font-size: 0.95rem;
+  font-size: var(--fs-3);
   line-height: 1.65;
   color: var(--text-dim);
 }
@@ -635,7 +635,7 @@
 
 .locked-repo h3 {
   margin: 0 0 0.6rem;
-  font-size: 1rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   color: var(--text);
 }
@@ -643,7 +643,7 @@
 .locked-repo-note {
   margin: 0 0 1.25rem;
   max-width: 62ch;
-  font-size: 0.88rem;
+  font-size: var(--fs-2);
   line-height: 1.6;
   color: var(--text-dim);
 }
@@ -651,7 +651,7 @@
 .locked-repo-body {
   margin: 0 0 1rem;
   max-width: 62ch;
-  font-size: 0.92rem;
+  font-size: var(--fs-2);
   line-height: 1.65;
   color: var(--text-dim);
 }

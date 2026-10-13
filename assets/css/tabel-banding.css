@@ -88,7 +88,7 @@
     justify-content: center;
     gap: var(--tbl-jarak-2);
     padding: var(--tbl-jarak-3);
-    font-size: 0.75rem;
+    font-size: var(--fs-1);
     color: var(--tbl-teks-samar);
     text-align: center;
   }
@@ -98,7 +98,7 @@
   width: 100%;
   min-width: 36rem;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
 }
 
 /* Judul tabel — untuk pembaca layar, tidak terlihat di layar */
@@ -139,7 +139,7 @@
 }
 
 .tabel-banding thead th {
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   color: var(--tbl-teks);
   border-bottom-color: var(--tbl-line-kuat);
@@ -147,7 +147,7 @@
 }
 
 .tabel-banding thead th:first-child {
-  font-size: 0.7rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -172,7 +172,7 @@
 .tabel-banding tr.baris-bagian td {
   padding-top: var(--tbl-jarak-5);
   padding-bottom: var(--tbl-jarak-2);
-  font-size: 0.68rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -213,7 +213,7 @@
 }
 
 .tabel-teks {
-  font-size: 0.75rem;
+  font-size: var(--fs-1);
   color: var(--tbl-teks-redup);
 }
 
@@ -238,7 +238,7 @@
 /* ── Keterangan di bawah tabel ───────────────────────────────────────────── */
 .tabel-catatan {
   margin: var(--tbl-jarak-4) 0 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   line-height: 1.55;
   color: var(--tbl-teks-redup);
   text-align: center;
@@ -269,7 +269,7 @@
   border: 1px solid transparent;
   border-radius: 999px;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
@@ -350,7 +350,7 @@
   border-radius: 1rem;
   background: var(--tbl-bg);
   text-align: center;
-  font-size: 0.85rem;
+  font-size: var(--fs-2);
   line-height: 1.55;
   color: var(--tbl-teks-redup);
 }

@@ -44,7 +44,7 @@
   background: rgba(10, 10, 11, 0.82);
   border: 1px solid rgba(245, 197, 66, 0.4);
   color: #f7d77a;
-  font-size: 0.6875rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.1em;
   padding: 0.28rem 0.65rem;
@@ -61,13 +61,13 @@
 }
 
 .narrative-caption strong {
-  font-size: 0.9375rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   color: var(--text, #e8e8ed);
 }
 
 .narrative-caption span {
-  font-size: 0.875rem;
+  font-size: var(--fs-2);
   color: var(--muted, #8a8a96);
 }
 

@@ -106,7 +106,7 @@
 
 .cookie-banner-text h2 {
   margin: 0 0 0.25rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -114,7 +114,7 @@
 
 .cookie-banner-text p {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   line-height: 1.5;
   color: var(--text-dim);
 }
@@ -168,7 +168,7 @@
   min-height: 44px;
   padding: 0.55rem 1.1rem;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   font-weight: 500;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -234,7 +234,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   transition: color 0.18s ease;
 }
 .cookie-btn--link:hover { color: var(--text); transform: none; }
@@ -292,13 +292,13 @@
 }
 .cookie-panel-head h2 {
   margin: 0 0 0.25rem;
-  font-size: 1rem;
+  font-size: var(--fs-3);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 .cookie-panel-head p {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   line-height: 1.5;
   color: var(--text-dim);
 }
@@ -341,7 +341,7 @@
 .cookie-cat-text { flex: 1; }
 .cookie-cat-text h3 {
   margin: 0 0 0.3rem;
-  font-size: 0.86rem;
+  font-size: var(--fs-2);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -355,7 +355,7 @@
 }
 .cookie-cat-text p {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   line-height: 1.55;
   color: var(--text-dim);
 }
@@ -365,7 +365,7 @@
   display: inline-block;
   margin-left: 0.35rem;
   padding: 0.1rem 0.4rem;
-  font-size: 0.62rem;
+  font-size: var(--fs-1);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
