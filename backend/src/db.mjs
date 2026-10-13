@@ -385,7 +385,7 @@ CREATE INDEX IF NOT EXISTS idx_releases_created ON releases(created_at);
 -- PEMBAYARAN — langganan lewat Midtrans
 -- ════════════════════════════════════════════════════════════════════════════
 --
--- ── KENAPA TABEL SENDIRI, BUKAN LANGSUNG DARI STRIPE ────────────────────────
+-- ── KENAPA TABEL SENDIRI, BUKAN LANGSUNG DARI MIDTRANS ──────────────────────
 -- Midtrans adalah sumber kebenaran untuk UANG. Tapi token akses adalah milik
 -- sistem ini — dan hubungan antara keduanya perlu dicatat.
 --
@@ -405,8 +405,15 @@ CREATE INDEX IF NOT EXISTS idx_releases_created ON releases(created_at);
 -- balapan yang bisa lolos.
 --
 -- ── KENAPA midtrans_order_id JUGA UNIK ─────────────────────────────────────
--- Xendit mengirim webhook berkali-kali untuk satu invoice (PENDING → PAID).
--- Kolom unik memastikan invoice yang sama tidak diterbitkan tokennya dua kali.
+-- Midtrans mengirim webhook berkali-kali untuk satu transaksi
+-- (pending → settlement). Keunikan memastikan transaksi yang sama tidak
+-- diterbitkan tokennya dua kali.
+--
+-- Keunikan ditegakkan oleh idx_payments_midtrans_order yang dibuat di
+-- migrate(), BUKAN oleh UNIQUE pada definisi kolom: ALTER TABLE ADD COLUMN
+-- tidak bisa membawa UNIQUE, dan database LAMA harus mendapat jaminan yang
+-- sama dengan database baru. NULL berulang diizinkan SQLite, jadi baris lama
+-- yang belum punya order_id tidak saling bentrok.
 CREATE TABLE IF NOT EXISTS payments (
   id                 TEXT PRIMARY KEY,
 
@@ -414,7 +421,7 @@ CREATE TABLE IF NOT EXISTS payments (
   idempotency_key    TEXT NOT NULL UNIQUE,
 
   -- ID dari Midtrans
-  midtrans_order_id  TEXT UNIQUE,
+  midtrans_order_id  TEXT,
   midtrans_customer_id TEXT,
   midtrans_subscription_id TEXT,
   
@@ -446,7 +453,10 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_status  ON payments(status, dibuat_pada DESC);
 CREATE INDEX IF NOT EXISTS idx_payments_email   ON payments(email);
-CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(midtrans_order_id);
+-- Index unik midtrans_order_id dibuat di migrate(), SETELAH kolomnya
+-- ditambahkan — database lama belum punya kolom itu saat SCHEMA dijalankan,
+-- dan CREATE INDEX yang menyebut kolom tidak ada adalah galat yang
+-- menggagalkan start layanan.
 
 -- ── Log webhook mentah ───────────────────────────────────────────────────────
 --
@@ -460,7 +470,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(midtrans_order_id);
 -- aslinya hilang.
 --
 -- ── KENAPA event_id UNIK ────────────────────────────────────────────────────
--- Xendit bisa mengirim webhook berkali-kali untuk invoice yang sama.
+-- Midtrans bisa mengirim webhook berkali-kali untuk transaksi yang sama.
 -- Dengan UNIK, kiriman kedua tidak diproses — tapi tetap tercatat.
 CREATE TABLE IF NOT EXISTS payment_events (
   event_id     TEXT PRIMARY KEY,
@@ -809,6 +819,54 @@ function migrate(handle) {
   addColumn('users', 'disetujui_oleh', "TEXT NOT NULL DEFAULT ''");
   addColumn('users', 'disetujui_pada', 'INTEGER');
   addColumn('users', 'catatan_admin', "TEXT NOT NULL DEFAULT ''");
+
+  // ══ KOLOM MIDTRANS — MIGRASI DARI SKEMA XENDIT ════════════════════════════
+  //
+  // ── KENAPA INI ADA ─────────────────────────────────────────────────────────
+  //
+  // Commit yang memindahkan pembayaran dari Xendit ke Midtrans mengubah
+  // definisi `CREATE TABLE payments` — TAPI `CREATE TABLE IF NOT EXISTS`
+  // tidak menyentuh tabel yang sudah ada. Database produksi tetap memakai
+  // skema lama: kolom xendit_* ada, kolom midtrans_* TIDAK.
+  //
+  // Akibatnya nyata dan mahal: setiap checkout menulis baris pembayaran,
+  // memanggil Midtrans, lalu GAGAL di UPDATE yang menyebut
+  // midtrans_order_id — "no such column: midtrans_order_id". Pembeli
+  // melihat pesan galat dan pembayaran tidak pernah tercatat selesai.
+  //
+  // Kolom xendit_* sengaja TIDAK dihapus: SQLite versi lama tidak bisa
+  // DROP COLUMN, dan baris lama mungkin masih menyimpan nilainya —
+  // menghapus riwayat bukan urusan migrasi ini.
+  addColumn('payments', 'midtrans_order_id', 'TEXT');
+  addColumn('payments', 'midtrans_customer_id', 'TEXT');
+  addColumn('payments', 'midtrans_subscription_id', 'TEXT');
+
+  // ── INDEX PEMBAYARAN ───────────────────────────────────────────────────────
+  //
+  // Index lama idx_payments_invoice menunjuk ke xendit_invoice_id. Setelah
+  // kolom midtrans_order_id ada, index itu menunjuk kolom yang tidak lagi
+  // ditulis siapa pun — dibuang, lalu diganti index UNIK pada kolom yang
+  // benar.
+  //
+  // ── KENAPA UNIKNYA LEWAT INDEX, BUKAN DI DEFINISI KOLOM ──────────────────
+  //
+  // `ALTER TABLE ADD COLUMN` tidak menerima UNIQUE di SQLite — jadi kolom
+  // hasil migrasi tidak bisa membawa jaminan itu sendiri. Index unik
+  // memberi jaminan yang SAMA untuk database lama maupun baru.
+  //
+  // Dibuat SETELAH kolomnya ada. Kalau ditulis di SCHEMA, database lama
+  // akan gagal start dengan "no such column" sebelum migrasi sempat jalan.
+  try {
+    handle.exec('DROP INDEX IF EXISTS idx_payments_invoice');
+    handle.exec(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_midtrans_order ON payments(midtrans_order_id)'
+    );
+  } catch (err) {
+    // Index unik gagal dibuat (mis. ada nilai duplikat di database lain).
+    // Bukan alasan menggagalkan start — tapi harus terlihat di log, karena
+    // jaminan "satu transaksi = satu token" jadi bergantung pada kode saja.
+    console.warn(`[migrasi] index midtrans_order_id tidak dibuat: ${err?.message ?? err}`);
+  }
 }
 
 /** Database yang sedang terbuka, atau lempar kalau belum dibuka. */
