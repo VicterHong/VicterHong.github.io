@@ -365,9 +365,10 @@ html, body {
   padding: 0 14px;
 }
 
-/* Ikon perlu ruang kiri; tombol reveal perlu ruang kanan. */
+/* Ikon perlu ruang kiri; tombol reveal perlu ruang kanan (8px offset + 44px
+   tombol + 2px jeda = 54px, sebelumnya 44px untuk tombol 34px). */
 .auth-input-wrap.auth-input-ikon .auth-input { padding-left: 40px; }
-.auth-input-wrap:has(.auth-reveal) .auth-input { padding-right: 44px; }
+.auth-input-wrap:has(.auth-reveal) .auth-input { padding-right: 54px; }
 
 /* State fokus & hover tetap sama seperti input biasa. */
 .auth-input-wrap .auth-input:hover:not(:focus) { border-color: var(--garis-terang); }
@@ -778,8 +779,13 @@ select.auth-input {
   right: 8px;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  /* 44px — tap target WCAG 2.5.8. Sebelumnya 34px: ikon 19px memang muat,
+     tapi area sentuh terlalu kecil untuk jempol di layar ponsel. Tombol
+     membentang penuh tinggi input (44px, center via flex static position),
+     jadi seluruh ujung kanan input kini bisa disentuh. Padding-right input
+     dinaikkan 44→54px agar teks tidak pernah masuk kolom tombol. */
+  width: 44px;
+  height: 44px;
   /* ── WARNA: --teks-redup, BUKAN --teks-samar ────────────────────────────────
      Ikon ini adalah KONTROL INTERAKTIF (tombol), bukan dekorasi. Standar WCAG
      untuk kontrol non-teks lebih ketat daripada untuk hiasan.
@@ -2022,8 +2028,10 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
 .auth-copy {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  /* 44px — tap target WCAG 2.5.8 (sebelumnya 34px). Kotak ini flex row,
+     jadi tombol melebar hanya 10px; area kode (flex:1) tetap lega. */
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   color: var(--teks-redup);
   background: rgba(255, 255, 255, 0.05);
