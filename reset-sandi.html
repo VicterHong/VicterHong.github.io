@@ -322,6 +322,57 @@
           <p class="auth-msg" id="msgCocok" role="alert"></p>
         </div>
 
+        <!--
+          ══ BLOK 2FA ══════════════════════════════════════════════════════════
+
+          ── KENAPA MUNCUL DI SINI, BUKAN SEBAGAI LANGKAH TERPISAH ─────────────
+          Reset sandi dengan 2FA butuh DUA bukti: tautan dari email dan kode
+          authenticator. Menjadikannya halaman terpisah berarti pengguna
+          mengetik sandi baru dulu, lalu kehilangan isian itu saat berpindah.
+
+          Ditampilkan bersama form sandi, keduanya diisi sekali dan dikirim
+          bersama — pengguna melihat seluruh syarat sejak awal.
+
+          ── KENAPA DI ATAS TOMBOL, BUKAN DI BAWAH ────────────────────────────
+          Urutan pembacaan mengikuti urutan pengiriman: sandi → kode → simpan.
+          Meletakkan kode setelah tombol membuatnya terlihat opsional.
+
+          ── KENAPA `hidden` SECARA BAWAAN ────────────────────────────────────
+          Akun TANPA 2FA tidak boleh melihat kolom ini sama sekali — langkah
+          yang tidak perlu membuat pengguna mengira ada yang salah. JS membuka
+          blok ini hanya setelah server mengonfirmasi akun memakai 2FA.
+        -->
+        <div class="auth-field" id="blok2fa" hidden>
+          <label for="inpKode2fa">Kode verifikasi dua langkah</label>
+          <p class="auth-2fa-catatan" id="catatan2fa">
+            Akun ini memakai verifikasi dua langkah. Buka aplikasi authenticator
+            dan masukkan 6 digit kode yang ditampilkan.
+          </p>
+
+          <!-- Enam kotak, komponen yang sama dengan halaman masuk dan hapus
+               akun (.auth-otp dari auth.css) — pengguna yang pernah mengisi
+               kode 2FA di tempat lain menemukan pola yang persis sama. -->
+          <div class="auth-otp" id="otp2faReset" aria-describedby="bantuan2fa">
+            <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                   id="inpKode2fa0" data-otp-reset="0" aria-label="Digit 1" autocomplete="one-time-code">
+            <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                   data-otp-reset="1" aria-label="Digit 2">
+            <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                   data-otp-reset="2" aria-label="Digit 3">
+            <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                   data-otp-reset="3" aria-label="Digit 4">
+            <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                   data-otp-reset="4" aria-label="Digit 5">
+            <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                   data-otp-reset="5" aria-label="Digit 6">
+          </div>
+
+          <p class="auth-2fa-bantuan" id="bantuan2fa">
+            Kehilangan akses ke authenticator? Masukkan kode pemulihan Anda
+            (format XXXXX-XXXXX) di kotak pertama.
+          </p>
+        </div>
+
         <button type="submit" class="auth-submit" id="btnSimpan">
           <span class="auth-submit-label">Simpan sandi baru</span>
           <span class="auth-submit-spinner" aria-hidden="true"></span>

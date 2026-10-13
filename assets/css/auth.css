@@ -469,7 +469,24 @@ select.auth-input {
 
 /* ══ Blok SSO ══════════════════════════════════════════════════════════════ */
 
-.auth-sso {
+/* ── Catatan di blok 2FA ─────────────────────────────────────────────────────
+   Muncul di halaman reset sandi saat akun memakai verifikasi dua langkah.
+   Ukurannya lebih kecil dari label kolom: ia penjelasan, bukan judul. */
+.auth-2fa-catatan {
+  margin: 0;
+  font-size: var(--fs-2);
+  line-height: 1.55;
+  color: var(--text-dim, #a1a1aa);
+}
+
+.auth-2fa-bantuan {
+  margin: 2px 0 0;
+  font-size: var(--fs-1);
+  line-height: 1.5;
+  color: var(--text-faint, #8a8a94);
+}
+
+.auth-otp {
   display: flex;
   flex-direction: column;
   gap: 9px;

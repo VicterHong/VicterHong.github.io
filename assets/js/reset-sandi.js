@@ -58,6 +58,77 @@
   const msgCocok = $('msgCocok');
   const msgReset = $('msgReset');
   const daftarSyarat = $('daftarSyarat');
+  const blok2fa = $('blok2fa');
+  const catatan2fa = $('catatan2fa');
+
+  // ── Keadaan 2FA ────────────────────────────────────────────────────────────
+  // `perlu2fa` diisi dari server (GET /api/auth/reset-sandi/konteks). Selama
+  // masih false, form berperilaku seperti sebelumnya — akun tanpa 2FA tidak
+  // melihat perubahan apa pun.
+  let perlu2fa = false;
+
+  /** Nilai kode 2FA dari enam kotak, atau '' kalau belum lengkap. */
+  function nilaiKode2fa() {
+    const sel = document.querySelectorAll('[data-otp-reset]');
+    if (!sel.length) return '';
+    const nilai = Array.from(sel).map((s) => s.value).join('');
+    return /^\d{6}$/.test(nilai) ? nilai : '';
+  }
+
+  /** Kosongkan keenam kotak dan fokuskan yang pertama. */
+  function resetKode2fa() {
+    document.querySelectorAll('[data-otp-reset]').forEach((s) => {
+      s.value = '';
+      s.classList.remove('is-terisi');
+    });
+    document.querySelector('[data-otp-reset="0"]')?.focus();
+  }
+
+  /**
+   * Pasang perilaku enam kotak: maju otomatis, mundur saat hapus, dan tempel.
+   *
+   * ── KENAPA DITULIS DI SINI, BUKAN DIIMPOR ─────────────────────────────────
+   * `auth.js` punya versi yang sama, tapi ia hanya dimuat di halaman masuk dan
+   * daftar. Mengimpornya ke halaman ini berarti memuat seluruh logika autentikasi
+   * (SSO, passkey, pemulihan) hanya untuk enam kotak — puluhan kilobyte untuk
+   * satu komponen. Versi di sini ~25 baris dan tidak bergantung pada apa pun.
+   */
+  function pasangOtpReset() {
+    const sel = Array.from(document.querySelectorAll('[data-otp-reset]'));
+    if (!sel.length) return;
+
+    sel.forEach((input, i) => {
+      input.addEventListener('input', () => {
+        // Hanya angka — kolom lain (spasi, huruf) diabaikan, bukan ditolak
+        // dengan pesan: pengguna yang menempel kode dari email sering
+        // membawa spasi, dan itu bukan kesalahan.
+        input.value = input.value.replace(/\D/g, '').slice(0, 1);
+        input.classList.toggle('is-terisi', Boolean(input.value));
+        if (input.value && i < sel.length - 1) sel[i + 1].focus();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !input.value && i > 0) {
+          e.preventDefault();
+          sel[i - 1].value = '';
+          sel[i - 1].classList.remove('is-terisi');
+          sel[i - 1].focus();
+        }
+      });
+
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const teks = (e.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
+        if (!teks) return;
+        // Isi mulai dari kotak yang sedang difokuskan.
+        for (let k = 0; k < teks.length && i + k < sel.length; k++) {
+          sel[i + k].value = teks[k];
+          sel[i + k].classList.add('is-terisi');
+        }
+        sel[Math.min(i + teks.length, sel.length - 1)].focus();
+      });
+    });
+  }
 
   // ── Token dari URL ─────────────────────────────────────────────────────────
   const params = new URLSearchParams(location.search);
@@ -367,13 +438,26 @@
       return;
     }
 
+    // ── KODE 2FA WAJIB KALAU AKUN MEMAKAINYA ────────────────────────────────
+    // Diperiksa di klien hanya untuk umpan balik cepat; server memeriksa ulang
+    // dan itulah yang menentukan. Kalau kolomnya kosong, server menjawab
+    // `perlu_2fa` — tapi menunggu perjalanan jaringan untuk kesalahan yang
+    // jelas terlihat tidak berguna.
+    const kode2fa = perlu2fa ? nilaiKode2fa() : '';
+
+    if (perlu2fa && !kode2fa) {
+      msgReset.textContent = 'Masukkan 6 digit kode dari aplikasi authenticator Anda.';
+      document.querySelector('[data-otp-reset="0"]')?.focus();
+      return;
+    }
+
     sibuk(true);
 
     try {
       const res = await fetch('/api/auth/reset-sandi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, sandi }),
+        body: JSON.stringify({ token, sandi, ...(kode2fa ? { kode: kode2fa } : {}) }),
         credentials: 'same-origin',
       });
 
@@ -393,6 +477,36 @@
       // ("Tautan tidak valid atau sudah dipakai", dst). Menimpanya dengan teks
       // sendiri berarti membuang informasi yang lebih berguna.
       const pesan = isi?.message ?? 'Tautan tidak bisa dipakai. Minta tautan baru.';
+
+      // ── SERVER MINTA KODE 2FA ─────────────────────────────────────────────
+      // Terjadi kalau akun memakai 2FA tapi kolomnya belum terisi — misalnya
+      // karena pemeriksaan konteks saat halaman dibuka gagal (jaringan putus
+      // sesaat), sehingga blok 2FA tidak sempat muncul. Server tetap memeriksa
+      // sendiri, jadi jawabannya otoritatif: tampilkan bloknya sekarang.
+      if (isi?.error === 'perlu_2fa') {
+        perlu2fa = true;
+        if (blok2fa) blok2fa.hidden = false;
+        if (isi.email_samar && catatan2fa) {
+          catatan2fa.textContent =
+            `Akun ${isi.email_samar} memakai verifikasi dua langkah. `
+            + 'Masukkan 6 digit kode dari aplikasi authenticator Anda.';
+        }
+        msgReset.textContent = pesan;
+        resetKode2fa();
+        return;
+      }
+
+      // ── KODE 2FA SALAH ────────────────────────────────────────────────────
+      // Pesannya sudah spesifik dari server ("Sisa 4 percobaan"). Form tetap
+      // terbuka supaya pengguna bisa mencoba kode berikutnya — menutupnya
+      // berarti memaksa mereka meminta tautan email baru hanya karena salah
+      // ketik satu digit.
+      if (isi?.error === 'kode_salah' || isi?.error === 'kode_dipakai_ulang'
+          || isi?.error === 'diblokir_sementara' || isi?.error === 'kode_pemulihan_salah') {
+        msgReset.textContent = pesan;
+        resetKode2fa();
+        return;
+      }
 
       // Token kedaluwarsa/salah adalah keadaan akhir — tampilkan panel gagal
       // daripada membiarkan pengguna mencoba berulang kali di form yang sama.
@@ -424,6 +538,59 @@
     tampilkanPanel('gagal');
     return;
   }
+
+  // ── KONTEKS: apakah akun ini memakai 2FA? ─────────────────────────────────
+  //
+  // ── KENAPA DITANYAKAN SAAT HALAMAN DIBUKA ─────────────────────────────────
+  // Kalau akun memakai 2FA, reset sandi butuh DUA bukti: tautan dari email dan
+  // kode authenticator. Menampilkan kolom kode hanya SETELAH pengguna menekan
+  // simpan berarti form yang menolak di akhir — terasa seperti kegagalan,
+  // padahal itu langkah yang memang diharapkan.
+  //
+  // Dengan bertanya lebih dulu, kolomnya sudah ada saat pengguna mulai
+  // mengetik, dan seluruh syarat terlihat sejak awal.
+  //
+  // ── KENAPA KEGAGALANNYA DIAM ──────────────────────────────────────────────
+  // Kalau permintaan ini gagal (jaringan putus), form tetap bisa dipakai:
+  // server memeriksa 2FA sendiri saat submit dan menjawab `perlu_2fa` —
+  // yang ditangani di atas dengan menampilkan bloknya. Tidak ada gunanya
+  // menampilkan galat untuk sesuatu yang masih bisa diselesaikan.
+  (async () => {
+    try {
+      const res = await fetch(
+        `/api/auth/reset-sandi/konteks?token=${encodeURIComponent(token)}`,
+        { credentials: 'same-origin', headers: { Accept: 'application/json' } },
+      );
+      const d = await res.json().catch(() => null);
+      if (!d?.ok) return;
+
+      // Token tidak sah (kedaluwarsa/sudah dipakai/akun nonaktif) — tampilkan
+      // panel gagal sekarang, jangan biarkan pengguna mengetik sandi baru
+      // untuk tautan yang tidak akan pernah bekerja.
+      if (!d.token_sah) {
+        $('judulGagal').textContent = 'Tautan tidak berlaku lagi';
+        $('pesanGagal').textContent = d.pesan
+          || 'Tautan ini tidak berlaku lagi. Minta tautan baru dari halaman lupa sandi.';
+        tampilkanPanel('gagal');
+        return;
+      }
+
+      if (d.perlu_2fa) {
+        perlu2fa = true;
+        if (blok2fa) blok2fa.hidden = false;
+        if (d.email_samar && catatan2fa) {
+          catatan2fa.textContent =
+            `Akun ${d.email_samar} memakai verifikasi dua langkah. `
+            + 'Masukkan 6 digit kode dari aplikasi authenticator Anda.';
+        }
+      }
+    } catch { /* biarkan form apa adanya — server tetap memeriksa saat submit */ }
+  })();
+
+  // Perilaku enam kotak (maju otomatis, hapus mundur, tempel) dipasang SEKALI
+  // saat halaman dimuat — listener bekerja pada elemen `hidden`; hanya fokus
+  // yang butuh elemen terlihat.
+  pasangOtpReset();
 
   // Fokuskan kolom sandi — pengguna datang ke halaman ini dengan satu tugas.
   // Menunda fokus sampai panel terlihat supaya tidak menggulir halaman.

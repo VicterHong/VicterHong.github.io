@@ -349,6 +349,35 @@ export function buatTokenReset(userId) {
 }
 
 /**
+ * Periksa token reset TANPA mengubah apa pun.
+ *
+ * ── KENAPA DIPISAH DARI pakaiTokenReset() ──────────────────────────────────
+ * Alur reset dengan 2FA butuh urutan: verifikasi token → verifikasi kode 2FA
+ * → BARU ganti sandi. Tanpa fungsi ini, satu-satunya cara tahu tokennya sah
+ * adalah dengan mengganti sandinya — dan itu berarti sandi berubah SEBELUM
+ * faktor kedua diperiksa. Penyerang yang menemukan tautan reset cukup
+ * membukanya untuk mengunci pemilik akun keluar.
+ *
+ * `pakaiTokenReset()` tetap memverifikasi ulang saat dipanggil — jadi token
+ * yang dipakai dua kali (atau kedaluwarsa di antara dua panggilan) tetap
+ * ditolak.
+ */
+export function ambilTokenReset(token) {
+  const hash = createHash('sha256').update(String(token ?? '')).digest('hex');
+  const row = getDb().prepare(
+    'SELECT * FROM password_resets WHERE token_hash = ? AND dipakai_at IS NULL'
+  ).get(hash);
+
+  if (!row) return { ok: false };
+  if (row.kedaluwarsa < now()) return { ok: false };
+
+  const akun = getDb().prepare('SELECT id, email, status FROM users WHERE id = ?').get(row.user_id);
+  if (!akun) return { ok: false };
+
+  return { ok: true, userId: row.user_id, email: akun.email, status: akun.status };
+}
+
+/**
  * Pakai token reset: verifikasi + ganti sandi + tandai terpakai.
  *
  * Mengembalikan { ok, userId, pesan }. Semua kegagalan memakai pesan yang

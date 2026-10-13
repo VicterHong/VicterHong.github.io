@@ -68,7 +68,13 @@ import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJ
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
 // mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
-import { statusTotp } from './totp-service.mjs';
+//
+// `verifikasi2fa` + `totpAktif` dipakai oleh gerbang 2FA di alur HAPUS AKUN.
+// Menghapus akun adalah tindakan destruktif yang tidak bisa dibatalkan — pola
+// korporat (Microsoft, Google) meminta faktor kedua untuk tindakan seperti
+// ini, bukan hanya kode yang dikirim ke email. Tanpa gerbang itu, siapa pun
+// yang menguasai kotak masuk bisa menghapus akun orang lain.
+import { statusTotp, verifikasi2fa, totpAktif } from './totp-service.mjs';
 import { recordEvent } from './audit.mjs';
 import {
   normalEmail, emailValid, cariPengguna, penggunaById, buatPengguna, perbaruiProfil,
@@ -235,6 +241,28 @@ function alihkanKe(res, tujuan) {
  * path yang diawali '/' tunggal yang diterima — '//host' ditolak karena
  * browser memperlakukannya sebagai URL absolut.
  */
+/**
+ * Samarkan alamat email untuk ditampilkan SEBELUM identitas terbukti.
+ *
+ * Dipakai di gerbang 2FA alur hapus akun: pengguna perlu tahu AKUN MANA yang
+ * sedang diproses ("oh, ini email kantor saya"), tapi alamat lengkapnya tidak
+ * perlu terlihat — layar bisa dilihat orang lain, dan pesan galat bisa
+ * tersalin ke tempat lain.
+ *
+ * Domain tetap utuh karena itu bagian yang paling membantu.
+ */
+function samarkanEmailAuth(email) {
+  const s = String(email ?? '').trim();
+  const at = s.lastIndexOf('@');
+  if (at < 1) return '***';
+
+  const lokal = s.slice(0, at);
+  const domain = s.slice(at);
+
+  if (lokal.length <= 2) return `${lokal[0] ?? '*'}***${domain}`;
+  return `${lokal[0]}***${lokal[lokal.length - 1]}${domain}`;
+}
+
 function tujuanAman(nilai) {
   const s = String(nilai || '/');
   if (!s.startsWith('/')) return '/';
@@ -2397,6 +2425,11 @@ function ruteSso() {
         const pengguna = penggunaDariToken(tokenRow);
         if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
 
+        // Body dibaca di sini karena `kode_2fa` datang dari klien — lihat
+        // gerbang 2FA di bawah. Body kosong bukan kesalahan pada endpoint ini:
+        // akun tanpa 2FA tidak mengirim apa pun.
+        const body = await readJson(req).catch(() => ({}));
+
         // ── BLOKIR KALAU SUDAH MENUNGGU HAPUS ──────────────────────────────────
         //
         // Minta kode dua kali tidak ada gunanya — permintaan pertama sudah
@@ -2445,6 +2478,51 @@ function ruteSso() {
               + 'Batalkan dulu di menu Pembayaran, baru hapus akun.',
             jumlah: langganan.jumlah,
           });
+        }
+
+        // ══ 2FA WAJIB KALAU AKTIF ═════════════════════════════════════════════
+        //
+        // ── KENAPA DI SINI, BUKAN DI AKHIR ────────────────────────────────────
+        // Kode email adalah bukti pertama; kode authenticator adalah bukti
+        // kedua. Meminta kode email dulu lalu kode 2FA berarti pengguna
+        // menunggu email yang tidak akan berguna sampai faktor kedua lolos —
+        // dan penyerang yang hanya menguasai kotak masuk tidak pernah sampai
+        // ke langkah berikutnya.
+        //
+        // ── POLA KORPORAT ─────────────────────────────────────────────────────
+        // Menghapus akun adalah tindakan yang tidak bisa dibatalkan. Microsoft
+        // dan Google sama-sama meminta verifikasi ulang faktor kedua sebelum
+        // perubahan akun yang destruktif — bukan hanya kode email.
+        if (totpAktif(pengguna.email)) {
+          const kode2fa = String(body?.kode_2fa ?? '').replace(/\D/g, '').slice(0, 6);
+
+          if (!kode2fa) {
+            return sendJson(res, 403, {
+              ok: false,
+              error: 'perlu_2fa',
+              message: 'Akun ini memakai verifikasi dua langkah. Masukkan kode dari aplikasi authenticator Anda untuk melanjutkan.',
+              email_samar: samarkanEmailAuth(pengguna.email),
+            });
+          }
+
+          const verif = verifikasi2fa(pengguna.email, kode2fa, config, {
+            ip: clientIp(req), cekReplay: false,
+          });
+
+          if (!verif.ok) {
+            recordEvent({
+              tokenId: pengguna.token_id, action: 'akun_hapus_2fa_gagal',
+              outcome: verif.alasan ?? 'kode_salah',
+              ip: clientIp(req), userAgent: req.headers['user-agent'] || '',
+              country: clientCountry(req),
+            });
+            return sendJson(res, 401, {
+              ok: false,
+              error: verif.alasan ?? 'kode_salah',
+              message: verif.pesan ?? 'Kode tidak cocok.',
+              sisa_percobaan: verif.sisa_percobaan,
+            });
+          }
         }
 
         const kode = String(randomInt(0, 1000000)).padStart(6, '0');
@@ -2550,6 +2628,52 @@ function ruteSso() {
 
         if (!/^\d{6}$/.test(kode)) {
           return sendJson(res, 400, { ok: false, error: 'kode_tidak_valid', message: 'Kode harus 6 angka.' });
+        }
+
+        // ══ GERBANG 2FA — DIPERIKSA SEBELUM KODE EMAIL DIPAKAI ═══════════════
+        //
+        // ── KENAPA DI SINI JUGA, PADAHAL hapus-mulai SUDAH MEMERIKSA ─────────
+        // hapus-mulai dan hapus adalah dua permintaan TERPISAH. Memeriksa 2FA
+        // hanya di yang pertama berarti penyerang bisa memanggil /hapus
+        // langsung dengan kode email yang ia peroleh — tanpa pernah melewati
+        // gerbang di /hapus-mulai. Setiap endpoint yang MENGUBAH keadaan harus
+        // memeriksa sendiri; tidak ada yang boleh mengandalkan endpoint lain.
+        //
+        // ── URUTANNYA PENTING ────────────────────────────────────────────────
+        // 2FA diperiksa DULU, sebelum kode email dibandingkan. Kalau dibalik,
+        // penyerang yang punya kode email tapi tidak punya authenticator bisa
+        // memakai percobaan yang gagal itu untuk menebak kode email (timing /
+        // pesan berbeda), lalu menyimpannya untuk percobaan berikutnya.
+        if (totpAktif(pengguna.email)) {
+          const kode2fa = String(body.kode_2fa ?? '').replace(/\D/g, '').slice(0, 6);
+
+          if (!kode2fa) {
+            return sendJson(res, 403, {
+              ok: false,
+              error: 'perlu_2fa',
+              message: 'Akun ini memakai verifikasi dua langkah. Masukkan kode dari aplikasi authenticator Anda.',
+              email_samar: samarkanEmailAuth(pengguna.email),
+            });
+          }
+
+          const verif = verifikasi2fa(pengguna.email, kode2fa, config, {
+            ip: clientIp(req), cekReplay: false,
+          });
+
+          if (!verif.ok) {
+            recordEvent({
+              tokenId: pengguna.token_id, action: 'akun_hapus_2fa_gagal',
+              outcome: verif.alasan ?? 'kode_salah',
+              ip: clientIp(req), userAgent: req.headers['user-agent'] || '',
+              country: clientCountry(req),
+            });
+            return sendJson(res, 401, {
+              ok: false,
+              error: verif.alasan ?? 'kode_salah',
+              message: verif.pesan ?? 'Kode tidak cocok.',
+              sisa_percobaan: verif.sisa_percobaan,
+            });
+          }
         }
 
         // ── VERIFIKASI KODE ───────────────────────────────────────────────────

@@ -2934,17 +2934,63 @@
     // butuh elemen terlihat.
     const otpHapus = pasangOtpSel('#kamOtpHapus', () => konfirmasi());
 
+    // ── OTP 2FA UNTUK HAPUS AKUN ──────────────────────────────────────────────
+    // Dipasang dengan fungsi yang sama; hanya kotak 2FA-nya yang berbeda.
+    // Tanpa callback: kode 2FA diisi BERSAMA kode email di langkah 1, jadi
+    // tidak ada yang perlu dikirim otomatis saat enam digitnya lengkap.
+    const otpHapus2fa = pasangOtpSel('#kamOtpHapus2fa', () => {});
+
+    // ── Apakah akun ini memakai 2FA? ──────────────────────────────────────────
+    // Dibaca dari server saat dialog dibuka. Server tetap memeriksa sendiri
+    // saat kode dikirim — ini hanya supaya kolomnya muncul sebelum pengguna
+    // menekan tombol, bukan setelah ditolak.
+    let perlu2faHapus = false;
+
+    const blok2fa = $('#kamHapusBlok2fa');
+    const catatan2fa = $('#kamHapus2faCatatan');
+
+    /** Nilai kode 2FA dari enam kotak, atau '' kalau belum lengkap. */
+    function nilaiKode2fa() {
+      const sel = Array.from(document.querySelectorAll('[data-otp-hapus2fa]'));
+      if (!sel.length) return '';
+      const nilai = sel.map((s) => s.value).join('');
+      // Kode pemulihan (XXXXX-XXXXX) tidak muat di enam kotak angka — ia
+      // diketik di kotak pertama dan panjangnya lebih dari 6. Karena itu
+      // nilai yang tidak 6 digit dikembalikan apa adanya, dan server yang
+      // memutuskan (verifikasi2fa mendeteksi bentuknya).
+      return nilai;
+    }
+
+    /** Tanya server apakah akun ini memakai 2FA. Gagal = anggap tidak. */
+    async function periksa2fa() {
+      try {
+        const res = await fetch('/api/auth/2fa/status', { credentials: 'same-origin' });
+        const d = await res.json().catch(() => null);
+        perlu2faHapus = Boolean(d?.ok && d?.aktif);
+      } catch {
+        perlu2faHapus = false;
+      }
+
+      if (blok2fa) blok2fa.hidden = !perlu2faHapus;
+      return perlu2faHapus;
+    }
+
     /** Kembalikan dialog ke langkah 1 — dipakai saat dibuka dan ditutup. */
     function resetDialog() {
       if (l1) l1.hidden = false;
       if (l2) l2.hidden = true;
       otpHapus?.reset();
+      otpHapus2fa?.reset();
       if (pesan) { pesan.textContent = ''; pesan.className = 'auth-msg'; }
     }
 
     function buka() {
       resetDialog();
       dlg.hidden = false;
+      // Status 2FA diperiksa saat dialog DIBUKA, bukan saat halaman dimuat:
+      // pengguna bisa mengaktifkan 2FA di tab lain, dan dialog ini selalu
+      // mengambil keadaan terbaru.
+      periksa2fa();
       // Fokus ke tombol pertama — supaya pengguna keyboard tidak tersesat
       // di belakang dialog.
       setTimeout(() => $('#kamHapusKirimKode')?.focus(), 50);
@@ -2985,14 +3031,42 @@
       if (btn) { btn.disabled = true; btn.classList.add('is-memuat'); }
       pesanDanger('Mengirim kode…');
 
+      // ── KODE 2FA WAJIB KALAU AKUN MEMAKAINYA ──────────────────────────────
+      // Kode email saja TIDAK cukup untuk akun ber-2FA: siapa pun yang
+      // menguasai kotak masuk harus tetap membuktikan faktor kedua. Diperiksa
+      // di klien untuk umpan balik cepat; server memeriksa ulang.
+      const kode2fa = perlu2faHapus ? nilaiKode2fa() : '';
+
+      if (perlu2faHapus && !kode2fa) {
+        pesanDanger('Masukkan kode dari aplikasi authenticator Anda dulu.', 'galat');
+        document.querySelector('[data-otp-hapus2fa="0"]')?.focus();
+        if (btn) { btn.disabled = false; btn.classList.remove('is-memuat'); }
+        return;
+      }
+
       try {
         const res = await fetch('/api/auth/akun/hapus-mulai', {
           method: 'POST',
           credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(kode2fa ? { kode_2fa: kode2fa } : {}),
         });
         const d = await res.json().catch(() => ({}));
 
         if (!res.ok || !d.ok) {
+          // ── SERVER MINTA 2FA ────────────────────────────────────────────────
+          // Terjadi kalau pemeriksaan status gagal (jaringan putus sesaat),
+          // sehingga blok 2FA tidak sempat muncul. Server tetap memeriksa
+          // sendiri, jadi jawabannya otoritatif — tampilkan bloknya sekarang.
+          if (d.error === 'perlu_2fa') {
+            perlu2faHapus = true;
+            if (blok2fa) blok2fa.hidden = false;
+            if (d.email_samar && catatan2fa) {
+              catatan2fa.textContent =
+                `Akun ${d.email_samar} memakai verifikasi dua langkah. `
+                + 'Masukkan 6 digit kode dari aplikasi authenticator Anda.';
+            }
+          }
           pesanDanger(d.message || 'Tidak bisa mengirim kode. Coba lagi.', 'galat');
           return;
         }
@@ -3031,17 +3105,50 @@
       if (btn) { btn.disabled = true; btn.classList.add('is-memuat'); }
       pesanDanger('Menghapus akun…');
 
+      // ── KODE 2FA DIKIRIM ULANG DI SINI ────────────────────────────────────
+      // Server memeriksa 2FA di SETIAP endpoint yang mengubah keadaan — bukan
+      // hanya di langkah pertama. Kode yang tadi dipakai untuk meminta kode
+      // email tidak disimpan di mana pun; pengguna memasukkannya sekali dan
+      // nilainya masih ada di kotak, jadi ia dikirim lagi bersama konfirmasi.
+      //
+      // Kode TOTP yang sama TIDAK ditolak sebagai "dipakai ulang" di sini:
+      // server memakai `cekReplay: false` untuk aksi ber-sesi — lihat catatan
+      // di auth-routes.mjs. Kode yang sah tetap wajib.
+      const kode2fa = perlu2faHapus ? nilaiKode2fa() : '';
+
+      if (perlu2faHapus && !kode2fa) {
+        pesanDanger('Kode authenticator tidak terbaca. Masukkan ulang di langkah pertama.', 'galat');
+        if (l1) l1.hidden = false;
+        if (l2) l2.hidden = true;
+        return;
+      }
+
       try {
         const res = await fetch('/api/auth/akun/hapus', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ kode }),
+          body: JSON.stringify({ kode, ...(kode2fa ? { kode_2fa: kode2fa } : {}) }),
         });
         const d = await res.json().catch(() => ({}));
 
         if (!res.ok || !d.ok) {
           pesanDanger(d.message || 'Tidak bisa menghapus akun. Coba lagi.', 'galat');
+
+          // ── KODE 2FA SALAH / DIMINTA ────────────────────────────────────────
+          // Kembali ke langkah 1 supaya pengguna bisa memasukkan kode baru.
+          // Membiarkannya di langkah 2 berarti kode email yang sudah dikirim
+          // tidak bisa dipakai lagi tanpa mengulang dari awal.
+          if (d.error === 'perlu_2fa' || d.error === 'kode_salah'
+              || d.error === 'diblokir_sementara' || d.error === 'kode_dipakai_ulang') {
+            perlu2faHapus = true;
+            if (blok2fa) blok2fa.hidden = false;
+            otpHapus2fa?.reset();
+            if (l1) l1.hidden = false;
+            if (l2) l2.hidden = true;
+            return;
+          }
+
           // Kalau kodenya kedaluwarsa, kembali ke langkah 1 supaya pengguna
           // bisa minta kode baru — tanpa menutup dialog.
           if (d.error === 'kode_kedaluwarsa') {

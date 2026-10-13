@@ -1039,6 +1039,49 @@
         Kami akan mengirim kode 6 digit ke email Anda untuk memastikan ini
         benar-benar Anda.
       </p>
+
+      <!--
+        ══ BLOK 2FA ══════════════════════════════════════════════════════════
+
+        ── KENAPA MUNCUL DI LANGKAH PERTAMA, BUKAN KEDUA ────────────────────
+        Kode email dan kode authenticator adalah DUA bukti berbeda. Meminta
+        kode email dulu berarti pengguna menunggu email yang tidak akan
+        berguna sampai faktor kedua lolos — dan penyerang yang hanya menguasai
+        kotak masuk tidak pernah sampai ke langkah berikutnya.
+
+        Diminta bersama, keduanya dikirim dalam satu permintaan dan pengguna
+        melihat seluruh syarat sejak awal.
+
+        ── KENAPA `hidden` SECARA BAWAAN ────────────────────────────────────
+        Akun tanpa 2FA tidak melihat apa pun di sini — JS membukanya hanya
+        setelah server mengonfirmasi akun ini memakai 2FA.
+      -->
+      <div id="kamHapusBlok2fa" hidden>
+        <label class="kam-hapus-label" for="kamKode2faHapus0">Kode verifikasi dua langkah</label>
+        <p class="kam-hapus-bantuan" id="kamHapus2faCatatan">
+          Akun ini memakai verifikasi dua langkah. Masukkan 6 digit kode dari
+          aplikasi authenticator Anda.
+        </p>
+        <div class="auth-otp" id="kamOtpHapus2fa" aria-describedby="kamHapus2faBantuan">
+          <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                 id="kamKode2faHapus0" data-otp-hapus2fa="0" aria-label="Digit 1" autocomplete="one-time-code">
+          <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                 data-otp-hapus2fa="1" aria-label="Digit 2">
+          <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                 data-otp-hapus2fa="2" aria-label="Digit 3">
+          <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                 data-otp-hapus2fa="3" aria-label="Digit 4">
+          <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                 data-otp-hapus2fa="4" aria-label="Digit 5">
+          <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+                 data-otp-hapus2fa="5" aria-label="Digit 6">
+        </div>
+        <p class="kam-hapus-bantuan" id="kamHapus2faBantuan">
+          Kehilangan akses ke authenticator? Masukkan kode pemulihan Anda
+          (format XXXXX-XXXXX) di kotak pertama.
+        </p>
+      </div>
+
       <div class="kam-dialog-aksi">
         <button class="auth-oauth" type="button" id="kamHapusBatal">Batal</button>
         <button class="auth-oauth auth-oauth-bahaya" type="button" id="kamHapusKirimKode">

@@ -20,7 +20,7 @@
  */
 
 import { config } from './config.mjs';
-import { openDb, getDb } from './db.mjs';
+import { openDb, getDb, migrateUlang } from './db.mjs';
 import { timingSafeEqual, createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import {
@@ -90,7 +90,7 @@ import {
   siapkanTabelPengguna, cariPengguna, penggunaById, buatPengguna,
   verifyPassword, periksaSandi, emailValid, normalEmail,
   catatGagalMasuk, catatMasukBerhasil, sisaKunci,
-  buatTokenReset, pakaiTokenReset,
+  buatTokenReset, pakaiTokenReset, ambilTokenReset,
 } from './users.mjs';
 import {
   buatClearance, verifikasiClearance, setCookieClearance,
@@ -274,6 +274,26 @@ export function initRoutes() {
   // level modul users.mjs, ia berjalan saat import — sebelum openDb() —
   // dan melempar "database belum dibuka".
   siapkanTabelPengguna();
+
+  // ══ MIGRASI ULANG SETELAH TABEL PENGGUNA DIBUAT ═══════════════════════════
+  //
+  // ── BUG YANG DIPERBAIKI ───────────────────────────────────────────────────
+  // Tabel `users` TIDAK dibuat oleh SCHEMA di db.mjs — ia dibuat di sini, oleh
+  // `siapkanTabelPengguna()`. Sementara semua `addColumn('users', ...)` ada di
+  // `migrate()`, yang berjalan LEBIH DULU (saat openDb()).
+  //
+  // Akibatnya: di database baru, setiap addColumn('users', ...) menemukan
+  // "no such table" dan dilewati SENYAP — jadi kolom seperti `dihapus_pada`
+  // tidak pernah ada. Hapus akun lalu gagal 500 "no such column" untuk
+  // pengguna baru, dan itu terjadi di produksi.
+  //
+  // Database LAMA tidak terpengaruh (tabelnya sudah ada saat migrate jalan) —
+  // itulah kenapa bug ini hanya muncul pada akun yang dibuat setelah
+  // perubahan skema.
+  //
+  // Memanggil migrateUlang() SETELAH tabelnya ada menutup celah itu, dan aman
+  // dijalankan berkali-kali: addColumn() melewati kolom yang sudah ada.
+  migrateUlang();
 
   // ── Tabel identitas (OAuth/passkey) + state sementara ──────────────────────
   // Dibuat di sini dengan alasan yang sama: openDb() harus jalan lebih dulu.
@@ -684,6 +704,32 @@ function verifySession(req, { projectSlug = '', action = 'content' } = {}) {
  * Nilainya ada di sessions.mjs — dipakai juga saat login, supaya kedua jalur
  * tidak pernah berbeda jendela.
  */
+
+/**
+ * Samarkan alamat email untuk ditampilkan sebelum identitas terbukti.
+ *
+ * ── KENAPA DISAMARKAN ─────────────────────────────────────────────────────
+ * Halaman reset menampilkan "akun mana yang sedang direset" supaya pengguna
+ * yakin ia membuka tautan yang benar. Tapi halaman itu dibuka SEBELUM faktor
+ * kedua diperiksa — dan siapa pun yang menemukan tautan (email diteruskan,
+ * layar dilihat orang lain) akan melihat alamat lengkapnya.
+ *
+ * Menyamarkan bagian lokalnya (`budi@perusahaan.com` → `b***i@perusahaan.com`)
+ * memberi cukup petunjuk untuk dikenali pemiliknya, tanpa membocorkan
+ * alamatnya ke orang lain. Domain tetap utuh karena itu bagian yang paling
+ * membantu ("oh, ini email kantor saya").
+ */
+function samarkanEmail(email) {
+  const s = String(email ?? '').trim();
+  const at = s.lastIndexOf('@');
+  if (at < 1) return '***';
+
+  const lokal = s.slice(0, at);
+  const domain = s.slice(at);
+
+  if (lokal.length <= 2) return `${lokal[0] ?? '*'}***${domain}`;
+  return `${lokal[0]}***${lokal[lokal.length - 1]}${domain}`;
+}
 
 /**
  * Sesi lengkap (token + baris sesi) dari cookie, atau null.
@@ -2210,6 +2256,72 @@ export const routes = [
     }),
   },
 
+  // ══ AUTH: KONTEKS RESET SANDI — token sah? akun ini pakai 2FA? ═══════════
+  //
+  // Dipanggil halaman reset saat dibuka, SEBELUM pengguna mengetik sandi baru.
+  //
+  // ── KENAPA HALAMAN PERLU TAHU LEBIH DULU ──────────────────────────────────
+  // Kalau akun memakai 2FA, reset sandi butuh DUA hal: tautan dari email DAN
+  // kode authenticator. Tanpa endpoint ini, pengguna baru tahu itu setelah
+  // mengetik sandi baru dan menekan simpan — dan form yang menolak di akhir
+  // terasa seperti kegagalan, bukan langkah tambahan.
+  //
+  // Dengan konteks, kolom kode muncul sejak awal dan urutannya jelas.
+  //
+  // ── KENAPA EMAIL DIKEMBALIKAN (DISAMARKAN) ────────────────────────────────
+  // Pengguna dengan beberapa akun perlu tahu AKUN MANA yang sedang direset.
+  // Alamatnya disamarkan (`b***i@perusahaan.com`) — cukup untuk dikenali
+  // pemiliknya, tidak cukup untuk membocorkan alamatnya ke orang yang
+  // menemukan tautan itu di layar.
+  {
+    method: 'GET',
+    pattern: '/api/auth/reset-sandi/konteks',
+    handler: safe(async (req, res, params, url) => {
+      const token = String(url?.searchParams?.get('token') ?? '').trim();
+      if (!token) {
+        return sendJson(res, 400, { ok: false, error: 'token_kosong', message: 'Tautan tidak lengkap.' });
+      }
+
+      const hasil = ambilTokenReset(token);
+
+      // ── TOKEN TIDAK SAH: JAWABAN SERAGAM ──────────────────────────────────
+      // Token salah dan token kedaluwarsa dijawab sama persis. Kalau dibedakan,
+      // endpoint ini menjadi alat untuk memeriksa token mana yang pernah ada.
+      if (!hasil.ok) {
+        return sendJson(res, 200, {
+          ok: true,
+          token_sah: false,
+          pesan: 'Tautan ini tidak berlaku lagi. Minta tautan baru dari halaman lupa sandi.',
+        });
+      }
+
+      // Akun yang menunggu hapus tidak boleh bisa direset sandinya —
+      // permintaan hapusnya sudah tercatat dan bisa dibatalkan lewat
+      // halaman masuk. Mereset sandi di sini hanya menunda kebingungan.
+      if (hasil.status !== 'aktif') {
+        return sendJson(res, 200, {
+          ok: true,
+          token_sah: false,
+          pesan: 'Akun ini tidak aktif. Hubungi dukungan untuk memulihkannya.',
+        });
+      }
+
+      const perlu2fa = totpAktif(hasil.email);
+
+      return sendJson(res, 200, {
+        ok: true,
+        token_sah: true,
+        email_samar: samarkanEmail(hasil.email),
+        perlu_2fa: perlu2fa,
+        // Kalau akun TIDAK memakai 2FA, halaman langsung menampilkan form
+        // sandi — tidak ada langkah tambahan yang tidak perlu.
+        pesan: perlu2fa
+          ? 'Akun ini memakai verifikasi dua langkah. Siapkan kode dari aplikasi authenticator Anda.'
+          : '',
+      });
+    }),
+  },
+
   // ══ AUTH: RESET SANDI — pakai token dari email ════════════════════════════
   {
     method: 'POST',
@@ -2218,17 +2330,94 @@ export const routes = [
       const body = await readJson(req);
       const token = String(body.token ?? '').trim();
       const sandi = String(body.sandi ?? '');
+      const kode = String(body.kode ?? '').replace(/\D/g, '').slice(0, 6);
 
       if (!token) {
         return sendJson(res, 400, { ok: false, error: 'token_kosong', message: 'Tautan tidak valid.' });
       }
 
+      // ══ 2FA WAJIB KALAU AKTIF ═════════════════════════════════════════════
+      //
+      // ── MASALAH YANG DIPERBAIKI ───────────────────────────────────────────
+      // Sebelum ini, tautan dari email SUDAH CUKUP untuk mengganti sandi —
+      // bahkan pada akun yang memakai 2FA. Artinya 2FA bisa dilewati
+      // sepenuhnya: siapa pun yang menguasai kotak masuk (email diteruskan,
+      // perangkat dipinjam, kotak masuk diretas) cukup memakai "lupa sandi"
+      // untuk mengambil alih akun. Faktor kedua yang dipasang justru tidak
+      // pernah diminta di jalur yang paling sering dipakai penyerang.
+      //
+      // ── POLA KORPORAT ─────────────────────────────────────────────────────
+      // Microsoft (SSPR) mengabaikan permintaan reset yang hanya lewat email
+      // kalau two-step verification aktif — pengguna WAJIB memberi dua bukti.
+      // Prinsip yang sama berlaku di sini: tautan email = bukti pertama,
+      // kode authenticator = bukti kedua.
+      //
+      // ── URUTAN YANG TIDAK BOLEH DIBALIK ───────────────────────────────────
+      // Token diperiksa DULU, kode 2FA SETELAHNYA, dan sandi diganti PALING
+      // AKHIR. Kalau kode diperiksa setelah sandi berubah, penyerang bisa
+      // mengganti sandi lalu meninggalkan halaman — akun tetap terkunci
+      // untuk pemiliknya walaupun 2FA-nya menolak.
+      const konteks = ambilTokenReset(token);
+      if (!konteks.ok) {
+        // Pesan seragam: token salah dan kedaluwarsa tidak dibedakan.
+        return sendJson(res, 400, {
+          ok: false, error: 'reset_gagal',
+          message: 'Tautan tidak valid atau sudah kedaluwarsa.',
+        });
+      }
+
+      if (konteks.status !== 'aktif') {
+        return sendJson(res, 400, {
+          ok: false, error: 'reset_gagal',
+          message: 'Akun ini tidak aktif. Hubungi dukungan untuk memulihkannya.',
+        });
+      }
+
+      if (totpAktif(konteks.email)) {
+        if (!kode) {
+          return sendJson(res, 403, {
+            ok: false,
+            error: 'perlu_2fa',
+            message: 'Akun ini memakai verifikasi dua langkah. Masukkan kode dari aplikasi authenticator Anda.',
+            email_samar: samarkanEmail(konteks.email),
+          });
+        }
+
+        // `cekReplay: false` — pengguna yang baru login lalu langsung mereset
+        // sandi memakai kode dari langkah waktu yang SAMA. Dengan replay guard
+        // aktif, ia selalu ditolak dan harus menunggu 30 detik tanpa alasan
+        // yang jelas. Keamanannya tidak berkurang: token reset yang sah TETAP
+        // diperlukan, dan pembatas 5 percobaan gagal tetap berlaku.
+        const verif = verifikasi2fa(konteks.email, kode, config, {
+          ip: clientIp(req), cekReplay: false,
+        });
+
+        if (!verif.ok) {
+          recordEvent({
+            action: 'auth_reset_sandi', outcome: 'kode_2fa_gagal',
+            detail: verif.alasan, ip: clientIp(req),
+            userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+          });
+          return sendJson(res, 401, {
+            ok: false,
+            error: verif.alasan ?? 'kode_salah',
+            message: verif.pesan ?? 'Kode tidak cocok.',
+            sisa_percobaan: verif.sisa_percobaan,
+          });
+        }
+      }
+
+      // ── SEMUA BUKTI LENGKAP → BARU GANTI SANDI ────────────────────────────
       const hasil = await pakaiTokenReset(token, sandi);
       if (!hasil.ok) {
         return sendJson(res, 400, { ok: false, error: 'reset_gagal', message: hasil.pesan });
       }
 
-      recordEvent({ action: 'auth_reset_sandi', outcome: 'ok', ip: clientIp(req) });
+      recordEvent({
+        action: 'auth_reset_sandi', outcome: 'ok',
+        detail: totpAktif(konteks.email) ? 'dengan_2fa' : 'tanpa_2fa',
+        ip: clientIp(req),
+      });
 
       return sendJson(res, 200, {
         ok: true,
