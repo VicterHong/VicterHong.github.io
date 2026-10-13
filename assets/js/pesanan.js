@@ -198,7 +198,18 @@ function gambarPesanan(root, p) {
     ke.href = '/keamanan';
     aksi.appendChild(ke);
   } else if (p.status === 'pending') {
-    const lagi = el('button', 'tombol tombol--utama', 'Cek status lagi');
+    // ── LANJUTKAN, BUKAN CUMA "CEK LAGI" ─────────────────────────────────────
+    // Pembeli yang kembali ke sini tanpa menyelesaikan pembayaran biasanya
+    // ingin MELANJUTKAN — bukan sekadar melihat status. URL-nya datang dari
+    // server dan sama dengan yang sudah dibuat, jadi membukanya tidak membuat
+    // transaksi baru.
+    if (p.url_pembayaran) {
+      const lanjut = el('a', 'tombol tombol--utama', 'Lanjutkan pembayaran');
+      lanjut.href = p.url_pembayaran;
+      aksi.appendChild(lanjut);
+    }
+
+    const lagi = el('button', 'tombol tombol--sekunder', 'Cek status lagi');
     lagi.type = 'button';
     lagi.addEventListener('click', () => location.reload());
     aksi.appendChild(lagi);

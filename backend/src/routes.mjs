@@ -343,10 +343,47 @@ const ID_PARAMS = new Set(['id']);
 const AVATAR_PARAMS = new Set(['berkas']);
 const AVATAR_FILE_RE = /^[a-f0-9]{32}-[a-f0-9]{10}\.webp$/;
 
+/**
+ * Pola untuk slug / collection / name — huruf kecil, angka, tanda hubung.
+ *
+ * ── KENAPA DITULIS DI SINI, BUKAN DIAMBIL DARI MODUL LAIN ──────────────────
+ * Nilai yang sama ada di content.mjs dan cms.mjs, tapi keduanya milik domain
+ * masing-masing. Router butuh SATU pola yang berlaku untuk semua parameter
+ * bertipe slug — mengimpornya dari salah satu modul berarti parameter modul
+ * lain ikut terikat pada aturan yang bukan miliknya.
+ */
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
+
+/**
+ * Pola ID token — persis bentuk yang dihasilkan `tokenId()`: 'tok_' + 16 hex.
+ *
+ * ── KENAPA DIPISAH DARI SLUG_RE ────────────────────────────────────────────
+ * ID token memuat garis bawah, dan SLUG_RE menolaknya. Sebelumnya pola ini
+ * HILANG dari berkas (terhapus saat menambahkan pola avatar) — dan karena
+ * `validParam` menyebutnya, SETIAP rute ber-`:id` atau `:slug` melempar
+ * ReferenceError dan dijawab 400. Termasuk /api/project/:slug/locked.
+ */
+const TOKEN_ID_RE = /^tok_[a-f0-9]{16}$/;
+
+/**
+ * Pola ID pembayaran — 'pay_' + 24 hex, sama dengan yang dibuat checkout.mjs.
+ *
+ * ── KENAPA PARAMETER `id` PUNYA DUA BENTUK ─────────────────────────────────
+ * Dua rute memakai nama parameter yang sama dengan dua jenis ID berbeda:
+ *   /api/admin/token/:id  → tok_ + 16 hex
+ *   /api/pesanan/:id      → pay_ + 24 hex
+ * Pola tunggal akan menolak salah satunya. Keduanya diterima di sini karena
+ * keduanya adalah bentuk yang DIHASILKAN sistem sendiri — bukan nilai bebas
+ * dari pengguna. Handler tetap memeriksa keberadaan barisnya di database.
+ */
+const PAY_ID_RE = /^pay_[a-f0-9]{24}$/;
+
 /** Validasi nilai parameter sesuai tipenya. */
 function validParam(name, value) {
   if (SLUG_PARAMS.has(name)) return SLUG_RE.test(value);
-  if (ID_PARAMS.has(name)) return TOKEN_ID_RE.test(value);
+  // `id` dipakai dua rute dengan dua jenis ID (token & pembayaran) — lihat
+  // catatan PAY_ID_RE di atas.
+  if (ID_PARAMS.has(name)) return TOKEN_ID_RE.test(value) || PAY_ID_RE.test(value);
   if (AVATAR_PARAMS.has(name)) return AVATAR_FILE_RE.test(value);
   // Parameter yang belum dikenal: tolak demi keamanan (default-deny).
   // Kalau nanti ada parameter baru, tambahkan ke salah satu himpunan di atas
@@ -943,6 +980,9 @@ export const routes = [
           token_terbit: bayar.tokenTerbit,
           dibuat_pada: bayar.dibuat_pada,
           dibayar_pada: bayar.dibayar_pada,
+          // Hanya ada saat masih pending & belum kedaluwarsa — dipakai
+          // halaman /pesanan untuk tombol "Lanjutkan pembayaran".
+          ...(bayar.url_pembayaran ? { url_pembayaran: bayar.url_pembayaran } : {}),
         },
       });
     }),

@@ -62,6 +62,26 @@ function urlApi() {
   return dasar;
 }
 
+/**
+ * URL untuk endpoint API v2 (status, cancel) — HOST BERBEDA dari Snap.
+ *
+ * ── KENAPA DIPISAH ────────────────────────────────────────────────────────
+ * Snap memakai `app.midtrans.com`, tapi API v2 memakai `api.midtrans.com`.
+ * Memakai host Snap untuk `/v2/.../status` menghasilkan HTTP 404 dengan body
+ * HTML — bukan JSON — sehingga pemeriksaan status SELALU gagal, dan
+ * idempotensi jatuh ke jalur "buat transaksi baru" lalu menabrak UNIQUE
+ * constraint.
+ *
+ * Diverifikasi langsung ke Midtrans produksi: `api.midtrans.com` menjawab
+ * 200 JSON, `app.midtrans.com` menjawab 404.
+ */
+function urlApiV2() {
+  const dasar = config.midtransProduction
+    ? 'https://api.midtrans.com'
+    : 'https://api.sandbox.midtrans.com';
+  return dasar;
+}
+
 /** Apakah pembayaran sudah dikonfigurasi? */
 export function midtransAktif() {
   return Boolean(config.midtransServerKey);
@@ -91,7 +111,7 @@ function headerAuth() {
  * @param {string} jalur   '/snap/v1/transactions'
  * @param {object} data    Body (untuk POST)
  */
-export async function panggilMidtrans(metode, jalur, data = {}) {
+export async function panggilMidtrans(metode, jalur, data = {}, baseUrl = null) {
   if (!config.midtransServerKey) {
     throw Object.assign(new Error('Midtrans belum dikonfigurasi'), {
       kode: 'midtrans_belum_dikonfigurasi',
@@ -103,7 +123,7 @@ export async function panggilMidtrans(metode, jalur, data = {}) {
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
 
   try {
-    const res = await fetch(`${urlApi()}${jalur}`, {
+    const res = await fetch(`${baseUrl ?? urlApi()}${jalur}`, {
       method: metode,
       headers: headerAuth(),
       body: metode === 'POST' ? JSON.stringify(data) : undefined,
@@ -224,12 +244,12 @@ export async function buatTransaksiSnap({
 
 /** Ambil status transaksi — untuk cek tanpa menunggu webhook. */
 export async function ambilStatusTransaksi(orderId) {
-  return panggilMidtrans('GET', `/v2/${encodeURIComponent(orderId)}/status`);
+  return panggilMidtrans('GET', `/v2/${encodeURIComponent(orderId)}/status`, {}, urlApiV2());
 }
 
 /** Batalkan transaksi supaya tidak bisa dibayar lagi. */
 export async function batalkanTransaksi(orderId) {
-  return panggilMidtrans('POST', `/${encodeURIComponent(orderId)}/cancel`);
+  return panggilMidtrans('POST', `/v2/${encodeURIComponent(orderId)}/cancel`, {}, urlApiV2());
 }
 
 /* ── Webhook ────────────────────────────────────────────────────────────── */

@@ -146,47 +146,117 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
       };
     }
 
-    // Masih pending & transaksi masih ada → kembalikan URL yang sama
-    if (lama.status === STATUS.PENDING && lama.midtrans_order_id) {
-      try {
-        const trx = await ambilStatusTransaksi(lama.midtrans_order_id);
-        const st = String(trx?.transaction_status ?? '').toLowerCase();
+    // ── URL TERSIMPAN — JALUR UTAMA UNTUK PERCOBAAN ULANG ──────────────────
+    //
+    // ── KENAPA INI DIDAHULUKAN, BUKAN MEMANGGIL MIDTRANS ───────────────────
+    // API status v2 Midtrans tidak mengenal transaksi Snap yang belum dibuka
+    // pembeli ("Transaction doesn't exist") — jadi URL-nya tidak bisa diambil
+    // dari sana. URL yang kita simpan sendiri adalah satu-satunya sumber yang
+    // bisa diandalkan, dan mengembalikannya berarti percobaan ulang TIDAK
+    // membuat transaksi kedua.
+    //
+    // Batas waktunya mengikuti `kedaluwarsa_pada` (24 jam, sama dengan expiry
+    // Snap). Setelah lewat, transaksi lama memang sudah mati — aman membuat
+    // yang baru.
+    if (
+      lama.status === STATUS.PENDING &&
+      lama.payment_url &&
+      lama.kedaluwarsa_pada &&
+      Number(lama.kedaluwarsa_pada) > Date.now()
+    ) {
+      return {
+        pembayaranId: lama.id,
+        url: lama.payment_url,
+        sesiId: lama.snap_token ?? lama.midtrans_order_id ?? lama.id,
+        tier: lama.tier,
+        periode: lama.periode,
+        jumlah: lama.jumlah,
+        dilanjutkan: true,
+      };
+    }
 
-        // Midtrans: `pending` berarti masih bisa dibayar. `capture` dengan
-        // fraud accept juga belum tentu ada URL — jadi hanya `pending` yang
-        // dikembalikan URL-nya.
-        if (st === 'pending' && trx?.redirect_url) {
-          return {
-            pembayaranId: lama.id,
-            url: trx.redirect_url,
-            sesiId: trx.transaction_id ?? lama.midtrans_order_id,
-            tier: lama.tier,
-            periode: lama.periode,
-            jumlah: lama.jumlah,
-            dilanjutkan: true,
-          };
-        }
+    // Masih pending & transaksi masih ada → tanya Midtrans
+    if (lama.status === STATUS.PENDING && lama.midtrans_order_id) {
+      let trx = null;
+      try {
+        trx = await ambilStatusTransaksi(lama.midtrans_order_id);
       } catch {
-        // Transaksi tidak bisa diambil — lanjut buat yang baru di bawah
+        // Status tidak terbaca dan tidak ada URL tersimpan. JANGAN buat
+        // transaksi kedua — kalau yang lama ternyata masih bisa dibayar,
+        // pembeli bisa tertagih dua kali. Minta periksa halaman pesanan.
+        throw Object.assign(new Error(
+          'Pembayaran sebelumnya belum bisa dipastikan selesai. Buka halaman pesanan untuk memeriksa statusnya, atau coba lagi sebentar lagi.'
+        ), { kode: 'status_tidak_terbaca', statusCode: 409 });
       }
+
+      const st = String(trx?.transaction_status ?? '').toLowerCase();
+
+      // Midtrans: `pending` berarti masih bisa dibayar. `capture` dengan
+      // fraud accept juga belum tentu ada URL — jadi hanya `pending` yang
+      // dikembalikan URL-nya.
+      if (st === 'pending' && trx?.redirect_url) {
+        return {
+          pembayaranId: lama.id,
+          url: trx.redirect_url,
+          sesiId: trx.transaction_id ?? lama.midtrans_order_id,
+          tier: lama.tier,
+          periode: lama.periode,
+          jumlah: lama.jumlah,
+          dilanjutkan: true,
+        };
+      }
+
+      // Sudah dibayar di Midtrans tapi webhook belum sampai. Jangan buat
+      // transaksi kedua — beri tahu pembeli untuk menunggu sebentar.
+      const fraud = String(trx?.fraud_status ?? '').toLowerCase();
+      if (st === 'settlement' || (st === 'capture' && fraud === 'accept')) {
+        throw Object.assign(new Error(
+          'Pembayaran sudah diterima dan sedang diproses. Tunggu sebentar, lalu buka halaman pesanan.'
+        ), { kode: 'pembayaran_diproses', statusCode: 409 });
+      }
+
+      // expire / cancel / deny → transaksi lama sudah terminal. Baris ini
+      // dipakai ulang di bawah (kunci idempotensi UNIK — INSERT baru ditolak).
+      db.prepare(
+        'UPDATE payments SET status = ?, alasan_gagal = ? WHERE id = ?',
+      ).run(STATUS.KEDALUWARSA, `midtrans:${st || 'tidak_dikenal'}`, lama.id);
     }
   }
 
-  const id = `pay_${randomBytes(12).toString('hex')}`;
+  const id = lama ? lama.id : `pay_${randomBytes(12).toString('hex')}`;
   const sekarang = Date.now();
 
   // ── Catat SEBELUM memanggil Midtrans ─────────────────────────────────────
   // Kalau urutannya dibalik (panggil Midtrans dulu, catat kemudian) dan
   // pencatatan gagal, akan ada transaksi yang tidak diketahui sistem —
   // dan pembayaran bisa masuk tanpa jejak.
-  transaction(() => {
-    db.prepare(`
-      INSERT INTO payments (id, idempotency_key, tier, periode, jumlah,
-                            email, nama, status, dibuat_pada)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, idempotencyKey, harga.tier, harga.periode, harga.total,
-           emailBersih, String(nama).slice(0, 120), STATUS.PENDING, sekarang);
-  });
+  //
+  // ── KENAPA BARIS LAMA DIPAKAI ULANG, BUKAN INSERT BARU ───────────────────
+  // `idempotency_key` UNIK. Percobaan ulang dengan kunci yang sama (mis.
+  // kirim ulang setelah transaksi pertama gagal) akan ditolak database
+  // dengan "UNIQUE constraint failed" — pembeli melihat galat internal dan
+  // tidak pernah bisa mencoba lagi. Memakai ulang barisnya menjaga janji
+  // kunci itu: satu kunci = satu baris pembayaran, berapa pun percobaannya.
+  if (lama) {
+    transaction(() => {
+      db.prepare(`
+        UPDATE payments
+        SET tier = ?, periode = ?, jumlah = ?, email = ?, nama = ?,
+            status = ?, alasan_gagal = NULL, dibuat_pada = ?
+        WHERE id = ?
+      `).run(harga.tier, harga.periode, harga.total, emailBersih,
+             String(nama).slice(0, 120), STATUS.PENDING, sekarang, id);
+    });
+  } else {
+    transaction(() => {
+      db.prepare(`
+        INSERT INTO payments (id, idempotency_key, tier, periode, jumlah,
+                              email, nama, status, dibuat_pada)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(id, idempotencyKey, harga.tier, harga.periode, harga.total,
+             emailBersih, String(nama).slice(0, 120), STATUS.PENDING, sekarang);
+    });
+  }
 
   try {
     // ── `orderId` = ID PEMBAYARAN KITA ─────────────────────────────────────
@@ -209,9 +279,12 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
     // Masa berlaku: 24 jam (sama dengan yang diminta di `expiry`)
     const kedaluwarsa = sekarang + MS_SEHARI;
 
+    // URL + token disimpan supaya percobaan ulang mengembalikan yang SAMA
+    // (lihat catatan di db.mjs). `snap_token` juga dipakai halaman /pesanan
+    // kalau nanti perlu membuka ulang halaman pembayaran.
     db.prepare(
-      'UPDATE payments SET midtrans_order_id = ?, kedaluwarsa_pada = ? WHERE id = ?',
-    ).run(id, kedaluwarsa, id);
+      'UPDATE payments SET midtrans_order_id = ?, payment_url = ?, snap_token = ?, kedaluwarsa_pada = ? WHERE id = ?',
+    ).run(id, trx.redirect_url ?? null, trx.token ?? null, kedaluwarsa, id);
 
     return {
       pembayaranId: id,
@@ -520,7 +593,7 @@ function rupiah(nilai) {
 export function ambilPembayaran(id) {
   const baris = getDb().prepare(`
     SELECT id, tier, periode, jumlah, email, nama, status,
-           dibuat_pada, dibayar_pada, token_id
+           dibuat_pada, dibayar_pada, kedaluwarsa_pada, token_id, payment_url
     FROM payments WHERE id = ?
   `).get(id);
 
@@ -531,10 +604,21 @@ export function ambilPembayaran(id) {
   // menyebutkannya mengundang orang mencoba menebak token aslinya.
   const { token_id, ...aman } = baris;
 
+  // ── URL PEMBAYARAN HANYA SAAT MASIH PENDING ──────────────────────────────
+  // Setelah dibayar (atau gagal/kedaluwarsa), URL-nya tidak ada gunanya dan
+  // hanya menambah data yang bisa disalahpahami. Yang mengakses endpoint ini
+  // tidak perlu login, jadi yang dikirim dijaga sekecil mungkin.
+  const urlPembayaran =
+    baris.status === 'pending' && baris.payment_url &&
+    Number(baris.kedaluwarsa_pada) > Date.now()
+      ? baris.payment_url
+      : null;
+
   return {
     ...aman,
     // Petunjuk apakah token sudah terbit, tanpa menyebut ID-nya
     tokenTerbit: Boolean(token_id),
+    ...(urlPembayaran ? { url_pembayaran: urlPembayaran } : {}),
   };
 }
 

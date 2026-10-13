@@ -424,6 +424,18 @@ CREATE TABLE IF NOT EXISTS payments (
   midtrans_order_id  TEXT,
   midtrans_customer_id TEXT,
   midtrans_subscription_id TEXT,
+
+  -- Halaman pembayaran Snap + tokennya, disimpan supaya percobaan ulang
+  -- dengan kunci idempotensi yang sama mengembalikan URL YANG SAMA.
+  --
+  -- ── KENAPA DISIMPAN, BUKAN DIBACA ULANG DARI MIDTRANS ────────────────────
+  -- API status v2 Midtrans tidak mengenal transaksi Snap yang belum dibuka
+  -- pembeli ("Transaction doesn't exist") — jadi URL-nya tidak bisa diambil
+  -- kembali dari sana. Tanpa kolom ini, setiap percobaan ulang membuat
+  -- transaksi Snap BARU dengan order_id yang sama, dan pembeli bisa melihat
+  -- dua halaman pembayaran yang keduanya bisa dibayar.
+  payment_url        TEXT,
+  snap_token         TEXT,
   
 
   -- Apa yang dibeli
@@ -840,6 +852,13 @@ function migrate(handle) {
   addColumn('payments', 'midtrans_order_id', 'TEXT');
   addColumn('payments', 'midtrans_customer_id', 'TEXT');
   addColumn('payments', 'midtrans_subscription_id', 'TEXT');
+
+  // ── URL PEMBAYARAN TERSIMPAN ──────────────────────────────────────────────
+  // Lihat catatan di SCHEMA: API status Midtrans tidak mengenal transaksi Snap
+  // yang belum dibuka, jadi URL-nya harus disimpan sendiri agar percobaan
+  // ulang tidak membuat transaksi kedua.
+  addColumn('payments', 'payment_url', 'TEXT');
+  addColumn('payments', 'snap_token', 'TEXT');
 
   // ── INDEX PEMBAYARAN ───────────────────────────────────────────────────────
   //
