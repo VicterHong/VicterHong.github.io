@@ -206,17 +206,40 @@ sekarang, pembeli membayar lagi dan token baru diterbitkan.
 
 ```
 POST /api/checkout            Mulai pembayaran
-GET  /api/pesanan/:id         Cek status pembayaran
+GET  /api/pesanan/:id         Cek status pembayaran (menyertakan url_pembayaran
+                              saat masih pending, untuk tombol "lanjutkan")
 POST /api/midtrans/webhook    Terima webhook dari Midtrans
 GET  /api/pembayaran/status   Apakah pembayaran sudah aktif?
 ```
+
+── CATATAN HOST MIDTRANS ────────────────────────────────────────────────────
+
+Snap dan API v2 memakai HOST BERBEDA, dan tertukar berarti 404 HTML (bukan
+JSON) sehingga pemeriksaan status selalu gagal:
+
+```
+Snap    (buat transaksi)   app.midtrans.com        / app.sandbox.midtrans.com
+API v2  (status, cancel)   api.midtrans.com        / api.sandbox.midtrans.com
+```
+
+── CATATAN IDEMPOTENSI ──────────────────────────────────────────────────────
+
+Kunci idempotensi dari browser menjadi `order_id` Midtrans DAN
+`payments.idempotency_key` (UNIK). Percobaan ulang dengan kunci yang sama
+mengembalikan `payment_url` yang TERSIMPAN — bukan membuat transaksi Snap
+baru. Ini perlu karena API status v2 tidak mengenal transaksi Snap yang belum
+dibuka pembeli ("Transaction doesn't exist"), jadi URL-nya tidak bisa diambil
+kembali dari Midtrans.
 
 ---
 
 ## Berkas Terkait
 
 ```
-backend/src/midtrans.mjs     Klien API Midtrans (HTTP, token, terjemahan error)
+backend/src/midtrans.mjs     Klien API Midtrans (Snap + API v2, terjemahan error)
+assets/js/pricing.js         Tombol paket → dialog email → POST /api/checkout
+assets/js/pesanan.js         Halaman /pesanan — baca status dari /api/pesanan/:id
+pesanan.html                 Halaman status setelah pembayaran
 backend/src/checkout.mjs   Logika bisnis (harga, token, idempotensi)
 backend/src/config.mjs     Konfigurasi + validasi
 backend/src/db.mjs         Tabel payments + payment_events
