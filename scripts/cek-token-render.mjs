@@ -73,6 +73,22 @@ const TESTS = [
      document.body.appendChild(el);
      const c=getComputedStyle(el).borderLeftColor; el.remove(); return c;
    })()`, 'rgb(248, 113, 113)', 'keamanan .kam-toast.is-galat = --galat'],
+  /* Durasi: nilai terhitung harus identik dengan aslinya.
+     Catatan: .cookie-btn ditimpa interactions.css (dimuat sesudah cookies.css)
+     → yang menang transisi dari interactions.css; 0.18s pertama = token kita. */
+  ['home.html', `(async()=>{
+     for(let i=0;i<20;i++){const b=document.querySelector('.cookie-btn'); if(b) return getComputedStyle(b).transitionDuration; await new Promise(r=>setTimeout(r,300));}
+     return 'TIMEOUT';
+   })()`, '0.18s, 0.2s, 0.2s, 0.2s, 0.25s', 'home .cookie-btn durasi (cascade interactions.css; 0.18s = --motion-ui)'],
+  ['home.html', `(()=>{const e=document.querySelector('.project-art__accent'); return e?getComputedStyle(e).transitionDuration:'NULL';})()`, '0.38s', 'home .project-art__accent durasi = --motion-enter'],
+  ['home.html', `(async()=>{
+     for(let i=0;i<20;i++){
+       const e=document.querySelector('.tilt-panel');
+       if(e){ e.classList.add('is-active'); const d=getComputedStyle(e).transitionDuration; e.classList.remove('is-active'); return d; }
+       await new Promise(r=>setTimeout(r,300));
+     }
+     return 'TIMEOUT';
+   })()`, '0.12s, 0.4s, 0.4s', 'home .tilt-panel.is-active durasi = --motion-fast (+0.4s tanpa token)'],
 ];
 
 let gagal = 0;

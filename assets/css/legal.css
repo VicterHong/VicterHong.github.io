@@ -157,7 +157,7 @@
   line-height: 1.4;
   color: var(--lg-redup);
   text-decoration: none;
-  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+  transition: color var(--motion-ui) ease, border-color var(--motion-ui) ease, background-color var(--motion-ui) ease;
 }
 
 .legal-toc-list a:hover {
@@ -411,7 +411,7 @@
   color: var(--text-dim, #a1a1aa);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  transition: color 0.18s ease, border-color 0.18s ease;
+  transition: color var(--motion-ui) ease, border-color var(--motion-ui) ease;
 }
 
 .site-footer a:hover {

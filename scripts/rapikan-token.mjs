@@ -51,6 +51,25 @@ const ATURAN = {
     'docs.css':          { '#4ade80': 'var(--sukses)' },
     'keamanan.css':      { '#4ade80': 'var(--sukses)', '#f87171': 'var(--galat)' },
   },
+  /* Durasi gerak: hanya nilai yang PERSIS sama dengan token yang diganti.
+     Token main.css: --motion-fast 120ms · --motion-ui 180ms · --motion-enter
+     380ms · --motion-slow 620ms. Token auth.css: --durasi-kilat 140ms ·
+     --durasi-cepat 220ms · --durasi-sedang 380ms · --durasi-lambat 620ms.
+     Nilai tanpa padanan persis (0.22s, 0.35s, 0.4s, 520ms, delay) DIBIARKAN —
+     mengganti ke token terdekat = mengubah desain, bukan tokenisasi. */
+  durasi: {
+    'cookies.css':       { '0.18s': 'var(--motion-ui)' },
+    'interactions.css':  { '0.18s': 'var(--motion-ui)' },
+    'legal.css':         { '0.18s': 'var(--motion-ui)' },
+    'main.css':          { '380ms': 'var(--motion-enter)', '0.18s': 'var(--motion-ui)' },
+    'pricing.css':       { '0.18s': 'var(--motion-ui)' },
+    'tilt-panel.css':    { '0.12s': 'var(--motion-fast)' },
+    'auth.css':          { '220ms': 'var(--durasi-cepat)', '380ms': 'var(--durasi-sedang)' },
+    /* keamanan.html TIDAK memuat main.css → --motion-ui tidak tersedia;
+       pola fallback var(--x, nilai) = konvensi defensif berkas ini
+       (sama seperti var(--ease, …) di sekitarnya). */
+    'keamanan.css':      { '0.18s': 'var(--motion-ui, 0.18s)' },
+  },
 };
 
 if (BAGIAN !== 'semua' && !ATURAN[BAGIAN]) {

@@ -1388,7 +1388,7 @@ select.auth-input {
   border-radius: var(--radius-input);
   /* Muncul halus — elemen yang tiba-tiba muncul terasa seperti kejutan.
      `prefers-reduced-motion` ditangani aturan global di bawah. */
-  animation: saran-masuk 220ms var(--pegas) both;
+  animation: saran-masuk var(--durasi-cepat) var(--pegas) both;
 }
 
 @keyframes saran-masuk {
@@ -1630,7 +1630,7 @@ select.auth-input {
    Amplitudo kecil (4px) supaya tidak terasa kasar. */
 .auth-msg.is-galat + .auth-submit,
 .auth-card.is-goyang {
-  animation: goyang 380ms var(--pegas);
+  animation: goyang var(--durasi-sedang) var(--pegas);
 }
 
 @keyframes goyang {

@@ -147,7 +147,7 @@
 }
 .cookie-banner.is-hiding .cookie-banner-inner > * {
   transition-delay: 0s;
-  transition-duration: 0.18s;
+  transition-duration: var(--motion-ui);
 }
 .cookie-banner.is-hiding::before { transition-delay: 0s; opacity: 0; }
 
@@ -175,11 +175,11 @@
   /* Transisi dipercepat (0.18s) — tombol harus terasa merespons seketika
      saat ditekan, bukan menunggu animasi selesai. */
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.18s ease;
+    background var(--motion-ui) ease,
+    border-color var(--motion-ui) ease,
+    color var(--motion-ui) ease,
+    transform var(--motion-ui) cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow var(--motion-ui) ease;
   white-space: nowrap;
 }
 .cookie-btn:hover { transform: translateY(-1px); }
@@ -235,7 +235,7 @@
   text-underline-offset: 3px;
   padding: 0.25rem 0.5rem;
   font-size: var(--fs-1);
-  transition: color 0.18s ease;
+  transition: color var(--motion-ui) ease;
 }
 .cookie-btn--link:hover { color: var(--text); transform: none; }
 .cookie-btn--link:active { transform: none; }

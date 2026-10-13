@@ -27,7 +27,7 @@
 }
 
 .tilt-panel.is-active {
-  transition: transform 0.12s linear, border-color 0.4s var(--ease),
+  transition: transform var(--motion-fast) linear, border-color 0.4s var(--ease),
               box-shadow 0.4s var(--ease);
   border-color: rgba(245, 197, 66, 0.35);
   box-shadow:

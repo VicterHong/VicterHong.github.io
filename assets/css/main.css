@@ -1082,7 +1082,7 @@ a { color: inherit; text-decoration: none; }
 }
 /* Aksen naik 4px — gerak kecil yang berhenti halus. Elemen ini tidak
    dikendalikan depth.js/tilt-panel.js, jadi aman dari konflik transform. */
-.project-art__accent { transition: transform 380ms cubic-bezier(.16, 1, .3, 1); }
+.project-art__accent { transition: transform var(--motion-enter) cubic-bezier(.16, 1, .3, 1); }
 .project:hover .project-art__accent,
 .project:focus-within .project-art__accent { transform: translateY(-4px); }
 
@@ -1860,7 +1860,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
   font-size: var(--fs-2);
   color: var(--text-faint);
   text-decoration: none;
-  transition: color 0.18s var(--ease);
+  transition: color var(--motion-ui) var(--ease);
 }
 
 .footer-sosial-teks a:hover {
@@ -1904,7 +1904,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
   font-size: var(--fs-2);
   color: var(--text-faint);
   text-decoration: none;
-  transition: color 0.18s var(--ease);
+  transition: color var(--motion-ui) var(--ease);
 }
 
 .footer-kolom a:hover {
@@ -1948,7 +1948,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 .footer-legal a {
   color: var(--text-faint);
   text-decoration: none;
-  transition: color 0.18s var(--ease);
+  transition: color var(--motion-ui) var(--ease);
 }
 
 .footer-legal a:hover {

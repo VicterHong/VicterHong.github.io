@@ -1804,7 +1804,7 @@
    Lebih cepat dari masuk (0.18s vs 0.24s). Umpan balik harus cepat; animasi
    masuk boleh lambat. Prinsip yang sama dipakai di seluruh sistem animasi. */
 .kam-toast.is-keluar {
-  animation: kamToastKeluar 0.18s var(--ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  animation: kamToastKeluar var(--motion-ui, 0.18s) var(--ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 @keyframes kamToastKeluar {

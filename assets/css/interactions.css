@@ -42,7 +42,7 @@
   /* Ditekan = sedikit mengecil. Umpan balik taktil visual — jari tahu
      tombolnya benar-benar menerima tekanan. */
   transition:
-    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    transform var(--motion-ui) cubic-bezier(0.16, 1, 0.3, 1),
     background 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease,

@@ -949,7 +949,7 @@
   color: var(--pr-text);
   cursor: pointer;
   list-style: none;
-  transition: color 0.18s ease;
+  transition: color var(--motion-ui) ease;
 }
 
 /* Sembunyikan panah bawaan browser */
