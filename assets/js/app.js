@@ -723,9 +723,15 @@ initCookieConsent();
 // Ganti penanda [data-icon] dengan SVG dari katalog icons.js.
 // Dipakai agar tidak ada emoji di markup — ikon SVG konsisten di semua
 // OS, bisa diwarnai CSS, dan tidak dibaca screen reader sebagai emoji.
+// Class penanda HARUS disalin ke SVG: <span class="tok" data-icon="check">
+// yang jadi <svg> tanpa class "tok" kehilangan warna --sukses dan tampil
+// putih (bug ditemukan saat audit kosmetik hero run 10).
 document.querySelectorAll('[data-icon]').forEach((el) => {
   const svg = icon(el.dataset.icon, { size: Number(el.dataset.iconSize) || 16 });
-  if (svg) el.replaceWith(svg);
+  if (svg) {
+    svg.classList.add(...el.classList);
+    el.replaceWith(svg);
+  }
 });
 
 // Menu navigasi di layar kecil — panel dropdown + tirai gelap.
