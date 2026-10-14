@@ -149,75 +149,117 @@ test('kuota memuat info reset untuk ditampilkan ke pengguna', () => {
   assert.ok(k.hariSampaiReset >= 1 && k.hariSampaiReset <= 32);
 });
 
-// ── 4. AKSES METRIK ──────────────────────────────────────────────────────────
+// ── 4. AKSES METRIK — ATURAN 3 DARI LOGIN + 2 DARI STAR ──────────────────────
+//
+// ── PERUBAHAN ATURAN ─────────────────────────────────────────────────────────
+// Aturan lama: satu proyek per akun, WAJIB star dulu.
+// Aturan baru: lima proyek — tiga langsung dari login, dua lagi dari star.
+//
+// ── KENAPA ATURANNYA DIUBAH ──────────────────────────────────────────────────
+// Aturan lama punya lingkaran yang tidak bisa diputus: pengguna baru tidak bisa
+// melihat apa pun sebelum memberi star, padahal dia belum tahu kualitas
+// datanya — jadi tidak ada alasan baginya memberi star.
+//
+// Sekarang: lihat dulu tiga proyek, baru beri star untuk dua lagi.
 
-test('metrik: paket berbayar selalu boleh, tanpa memakai trial', () => {
+test('metrik: paket berbayar selalu boleh, tanpa memakai jatah gratis', () => {
   for (const paket of ['standar', 'profesional', 'enterprise']) {
-    const r = bolehLihatMetrik({ paket, sudahPakaiTrial: false, sudahStar: false });
+    const r = bolehLihatMetrik({ paket, jumlahTerbuka: 0, sudahStar: false });
     assert.equal(r.boleh, true, `${paket} harus boleh`);
     assert.equal(r.alasan, 'langganan');
-    assert.equal(r.pakaiTrial, false, 'jangan pakai jatah trial kalau sudah langganan');
+    assert.equal(r.pakaiJatah, false, 'jangan pakai jatah gratis kalau sudah langganan');
   }
 });
 
-test('metrik: gratis tanpa star ditolak', () => {
-  const r = bolehLihatMetrik({ paket: 'gratis', sudahPakaiTrial: false, sudahStar: false });
+test('metrik: gratis langsung dapat 3 proyek TANPA star', () => {
+  for (let i = 0; i < 3; i++) {
+    const r = bolehLihatMetrik({ paket: 'gratis', jumlahTerbuka: i, sudahStar: false });
+    assert.equal(r.boleh, true, `proyek ke-${i + 1} harus boleh tanpa star`);
+    assert.equal(r.pakaiJatah, true);
+    assert.equal(r.sumber, 'login', `proyek ke-${i + 1} memakai jatah login`);
+  }
+});
+
+test('metrik: proyek ke-4 tanpa star ditolak, dengan jalan keluar', () => {
+  const r = bolehLihatMetrik({ paket: 'gratis', jumlahTerbuka: 3, sudahStar: false });
   assert.equal(r.boleh, false);
-  assert.equal(r.alasan, 'perlu-star');
+  assert.equal(r.alasan, 'jatah-habis-bisa-star',
+    'harus menyebut star sebagai jalan keluar, bukan langsung menyuruh berlangganan');
 });
 
-test('metrik: gratis + star boleh, dan MEMAKAI jatah trial', () => {
-  const r = bolehLihatMetrik({ paket: 'gratis', sudahPakaiTrial: false, sudahStar: true });
-  assert.equal(r.boleh, true);
-  assert.equal(r.alasan, 'trial-baru');
-  assert.equal(r.pakaiTrial, true, 'pemanggil WAJIB mencatat pemakaiannya');
+test('metrik: star menambah 2 proyek lagi (total 5)', () => {
+  // Setelah star, proyek ke-4 dan ke-5 boleh — dan sumbernya ditandai 'star'.
+  for (const i of [3, 4]) {
+    const r = bolehLihatMetrik({ paket: 'gratis', jumlahTerbuka: i, sudahStar: true });
+    assert.equal(r.boleh, true, `proyek ke-${i + 1} harus boleh setelah star`);
+    assert.equal(r.sumber, 'star', `proyek ke-${i + 1} memakai jatah star`);
+  }
 });
 
-// ── ATURAN PER AKUN — DIKONFIRMASI PEMILIK PROYEK ────────────────────────────
-//
-// "Per akun — total 1× saja untuk semua proyek."
-//
-// Jadi setelah trial dipakai di satu proyek, proyek LAIN terkunci. Yang tetap
-// boleh: membuka ulang proyek yang SAMA — kalau tidak, me-refresh halaman akan
-// menghilangkan akses yang sudah dia dapat.
+test('metrik: proyek ke-6 ditolak walau sudah star', () => {
+  const r = bolehLihatMetrik({ paket: 'gratis', jumlahTerbuka: 5, sudahStar: true });
+  assert.equal(r.boleh, false);
+  assert.equal(r.alasan, 'jatah-habis',
+    'sudah star, jadi jangan sebut star lagi sebagai jalan keluar');
+});
 
-test('metrik: trial sudah dipakai — proyek yang SAMA tetap boleh dibuka', () => {
+// ── PROYEK YANG SUDAH TERBUKA TETAP TERBUKA ──────────────────────────────────
+
+test('metrik: proyek yang SAMA tetap boleh dibuka ulang', () => {
+  // Me-refresh halaman tidak boleh menghilangkan akses yang sudah didapat, dan
+  // tidak boleh memakan jatah kedua.
   const r = bolehLihatMetrik({
-    paket: 'gratis', sudahPakaiTrial: true, sudahStar: true, proyekSama: true,
+    paket: 'gratis', jumlahTerbuka: 3, sudahStar: false, proyekSama: true,
   });
   assert.equal(r.boleh, true, 'refresh tidak boleh menghilangkan akses');
-  assert.equal(r.alasan, 'trial-terpakai');
-  assert.equal(r.pakaiTrial, false, 'jangan catat pemakaian dua kali');
+  assert.equal(r.alasan, 'sudah-terbuka');
+  assert.equal(r.pakaiJatah, false, 'jangan catat pemakaian dua kali');
 });
 
-test('metrik: trial sudah dipakai — proyek LAIN terkunci', () => {
+test('metrik: proyek yang sudah terbuka boleh dibuka walau jatah habis', () => {
+  // Ini kasus paling penting: pengguna yang sudah memakai kelima jatahnya
+  // harus tetap bisa membuka proyek yang sudah dia buka.
   const r = bolehLihatMetrik({
-    paket: 'gratis', sudahPakaiTrial: true, sudahStar: true, proyekSama: false,
+    paket: 'gratis', jumlahTerbuka: 5, sudahStar: true, proyekSama: true,
   });
-  assert.equal(r.boleh, false, 'jatahnya satu untuk semua proyek');
-  assert.equal(r.alasan, 'trial-habis-proyek-lain');
-  assert.equal(r.pakaiTrial, false);
-});
-
-test('metrik: tanpa proyekSama, trial terpakai dianggap proyek lain (aman)', () => {
-  // Kalau pemanggil lupa mengirim `proyekSama`, jawabannya harus MENOLAK —
-  // bukan membuka. Lupa mengirim argumen tidak boleh berubah jadi akses gratis.
-  const r = bolehLihatMetrik({ paket: 'gratis', sudahPakaiTrial: true, sudahStar: true });
-  assert.equal(r.boleh, false, 'argumen yang hilang harus menolak, bukan membuka');
+  assert.equal(r.boleh, true, 'jatah habis tidak boleh mengunci proyek yang sudah terbuka');
 });
 
 test('metrik: langganan berbayar tidak terpengaruh proyekSama', () => {
   for (const paket of ['standar', 'profesional', 'enterprise']) {
     const r = bolehLihatMetrik({
-      paket, sudahPakaiTrial: true, sudahStar: true, proyekSama: false,
+      paket, jumlahTerbuka: 5, sudahStar: true, proyekSama: false,
     });
-    assert.equal(r.boleh, true, `${paket} tidak boleh terkunci oleh jatah trial`);
+    assert.equal(r.boleh, true, `${paket} tidak boleh terkunci oleh jatah gratis`);
   }
 });
 
 test('metrik: paket palsu diperlakukan sebagai gratis', () => {
-  const r = bolehLihatMetrik({ paket: 'enterprise-gratis', sudahPakaiTrial: false, sudahStar: false });
-  assert.equal(r.boleh, false, 'paket palsu tidak boleh membuka akses');
+  // ── NIAT TES INI TIDAK BERUBAH ────────────────────────────────────────────
+  // Paket yang tidak dikenal TIDAK BOLEH membuka akses berbayar. Kalau string
+  // paket palsu diperlakukan sebagai berbayar, siapa pun bisa mengirim
+  // paket='enterprise' dari klien dan mendapat akses penuh.
+  //
+  // Yang berubah hanya ARGUMENNYA: aturan baru memakai `jumlahTerbuka`, bukan
+  // `sudahPakaiTrial`.
+  //
+  // ── PAKET PALSU = GRATIS, DAN ITU ARTINYA MASIH DAPAT JATAH GRATIS ────────
+  // Versi pertama tes ini mengharapkan `boleh: false` — benar untuk aturan
+  // LAMA, di mana pengguna gratis tanpa star memang ditolak.
+  //
+  // Di aturan baru, pengguna gratis tanpa star BOLEH membuka tiga proyek
+  // pertama. Jadi paket palsu pun boleh — TAPI sebagai gratis (memakai jatah
+  // login), bukan sebagai berbayar.
+  //
+  // Yang harus diuji: paket palsu tidak mendapat perlakuan BERBAYAR.
+  const r = bolehLihatMetrik({ paket: 'enterprise-gratis', jumlahTerbuka: 0, sudahStar: false });
+  assert.equal(r.boleh, true, 'paket palsu diperlakukan sebagai gratis, dan gratis punya jatah');
+  assert.equal(r.alasan, 'jatah-pertama', 'perlakuannya sebagai gratis, bukan berbayar');
+  assert.equal(r.sumber, 'login');
+
+  // Dan setelah jatah gratisnya habis, paket palsu TIDAK boleh membuka
+  const habis = bolehLihatMetrik({ paket: 'enterprise-gratis', jumlahTerbuka: 5, sudahStar: true });
+  assert.equal(habis.boleh, false, 'paket palsu tidak boleh melewati batas gratis');
 });
 
 // ── 5. PESAN ─────────────────────────────────────────────────────────────────

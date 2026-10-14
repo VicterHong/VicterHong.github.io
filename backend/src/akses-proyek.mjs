@@ -44,6 +44,8 @@ import {
   bulanSekarang,
   pesanTolak,
   PAKET_BERBAYAR,
+  KUOTA_METRIK_GRATIS,
+  TOTAL_METRIK_GRATIS,
 } from './langganan.mjs';
 
 // ── 1. PAKET PENGGUNA ────────────────────────────────────────────────────────
@@ -172,21 +174,68 @@ export function pakaiKuota(userId) {
   return keadaanKuota(userId);
 }
 
-// ── 4. TRIAL METRIK ──────────────────────────────────────────────────────────
+// ── 4. METRIK TERBUKA (paket Gratis) ─────────────────────────────────────────
 
-/** Baris trial pengguna, kalau ada. Per AKUN — jadi paling banyak satu baris. */
-export function trialPengguna(userId) {
-  if (!userId) return null;
+/** Berapa proyek yang sudah dibuka metriknya oleh pengguna ini. */
+export function jumlahMetrikTerbuka(userId) {
+  if (!userId) return 0;
   return getDb()
-    .prepare('SELECT project_slug, dibuka_at FROM trial_metrik WHERE user_id = ? LIMIT 1')
-    .get(userId) ?? null;
+    .prepare('SELECT COUNT(*) AS n FROM metrik_terbuka WHERE user_id = ?')
+    .get(userId).n;
+}
+
+/** Daftar proyek yang sudah terbuka, untuk ditandai di halaman klien. */
+export function daftarMetrikTerbuka(userId) {
+  if (!userId) return [];
+  return getDb()
+    .prepare('SELECT project_slug, sumber, dibuka_at FROM metrik_terbuka WHERE user_id = ? ORDER BY dibuka_at')
+    .all(userId);
+}
+
+/** Apakah proyek tertentu sudah terbuka untuk pengguna ini. */
+export function metrikSudahTerbuka(userId, projectSlug) {
+  if (!userId || !projectSlug) return false;
+  const baris = getDb()
+    .prepare('SELECT 1 FROM metrik_terbuka WHERE user_id = ? AND project_slug = ? LIMIT 1')
+    .get(userId, projectSlug);
+  return Boolean(baris);
+}
+
+/**
+ * Keadaan jatah metrik — siap dikirim ke UI.
+ *
+ * ── KENAPA ANGKA, BUKAN BOOLEAN ─────────────────────────────────────────────
+ * Halaman perlu menampilkan "2 dari 5 tersisa", bukan hanya boleh/tidak.
+ * Tanpa angka, pengguna tidak tahu berapa proyek lagi yang bisa dia buka —
+ * dan itu justru informasi yang menentukan apakah dia perlu berlangganan.
+ */
+export function keadaanMetrik(userId) {
+  const paket = paketPengguna(userId);
+  const sudahStar = sudahKlaimBonus(userId);
+  const terpakai = jumlahMetrikTerbuka(userId);
+
+  const total = sudahStar ? TOTAL_METRIK_GRATIS : KUOTA_METRIK_GRATIS.login;
+  const berbayar = PAKET_BERBAYAR.has(paket);
+
+  return {
+    paket,
+    berbayar,
+    // Paket berbayar tidak punya batas — `total: null` menyatakan itu.
+    total: berbayar ? null : total,
+    terpakai: berbayar ? 0 : terpakai,
+    sisa: berbayar ? null : Math.max(0, total - terpakai),
+    sudahStar,
+    // Berapa proyek lagi yang bisa dibuka dengan star, kalau belum diklaim.
+    bonusStarTersedia: !sudahStar && !berbayar ? KUOTA_METRIK_GRATIS.star : 0,
+    proyek: daftarMetrikTerbuka(userId).map((r) => r.project_slug),
+  };
 }
 
 /**
  * Boleh tidaknya pengguna membuka metrik proyek ini, LENGKAP dengan pencatatan.
  *
- * Mengembalikan `{ boleh, alasan, pakaiTrial }`. Kalau `pakaiTrial` true,
- * fungsi ini SUDAH mencatatnya — pemanggil tidak perlu melakukan apa pun lagi.
+ * Mengembalikan `{ boleh, alasan, pakaiJatah, sumber }`. Kalau `pakaiJatah`
+ * true, fungsi ini SUDAH mencatatnya — pemanggil tidak perlu melakukan apa pun.
  *
  * ── KENAPA PENCATATAN DI SINI, BUKAN DI PEMANGGIL ──────────────────────────
  * Kalau pemanggil yang mencatat, ada dua cara gagal:
@@ -197,23 +246,35 @@ export function trialPengguna(userId) {
  * Dengan pencatatan di sini, keduanya tidak mungkin terjadi: yang mencatat
  * adalah fungsi yang sama yang memutuskan, dan hanya saat keputusannya "boleh".
  */
-export function periksaAksesMetrik(userId, projectSlug, { sudahStar }) {
+export function periksaAksesMetrik(userId, projectSlug, { sudahStar, ip = '', userAgent = '' } = {}) {
   const paket = paketPengguna(userId);
-  const trial = trialPengguna(userId);
-  const proyekSama = Boolean(trial && trial.project_slug === projectSlug);
+  const jumlahTerbuka = jumlahMetrikTerbuka(userId);
+  const proyekSama = metrikSudahTerbuka(userId, projectSlug);
 
   const hasil = bolehLihatMetrik({
     paket,
-    sudahPakaiTrial: Boolean(trial),
-    sudahStar,
+    jumlahTerbuka,
+    sudahStar: sudahStar ?? sudahKlaimBonus(userId),
     proyekSama,
   });
 
-  if (hasil.boleh && hasil.pakaiTrial) {
-    getDb().prepare(`
-      INSERT INTO trial_metrik (id, user_id, project_slug, dibuka_at)
-      VALUES (?, ?, ?, ?)
-    `).run(randomUUID(), userId, projectSlug, now());
+  if (hasil.boleh && hasil.pakaiJatah) {
+    // ── INSERT OR IGNORE: UNIQUE(user_id, project_slug) YANG MENENTUKAN ──────
+    // Dua permintaan yang datang bersamaan untuk proyek yang sama tidak bisa
+    // dua-duanya mencatat. Yang kedua diabaikan database, bukan oleh kode.
+    //
+    // Kalau barisnya sudah ada (proyek sudah terbuka), tidak ada jatah yang
+    // terpakai — dan pemeriksaan `proyekSama` di atas sudah menanganinya lebih
+    // dulu, jadi jalur ini hanya untuk proyek yang benar-benar baru.
+    try {
+      getDb().prepare(`
+        INSERT OR IGNORE INTO metrik_terbuka
+          (id, user_id, project_slug, sumber, dibuka_at, ip, user_agent)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(randomUUID(), userId, projectSlug, hasil.sumber ?? 'login', now(), ip, String(userAgent).slice(0, 300));
+    } catch (err) {
+      console.error('[metrik] gagal mencatat proyek terbuka:', err?.message ?? err);
+    }
   }
 
   return hasil;
@@ -234,17 +295,17 @@ export function periksaAksesMetrik(userId, projectSlug, { sudahStar }) {
  */
 export function ringkasanAkun(userId) {
   const paket = paketPengguna(userId);
-  const kuota = keadaanKuota(userId);
-  const trial = trialPengguna(userId);
 
   return {
     paket,
     berbayar: PAKET_BERBAYAR.has(paket),
-    kuota,
+    kuota: keadaanKuota(userId),
     bonusStar: sudahKlaimBonus(userId),
-    trial: trial
-      ? { proyek: trial.project_slug, dibukaPada: trial.dibuka_at }
-      : null,
+    // ── metrik: JATAH PROYEK UNTUK PAKET GRATIS ──────────────────────────────
+    // Berisi angka (total, terpakai, sisa) dan daftar proyek yang sudah
+    // terbuka — supaya halaman bisa menampilkan "sisa 2 dari 5" dan menandai
+    // proyek mana yang sudah dibuka.
+    metrik: keadaanMetrik(userId),
   };
 }
 
@@ -259,19 +320,49 @@ export function ringkasanAkun(userId) {
  *
  * Dua lapis, dan lapis keduanya yang menentukan.
  */
+/**
+ * Status yang berarti "metrik proyek ini boleh dibaca".
+ *
+ * ── KENAPA DITULIS SEKALI DI SINI ────────────────────────────────────────────
+ * Daftar ini dipakai dua tempat: untuk memutuskan status, dan untuk memutuskan
+ * apakah data metriknya dikirim. Kalau ditulis dua kali, keduanya bisa berbeda
+ * — dan itu persis yang terjadi: satu tempat memakai nama status lama
+ * ('trial-terpakai') yang sudah tidak pernah dihasilkan lagi, sehingga data
+ * metrik proyek yang sudah dibuka TIDAK PERNAH dikirim.
+ *
+ * Satu definisi, dipakai dua tempat. Tidak ada cara keduanya berbeda.
+ */
+const STATUS_TERBUKA = new Set(['terbuka', 'sudah-dibuka']);
+
 export function daftarProyekDenganAkses(userId, proyek) {
   const paket = paketPengguna(userId);
   const berbayar = PAKET_BERBAYAR.has(paket);
-  const trial = trialPengguna(userId);
+  const sudahStar = sudahKlaimBonus(userId);
+  const jumlahTerbuka = jumlahMetrikTerbuka(userId);
+  const terbuka = new Set(daftarMetrikTerbuka(userId).map((r) => r.project_slug));
+
+  const jatahTotal = sudahStar ? TOTAL_METRIK_GRATIS : KUOTA_METRIK_GRATIS.login;
+  const sisa = Math.max(0, jatahTotal - jumlahTerbuka);
 
   return proyek.map((p) => {
-    const proyekSama = Boolean(trial && trial.project_slug === p.slug);
-
+    // ── EMPAT STATUS, BUKAN DUA ──────────────────────────────────────────────
+    // Yang penting bagi pengguna bukan "terbuka atau terkunci", tapi APA YANG
+    // HARUS DILAKUKAN untuk membukanya:
+    //
+    //   terbuka            → sudah bisa dibaca
+    //   sudah-dibuka       → proyek ini termasuk yang sudah dia buka
+    //   terkunci-bisa-buka → masih ada jatah, tinggal tekan
+    //   terkunci-perlu-star→ jatah login habis, tapi star menambah 2
+    //   terkunci-jatah-habis → tidak ada jalan gratis lagi, perlu berlangganan
+    //
+    // Tanpa pemisahan ini, semua yang terkunci terlihat sama — dan pengguna
+    // tidak tahu mana yang bisa dia buka sekarang.
     let status;
     if (berbayar) status = 'terbuka';
-    else if (proyekSama) status = 'trial-terpakai';
-    else if (trial) status = 'terkunci-jatah-habis';
-    else status = 'terkunci-perlu-star';
+    else if (terbuka.has(p.slug)) status = 'sudah-dibuka';
+    else if (sisa > 0) status = 'terkunci-bisa-buka';
+    else if (!sudahStar) status = 'terkunci-perlu-star';
+    else status = 'terkunci-jatah-habis';
 
     return {
       slug: p.slug,
@@ -279,10 +370,24 @@ export function daftarProyekDenganAkses(userId, proyek) {
       ringkas: p.summary,
       subtitle: p.subtitle,
       stack: p.stack,
-      // Data metrik TIDAK ikut dikirim ke browser kalau terkunci. Menyembunyikan
-      // di CSS berarti datanya tetap ada di jaringan — dan itu bukan penguncian,
-      // itu sekadar tidak menampilkan.
-      metrik: status === 'terbuka' || status === 'trial-terpakai' ? p.metrics : null,
+      // ── DATA METRIK HANYA DIKIRIM KALAU MEMANG BOLEH DIBACA ────────────────
+      //
+      // Menyembunyikannya di CSS berarti datanya tetap ada di jaringan — dan
+      // itu bukan penguncian, itu sekadar tidak menampilkan.
+      //
+      // ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────
+      // Versi sebelumnya memeriksa `status === 'terbuka' || status ===
+      // 'trial-terpakai'`. Nama status `trial-terpakai` sudah tidak ada lagi
+      // sejak aturan berubah jadi 3+2 — statusnya sekarang `sudah-dibuka`.
+      //
+      // Akibatnya: pengguna yang SUDAH membuka sebuah proyek melihatnya
+      // kembali terkunci tanpa data — akses yang sudah dia dapat hilang karena
+      // nama status yang tertinggal.
+      //
+      // Pelajarannya: memeriksa status lewat DAFTAR NAMA selalu bisa
+      // tertinggal saat statusnya berubah. Yang lebih tahan: periksa apakah
+      // statusnya TERMASUK yang boleh dibaca, dan daftarnya ditulis sekali.
+      metrik: STATUS_TERBUKA.has(status) ? p.metrics : null,
       status,
     };
   });

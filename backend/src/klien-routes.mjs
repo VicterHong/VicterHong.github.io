@@ -52,7 +52,7 @@ import {
   pakaiKuota,
   sudahKlaimBonus,
   catatBonusStar,
-  trialPengguna,
+  keadaanMetrik,
   periksaAksesMetrik,
   daftarProyekDenganAkses,
   ringkasanAkun,
@@ -442,7 +442,7 @@ const ruteKlaimStar = {
         ? 'Bonus diterima. Jatah token Anda bertambah 1 bulan ini.'
         : 'Bonus diterima. Anda bisa melihat data metrik satu proyek, sekali.',
       kuota: keadaanKuota(pengguna.id),
-      trial: trialPengguna(pengguna.id),
+      metrik: keadaanMetrik(pengguna.id),
     });
   }),
 };

@@ -46,7 +46,7 @@
 // Sekarang angkanya diambil langsung dari KUOTA_DASAR, jadi tidak ada dua
 // tempat yang bisa berbeda.
 // ══════════════════════════════════════════════════════════════════════════════
-import { KUOTA_DASAR, BONUS_STAR } from './langganan.mjs';
+import { KUOTA_DASAR, BONUS_STAR, KUOTA_METRIK_GRATIS, TOTAL_METRIK_GRATIS } from './langganan.mjs';
 
 /**
  * Baris fitur kuota token untuk sebuah paket — dihitung dari KUOTA_DASAR.
@@ -92,7 +92,14 @@ function fiturKuota(paketId) {
 function hasilBonusStar(paketId) {
   const kuota = KUOTA_DASAR[paketId];
 
-  if (kuota === 0) return 'Buka data metrik satu proyek, sekali';
+  // ── ATURAN BARU: 3 PROYEK DARI LOGIN + 2 DARI STAR ────────────────────────
+  //
+  // Versi sebelumnya: "Buka metrik 1 proyek, sekali per akun".
+  // Angka itu sudah tidak berlaku — sekarang paket Gratis membuka 5 proyek.
+  //
+  // Angkanya diambil dari KUOTA_METRIK_GRATIS, bukan diketik: kalau jatahnya
+  // diubah di langganan.mjs, teks di sini ikut berubah sendiri.
+  if (kuota === 0) return `Tambah ${KUOTA_METRIK_GRATIS.star} proyek lagi (jadi ${TOTAL_METRIK_GRATIS})`;
   if (kuota === null) return 'Sudah tanpa batas';
 
   // Frasa harus menyebut satuan ("jadi 2 token") — versi lama "jadi 2 bulan
@@ -216,7 +223,19 @@ export const PAKET = [
       // Bonus star untuk paket gratis: PRATINJAU METRIK, bukan token.
       // Menuliskan "1 token" di sini akan bohong — sistem tidak memberi token
       // ke paket gratis (lihat catatan di langganan.mjs).
-      { teks: 'Beri star, buka data metrik satu proyek penuh', termasuk: true, tebal: true },
+      // ── JATAH METRIK GRATIS: 3 DARI LOGIN + 2 DARI STAR ───────────────────
+      //
+      // Dua baris terpisah, bukan satu, karena keduanya SYARAT yang berbeda:
+      // yang pertama langsung didapat, yang kedua perlu tindakan.
+      //
+      // Menggabungkannya jadi "buka 5 proyek" menyembunyikan bahwa dua di
+      // antaranya perlu memberi star — dan pengguna yang mengira sudah punya
+      // lima jatah akan bingung saat proyek keempat ditolak.
+      //
+      // Angkanya diambil dari KUOTA_METRIK_GRATIS, jadi tidak bisa berbohong
+      // kalau jatahnya diubah.
+      { teks: `${KUOTA_METRIK_GRATIS.login} proyek terbuka begitu Anda masuk`, termasuk: true, tebal: true },
+      { teks: `Beri star, tambah ${KUOTA_METRIK_GRATIS.star} proyek lagi`, termasuk: true },
       { teks: 'Token akses belum termasuk', termasuk: false },
       { teks: 'Kode sumber belum termasuk', termasuk: false },
       { teks: 'Hak pakai ulang kode belum termasuk', termasuk: false },
@@ -403,6 +422,56 @@ export const TABEL = [
   //
   // "Dukungan email" juga bukan milik Gratis: paket itu tidak punya jalur
   // dukungan sama sekali.
+  // ── BARIS INI MENGGANTIKAN "Hasil uji dan metrik seluruh proyek" UNTUK GRATIS
+  //
+  // ── KENAPA DIPISAH DUA BARIS ──────────────────────────────────────────────
+  // Paket Gratis BUKAN tidak punya akses metrik sama sekali — dia punya, lewat
+  // bonus star. Tapi aksesnya BERBEDA SIFAT:
+  //
+  //   Gratis    : 1 proyek, SEKALI per akun, lewat star
+  //   Standar+  : seluruh proyek, selama berlangganan, tanpa star
+  //
+  // Menggabungkannya jadi satu baris "Hasil uji dan metrik" memaksa pilihannya
+  // jadi centang-atau-kosong, dan keduanya salah: centang menjanjikan seluruh
+  // proyek, kosong menyembunyikan bahwa Gratis punya akses sama sekali.
+  //
+  // Dua baris membuat bedanya terbaca apa adanya.
+  // ── `hakTerpisah: true` — BUKAN FITUR BERTINGKAT ──────────────────────────
+  //
+  // Baris ini sengaja hanya dicentang untuk Gratis, dan itu BUKAN kesalahan
+  // urutan. Paket berbayar tidak "mencakup" hak ini karena hak mereka BERBEDA
+  // JENIS, bukan lebih banyak:
+  //
+  //   Gratis   : 1 proyek, SEKALI per akun, harus memberi star
+  //   Berbayar : seluruh proyek, selama berlangganan, tanpa star
+  //
+  // Hak berbayar ditangkap baris "Hasil uji dan metrik seluruh proyek" di
+  // bawahnya. Kalau baris ini ikut dicentang untuk berbayar, tabelnya
+  // menjanjikan dua hal yang saling meniadakan.
+  //
+  // Penandanya dipakai tes: baris `hakTerpisah` dikecualikan dari aturan
+  // "paket atas mencakup paket bawah" — karena aturan itu berlaku untuk fitur
+  // bertingkat, bukan untuk hak yang saling menggantikan.
+  // ── BARIS JATAH GRATIS: 3 PROYEK, TANPA STAR ──────────────────────────────
+  //
+  // ── KENAPA DIPISAH DARI BARIS BERBAYAR ────────────────────────────────────
+  // Paket Gratis punya akses metrik — tiga proyek, langsung setelah masuk. Tapi
+  // aksesnya BERBEDA SIFAT dari paket berbayar:
+  //
+  //   Gratis    : 3 proyek (5 setelah star), tidak bisa ditambah lagi
+  //   Berbayar  : seluruh proyek, selama berlangganan
+  //
+  // Menggabungkannya jadi satu baris "Hasil uji dan metrik" memaksa pilihannya
+  // jadi centang-atau-kosong, dan keduanya salah: centang menjanjikan seluruh
+  // proyek, kosong menyembunyikan bahwa Gratis punya akses sama sekali.
+  //
+  // ── KENAPA TIGA PROYEK PERTAMA DICENTANG UNTUK SEMUA PAKET ────────────────
+  // Paket berbayar memang membuka tiga proyek pertama juga — dan lebih dari
+  // itu. Jadi aturan "paket atas mencakup paket bawah" berlaku normal.
+  { fitur: `${KUOTA_METRIK_GRATIS.login} proyek pertama, langsung setelah masuk`, nilai: [true, true, true, true] },
+  // Baris tambahan dari star: hanya Gratis, karena paket berbayar sudah
+  // membuka SELURUH proyek — menambah dua tidak berarti apa-apa baginya.
+  { fitur: `Tambah ${KUOTA_METRIK_GRATIS.star} proyek dengan memberi star`, nilai: [true, false, false, false], hakTerpisah: true },
   { fitur: 'Dokumentasi publik tanpa batas', nilai: [true, true, true, true] },
   { fitur: 'Hasil uji dan metrik seluruh proyek', nilai: [false, true, true, true] },
   { fitur: 'Dukungan email langsung', nilai: [false, true, true, true] },
@@ -453,7 +522,7 @@ export const FAQ = [
   // ══════════════════════════════════════════════════════════════════════════
   {
     tanya: 'Apa bedanya paket Gratis dan bonus dari memberi star?',
-    jawab: 'Keduanya jalan untuk mencoba, tapi di tingkat yang berbeda. Paket Gratis membuka daftar proyek dan dokumentasi publik, tanpa membayar dan tanpa batas waktu. Bonus star menambahkan akses data metrik satu proyek. Kalau ingin membuka semua proyek dan membuat token akses, di situ paket berbayar masuk. Ringkasnya: Gratis untuk melihat, star untuk menguji satu proyek, berlangganan untuk memakai sepenuhnya.',
+    jawab: 'Paket Gratis sudah memberi tiga proyek pertama tanpa syarat apa pun. Bonus star menambah dua lagi, jadi totalnya lima. Keduanya sama-sama gratis; bedanya, tiga yang pertama langsung tersedia, sedangkan dua terakhir perlu memberi star dulu. Setelah lima proyek terpakai, tidak ada jalan gratis lagi. Di situ paket berbayar masuk: seluruh proyek, selama berlangganan.',
   },
   {
     tanya: 'Apakah paket Gratis benar-benar gratis selamanya?',
@@ -482,7 +551,7 @@ export const FAQ = [
     // Pertanyaannya tetap dipertahankan karena masih ditanyakan — tapi
     // jawabannya diarahkan ke paket Gratis yang sekarang ada.
     tanya: 'Apakah ada uji coba gratis?',
-    jawab: 'Tidak ada uji coba berbatas waktu, karena paket Gratis tidak berakhir. Anda bisa memakainya selama yang Anda mau, tanpa kartu kredit. Kalau ingin mencoba lebih jauh sebelum berlangganan, beri star ke repositori dan Anda bisa membuka data metrik satu proyek. Untuk paket berbayar, ada garansi 7 hari: kalau ternyata tidak sesuai harapan, hubungi saya dan pembayaran bulan itu dikembalikan.',
+    jawab: 'Tidak ada uji coba berbatas waktu, karena paket Gratis tidak berakhir. Anda bisa memakainya selama yang Anda mau, tanpa kartu kredit. Begitu masuk, tiga proyek pertama langsung bisa Anda buka metriknya. Kalau ingin lebih, beri star ke repositori dan dua proyek lagi terbuka, jadi totalnya lima. Untuk paket berbayar, ada garansi 7 hari: kalau ternyata tidak sesuai harapan, hubungi saya dan pembayaran bulan itu dikembalikan.',
   },
   {
     tanya: 'Kode yang saya lihat, apakah boleh saya pakai di proyek saya?',
@@ -498,7 +567,7 @@ export const FAQ = [
   },
   {
     tanya: 'Bagaimana cara mendapat bonus dari memberi star?',
-    jawab: 'Beri star di repositori GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim tangkapan layar atau bukti apa pun. Bonusnya berlaku sekali per akun: paket Gratis mendapat akses data metrik satu proyek, sedangkan Standar dan Profesional mendapat tambahan 1 token di bulan itu.',
+    jawab: 'Beri star di repositori GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim tangkapan layar atau bukti apa pun. Untuk paket Gratis, bonusnya dua proyek tambahan: dari tiga menjadi lima, dan itu berlaku sekali per akun. Paket Standar dan Profesional sudah membuka seluruh proyek, jadi bonusnya 1 token akses tambahan di bulan itu.',
   },
 ];
 

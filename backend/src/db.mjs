@@ -596,6 +596,47 @@ export function migrateUlang() {
  * menulis ulang tabel), jadi tidak ada risiko pada database besar.
  */
 function migrate(handle) {
+  // ── PINDAHKAN TRIAL LAMA KE TABEL BARU ─────────────────────────────────────
+  //
+  // ── KENAPA PERLU DIPINDAHKAN ──────────────────────────────────────────────
+  // Aturan lama: satu proyek per akun, wajib star. Aturan baru: lima proyek,
+  // tiga dari login.
+  //
+  // Pengguna yang sudah memakai jatahnya di aturan LAMA tidak boleh kehilangan
+  // akses yang sudah dia dapat — proyek yang pernah dia buka harus tetap
+  // terbuka. Kalau datanya tidak dipindahkan, dia akan melihat proyek itu
+  // terkunci lagi, dan itu terasa seperti sistemnya rusak.
+  //
+  // ── SUMBERNYA DITANDAI 'star' ─────────────────────────────────────────────
+  // Di aturan lama, satu-satunya cara membuka metrik adalah memberi star. Jadi
+  // setiap baris lama pasti berasal dari star — bukan dari login.
+  //
+  // ── IDEMPOTEN ─────────────────────────────────────────────────────────────
+  // INSERT OR IGNORE dengan UNIQUE(user_id, project_slug): menjalankan migrasi
+  // dua kali tidak menggandakan baris. Aman dijalankan setiap startup.
+  try {
+    const adaTabelLama = handle
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'trial_metrik'")
+      .get();
+
+    if (adaTabelLama) {
+      const hasil = handle.prepare(`
+        INSERT OR IGNORE INTO metrik_terbuka
+          (id, user_id, project_slug, sumber, dibuka_at, ip, user_agent)
+        SELECT id, user_id, project_slug, 'star', dibuka_at, ip, user_agent
+        FROM trial_metrik
+      `).run();
+
+      if (hasil.changes > 0) {
+        console.log(`[migrasi] ${hasil.changes} trial metrik lama dipindahkan ke metrik_terbuka`);
+      }
+    }
+  } catch (err) {
+    // Kalau gagal, JANGAN hentikan startup — aturan baru tetap berjalan, hanya
+    // data lama yang belum terbawa. Dilaporkan supaya bisa diperiksa.
+    console.error('[migrasi] gagal memindahkan trial_metrik:', err?.message ?? err);
+  }
+
   const addColumn = (table, column, definition) => {
     try {
       const cols = handle.prepare(`PRAGMA table_info(${table})`).all();
@@ -786,6 +827,60 @@ function migrate(handle) {
     -- Kolom project_slug tetap dicatat supaya kita tahu proyek mana yang dipakai
     -- untuk trial — berguna saat menjawab "kenapa dia tidak bisa buka yang
     -- lain" dan untuk melihat proyek mana yang paling menarik minat.
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- PROYEK YANG SUDAH DIBUKA METRIKNYA OLEH PENGGUNA GRATIS
+    --
+    -- ── PERUBAHAN ATURAN ═════════════════════════════════════════════════════
+    -- Aturan LAMA: satu proyek per akun, dan harus memberi star dulu.
+    --   Tabel lama (trial_metrik) punya UNIQUE(user_id) — satu baris per akun,
+    --   karena memang hanya satu proyek yang boleh dibuka.
+    --
+    -- Aturan BARU: lima proyek per akun untuk paket Gratis.
+    --     · Login  memberi 3 proyek
+    --     · Star   menambah 2 proyek lagi (total 5)
+    --   Jadi satu akun bisa membuka BEBERAPA proyek, dan tabelnya harus bisa
+    --   menyimpan lebih dari satu baris per akun.
+    --
+    -- ── KENAPA SATU BARIS PER PROYEK, BUKAN SATU PENGHITUNG ══════════════════
+    -- Godaannya: simpan satu angka "terpakai: 3" lalu naikkan tiap kali
+    -- dibuka. Itu lebih sederhana, tapi punya tiga masalah:
+    --
+    --   1. Membuka proyek yang SAMA dua kali akan menghabiskan dua jatah —
+    --      padahal pengguna tidak mendapat apa pun yang baru. Dengan satu baris
+    --      per proyek, UNIQUE(user_id, project_slug) menolak duplikatnya.
+    --
+    --   2. Halaman tidak bisa menampilkan PROYEK MANA yang sudah dibuka —
+    --      padahal itu yang perlu dia lihat untuk memutuskan proyek berikutnya.
+    --
+    --   3. Tidak ada jejak untuk menjawab "kenapa proyek ini terbuka?"
+    --      saat ada pertanyaan dari pengguna.
+    --
+    -- ── KENAPA UNIQUE(user_id, project_slug) ═════════════════════════════════
+    -- Ditegakkan DATABASE, bukan hanya kode. Dua permintaan yang datang
+    -- bersamaan tidak bisa dua-duanya lolos hanya karena kode memeriksa lebih
+    -- dulu — celah yang sama dengan yang sudah ditutup di tabel langganan.
+    -- ══════════════════════════════════════════════════════════════════════════
+    CREATE TABLE IF NOT EXISTS metrik_terbuka (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL,
+      project_slug  TEXT NOT NULL,
+      -- 'login' | 'star' — dari mana jatah ini berasal.
+      -- Berguna saat menjawab "kenapa proyek ini terbuka?" dan saat menghitung
+      -- berapa yang dipakai dari masing-masing sumber.
+      sumber        TEXT NOT NULL DEFAULT 'login',
+      dibuka_at     INTEGER NOT NULL,
+      ip            TEXT NOT NULL DEFAULT '',
+      user_agent    TEXT NOT NULL DEFAULT '',
+      UNIQUE (user_id, project_slug)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_metrik_user    ON metrik_terbuka(user_id);
+    CREATE INDEX IF NOT EXISTS idx_metrik_proyek  ON metrik_terbuka(project_slug);
+
+    -- Tabel LAMA dibiarkan ada. Isinya dipindahkan ke metrik_terbuka oleh
+    -- migrasi di bawah, dan membiarkan tabelnya tidak merugikan apa pun —
+    -- sementara menghapusnya berarti kehilangan data kalau migrasinya perlu
+    -- diulang.
     CREATE TABLE IF NOT EXISTS trial_metrik (
       id            TEXT PRIMARY KEY,
       user_id       TEXT NOT NULL UNIQUE,

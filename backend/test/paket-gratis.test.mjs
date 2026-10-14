@@ -21,7 +21,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPricing } from '../src/pricing.mjs';
-import { KUOTA_DASAR, BONUS_STAR } from '../src/langganan.mjs';
+import { KUOTA_DASAR, BONUS_STAR, KUOTA_METRIK_GRATIS } from '../src/langganan.mjs';
 
 const data = buildPricing();
 const gratis = data.paket.find((p) => p.id === 'gratis');
@@ -81,13 +81,25 @@ test('CTA Gratis tidak menyebut harga', () => {
   assert.equal(gratis.cta.teks, 'Mulai gratis');
 });
 
-test('Gratis memberi pratinjau metrik lewat star, BUKAN token', () => {
+test('Gratis memberi JATAH PROYEK, BUKAN token', () => {
   // Sistem tidak memberi token akses ke paket gratis (KUOTA_DASAR.gratis = 0).
   // Kalau kartu menjanjikan "1 token", halaman menjanjikan yang tidak bisa
   // dipenuhi sistem — dan itu lebih buruk daripada tidak menjanjikan apa pun.
+  //
+  // ── ATURAN BARU: 3 PROYEK DARI LOGIN + 2 DARI STAR ────────────────────────
+  // Versi lama tes ini memeriksa kata "metrik" di baris bonus star. Sekarang
+  // yang penting: ANGKANYA disebut, dan cocok dengan KUOTA_METRIK_GRATIS.
   const teksFitur = gratis.fitur.map((f) => f.teks).join(' | ');
+
   assert.match(teksFitur, /star/i, 'Gratis harus menyebut bonus star');
-  assert.match(teksFitur, /metrik/i, 'bonus star untuk Gratis adalah pratinjau metrik');
+  assert.match(teksFitur, /\d+\s*proyek/i, 'Gratis harus menyebut jumlah proyeknya');
+
+  // Angkanya harus cocok dengan aturan sistem
+  assert.ok(teksFitur.includes(String(KUOTA_METRIK_GRATIS.login)),
+    `Gratis harus menyebut angka ${KUOTA_METRIK_GRATIS.login} (jatah login)`);
+  assert.ok(teksFitur.includes(String(KUOTA_METRIK_GRATIS.star)),
+    `Gratis harus menyebut angka ${KUOTA_METRIK_GRATIS.star} (bonus star)`);
+
   assert.doesNotMatch(teksFitur, /\d+\s*token akses per bulan/i,
     'Gratis TIDAK BOLEH menjanjikan token bulanan');
 });

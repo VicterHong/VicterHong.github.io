@@ -51,11 +51,25 @@ const IKON = {
   bintang: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z"/></svg>',
 };
 
+// ── STATUS BARU: LIMA, BUKAN EMPAT ───────────────────────────────────────────
+// Aturan lama: satu proyek per akun, wajib star. Statusnya cuma "terbuka" dan
+// "terkunci".
+//
+// Aturan baru: tiga proyek langsung dari login, dua lagi dari star. Sekarang
+// ada lima status, dan yang penting bagi pengguna bukan "terbuka atau
+// terkunci", tapi APA YANG HARUS DILAKUKAN untuk membukanya:
+//
+//   terbuka              → paket berbayar, semua proyek terbuka
+//   sudah-dibuka         → proyek ini termasuk yang sudah dia buka
+//   terkunci-bisa-buka   → masih ada jatah, tinggal tekan
+//   terkunci-perlu-star  → jatah login habis, star menambah 2
+//   terkunci-jatah-habis → tidak ada jalan gratis lagi
 const LABEL_STATUS = {
   terbuka: 'Terbuka',
-  'trial-terpakai': 'Terbuka (pratinjau)',
-  'terkunci-jatah-habis': 'Perlu langganan',
+  'sudah-dibuka': 'Sudah dibuka',
+  'terkunci-bisa-buka': 'Bisa dibuka',
   'terkunci-perlu-star': 'Perlu star',
+  'terkunci-jatah-habis': 'Perlu langganan',
 };
 
 /** Panggil API. Melempar dengan pesan yang bisa ditampilkan kalau gagal. */
@@ -190,7 +204,7 @@ function buatKartu(proyek, indeks) {
   status.className = 'klien-status';
   status.dataset.status = proyek.status;
   status.innerHTML = proyek.status === 'terbuka' ? IKON.terbuka
-    : proyek.status === 'trial-terpakai' ? IKON.bintang
+    : proyek.status === 'sudah-dibuka' ? IKON.bintang
       : IKON.terkunci;
   const labelStatus = document.createElement('span');
   labelStatus.textContent = LABEL_STATUS[proyek.status] || proyek.status;
@@ -201,7 +215,9 @@ function buatKartu(proyek, indeks) {
   const aksi = document.createElement('div');
   aksi.className = 'klien-aksi';
 
-  const terbuka = proyek.status === 'terbuka' || proyek.status === 'trial-terpakai';
+  // Daftar status yang berarti "metriknya boleh dibaca" — sama dengan
+  // STATUS_TERBUKA di backend.
+  const terbuka = proyek.status === 'terbuka' || proyek.status === 'sudah-dibuka';
 
   if (terbuka) {
     const lihat = document.createElement('a');
@@ -213,9 +229,17 @@ function buatKartu(proyek, indeks) {
     const kunci = document.createElement('span');
     kunci.className = 'klien-btn';
     kunci.style.cursor = 'default';
-    kunci.textContent = proyek.status === 'terkunci-perlu-star'
-      ? 'Beri star untuk membuka'
-      : 'Berlangganan untuk membuka';
+    // ── LABEL MENJELASKAN SYARATNYA, BUKAN CUMA AKSNYA ──────────────────────
+    // Pengguna yang menekan tombol lalu menemukan proyek lain masih terkunci
+    // akan mengira tombolnya rusak — padahal jatahnya memang terbatas.
+    //
+    // Tiga keadaan, tiga label berbeda: masih ada jatah, jatah habis tapi star
+    // bisa menambah, dan tidak ada jalan gratis lagi.
+    kunci.textContent = proyek.status === 'terkunci-bisa-buka'
+      ? 'Buka proyek ini'
+      : proyek.status === 'terkunci-perlu-star'
+        ? 'Beri star, tambah 2 proyek'
+        : 'Berlangganan untuk membuka';
     aksi.append(kunci);
   }
 
@@ -363,9 +387,28 @@ function renderPaket(ringkas) {
   if (!ringkas.berbayar) {
     // Pengguna gratis: yang penting bukan "sisa token 0", tapi APA yang bisa
     // dilakukan untuk membukanya.
-    info.textContent = ringkas.trial
-      ? `Pratinjau gratis sudah dipakai untuk ${ringkas.trial.proyek}. Berlangganan untuk membuka semua proyek.`
-      : 'Berlangganan untuk membuka data metrik dan membuat token akses.';
+    // ── JATAH PROYEK DITAMPILKAN SEBAGAI ANGKA ──────────────────────────────
+    // Pengguna gratis perlu tahu BERAPA proyek lagi yang bisa dia buka — itu
+    // yang menentukan apakah dia perlu memberi star atau berlangganan.
+    //
+    // "Sisa 2 dari 5" jauh lebih berguna daripada "jatah habis" tanpa angka.
+    //
+    // ── PESANNYA BEDA TERGANTUNG MASIH ADA JALAN GRATIS ATAU TIDAK ──────────
+    // Kalau masih ada jatah: beri tahu sisa dan cara memakainya.
+    // Kalau habis tapi belum star: sebut star sebagai jalan keluar.
+    // Kalau habis dan sudah star: baru sebut berlangganan.
+    const m = ringkas.metrik ?? {};
+
+    if (m.total != null && m.sisa > 0) {
+      info.textContent = `Jatah gratis: ${m.sisa} dari ${m.total} proyek tersisa. `
+        + 'Buka proyek mana pun untuk membaca data metriknya.';
+    } else if (m.bonusStarTersedia > 0) {
+      info.textContent = `Jatah ${m.total} proyek sudah terpakai. `
+        + `Beri star untuk menambah ${m.bonusStarTersedia} proyek lagi.`;
+    } else {
+      info.textContent = 'Jatah gratis sudah terpakai semua. '
+        + 'Berlangganan untuk membuka metrik seluruh proyek.';
+    }
     return;
   }
 

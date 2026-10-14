@@ -31,10 +31,30 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPricing } from '../src/pricing.mjs';
+import { KUOTA_METRIK_GRATIS, TOTAL_METRIK_GRATIS, BONUS_STAR, KUOTA_DASAR } from '../src/langganan.mjs';
 
 const data = buildPricing();
 const kolom = data.kolom;
+
+// ── BARIS HAK TERPISAH DIKECUALIKAN DARI ATURAN "PAKET ATAS MENCAPAI BAWAH" ──
+//
+// Aturan itu berlaku untuk FITUR BERTINGKAT: kalau Standar punya dokumentasi
+// publik, Profesional juga punya.
+//
+// Tapi ada baris yang menyatakan HAK YANG SALING MENGGANTIKAN, bukan fitur
+// bertingkat. Contohnya akses metrik lewat star:
+//
+//   Gratis   : 1 proyek, sekali per akun, harus memberi star
+//   Berbayar : seluruh proyek, selama berlangganan, tanpa star
+//
+// Paket berbayar tidak "mencakup" hak gratis itu — hak mereka berbeda jenis.
+// Kalau barisnya ikut dicentang untuk berbayar, tabelnya menjanjikan dua hal
+// yang saling meniadakan.
+//
+// Baris seperti itu ditandai `hakTerpisah: true` di data, dan dikecualikan
+// dari pemeriksaan pencakupan.
 const barisFitur = data.tabel.filter((b) => !b.bagian);
+const barisBertingkat = barisFitur.filter((b) => !b.hakTerpisah);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. PANJANG BARIS HARUS SAMA DENGAN JUMLAH KOLOM
@@ -84,7 +104,7 @@ test('Enterprise mencakup SEMUA yang Profesional punya', () => {
   const iEnt = kolom.findIndex((k) => k.id === 'enterprise');
 
   const kurang = [];
-  for (const b of barisFitur) {
+  for (const b of barisBertingkat) {
     if (b.nilai[iPro] === true && b.nilai[iEnt] !== true) {
       kurang.push(b.fitur);
     }
@@ -98,7 +118,7 @@ test('setiap paket atas mencakup semua yang paket bawahnya punya', () => {
   // mencegah masalah serupa muncul lagi saat paket ditambahkan.
   const kurang = [];
   for (let i = 1; i < kolom.length; i++) {
-    for (const b of barisFitur) {
+    for (const b of barisBertingkat) {
       if (b.nilai[i - 1] === true && b.nilai[i] !== true) {
         kurang.push(`${kolom[i].nama} kurang "${b.fitur}" (dimiliki ${kolom[i - 1].nama})`);
       }
@@ -113,7 +133,7 @@ test('paket berbayar mencakup seluruh fitur paket Gratis', () => {
   // Gratis". Kalau tabelnya berbeda, dua halaman saling bertentangan.
   const iG = kolom.findIndex((k) => k.id === 'gratis');
   const kurang = [];
-  for (const b of barisFitur) {
+  for (const b of barisBertingkat) {
     if (b.nilai[iG] !== true) continue;
     for (let i = 1; i < kolom.length; i++) {
       if (b.nilai[i] !== true) kurang.push(`${kolom[i].nama} kurang "${b.fitur}"`);
@@ -177,8 +197,12 @@ test('Gratis dicentang hanya untuk fitur yang benar-benar dimilikinya', () => {
   // baru untuk Gratis, dia harus memutuskan dulu apakah paket itu benar-benar
   // memberikannya — dan keputusan itu terlihat di sini.
   const iG = kolom.findIndex((k) => k.id === 'gratis');
+  // Daftar ini mengikuti aturan 3+2: paket Gratis membuka 3 proyek langsung
+  // dan 2 lagi setelah star. Keduanya fitur nyata paket Gratis.
   const boleh = [
     'Dokumentasi publik tanpa batas',
+    `${KUOTA_METRIK_GRATIS.login} proyek pertama, langsung setelah masuk`,
+    `Tambah ${KUOTA_METRIK_GRATIS.star} proyek dengan memberi star`,
   ];
   const dicentang = barisFitur.filter((b) => b.nilai[iG] === true).map((b) => b.fitur);
 
@@ -203,5 +227,110 @@ test('setiap baris punya label fitur', () => {
     if (b.bagian) continue;
     assert.ok(typeof b.fitur === 'string' && b.fitur.trim().length > 0,
       'setiap baris fitur harus punya label');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 5. KLAIM "SEKALI PER AKUN" HARUS COCOK DENGAN ATURAN SISTEM
+// ══════════════════════════════════════════════════════════════════════════════
+
+test('teks bonus star menyebut ANGKANYA, bukan kata samar', () => {
+  // ── ATURAN BARU: 3 DARI LOGIN + 2 DARI STAR ───────────────────────────────
+  // Versi sebelumnya memeriksa frasa "sekali per akun" — aturan LAMA, di mana
+  // satu proyek per akun dan wajib star.
+  //
+  // Sekarang yang penting: teksnya menyebut ANGKA yang benar. "Buka beberapa
+  // proyek lagi" tidak memberi tahu apa pun; "tambah 2 proyek" bisa diperiksa.
+  //
+  // Angkanya diambil dari KUOTA_METRIK_GRATIS — jadi kalau jatahnya diubah di
+  // langganan.mjs tanpa memperbarui teks, tes ini gagal.
+  const teksStar = [];
+
+  for (const p of data.paket) {
+    for (const f of p.fitur) {
+      if (/star/i.test(f.teks)) teksStar.push(f.teks);
+    }
+  }
+  for (const h of data.bonusStar.hasil) {
+    if (/proyek lagi/i.test(h.dapat)) teksStar.push(h.dapat);
+  }
+
+  assert.ok(teksStar.length >= 2, `harus ada minimal 2 teks bonus star, ada ${teksStar.length}`);
+
+  const tanpaAngka = teksStar.filter((t) => !/\d/.test(t));
+  assert.deepEqual(tanpaAngka, [],
+    `teks bonus star harus menyebut angkanya:\n  ${tanpaAngka.join('\n  ')}`);
+
+  // Dan angkanya harus cocok dengan aturan sistem
+  const angkaBenar = teksStar.filter((t) => t.includes(String(KUOTA_METRIK_GRATIS.star)));
+  assert.ok(angkaBenar.length >= 2,
+    `teks bonus star harus menyebut angka ${KUOTA_METRIK_GRATIS.star}`);
+});
+
+test('tidak ada teks yang MENGKLAIM star bisa diklaim per proyek', () => {
+  // ── CATATAN: TES INI PERNAH TERLALU KAKU ──────────────────────────────────
+  // Versi pertama menolak frasa "sekali per proyek" di mana pun — dan gagal
+  // pada kalimat yang justru MENEGASKAN kebalikannya:
+  //
+  //   "jatah itu sekali per akun, BUKAN sekali per proyek"
+  //
+  // Kalimat itu benar dan berguna: ia menjawab kekeliruan yang paling mungkin
+  // terjadi. Yang berbahaya adalah frasa itu dipakai sebagai KLAIM, bukan
+  // sebagai pembanding.
+  //
+  // Yang diperiksa sekarang: "sekali per proyek" boleh muncul HANYA kalau
+  // didahului kata penyangkalan ("bukan", "tidak") dalam kalimat yang sama.
+  const semua = [];
+  for (const p of data.paket) for (const f of p.fitur) semua.push(f.teks);
+  for (const q of data.faq) semua.push(q.jawab);
+  for (const h of data.bonusStar.hasil) semua.push(h.dapat);
+  semua.push(data.bonusStar.teks);
+
+  const pelanggar = [];
+  for (const t of semua) {
+    // Cari setiap kemunculan, lalu periksa 40 karakter sebelumnya
+    let idx = t.toLowerCase().indexOf('sekali per proyek');
+    while (idx !== -1) {
+      const sebelum = t.slice(Math.max(0, idx - 40), idx).toLowerCase();
+      const disangkal = /bukan\s*$|tidak\s*$|bukanlah\s*$/.test(sebelum);
+      if (!disangkal) pelanggar.push(t.slice(Math.max(0, idx - 50), idx + 30));
+      idx = t.toLowerCase().indexOf('sekali per proyek', idx + 1);
+    }
+  }
+
+  assert.deepEqual(pelanggar, [],
+    `"sekali per proyek" hanya boleh muncul sebagai penyangkalan:\n  ${pelanggar.join('\n  ')}`);
+});
+
+test('aturan sistem: paket Gratis dapat 5 proyek (3 login + 2 star)', () => {
+  // ── TES INI MENJAGA ASUMSI YANG DIPAKAI SEMUA TEKS DI HALAMAN HARGA ────────
+  // Kalau angkanya berubah, tes ini gagal LEBIH DULU — sebelum teksnya jadi
+  // salah dan menjanjikan angka yang tidak bisa dipenuhi sistem.
+  assert.equal(KUOTA_METRIK_GRATIS.login, 3, 'login memberi 3 proyek');
+  assert.equal(KUOTA_METRIK_GRATIS.star, 2, 'star menambah 2 proyek');
+  assert.equal(TOTAL_METRIK_GRATIS, 5, 'totalnya 5 proyek');
+
+  assert.equal(KUOTA_DASAR.gratis, 0,
+    'paket gratis tidak punya kuota TOKEN; yang dia punya jatah metrik proyek');
+});
+
+test('bonus star untuk paket berbayar berbeda dari hak paket gratis', () => {
+  // Paket berbayar mendapat TOKEN dari star; paket gratis mendapat PROYEK
+  // METRIK tambahan. Dua hal berbeda, dan itu sebabnya baris tabelnya ditandai
+  // `hakTerpisah` — paket berbayar tidak "mencakup" hak ini, karena dia sudah
+  // membuka seluruh proyek.
+  assert.ok(BONUS_STAR >= 1, 'bonus star untuk paket berbayar minimal 1 token');
+
+  const iG = kolom.findIndex((k) => k.id === 'gratis');
+  const barisStar = barisFitur.find((b) => /memberi star/i.test(b.fitur));
+  assert.ok(barisStar, 'harus ada baris tabel tentang tambahan proyek dari star');
+  assert.equal(barisStar.hakTerpisah, true,
+    'baris bonus star harus ditandai hakTerpisah — paket berbayar sudah membuka semua proyek');
+  assert.equal(barisStar.nilai[iG], true, 'Gratis harus dicentang di baris bonus star');
+
+  // Dan tidak ada paket berbayar yang dicentang di baris itu
+  for (let i = 1; i < kolom.length; i++) {
+    assert.equal(barisStar.nilai[i], false,
+      `${kolom[i].nama} tidak boleh dicentang di baris bonus star — dia sudah membuka semua proyek`);
   }
 });

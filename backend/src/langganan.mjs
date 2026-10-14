@@ -69,7 +69,45 @@ export const BONUS_STAR = 1;
  * Karena itu halaman pemilihan proyek harus jelas menyebutkan bahwa jatahnya
  * hanya satu — supaya tidak ada yang merasa tertipu setelah memilih.
  */
-export const TRIAL_METRIK_PER_AKUN = 1;
+// ══════════════════════════════════════════════════════════════════════════════
+// KUOTA METRIK UNTUK PAKET GRATIS
+//
+// ── ATURAN LAMA (diganti) ═════════════════════════════════════════════════════
+// Satu proyek per akun, dan harus memberi star dulu baru bisa membuka.
+// Angkanya disimpan sebagai TRIAL_METRIK_PER_AKUN = 1.
+//
+// Masalahnya: pengguna baru tidak bisa melihat APA PUN sebelum memberi star.
+// Padahal dia belum tahu kualitas datanya — jadi tidak ada alasan baginya
+// untuk memberi star. Itu lingkaran yang tidak bisa diputus.
+//
+// ── ATURAN BARU ═══════════════════════════════════════════════════════════════
+// Lima proyek per akun untuk paket Gratis:
+//     · Login  memberi 3 proyek — langsung bisa dibuka, tanpa star
+//     · Star   menambah 2 proyek lagi (total 5)
+//
+// ── KENAPA LOGIN DIBERI JATAH ═════════════════════════════════════════════════
+// Supaya pengguna bisa menilai kualitas data SEBELUM diminta memberi star.
+// Setelah melihat tiga proyek dan merasa datanya berguna, barulah masuk akal
+// meminta star — dan star itu membuka dua proyek lagi.
+//
+// Urutannya jadi: lihat dulu, baru beri. Bukan sebaliknya.
+//
+// ── KENAPA 3 DAN 2, BUKAN 5 LANGSUNG ═════════════════════════════════════════
+// Angka 3 dari login cukup untuk menilai apakah datanya konsisten antar proyek
+// — satu proyek bisa kebetulan bagus, tiga proyek menunjukkan polanya.
+//
+// Dua tambahan dari star memberi ALASAN untuk memberi star selain rasa terima
+// kasih, dan itu membuat konversinya terukur.
+// ══════════════════════════════════════════════════════════════════════════════
+export const KUOTA_METRIK_GRATIS = {
+  /** Jatah yang langsung tersedia begitu pengguna masuk. */
+  login: 3,
+  /** Tambahan setelah memberi star — sekali per akun. */
+  star: 2,
+};
+
+/** Total jatah metrik untuk paket Gratis: 3 + 2 = 5. */
+export const TOTAL_METRIK_GRATIS = KUOTA_METRIK_GRATIS.login + KUOTA_METRIK_GRATIS.star;
 
 /**
  * Paket yang dikenal. Dipakai untuk memvalidasi masukan dari luar —
@@ -157,49 +195,98 @@ export function hitungKuota({ paket, terpakai = 0, bonusStar = false, sekarang =
 /**
  * Apakah pengguna boleh membuka data metrik proyek ini?
  *
- * Tiga jalur yang membuka akses, diperiksa berurutan dari yang paling murah:
+ * ══════════════════════════════════════════════════════════════════════════════
+ * ATURAN UNTUK PAKET GRATIS: 5 PROYEK PER AKUN
+ * ══════════════════════════════════════════════════════════════════════════════
+ *   · Login  memberi 3 proyek — langsung bisa dibuka, tanpa star
+ *   · Star   menambah 2 proyek lagi (total 5)
  *
- *   1. Paket berbayar               → selalu boleh
- *   2. Sudah pakai trial proyek ini → boleh (dia sudah membayar dengan star)
- *   3. Belum pakai trial, sudah star → boleh SEKARANG, dan ini memakai jatahnya
+ * ── PERBEDAAN DARI ATURAN LAMA ───────────────────────────────────────────────
+ * Aturan lama: satu proyek per akun, WAJIB star dulu.
  *
- * Mengembalikan `{ boleh, alasan, pakaiTrial }`. `pakaiTrial: true` berarti
- * PEMANGGIL harus mencatat pemakaiannya — kalau tidak, jatahnya tidak pernah
- * berkurang dan trialnya jadi tanpa batas.
+ * Masalahnya: pengguna baru tidak bisa melihat apa pun sebelum memberi star,
+ * padahal dia belum tahu kualitas datanya — jadi tidak ada alasan baginya
+ * memberi star. Lingkaran yang tidak bisa diputus.
+ *
+ * Sekarang: lihat dulu tiga proyek, baru beri star untuk dua lagi.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * JATAH TIDAK PERNAH BERKURANG KARENA MEMBUKA ULANG
+ * ══════════════════════════════════════════════════════════════════════════════
+ * Proyek yang SUDAH terbuka tetap terbuka — me-refresh halaman tidak boleh
+ * menghilangkan akses yang sudah didapat, dan tidak boleh memakan jatah kedua.
+ *
+ * Itu ditegakkan pemanggil lewat UNIQUE(user_id, project_slug) di tabel
+ * metrik_terbuka, bukan oleh fungsi ini.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * URUTAN SUMBER JATAH
+ * ══════════════════════════════════════════════════════════════════════════════
+ * Jatah login dipakai LEBIH DULU, baru jatah star. Alasannya: jatah login
+ * selalu ada sejak awal, sedangkan jatah star baru ada setelah diklaim. Kalau
+ * urutannya dibalik, pengguna yang belum star akan selalu ditolak walaupun
+ * jatah loginnya masih penuh.
+ *
+ * @param {object} p
+ * @param {string} p.paket           paket aktif pengguna
+ * @param {number} p.jumlahTerbuka   berapa proyek yang sudah dibuka
+ * @param {boolean} p.sudahStar      apakah bonus star sudah diklaim
+ * @param {boolean} p.proyekSama     apakah proyek ini sudah termasuk yang terbuka
  */
-export function bolehLihatMetrik({ paket, sudahPakaiTrial, sudahStar, proyekSama }) {
+export function bolehLihatMetrik({ paket, jumlahTerbuka = 0, sudahStar = false, proyekSama = false }) {
   const paketBersih = PAKET_SAH.has(paket) ? paket : 'gratis';
 
-  // 1. Langganan berbayar: selalu boleh, tidak menyentuh jatah trial.
+  // ── 1. LANGGANAN BERBAYAR: SELALU BOLEH ────────────────────────────────────
+  // Tidak menyentuh jatah gratis sama sekali. Kalau langganannya habis nanti,
+  // jatah gratisnya masih utuh — dan itu adil: dia tidak pernah memakainya.
   if (PAKET_BERBAYAR.has(paketBersih)) {
-    return { boleh: true, alasan: 'langganan', pakaiTrial: false };
+    return { boleh: true, alasan: 'langganan', pakaiJatah: false, sumber: null };
   }
 
-  // ── 2. JATAH TRIAL SUDAH DIPAKAI ─────────────────────────────────────────
-  //
-  // ── DIKONFIRMASI: PER AKUN, BUKAN PER PROYEK ───────────────────────────
-  // Jatahnya satu untuk SEMUA proyek. Jadi kalau sudah dipakai:
-  //
-  //   · proyek yang SAMA  → tetap boleh dibuka (dia sudah membayar jatahnya
-  //                         untuk proyek ini; me-refresh tidak boleh
-  //                         menghilangkan akses yang sudah dia dapat)
-  //   · proyek LAIN       → TIDAK boleh (jatahnya sudah habis)
-  //
-  // `proyekSama` dikirim pemanggil: dia yang tahu proyek mana yang dipakai
-  // saat trial dibuka.
-  if (sudahPakaiTrial) {
-    if (proyekSama) {
-      return { boleh: true, alasan: 'trial-terpakai', pakaiTrial: false };
-    }
-    return { boleh: false, alasan: 'trial-habis-proyek-lain', pakaiTrial: false };
+  // ── 2. PROYEK INI SUDAH TERBUKA: TETAP TERBUKA ─────────────────────────────
+  // Me-refresh halaman tidak boleh menghilangkan akses yang sudah didapat,
+  // dan tidak boleh memakan jatah kedua.
+  if (proyekSama) {
+    return { boleh: true, alasan: 'sudah-terbuka', pakaiJatah: false, sumber: null };
   }
 
-  // 3. Belum pakai trial, sudah star: boleh SEKARANG, dan ini memakai jatahnya.
-  if (sudahStar) {
-    return { boleh: true, alasan: 'trial-baru', pakaiTrial: true };
+  // ── 3. HITUNG JATAH YANG TERSEDIA ─────────────────────────────────────────
+  const jatahLogin = KUOTA_METRIK_GRATIS.login;
+  const jatahTotal = sudahStar ? TOTAL_METRIK_GRATIS : jatahLogin;
+  const sisa = Math.max(0, jatahTotal - jumlahTerbuka);
+
+  if (sisa <= 0) {
+    // ── KENAPA PESANNYA BEDA TERGANTUNG SUDAH STAR ATAU BELUM ────────────────
+    // Pengguna yang BELUM star masih punya jalan keluar: memberi star menambah
+    // dua proyek. Menyuruhnya berlangganan tanpa menyebut itu berarti
+    // menyembunyikan pilihan yang paling mudah baginya.
+    //
+    // Pengguna yang SUDAH star tidak punya jalan keluar selain berlangganan —
+    // dan mengatakan sebaliknya akan membuatnya mencoba star lagi, gagal, lalu
+    // merasa sistemnya rusak.
+    return {
+      boleh: false,
+      alasan: sudahStar ? 'jatah-habis' : 'jatah-habis-bisa-star',
+      pakaiJatah: false,
+      sumber: null,
+      sisa: 0,
+      jatahTotal,
+    };
   }
 
-  return { boleh: false, alasan: 'perlu-star', pakaiTrial: false };
+  // ── 4. BOLEH — DAN INI MEMAKAI SATU JATAH ─────────────────────────────────
+  // Sumbernya ditentukan dari mana jatahnya diambil: login dulu, baru star.
+  // Penandanya berguna saat menjawab "kenapa proyek ini terbuka?" nanti.
+  const dariLogin = jumlahTerbuka < jatahLogin;
+
+  return {
+    boleh: true,
+    alasan: jumlahTerbuka === 0 ? 'jatah-pertama' : 'jatah-berikutnya',
+    pakaiJatah: true,
+    sumber: dariLogin ? 'login' : 'star',
+    sisa: sisa - 1,
+    jatahTotal,
+  };
 }
 
 /**
@@ -223,8 +310,29 @@ export function bolehLihatMetrik({ paket, sudahPakaiTrial, sudahStar, proyekSama
  */
 export function pesanTolak(alasan, konteks = {}) {
   switch (alasan) {
+    // ══ JATAH GRATIS: PESANNYA BEDA TERGANTUNG MASIH ADA JALAN KELUAR ════════
+    //
+    // Pengguna yang BELUM star masih punya pilihan gratis: memberi star
+    // menambah dua proyek. Menyembunyikan itu lalu menyuruhnya langsung
+    // berlangganan berarti menahan pilihan yang paling mudah baginya.
+    //
+    // Pengguna yang SUDAH star tidak punya pilihan gratis lagi. Mengatakan
+    // sebaliknya akan membuatnya mencoba star kedua kali, gagal, lalu merasa
+    // sistemnya rusak.
+    case 'jatah-habis-bisa-star': {
+      const total = konteks.jatahTotal ?? TOTAL_METRIK_GRATIS;
+      return `Jatah gratis Anda sudah dipakai untuk ${total} proyek. Beri star di repo GitHub portofolio untuk membuka 2 proyek lagi.`;
+    }
+    case 'jatah-habis': {
+      const total = konteks.jatahTotal ?? TOTAL_METRIK_GRATIS;
+      return `Jatah gratis Anda sudah dipakai untuk ${total} proyek, termasuk bonus star. Berlangganan untuk membuka metrik seluruh proyek.`;
+    }
+
+    // Alasan lama — dipertahankan supaya database atau klien yang belum
+    // diperbarui tidak menampilkan pesan kosong.
     case 'perlu-star':
-      return 'Beri star di repo GitHub portofolio untuk membuka data metrik satu kali.';
+      return 'Beri star di repo GitHub portofolio untuk membuka 2 proyek lagi.';
+
     case 'kuota-habis': {
       // Angka disebut kalau ada — "kembali dalam 12 hari" jauh lebih berguna
       // daripada "bulan depan".
@@ -236,7 +344,7 @@ export function pesanTolak(alasan, konteks = {}) {
     case 'bukan-langganan':
       return 'Membuat token akses tersedia untuk paket Standar, Profesional, dan Enterprise.';
     case 'trial-habis-proyek-lain':
-      return 'Jatah melihat data metrik gratis sudah dipakai untuk proyek lain. Berlangganan untuk membuka semua proyek.';
+      return 'Jatah melihat data metrik gratis sudah dipakai. Beri star untuk 2 proyek lagi, atau berlangganan untuk membuka seluruh proyek.';
     default:
       return 'Akses ditolak.';
   }
