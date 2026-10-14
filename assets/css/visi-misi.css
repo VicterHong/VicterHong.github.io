@@ -320,29 +320,53 @@ html:not(.js-ready) .vm-item { opacity: 1; transform: none; }
   color: var(--text);
   font-size: 1.0625rem;
   line-height: 1.5;
-  min-height: calc(5 * 1.5em);
 }
 
-/* Kursor ketik: garis tipis di ujung teks selama animasi berjalan. Tanpa ini,
-   teks yang bertambah huruf demi huruf terlihat seperti render lambat. */
-.vm-teks[data-ketik]:not(.ketik-selesai)::after {
-  content: '';
-  display: inline-block;
-  width: 2px;
-  height: 1em;
-  margin-left: 2px;
-  background: var(--accent);
-  vertical-align: -0.15em;
-  animation: vm-kedip 1s step-end infinite;
+/* ── FADE ALA KORPORASI ───────────────────────────────────────────────────────
+   Kalimat visi muncul dengan fade + angkat halus, bukan diketik huruf per huruf.
+
+   ── KENAPA KETIKAN DIGANTI ─────────────────────────────────────────────────
+   Efek ketik memaksa pembaca MENUNGGU setiap huruf. Untuk kalimat 148 karakter
+   itu ~1,5 detik menunggu sebelum isinya bisa dibaca — dan pembaca yang sudah
+   paham tidak bisa mempercepatnya. Di situs korporat efek itu terasa seperti
+   halaman yang lambat memuat, bukan seperti animasi.
+
+   Fade menyampaikan hal yang sama (ini baru muncul, perhatikan) tanpa menahan
+   pembaca: teksnya langsung lengkap, yang bergerak hanya kejelasannya.
+
+   ── KENAPA 0,72 DETIK DAN 16px ─────────────────────────────────────────────
+   Angka-angka itu BUKAN pilihan bebas — keduanya memakai token yang sudah
+   dipakai seluruh situs untuk `[data-reveal]`:
+       --dur-reveal: 720ms · --ease-out-quart
+   Jarak angkatnya 1rem (16px), setengah dari 1,5rem yang dipakai blok besar.
+
+   Alasannya: seksi ini duduk di antara seksi Layanan dan Kontak yang keduanya
+   memakai reveal yang sama. Kalau fade di sini punya durasi atau easing
+   berbeda, mata akan menangkap "ada yang tidak konsisten" tanpa tahu apa.
+   Satu sistem gerak untuk seluruh halaman — itu yang membuatnya terasa
+   dirancang, bukan ditempel.
+
+   ── KENAPA ANGKATNYA LEBIH KECIL DARI BLOK LAIN ───────────────────────────
+   16px, bukan 24px: ini elemen teks di dalam kartu yang sudah punya gerak
+   sendiri (kartunya naik 28px saat muncul). Kalau teksnya juga naik 24px,
+   dua gerakan itu bertumpuk dan terbaca sebagai kartu yang bergetar. */
+.vm-kartu--visi .vm-teks {
+  opacity: 0;
+  transform: translateY(1rem);
+  transition:
+    opacity var(--dur-reveal) var(--ease-out-quart),
+    transform var(--dur-reveal) var(--ease-out-quart);
 }
 
-@keyframes vm-kedip {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+.vm-kartu--visi .vm-teks.is-terlihat {
+  opacity: 1;
+  transform: none;
 }
 
-.vm-teks.ketik-selesai::after {
-  content: none;
+/* Jaring pengaman: tanpa JavaScript, teksnya tidak boleh tersembunyi. */
+html:not(.js-ready) .vm-kartu--visi .vm-teks {
+  opacity: 1;
+  transform: none;
 }
 
 /* ── ANGKA BUKTI ──────────────────────────────────────────────────────────────
@@ -440,10 +464,6 @@ html:not(.js-ready) .vm-item { opacity: 1; transform: none; }
 
   .vm-kartu--visi .vm-teks {
     font-size: 0.9375rem;
-    /* Di ponsel, 5 baris terlalu tinggi untuk kartu sempit. Dibiarkan mengikuti
-       isi — pergeseran yang ditimbulkan animasi lebih kecil daripada celah
-       kosong yang permanen. */
-    min-height: 0;
   }
 
   .vm-judul { font-size: 1rem; }
@@ -484,8 +504,11 @@ html:not(.js-ready) .vm-item { opacity: 1; transform: none; }
 
   .vm-jalur path { animation: none; }
 
-  .vm-teks[data-ketik]::after {
-    content: none;
-    animation: none;
+  /* Fade dimatikan, tapi teksnya TETAP terlihat. Nilai akhir langsung
+     dipasang — bukan animasi yang disembunyikan. */
+  .vm-kartu--visi .vm-teks {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

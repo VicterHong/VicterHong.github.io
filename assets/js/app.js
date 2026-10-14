@@ -11,7 +11,7 @@
  */
 
 import { profile, about, services, projects, sideProjects, stats } from './data/projects.js';
-import { initCountUp, initKetik } from './count-up.js';
+import { initCountUp, pasangFadeVisi } from './count-up.js';
 import { initVisiMisi } from './visi-misi.js';
 import { initAstra } from './astra.js';
 import { initDepth } from './depth.js';
@@ -652,20 +652,27 @@ for (const node of document.querySelectorAll('.misi-daftar')) {
 // Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
 initAstra();
 
-// ── VISI & MISI: animasi angka + teks ─────────────────────────────────────────
+// ── VISI & MISI: fade kalimat + angka berjalan ───────────────────────────────
 //
-// Dipanggil SETELAH renderVisiMisi() dan initAstra(), karena:
-//   1. Elemen `[data-count]` dan `[data-ketik]` baru ada setelah render.
-//   2. `initStagger` di dalam initAstra menandai anak `.misi-daftar` dengan
-//      transisi — kalau count-up jalan lebih dulu, angkanya berubah saat
-//      kartunya masih `opacity: 0`, dan animasinya tidak terlihat.
+// Dua animasi, dengan pembagian tugas yang jelas:
 //
-// ── KENAPA DUA FUNGSI TERPISAH ──────────────────────────────────────────────
-// `initKetik` hanya untuk SATU kalimat (visi). `initCountUp` untuk semua angka.
-// Dipisah karena aturannya berbeda: kalimat diketik huruf per huruf, angka
-// dihitung dari 0. Menggabungkannya jadi satu fungsi dengan `if` di dalam
-// membuat keduanya sulit dibaca dan sulit diuji sendiri-sendiri.
-initKetik();
+//   pasangFadeVisi()  → kalimat visi: FADE ala korporasi (720ms, token situs)
+//   initCountUp()     → angka bukti: HITUNG dari 0 (1,4s, ease-out kubik)
+//
+// ── KENAPA ANGKANYA TETAP DIANIMASIKAN ──────────────────────────────────────
+// Efek hitung HANYA dipakai untuk angka, bukan untuk kalimat. Alasannya:
+// angka yang berjalan dari 0 menyampaikan satu hal yang tidak bisa
+// disampaikan angka statis — "ini dihitung, bukan diketik". Ia juga selesai
+// cepat (1,4 detik) dan tidak menahan pembaca dari membaca kalimatnya.
+//
+// Efek ketik untuk KALIMAT sudah dihapus: ia menahan pembaca ~1,5 detik
+// sebelum kalimatnya bisa dibaca, dan itu terasa seperti halaman lambat.
+//
+// Dipanggil SETELAH kartunya dirender dan initAstra jalan, karena:
+//   1. Elemen `[data-count]` dan `.vm-teks` harus sudah ada
+//   2. Fade menunggu kartunya selesai bergerak — kalau dipanggil lebih dulu,
+//      pengamatnya tidak menemukan elemen yang di-observe
+pasangFadeVisi();
 initCountUp();
 
 // Kartu miring "dipin" + jalur mengalir untuk Visi & Misi.

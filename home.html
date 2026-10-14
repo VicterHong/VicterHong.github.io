@@ -290,8 +290,8 @@
             dari JavaScript, tidak ada isi cadangan saat skrip gagal dimuat.
 
        Jadi: HTML ini berisi teks lengkap dan angka final. JS hanya MENAMBAH
-       animasi di atasnya (data-ketik, data-count). Tanpa JS, pembaca melihat
-       seluruh isinya dalam keadaan akhir yang benar.
+       animasi di atasnya (fade untuk kalimat, hitung untuk angka). Tanpa JS,
+       pembaca melihat seluruh isinya dalam keadaan akhir yang benar.
 
        Angka di sini dijaga scripts/preflight.mjs: kalau tidak cocok dengan
        sumbernya, deploy ditolak. -->
@@ -353,9 +353,7 @@
               </svg>
               <div class="vm-dalam">
                 <span class="vm-label">Visi</span>
-                <p class="vm-teks" data-ketik
-                   aria-label="Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya."
-                >Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.</p>
+                <p class="vm-teks">Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.</p>
               </div>
             </article>
           </div>
