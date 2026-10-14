@@ -77,10 +77,30 @@ const LEWATI_DIR = new Set(['node_modules', '.git', '.github', '.wrangler', 'dis
   'backend', 'workers', 'scripts', 'design', 'tests', 'docs', '.hermes']);
 
 // ── BERKAS YANG TIDAK BOLEH IKUT DEPLOY ─────────────────────────────────────
-// preview-email.html adalah alat pengembang: isinya semua template email
-// dengan data contoh. Kalau ikut ter-deploy, siapa pun bisa membukanya di
-// /preview-email.html — dan bentuk email internal jadi publik.
-const LEWATI_BERKAS = new Set(['preview-email.html']);
+//
+// ── preview-email.html ──────────────────────────────────────────────────────
+// Alat pengembang: isinya semua template email dengan data contoh. Kalau ikut
+// ter-deploy, siapa pun bisa membukanya di /preview-email.html — dan bentuk
+// email internal jadi publik.
+//
+// ── cloudflare.config.ts ────────────────────────────────────────────────────
+// Konfigurasi build/deploy. Isinya TIDAK memuat nilai rahasia (memakai
+// `process.env.SERVICE_SECRET`), tapi ia MEMBOCORKAN TOPOLOGI INFRASTRUKTUR:
+//
+//   - nama database D1 (`portfolio-db`)
+//   - nama KV namespace, R2 bucket, dataset analytics
+//   - nama worker, zona, dan daftar rahasia yang dipakai
+//
+// Untuk penyerang, daftar itu peta yang mempersempit tebakan: ia tahu persis
+// layanan mana yang harus diserang, tanpa perlu memindai.
+//
+// Tidak ada gunanya juga ikut ter-deploy — berkas ini dibaca ALAT BUILD,
+// bukan browser. Yang mengunduhnya di /cloudflare.config.ts tidak bisa
+// melakukan apa pun dengannya.
+const LEWATI_BERKAS = new Set([
+  'preview-email.html',
+  'cloudflare.config.ts',
+]);
 
 function salin(dir, rel = '') {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -101,6 +121,14 @@ function salin(dir, rel = '') {
     if (LEWATI_BERKAS.has(entry.name)) continue;
     // Berkas yang tidak perlu ikut deploy
     if (/^(package|package-lock|yarn|tsconfig|wrangler|eslint|prettier|commitlint|greptile)/.test(entry.name)) continue;
+    // ── BERKAS KONFIGURASI ALAT BUILD ─────────────────────────────────────
+    // `.ts` di akar proyek adalah konfigurasi alat build, bukan aset situs.
+    // Yang benar-benar dipakai browser ada di workers/ dan assets/, dan
+    // keduanya sudah ditangani terpisah.
+    //
+    // Daftar-hitam ini sengaja SEMPIT (hanya di akar, hanya .ts) supaya tidak
+    // ikut membuang aset sah di subfolder.
+    if (!rel && entry.name.endsWith('.ts')) continue;
 
     mkdirSync(join(DIST, dirname(relPath)), { recursive: true });
     writeFileSync(join(DIST, relPath), readFileSync(full));
