@@ -1,86 +1,331 @@
 /* ════════════════════════════════════════════════════════════════════════════
-   VISI & MISI — halaman utama
+   VISI & MISI — kartu miring "dipin" + garis mengalir (halaman utama)
    ════════════════════════════════════════════════════════════════════════════
 
    ── APA INI ─────────────────────────────────────────────────────────────────
-   Satu kalimat visi (diketik huruf per huruf) di atas, empat misi di bawahnya,
-   lalu satu CTA. Ditaruh setelah Proyek & Layanan, sebelum Kontak.
+   Lima kartu yang terlihat seperti catatan dipin ke papan: dimiringkan,
+   bergantian kiri-kanan, disambung garis putus-putus yang mengalir.
 
-   ── KENAPA SATU KOLOM, BUKAN DUA ────────────────────────────────────────────
-   Versi di halaman demo memakai dua kolom: visi kiri, misi kanan. Di sini
-   TIDAK, karena dua alasan:
+   Kartu pertama berisi VISI (satu kalimat), empat berikutnya berisi MISI.
 
-     1. Halaman utama sudah punya banyak blok dua kolom (hero, tentang, setiap
-        kartu proyek). Menambah satu lagi membuat ritme halaman monoton —
-        skill design-taste-frontend menyebutnya "Section-Layout-Repetition".
-     2. Kalimat visi yang DIKETIK butuh lebar untuk bergerak. Di kolom sempit,
-        teks yang sedang diketik melompat baris setiap beberapa huruf, dan
-        lompatan itu lebih mengganggu daripada animasinya sendiri.
+   ── SUMBER POLA ─────────────────────────────────────────────────────────────
+   Komponen "How It Works" oleh chamaac (21st.dev), dibaca dari registry
+   resminya: https://chamaac.com/r/how-it-works.json
 
-   Jadi: visi satu baris penuh di atas (maks 20ch per baris lewat max-width),
-   misi dalam grid 2x2 di bawahnya.
+   Yang diambil apa adanya:
+     · sudut miring 8°, bergantian arah (rotate-8 / -rotate-8)
+     · garis putus-putus dash 8 / jeda 6, mengalir 3 detik per putaran
+     · ikon pin di atas tiap kartu
+     · kartu dua lapis: bingkai gelap luar, kartu berwarna dalam
+     · latar bergaris horizontal tiap 32px
 
-   ── KENAPA 2x2, BUKAN 4 KOLOM ───────────────────────────────────────────────
-   Empat kartu dalam satu baris di 1440px menyisakan ~330px per kartu — cukup
-   untuk judul, tapi teksnya jadi 6-7 baris dan kartunya terlihat sempit
-   tinggi. 2x2 memberi ~640px per kartu: judul dan teksnya seimbang.
-   (Pelajaran yang sama sudah tercatat di main.css untuk .principles.)
+   ── KENAPA SATU WARNA, BUKAN TIGA SEPERTI DI DEMO ───────────────────────────
+   Halaman demo memakai tiga warna (emas, biru, ungu) karena ia halaman
+   tersendiri yang isinya hanya komponen itu.
 
-   ── KENAPA TANPA KARTU BERBINGKAT ───────────────────────────────────────────
-   Halaman ini sudah punya kartu proyek, kartu layanan, kartu bento. Menambah
-   empat kotak berbingkat lagi membuat bagian ini terlihat seperti daftar
-   fitur. Di sini misi dipisahkan GARIS ATAS tipis — cukup untuk memisahkan,
-   tidak menambah massa visual. Skill yang sama menyebut ini "cards omitted in
-   favor of spacing where possible".
+   Halaman utama TIDAK. Skill design-taste-frontend punya aturan yang tegas:
+   "Once an accent color is chosen for a page, it is used on the WHOLE page.
+   A warm-grey site does not suddenly get a blue CTA in section 7."
+
+   Halaman ini memakai satu aksen emas sejak hero. Menambah biru dan ungu di
+   sini akan membuat seksi ini terlihat seperti komponen yang ditempel dari
+   situs lain. Jadi: satu warna, dan kedalaman dibawa oleh lapisan kartu
+   (bingkai gelap + kartu dalam), bukan oleh warna berbeda.
+
+   ── KENAPA GARIS MULAI DARI TENGAH KARTU ────────────────────────────────────
+   Versi-versi sebelumnya di halaman demo menggambar garis dari TEPI kartu, dan
+   gagal tiga kali: tepi bergerak setiap ukuran berubah, dan karena kartunya
+   dimiringkan, `getBoundingClientRect()` mengembalikan kotak PEMBATAS yang
+   ~7,7px lebih besar dari tepi visualnya.
+
+   Di sini garis mulai dari TITIK TENGAH kartu dan digambar DI BELAKANG kartu.
+   Ujungnya tersembunyi di bawah kartu, jadi tidak ada celah yang MUNGKIN
+   terlihat. Rotasi tidak berpengaruh: memutar persegi panjang tidak
+   memindahkan titik tengahnya.
+
+   ── PRINSIP ─────────────────────────────────────────────────────────────────
+   1. Tidak ada scroll-jacking
+   2. `prefers-reduced-motion`: garis berhenti mengalir, kartu langsung muncul
+   3. Tanpa JavaScript: semua kartu + nomor + pin terlihat, garis tidak ada
    ════════════════════════════════════════════════════════════════════════════ */
 
 .section-visi {
-  /* Jarak antar misi. Lebih longgar dari grid biasa karena tiap misi punya
-     garis pemisah di atasnya — tanpa jarak, garis-garisnya berdesakan. */
-  --visi-jarak: clamp(2rem, 4vw, 3rem);
+  --vm-kartu-l: 300px;    /* lebar maksimum kartu */
+  --vm-miring: 8deg;      /* sudut miring, dari sumber */
+  --vm-rise: 28px;        /* jarak angkat saat kartu muncul */
+  --vm-dur: 0.7s;         /* durasi reveal */
 }
 
-/* ── KALIMAT VISI ─────────────────────────────────────────────────────────────
-   Satu kalimat, ukuran judul (bukan ukuran teks badan). Ia pernyataan, bukan
-   penjelasan — jadi hierarkinya di atas teks misi.
+/* ── TEKS HANYA UNTUK PEMBACA LAYAR ───────────────────────────────────────────
+   Menyembunyikan elemen dari MATA tanpa menyembunyikannya dari pembaca layar.
 
-   ── KENAPA max-width 34ch ───────────────────────────────────────────────────
-   Diukur: dengan lebar penuh 1200px, kalimat 178 karakter ini jadi SATU baris
-   panjang yang sulit dibaca (mata harus menyapu jauh untuk pindah baris).
-   34ch memecahnya jadi 3 baris pendek — nyaman dibaca, dan tetap terasa
-   sebagai satu pernyataan utuh.
+   ── KENAPA BUKAN `display: none` ATAU `visibility: hidden` ────────────────
+   Keduanya menghapus elemen dari accessibility tree juga — pembaca layar tidak
+   akan menemukannya sama sekali. Itu kebalikan dari yang dibutuhkan.
+
+   ── KENAPA BUKAN `position: absolute; left: -9999px` ──────────────────────
+   Cara lama itu bekerja, tapi membuat browser menghitung tata letak untuk
+   elemen yang jauh di luar layar, dan pada beberapa pembaca layar modern ia
+   muncul di urutan fokus yang salah.
+
+   Potongan di bawah adalah pola standar yang dipakai GOV.UK, Tailwind, dan
+   Bootstrap: elemen tetap 1px di dalam layar (jadi tetap punya kotak yang
+   sah), tapi tidak bisa dilihat atau diklik. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── JARAK ATAS SEKSI TANPA JUDUL TERLIHAT ────────────────────────────────────
+   Judulnya `.sr-only` (tidak memakan ruang), jadi papan butuh jarak atas
+   sendiri supaya tidak menempel ke seksi Layanan di atasnya. */
+.section-visi .vm-papan {
+  margin-top: 0;
+}
+
+/* ── PAPAN ────────────────────────────────────────────────────────────────────
+   Wadah berposisi relatif untuk dua hal: SVG jalur (absolut, inset 0) dan
+   <ol> berisi kartunya.
+
+   ── KENAPA BUKAN <ol> LANGSUNG ──────────────────────────────────────────────
+   <svg> tidak boleh jadi anak langsung <ol> — HTML hanya mengizinkan <li> di
+   dalamnya. Kalau dipaksa, browser memindahkannya keluar daftar dan koordinat
+   jalurnya kacau. Satu <div> pembungkus menyelesaikannya. */
+.vm-papan {
+  position: relative;
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+}
+
+/* Latar bergaris horizontal tiap 32px, meniru papan tempat kartu dipin.
+   Sangat redup: kalau lebih terang, ia bersaing dengan kartunya. */
+.vm-papan::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(var(--line-soft) 1px, transparent 1px);
+  background-size: 100% 32px;
+  opacity: 0.45;
+  z-index: 0;
+}
+
+.vm-daftar {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── GARIS PENGHUBUNG ─────────────────────────────────────────────────────────
+   Satu <svg> yang menutupi papan, DI BELAKANG kartu (z-index 1 vs 2).
+   `d`-nya diisi JavaScript dari titik tengah tiap kartu.
+
+   `viewBox` disetel sama persis dengan ukuran piksel papan, jadi 1 satuan = 1px
+   dan tidak ada peregangan yang bisa mengubah ketebalan garis. */
+.vm-jalur {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.vm-jalur path {
+  fill: none;
+  stroke: var(--accent-line);
+  stroke-width: 2;
+  stroke-linecap: round;
+  /* dash 8, jeda 6 → satu siklus 14px. Angka ini harus cocok dengan keyframes
+     di bawah: kelipatan 14 supaya putarannya tidak terlihat "melompat". */
+  stroke-dasharray: 8 6;
+  animation: vm-mengalir 3s linear infinite;
+}
+
+/* ── MENGALIR ─────────────────────────────────────────────────────────────────
+   -140 = 10 × 14 (kelipatan pas dari dash + jeda). Karena jaraknya tepat satu
+   siklus penuh, dash terakhir mendarat persis di posisi dash pertama. */
+@keyframes vm-mengalir {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -140; }
+}
+
+/* ── SATU KARTU ───────────────────────────────────────────────────────────────
+   `flex` + justify-content: kartu bergantian menempel kiri/kanan. Lebih
+   sederhana daripada posisi absolut, dan kartu tidak mungkin saling menabrak
+   walau teksnya memanjang. */
+.vm-langkah {
+  position: relative;
+  z-index: 2;
+  display: flex;
+}
+
+.vm-langkah[data-sisi='kiri'] { justify-content: flex-start; }
+.vm-langkah[data-sisi='kanan'] { justify-content: flex-end; }
+
+/* Jarak antar kartu. Kartu miring butuh ruang vertikal lebih: sudut 8° pada
+   kartu selebar 300px menambah ~40px pada tinggi kotak pembatasnya. */
+.vm-langkah + .vm-langkah {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+}
+
+/* ── PEMBUNGKUS REVEAL ────────────────────────────────────────────────────────
+   Elemen ini yang dianimasikan (opacity + angkat). Rotasi ada di `.vm-kartu`
+   di dalamnya.
+
+   ── KENAPA DIPISAH ─────────────────────────────────────────────────────────
+   Kalau keduanya di satu elemen, `transform` untuk reveal akan MENIMPA
+   `transform: rotate()` — dan kartunya jadi lurus saat muncul, lalu miring
+   lagi. Dua elemen, dua tugas. */
+/* ── BUG YANG DIPERBAIKI: SEMUA KARTU MENUMPUK DI KIRI DI DESKTOP ──────────
+   Versi pertama memakai `width: 100%`. Akibatnya kartunya mengisi SELURUH
+   lebar papan, dan `justify-content: flex-start / flex-end` di induknya tidak
+   punya ruang untuk menggeser apa pun — kelima kartu menempel kiri.
+
+   Terukur di 1280px: pola `kkkkk`, bukan `knknk`. Di ponsel polanya benar
+   (`knknk`) hanya karena `width: 82%` di media query menimpanya — jadi bug ini
+   tidak terlihat saat diuji di ponsel.
+
+   Sekarang lebarnya dibatasi `max-width` saja, tanpa `width`. Flexbox dengan
+   sendirinya mengecilkan elemen ke ukuran isinya, lalu `justify-content`
+   menggesernya ke kiri atau kanan. */
+.vm-item {
+  max-width: var(--vm-kartu-l);
+  opacity: 0;
+  transform: translateY(var(--vm-rise));
+  transition:
+    opacity var(--vm-dur) var(--ease) var(--vm-tunda, 0ms),
+    transform var(--vm-dur) var(--ease) var(--vm-tunda, 0ms);
+}
+
+.vm-item.is-muncul {
+  opacity: 1;
+  transform: none;
+}
+
+/* Jaring pengaman: tanpa JavaScript kartu tidak boleh tersembunyi selamanya. */
+html:not(.js-ready) .vm-item { opacity: 1; transform: none; }
+
+/* ── KARTU ────────────────────────────────────────────────────────────────── */
+
+.vm-kartu {
+  position: relative;
+  width: 100%;
+  max-width: var(--vm-kartu-l);
+  /* Kartu luar: bingkai gelap tempat pin menempel. Ini yang membuatnya
+     terlihat seperti catatan dipin, bukan sekadar kotak berwarna. */
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 25px;
+  background: var(--bg-card);
+  transform: rotate(var(--vm-miring));
+  transition:
+    transform 0.3s var(--ease),
+    border-color 0.3s var(--ease);
+}
+
+/* Kartu ke kanan dimiringkan ke arah BERLAWANAN. Kalau keduanya miring ke arah
+   yang sama, susunannya terlihat seperti kolom yang miring, bukan zigzag. */
+.vm-langkah[data-sisi='kanan'] .vm-kartu {
+  transform: rotate(calc(var(--vm-miring) * -1));
+}
+
+/* Saat disentuh: rotasinya dikurangi, bukan dihapus. Kalau tegak sepenuhnya,
+   kartunya terasa "lepas" dari susunannya. */
+.vm-kartu:hover,
+.vm-kartu:focus-within {
+  border-color: var(--accent-line);
+  transform: rotate(calc(var(--vm-miring) * 0.4)) scale(1.03);
+}
+
+.vm-langkah[data-sisi='kanan'] .vm-kartu:hover,
+.vm-langkah[data-sisi='kanan'] .vm-kartu:focus-within {
+  transform: rotate(calc(var(--vm-miring) * -0.4)) scale(1.03);
+}
+
+/* ── PIN ──────────────────────────────────────────────────────────────────────
+   Ikon pin di tengah atas, di dalam bingkai gelap. Warna mengikuti aksen
+   halaman, jadi ia terbaca sebagai bagian dari kartu itu. */
+.vm-pin {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  margin: 0.35rem auto 1.25rem;
+  color: var(--accent);
+}
+
+/* ── KARTU DALAM ──────────────────────────────────────────────────────────────
+   Kotak berwarna tempat isinya. Dua lapis ini yang memberi kedalaman: bingkai
+   gelap di belakang, kartu beraksen di depan.
+
+   Latarnya `--accent-soft` (emas 12%), bukan warna kartu penuh: halaman ini
+   gelap, dan kartu emas penuh akan menyilaukan serta mengalahkan teksnya. */
+.vm-dalam {
+  position: relative;
+  padding: 1rem;
+  border: 1px solid var(--accent-line);
+  border-radius: 15px;
+  background: var(--accent-soft);
+  overflow: hidden;
+}
+
+/* ── LABEL ────────────────────────────────────────────────────────────────────
+   Kartu visi memakai label kata ("VISI"), kartu misi memakai nomor ("01").
+   Keduanya monospace kecil: penanda posisi, bukan hal yang perlu dibaca. */
+.vm-label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.vm-judul {
+  margin: 0 0 0.5rem;
+  color: var(--text);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.vm-teks {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-2);
+  line-height: 1.6;
+}
+
+/* ── KARTU VISI ───────────────────────────────────────────────────────────────
+   Kartu pertama sedikit berbeda: teksnya lebih besar karena ia pernyataan,
+   bukan penjelasan.
 
    ── KENAPA min-height DIISI ─────────────────────────────────────────────────
-   Teks yang diketik mulai dari kosong. Tanpa tinggi minimum, seluruh isi di
-   bawahnya IKUT NAIK saat huruf pertama muncul, lalu turun lagi baris demi
-   baris — halaman terlihat bergetar. `min-height` dikunci ke 3 baris (tinggi
-   akhir kalimatnya), jadi tidak ada yang bergerak. */
-.visi-blok {
-  margin-bottom: var(--visi-jarak);
-}
-
-.visi-teks {
-  margin: 0;
-  max-width: 34ch;
+   Kalimat visi DIKETIK huruf per huruf. Tanpa tinggi minimum, jalur di
+   belakangnya akan digambar ulang setiap beberapa huruf — dan seluruh isi di
+   bawahnya bergerak. `min-height` dikunci ke tinggi akhir kalimatnya (5 baris
+   di kartu selebar ini), jadi tidak ada yang bergeser. */
+.vm-kartu--visi .vm-teks {
   color: var(--text);
-  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
-  font-weight: 500;
-  line-height: 1.45;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  /* 3 baris × 1.45 line-height = 4.35em. Dikunci supaya animasi ketik tidak
-     menggeser apa pun di bawahnya. */
-  min-height: calc(3 * 1.45em);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  min-height: calc(5 * 1.5em);
 }
 
-/* ── KURSOR KETIK ─────────────────────────────────────────────────────────────
-   Garis tipis di ujung teks selama animasi berjalan. Tanpa ini, teks yang
-   bertambah huruf demi huruf terlihat seperti render yang lambat, bukan
-   seperti sedang ditulis.
-
-   `animation: none` saat reduced motion — kursor yang berkedip termasuk gerak
-   yang harus dimatikan (WCAG 2.2.2). */
-.visi-teks[data-ketik]:not(.ketik-selesai)::after {
+/* Kursor ketik: garis tipis di ujung teks selama animasi berjalan. Tanpa ini,
+   teks yang bertambah huruf demi huruf terlihat seperti render lambat. */
+.vm-teks[data-ketik]:not(.ketik-selesai)::after {
   content: '';
   display: inline-block;
   width: 2px;
@@ -88,97 +333,29 @@
   margin-left: 2px;
   background: var(--accent);
   vertical-align: -0.15em;
-  animation: visi-kedip 1s step-end infinite;
+  animation: vm-kedip 1s step-end infinite;
 }
 
-@keyframes visi-kedip {
+@keyframes vm-kedip {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
 }
 
-/* Kursor hilang setelah selesai — teksnya yang jadi fokus, bukan kursor. */
-.visi-teks.ketik-selesai::after {
+.vm-teks.ketik-selesai::after {
   content: none;
 }
 
-/* ── GRID MISI ────────────────────────────────────────────────────────────────
-   2 kolom di layar lebar, 1 kolom di ponsel. `auto-fit minmax(320px, 1fr)`
-   TIDAK dipakai: dengan 4 item ia menghasilkan 3+1 di beberapa lebar layar
-   (baris kedua cuma terisi 1 kartu, 2/3 ruangnya kosong). Jumlah kolom
-   ditentukan eksplisit. */
-.misi-daftar {
-  display: grid;
-  grid-template-columns: 1fr;
-  /* ── KENAPA JARAK VERTIKAL LEBIH BESAR DARI HORIZONTAL ─────────────────────
-     Diukur di tangkapan layar: dengan jarak yang sama, teks misi baris pertama
-     (yang panjangnya berbeda-beda) berakhir dekat dengan judul baris kedua.
-     Mata lalu membaca keduanya sebagai satu blok, bukan dua misi terpisah.
-
-     Jarak vertikal 1,6× horizontal memberi jeda yang cukup untuk memisahkan
-     tanpa perlu menambah garis atau kotak. */
-  gap: calc(var(--visi-jarak) * 1.6) clamp(2rem, 4vw, 4rem);
-}
-
-@media (min-width: 768px) {
-  .misi-daftar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* ── SATU MISI ────────────────────────────────────────────────────────────────
-   Garis atas tipis sebagai pemisah, bukan kartu berbingkat. */
-.misi-kartu {
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--line);
-}
-
-/* Nomor urut: kecil dan redup. Ia penanda posisi, bukan hal yang perlu dibaca —
-   yang penting judulnya. */
-.misi-nomor {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: var(--accent);
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: var(--fs-1);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-}
-
-.misi-judul {
-  margin: 0 0 0.5rem;
-  color: var(--text);
-  font-size: var(--fs-3);
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.misi-teks {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: var(--fs-2);
-  line-height: 1.65;
-  max-width: 60ch;
-}
-
-/* ── ANGKA ────────────────────────────────────────────────────────────────────
+/* ── ANGKA BUKTI ──────────────────────────────────────────────────────────────
    Angka di dalam teks misi (1.428, ~25 MB, 940 KB).
 
-   ── KENAPA DIBERI GAYA SENDIRI ──────────────────────────────────────────────
-   Angka yang tercampur rata dengan teks hilang saat dipindai — pembaca harus
-   membaca kalimatnya penuh untuk menemukannya. Padahal justru angka itu yang
-   membuat klaimnya bisa diperiksa.
-
-   Monospace + warna aksen + latar tipis membuatnya berhenti di mata. Tetap
-   sebaris dengan teks, karena ia bagian dari kalimatnya.
-
-   `white-space: nowrap` menjaga "1.428 tes otomatis" tidak terpotong di antara
-   baris. `font-variant-numeric: tabular-nums` membuat lebarnya tetap selama
-   count-up berjalan — tanpa itu, angka yang berubah dari 0 ke 1.428 menggeser
-   teks di sekitarnya setiap frame. */
-.angka {
+   Monospace + latar lebih terang dari kartunya, supaya ia berhenti di mata
+   saat dipindai. `tabular-nums` menjaga lebarnya tetap selama count-up —
+   tanpa itu, angka yang berubah dari 0 ke 1.428 menggeser teks di sekitarnya
+   setiap frame. */
+.vm-teks .angka {
   padding: 0.05em 0.35em;
   border-radius: 4px;
-  background: var(--accent-soft);
+  background: rgba(245, 197, 66, 0.18);
   color: var(--accent-light);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.95em;
@@ -187,80 +364,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── CTA ──────────────────────────────────────────────────────────────────────
-   Satu aksi utama + satu tautan sekunder. Jaraknya lebih lebar dari blok di
-   atasnya — ia langkah berikutnya, bukan lanjutan dari teksnya. */
-.visi-aksi {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: calc(var(--visi-jarak) * 1.25);
-}
-
-/* ── PONSEL ───────────────────────────────────────────────────────────────────
-   Kalimat visi: `min-height` dikurangi jadi 4 baris. Di 390px, 34ch hanya muat
-   ~20 karakter, jadi kalimat 178 karakter itu butuh 8-9 baris — dan mengunci
-   min-height ke 8 baris menyisakan ruang kosong besar kalau ternyata cuma 7.
-
-   Lebih baik: biarkan tingginya mengikuti isi di ponsel. Pergeseran yang
-   ditimbulkan animasi ketik lebih kecil daripada celah kosong yang permanen. */
-@media (max-width: 767px) {
-  .visi-teks {
-    font-size: 1.25rem;
-    min-height: 0;
-  }
-
-  .visi-aksi {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .visi-aksi .btn {
-    justify-content: center;
-  }
-}
-
-/* ── KONTRAS TOMBOL SEKUNDER ──────────────────────────────────────────────────
-   `.btn-ghost` memakai `--text-dim` (#a1a1aa) di atas latar #0a0a0b.
-   Terukur: rasio kontras 7,4:1 — lolos WCAG AAA (butuh 7:1), jauh di atas
-   batas AA (4,5:1). Tidak perlu diubah.
-
-   Tombol utamanya (`.btn-primary`) memakai emas #f5c542 dengan teks #1a0d06.
-   Terukur 11,8:1 — juga lolos AAA.
-
-   Keduanya dicatat di sini supaya tidak ada yang "memperbaiki" warnanya tanpa
-   mengukur ulang. */
-.visi-aksi .btn-primary {
-  /* Sedikit lebih besar dari tombol biasa: ia satu-satunya aksi di seksi ini,
-     jadi ukurannya boleh menandai bahwa ia penting. */
-  padding-inline: 1.5rem;
-}
-
-/* ── GERAK YANG DIKURANGI ─────────────────────────────────────────────────────
-   Tidak ada kursor berkedip, tidak ada animasi ketik, tidak ada count-up.
-   Semua nilai akhir langsung ditulis — dan itu memang nilai yang sudah ada di
-   HTML, jadi tidak ada yang perlu dihitung ulang. */
-@media (prefers-reduced-motion: reduce) {
-  .visi-teks[data-ketik]::after {
-    content: none;
-    animation: none;
-  }
-
-  .visi-teks,
-  .misi-kartu {
-    transition: none;
-  }
-}
-
-/* ── TAUTAN DI DALAM MISI ─────────────────────────────────────────────────────
-   "MINA" disebut di misi 03, tapi pengunjung yang baru mendarat belum tahu apa
-   itu. Tautannya menuju seksi Proyek, jadi nama yang tidak dikenali bisa
-   langsung diperiksa — bukan dibiarkan menggantung.
-
-   Digaris-bawahi (bukan hanya diwarnai): warna saja tidak cukup untuk
-   menandai tautan, dan pengguna yang tidak bisa membedakan warna akan
-   melewatkannya (WCAG 1.4.1). */
-.misi-taut {
+/* Tautan di dalam kartu (mis. "MINA" menuju seksi Proyek).
+   Digaris-bawahi, bukan hanya diwarnai: warna saja tidak cukup untuk menandai
+   tautan (WCAG 1.4.1). */
+.vm-teks a {
   color: var(--accent);
   text-decoration: underline;
   text-decoration-color: var(--accent-line);
@@ -268,7 +375,117 @@
   transition: text-decoration-color 0.2s var(--ease);
 }
 
-.misi-taut:hover,
-.misi-taut:focus-visible {
+.vm-teks a:hover,
+.vm-teks a:focus-visible {
   text-decoration-color: var(--accent);
+}
+
+/* ── CTA DIHAPUS ──────────────────────────────────────────────────────────────
+   Seksi ini sempat punya dua tombol ("Mari bicara" + "Lihat panduan pakai").
+
+   "Mari bicara" DIHAPUS karena sudah ada sebagai judul seksi Kontak tepat di
+   bawahnya. Dua CTA bermaksud sama dengan label sama membuat halaman terasa
+   mengulang, dan skill design-taste-frontend menyebutnya Pre-Flight Fail:
+   "NO DUPLICATE CTA INTENT".
+
+   "Lihat panduan pakai" juga dihapus: ia tautan sekunder yang tidak diminta
+   siapa pun, dan tanpa CTA utama di sebelahnya ia menggantung sendirian.
+
+   Sekarang kartu terakhir langsung diikuti seksi Kontak. Tidak ada tombol yang
+   perlu diklik di sini — yang perlu dilakukan pembaca adalah terus menggulir,
+   dan itu sudah jelas dari kartunya sendiri.
+
+/* ── PONSEL ───────────────────────────────────────────────────────────────────
+   ── ZIGZAG TETAP ADA, TIDAK DILURUSKAN ──────────────────────────────────────
+   Versi sebelumnya di halaman demo pernah menggeser sumbu ke kiri dan menaruh
+   semua kartu di kanan — hasilnya satu kolom lurus, dan pemilik proyek
+   langsung menolaknya: "ini bukan zig-zag namanya ini lurus".
+
+   Di sini zigzag dipertahankan di semua lebar. Yang dikecilkan UKURANNYA:
+   lebar kartu, sudut miring, dan jarak antar kartu.
+
+   Sudut dikurangi 8° → 5°: pada kartu sempit, 8° membuat sudut atasnya
+   menonjol keluar tepi layar. */
+@media (max-width: 767px) {
+  .section-visi {
+    --vm-kartu-l: 100%;
+    --vm-miring: 5deg;
+    --vm-rise: 22px;
+  }
+
+  /* Kartu tidak selebar papan — kalau penuh, kedua sisinya bertemu di tengah
+     dan zigzag-nya hilang. 82% menyisakan ruang untuk pergeseran.
+
+     `max-width`, bukan `width`: sama seperti di desktop, `width` akan memaksa
+     kartu selebar itu dan membuat `justify-content` tidak bisa menggeser. */
+  .vm-item {
+    max-width: 82%;
+  }
+
+  .vm-kartu {
+    padding: 0.4rem;
+    border-radius: 20px;
+  }
+
+  .vm-pin {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-bottom: 0.875rem;
+  }
+
+  .vm-dalam {
+    padding: 0.8125rem;
+    border-radius: 12px;
+  }
+
+  .vm-kartu--visi .vm-teks {
+    font-size: 0.9375rem;
+    /* Di ponsel, 5 baris terlalu tinggi untuk kartu sempit. Dibiarkan mengikuti
+       isi — pergeseran yang ditimbulkan animasi lebih kecil daripada celah
+       kosong yang permanen. */
+    min-height: 0;
+  }
+
+  .vm-judul { font-size: 1rem; }
+  .vm-teks { font-size: 0.8125rem; }
+
+}
+
+/* ── LAYAR SANGAT SEMPIT (≤360px) ─────────────────────────────────────────────
+   Di 320px, kartu 82% hanya menyisakan ~95px untuk teks setelah padding —
+   terlalu sempit. Ruangnya diambil dari tempat yang paling tidak merugikan:
+   padding kartu, sudut miring, dan lebar kartu itu sendiri. */
+@media (max-width: 360px) {
+  .section-visi {
+    --vm-miring: 4deg;
+  }
+
+  .vm-item { max-width: 88%; }
+
+  .vm-dalam { padding: 0.75rem; }
+  .vm-pin { margin-bottom: 0.75rem; }
+  .vm-langkah + .vm-langkah { margin-top: 2rem; }
+}
+
+/* ── GERAK YANG DIKURANGI ─────────────────────────────────────────────────────
+   Garis berhenti mengalir, kartu langsung di keadaan akhir. Informasinya tetap
+   utuh — yang hilang hanya geraknya.
+
+   Garisnya TIDAK dihapus: ia masih menandai hubungan antar kartu, dan itu
+   informasi, bukan hiasan. Yang dihentikan hanya putarannya. */
+@media (prefers-reduced-motion: reduce) {
+  .vm-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .vm-kartu { transition: none; }
+
+  .vm-jalur path { animation: none; }
+
+  .vm-teks[data-ketik]::after {
+    content: none;
+    animation: none;
+  }
 }

@@ -12,6 +12,7 @@
 
 import { profile, about, services, projects, sideProjects, stats } from './data/projects.js';
 import { initCountUp, initKetik } from './count-up.js';
+import { initVisiMisi } from './visi-misi.js';
 import { initAstra } from './astra.js';
 import { initDepth } from './depth.js';
 import { initEditorial } from './editorial.js';
@@ -666,6 +667,12 @@ initAstra();
 // membuat keduanya sulit dibaca dan sulit diuji sendiri-sendiri.
 initKetik();
 initCountUp();
+
+// Kartu miring "dipin" + jalur mengalir untuk Visi & Misi.
+// Dipanggil SETELAH initKetik/initCountUp supaya:
+//   1. Kartunya sudah punya ukuran final saat titik tengahnya diukur
+//   2. Jalurnya digambar di atas keadaan akhir, bukan keadaan animasi
+initVisiMisi();
 
 // Efek 3D tingkat Framer/Awwwards — scroll-stand, tilt berlapis, glare,
 // spotlight. Dipanggil setelah render supaya kartu proyek sudah ada.

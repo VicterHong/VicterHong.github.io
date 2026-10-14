@@ -33,7 +33,19 @@ const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)
 // Penggantinya garis aksen saja, yang menyampaikan hal benar tanpa mengklaim urutan.
 export function initSectionNumbers() {
   const sections = [...document.querySelectorAll('main > section')]
-    .filter((s) => !s.classList.contains('hero'));
+    .filter((s) => !s.classList.contains('hero'))
+    // ── BUG YANG DIPERBAIKI: GARIS MUNCUL DI SEKSI TANPA JUDUL ─────────────
+    //
+    // Seksi Visi & Misi tidak punya judul yang terlihat (judulnya `.sr-only`,
+    // dan kartu-kartunya sudah berlabel sendiri). Karena tidak ada
+    // `.section-head`, `section.querySelector('.section-head') ?? section`
+    // jatuh ke `section` — dan garis aksennya disuntikkan LANGSUNG ke dalam
+    // <section>, muncul sebagai garis menggantung di atas papan kartu.
+    //
+    // Sekarang seksi yang menandai dirinya `data-tanpa-eyebrow` dilewati.
+    // Atribut, bukan daftar kelas: kalau nanti ada seksi lain yang juga tidak
+    // ingin garis, ia tinggal menambahkan satu atribut yang sama.
+    .filter((s) => !s.hasAttribute('data-tanpa-eyebrow'));
   if (!sections.length) return;
 
   sections.forEach((section) => {

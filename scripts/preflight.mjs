@@ -266,7 +266,9 @@ try {
   // Angka diambil dari atribut data-target, karena HTML halaman utama memuat
   // angka di dalam <span data-count data-target="N">.
   const target = [...beranda.matchAll(/data-count data-target="(\d+)"/g)].map((m) => Number(m[1]));
-  const judulMisi = (beranda.match(/class="misi-judul"/g) || []).length;
+  // Kelas berubah dari `misi-judul` (grid 2x2) menjadi `vm-judul` (kartu
+  // zigzag). Yang dihitung tetap hal yang sama: jumlah misi.
+  const judulMisi = (beranda.match(/class="vm-judul"/g) || []).length;
 
   const proyekSrc = readFileSync(resolve(ROOT, 'assets/js/data/projects.js'), 'utf8');
   const tesProyek = [...proyekSrc.matchAll(/{\s*label:\s*'([^']*)',\s*value:\s*'([^']*)'\s*}/g)]

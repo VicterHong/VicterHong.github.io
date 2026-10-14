@@ -295,78 +295,171 @@
 
        Angka di sini dijaga scripts/preflight.mjs: kalau tidak cocok dengan
        sumbernya, deploy ditolak. -->
-  <section class="section section-visi" id="5nfyzw" aria-labelledby="visi-title" data-cine-clip>
-    <div class="section-head">
-      <h2 class="section-title" id="visi-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Visi &amp; Misi</h2>
-      <p class="section-note" data-reveal>
-        Apa yang portofolio ini janjikan, dan bagaimana janji itu dijaga.
-      </p>
+  <!--
+    ── KENAPA TIDAK ADA JUDUL YANG TERLIHAT ──────────────────────────────────
+    Seksi ini sempat punya judul "Visi & Misi" + satu kalimat penjelas di
+    atasnya. Keduanya dihapus: kartu pertama SUDAH berlabel "VISI", dan empat
+    kartu berikutnya bernomor 01 sampai 04. Judul yang mengulang apa yang
+    sudah terbaca dari kartunya hanya menambah baris tanpa menambah makna.
+
+    ── KENAPA <h2> MASIH ADA, TAPI TIDAK TERLIHAT ────────────────────────────
+    Judulnya dibutuhkan untuk tiga hal yang tidak terlihat:
+      1. `aria-labelledby` di <section> menunjuk ke sana, jadi pembaca layar
+         mendengar nama seksi ini sebelum isinya
+      2. Hierarki heading tetap utuh (h2 dari seksi sebelumnya → h2 ini →
+         h3 di dalam tiap kartu). Melompat dari h2 ke h3 tanpa h2 di antaranya
+         membingungkan pengguna pembaca layar
+      3. Tautan navigasi "Cara kerja" tetap punya sasaran yang bernama
+
+    `.sr-only` menyembunyikannya dari mata tanpa menyembunyikannya dari
+    pembaca layar — pola standar, bukan trik. -->
+  <section class="section section-visi" id="5nfyzw" aria-labelledby="visi-title"
+           data-cine-clip data-tanpa-eyebrow>
+    <h2 class="sr-only" id="visi-title">Visi &amp; Misi</h2>
+
+    <!--
+      ── PAPAN ────────────────────────────────────────────────────────────────
+      <div> pembungkus yang memuat dua hal: <svg> jalur dan <ol> kartunya.
+
+      ── KENAPA <div>, BUKAN <ol> LANGSUNG ────────────────────────────────────
+      <svg> tidak boleh jadi anak langsung <ol> — HTML hanya mengizinkan <li>
+      di dalamnya. Kalau dipaksa, browser memindahkan SVG-nya keluar dari
+      daftar dan koordinat jalurnya jadi kacau.
+
+      ── KENAPA SATU <ol> ─────────────────────────────────────────────────────
+      Ini URUTAN — itu maknanya. <ol> memberi tahu pembaca layar "daftar, 5
+      item" tanpa satu atribut ARIA pun.
+
+      ── KENAPA KARTU 1 ADALAH VISI, BUKAN MISI ───────────────────────────────
+      Visi itu pernyataan; misi itu langkah mewujudkannya. Menaruh visi sebagai
+      kartu PERTAMA membuat hubungannya terbaca dari urutannya sendiri: inilah
+      yang dituju, dan empat kartu berikutnya adalah caranya. Kalau visi
+      ditaruh di luar (mis. sebagai kalimat di atas papan), ia jadi terpisah
+      dari jalurnya.
+    -->
+    <div class="vm-papan">
+      <svg class="vm-jalur" aria-hidden="true" preserveAspectRatio="none">
+        <path d="" />
+      </svg>
+
+      <ol class="vm-daftar" data-vm aria-label="Visi dan misi">
+
+        <!-- VISI -->
+        <li class="vm-langkah">
+          <div class="vm-item">
+            <article class="vm-kartu vm-kartu--visi">
+              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
+              </svg>
+              <div class="vm-dalam">
+                <span class="vm-label">Visi</span>
+                <p class="vm-teks" data-ketik
+                   aria-label="Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya."
+                >Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.</p>
+              </div>
+            </article>
+          </div>
+        </li>
+
+        <!-- MISI 01 -->
+        <li class="vm-langkah">
+          <div class="vm-item">
+            <article class="vm-kartu">
+              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
+              </svg>
+              <div class="vm-dalam">
+                <span class="vm-label" aria-hidden="true">01</span>
+                <h3 class="vm-judul">Sistem yang ditampilkan benar-benar berjalan</h3>
+                <p class="vm-teks">
+                  Bukan tangkapan layar. Ada
+                  <span class="angka" data-count data-target="3">3 sistem</span>
+                  yang bisa Anda jalankan sendiri, dijaga
+                  <span class="angka" data-count data-target="1428">1.428 tes otomatis</span>
+                  yang lulus sebelum apa pun dirilis.
+                </p>
+              </div>
+            </article>
+          </div>
+        </li>
+
+        <!-- MISI 02 -->
+        <li class="vm-langkah">
+          <div class="vm-item">
+            <article class="vm-kartu">
+              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
+              </svg>
+              <div class="vm-dalam">
+                <span class="vm-label" aria-hidden="true">02</span>
+                <h3 class="vm-judul">Setiap klaim punya sumber yang bisa dibuka</h3>
+                <p class="vm-teks">
+                  Saya menulis audit untuk pekerjaan sendiri, lalu memverifikasi
+                  ulang ke kode. Hasilnya:
+                  <span class="angka" data-count data-target="5">5 dari 8 temuan</span>
+                  saya batalkan karena tidak terbukti.
+                </p>
+              </div>
+            </article>
+          </div>
+        </li>
+
+        <!-- MISI 03 -->
+        <li class="vm-langkah">
+          <div class="vm-item">
+            <article class="vm-kartu">
+              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
+              </svg>
+              <div class="vm-dalam">
+                <span class="vm-label" aria-hidden="true">03</span>
+                <h3 class="vm-judul">Jalan di perangkat yang sudah Anda punya</h3>
+                <p class="vm-teks">
+                  <a href="#utqvwf">MINA</a>, remote control rumah yang jadi
+                  proyek utama di halaman ini, hidup di
+                  <span class="angka" data-count data-target="25" data-prefix="~" data-suffix=" MB">~25 MB memori</span>
+                  pada laptop
+                  <span class="angka" data-count data-target="2" data-suffix=" GB RAM">2 GB RAM</span>.
+                  Sistem yang berat bukan tanda sistem yang serius.
+                </p>
+              </div>
+            </article>
+          </div>
+        </li>
+
+        <!-- MISI 04 -->
+        <li class="vm-langkah">
+          <div class="vm-item">
+            <article class="vm-kartu">
+              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
+              </svg>
+              <div class="vm-dalam">
+                <span class="vm-label" aria-hidden="true">04</span>
+                <h3 class="vm-judul">Batas disebut di depan, bukan saat bermasalah</h3>
+                <p class="vm-teks">
+                  Aset halaman dibatasi
+                  <span class="angka" data-count data-target="940" data-suffix=" KB">940 KB</span>,
+                  dijaga skrip yang <em>menolak</em> rilis kalau lewat. Batas yang
+                  tidak bisa dilanggar lebih berguna daripada janji.
+                </p>
+              </div>
+            </article>
+          </div>
+        </li>
+
+      </ol>
     </div>
 
-    <!-- Visi. `data-ketik` memasang animasi menulis; `aria-label` menjamin
-         pembaca layar mendapat kalimat utuh walau animasinya sedang berjalan. -->
-    <p class="visi-teks" data-ketik
-       aria-label="Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya."
-    >Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.</p>
+    <!-- ── TIDAK ADA CTA DI SINI ───────────────────────────────────────────────
+         Seksi ini sempat punya dua tombol. "Mari bicara" DIHAPUS karena judul
+         seksi Kontak tepat di bawahnya berbunyi sama persis — dua CTA dengan
+         maksud sama membuat halaman terasa mengulang, dan skill
+         design-taste-frontend menyebutnya Pre-Flight Fail.
 
-    <div class="misi-daftar">
-
-      <article class="misi-kartu">
-        <span class="misi-nomor" aria-hidden="true">01</span>
-        <h3 class="misi-judul">Sistem yang ditampilkan benar-benar berjalan</h3>
-        <p class="misi-teks">
-          Bukan tangkapan layar. Ada
-          <span class="angka" data-count data-target="3">3 sistem</span>
-          yang bisa Anda jalankan sendiri, dijaga
-          <span class="angka" data-count data-target="1428">1.428 tes otomatis</span>
-          yang lulus sebelum apa pun dirilis.
-        </p>
-      </article>
-
-      <article class="misi-kartu">
-        <span class="misi-nomor" aria-hidden="true">02</span>
-        <h3 class="misi-judul">Setiap klaim punya sumber yang bisa dibuka</h3>
-        <p class="misi-teks">
-          Saya menulis audit untuk pekerjaan sendiri, lalu memverifikasi ulang
-          ke kode. Hasilnya:
-          <span class="angka" data-count data-target="5">5 dari 8 temuan</span>
-          saya batalkan karena tidak terbukti.
-        </p>
-      </article>
-
-      <article class="misi-kartu">
-        <span class="misi-nomor" aria-hidden="true">03</span>
-        <h3 class="misi-judul">Jalan di perangkat yang sudah Anda punya</h3>
-        <p class="misi-teks">
-          <a class="misi-taut" href="#utqvwf">MINA</a>, remote control rumah
-          yang jadi proyek utama di halaman ini, hidup di
-          <span class="angka" data-count data-target="25" data-prefix="~" data-suffix=" MB">~25 MB memori</span>
-          pada laptop
-          <span class="angka" data-count data-target="2" data-suffix=" GB RAM">2 GB RAM</span>.
-          Sistem yang berat bukan tanda sistem yang serius.
-        </p>
-      </article>
-
-      <article class="misi-kartu">
-        <span class="misi-nomor" aria-hidden="true">04</span>
-        <h3 class="misi-judul">Batas disebut di depan, bukan saat bermasalah</h3>
-        <p class="misi-teks">
-          Aset halaman dibatasi
-          <span class="angka" data-count data-target="940" data-suffix=" KB">940 KB</span>,
-          dijaga skrip yang <em>menolak</em> rilis kalau lewat. Batas yang tidak
-          bisa dilanggar lebih berguna daripada janji.
-        </p>
-      </article>
-
-    </div>
-
-    <!-- CTA: satu aksi utama + satu tautan sekunder. Label utama SAMA dengan
-         tombol di seksi Kontak di bawah ("Mari bicara") — dua CTA bermaksud
-         sama dengan label berbeda membuat pengguna mengira tujuannya beda. -->
-    <div class="visi-aksi">
-      <a class="btn btn-primary" href="#89fk39">Mari bicara</a>
-      <a class="btn btn-ghost" href="/docs">Lihat panduan pakai</a>
-    </div>
+         Sekarang kartu terakhir langsung diikuti seksi Kontak. Pembaca tidak
+         perlu mengklik apa pun di sini; yang perlu dilakukan adalah terus
+         menggulir, dan itu sudah jelas dari kartunya sendiri. -->
   </section>
 
   <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->
