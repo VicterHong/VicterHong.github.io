@@ -1,19 +1,19 @@
 {
- "dibuat": "2026-10-14T19:18:44.831Z",
- "totalCommit": 450,
- "totalDicatat": 444,
+ "dibuat": "2026-10-14T19:41:28.958Z",
+ "totalCommit": 452,
+ "totalDicatat": 446,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-14",
  "rilis": [
   {
    "tanggal": "2026-10-14",
-   "jumlah": 41,
+   "jumlah": 43,
    "ringkasan": {
-    "fitur": 24,
+    "fitur": 25,
     "perbaikan": 12,
     "performa": 0,
     "dokumentasi": 2,
-    "data": 0,
+    "data": 1,
     "pemeliharaan": 3
    },
    "kategori": [
@@ -21,6 +21,11 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "feb554b",
+       "teks": "Tambah header keamanan — HSTS, CSP, anti-framing",
+       "scope": "keamanan"
+      },
       {
        "hash": "1269523",
        "teks": "Metrik terverifikasi, diagram arsitektur, sandbox demo",
@@ -222,6 +227,17 @@
        "hash": "0fb98ff",
        "teks": "Perbaiki menu dashboard + kunci URL webhook dengan tes",
        "scope": "midtrans"
+      }
+     ]
+    },
+    {
+     "kunci": "data",
+     "label": "Data",
+     "item": [
+      {
+       "hash": "6d84731",
+       "teks": "Catat 4 perbaikan audit (angka, bocor config, rollback, module)",
+       "scope": "changelog"
       }
      ]
     },

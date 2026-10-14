@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 444 perubahan dari 450 commit (2026-10-01 → 2026-10-14).
+Total 446 perubahan dari 452 commit (2026-10-01 → 2026-10-14).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,6 +10,7 @@ Total 444 perubahan dari 450 commit (2026-10-01 → 2026-10-14).
 
 ### Fitur baru
 
+- **keamanan**: Tambah header keamanan — HSTS, CSP, anti-framing (`feb554b`)
 - **portofolio**: Metrik terverifikasi, diagram arsitektur, sandbox demo (`1269523`)
 - **portofolio**: Arsip latihan, badge CI nyata, kalkulator ROI (`a10ddbb`)
 - **sentinel**: Mode keamanan Pro — perketat sekali klik, bisa dikembalikan (`0b5a076`)
@@ -54,6 +55,10 @@ Total 444 perubahan dari 450 commit (2026-10-01 → 2026-10-14).
 
 - **runbook**: Tambah prosedur rollback yang sebelumnya tidak ada (`6f5bc10`)
 - **midtrans**: Perbaiki menu dashboard + kunci URL webhook dengan tes (`0fb98ff`)
+
+### Data
+
+- **changelog**: Catat 4 perbaikan audit (angka, bocor config, rollback, module) (`6d84731`)
 
 ### Pemeliharaan
 
