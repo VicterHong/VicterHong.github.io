@@ -61,7 +61,11 @@ export const PAKET = [
     fitur: [
       { teks: 'Pratinjau isi repo, struktur & daftar berkas', termasuk: true },
       { teks: 'Dokumentasi publik', termasuk: true },
-      { teks: 'Lihat hasil uji & metrik proyek', termasuk: true },
+      { teks: 'Lihat hasil uji & metrik semua proyek', termasuk: true, tebal: true },
+      // ── KUOTA TOKEN: 1 PER BULAN ──────────────────────────────────────────
+      // Angka ini HARUS cocok dengan KUOTA_DASAR di langganan.mjs. Kalau
+      // berbeda, halaman menjanjikan yang tidak bisa dipenuhi sistem.
+      { teks: '1 token akses per bulan', termasuk: true, tebal: true },
       { teks: 'Dukungan lewat email', termasuk: true },
       { teks: 'Belum bisa membaca kode sumber', termasuk: false },
       { teks: 'Belum boleh memakai ulang kodenya', termasuk: false },
@@ -80,6 +84,7 @@ export const PAKET = [
     urutan: 2,
     fitur: [
       { teks: 'Baca kode sumber penuh', termasuk: true, tebal: true },
+      { teks: '5 token akses per bulan', termasuk: true, tebal: true },
       { teks: 'Diskusi teknis langsung', termasuk: true, tebal: true },
       { teks: 'Dokumentasi arsitektur & keputusan desain', termasuk: true },
       { teks: 'Balasan prioritas', termasuk: true },
@@ -102,6 +107,7 @@ export const PAKET = [
     urutan: 3,
     fitur: [
       { teks: 'Akses penuh repositori privat', termasuk: true, tebal: true },
+      { teks: 'Token akses tanpa batas', termasuk: true, tebal: true },
       { teks: 'Proyek tanpa batas', termasuk: true, tebal: true },
       { teks: 'Boleh memakai ulang kodenya', termasuk: true, tebal: true },
       { teks: 'Jaminan layanan (SLA)', termasuk: true },
@@ -177,6 +183,18 @@ export const FAQ = [
   {
     tanya: 'Kode yang saya lihat, apakah boleh saya pakai di proyek saya?',
     jawab: 'Tergantung paketnya. Standar, hanya pratinjau (struktur & daftar berkas). Profesional, boleh dibaca dan dipelajari, tapi tidak boleh dipakai ulang di produk Anda. Enterprise, boleh dipakai ulang, tanpa batas proyek.',
+  },
+  {
+    tanya: 'Apa itu token akses, dan berapa yang saya dapat?',
+    // ── KENAPA FAQ INI ADA ─────────────────────────────────────────────────
+    // Token akses adalah fitur inti yang membedakan paket ini, tapi istilahnya
+    // tidak muncul di halaman harga sama sekali. Pengunjung yang membaca
+    // "token akses" tanpa penjelasan harus menebak apa yang dia beli.
+    jawab: 'Token akses adalah kode yang membuka data metrik dan kode sumber proyek. Standar memberi 1 token per bulan, Profesional 5 per bulan, Enterprise tanpa batas. Token dibuat sendiri di halaman Proyek Saya setelah masuk — jatah bulanan Anda terlihat di sana, dan jatah baru tersedia saat bulan berganti.',
+  },
+  {
+    tanya: 'Bagaimana cara mendapat bonus dari memberi star?',
+    jawab: 'Beri star di repo GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim bukti. Bonusnya sekali per akun: pengguna gratis dapat membuka data metrik satu proyek, sedangkan Standar dan Profesional dapat tambahan 1 token di bulan itu.',
   },
 ];
 
@@ -270,6 +288,63 @@ export function buildPricing() {
     judul: JUDUL,
     periode: PERIODE,
     paket,
+    // ── CARA KERJA TOKEN AKSES ─────────────────────────────────────────────
+    //
+    // ── KENAPA BAGIAN INI ADA ──────────────────────────────────────────────
+    // Fitur token akses dan bonus star sudah dibangun, tapi halaman harga
+    // tidak menyebutnya sama sekali. Akibatnya pengunjung tidak tahu:
+    //   · apa yang DIDAPAT dari kuota token
+    //   · bahwa memberi star memberi bonus
+    //
+    // Dua hal itu justru yang membedakan paket ini dari langganan biasa —
+    // dan yang membuat pengunjung mau mencoba.
+    //
+    // ── KENAPA ISINYA DI SINI, BUKAN DI HTML ───────────────────────────────
+    // Angka kuotanya (1, 5, tanpa batas) HARUS cocok dengan KUOTA_DASAR di
+    // langganan.mjs. Kalau ditulis di HTML, ada dua tempat yang bisa berbeda —
+    // dan halaman akan menjanjikan yang tidak bisa dipenuhi sistem.
+    langkahToken: [
+      {
+        nomor: '01',
+        judul: 'Pilih paket',
+        teks: 'Berlangganan Standar atau Profesional. Enterprise dibicarakan dulu karena kebutuhannya berbeda-beda.',
+      },
+      {
+        nomor: '02',
+        judul: 'Buat token di halaman Proyek Saya',
+        teks: 'Setelah masuk, buka halaman Proyek Saya lalu tekan Buat token. Jatah bulanan Anda terlihat di sana.',
+      },
+      {
+        nomor: '03',
+        judul: 'Pakai token untuk membuka proyek',
+        teks: 'Token membuka data metrik dan kode sumber, sesuai hak paket Anda. Sesi berlaku 24 jam, jadi tidak perlu memasukkan berulang.',
+      },
+    ],
+
+    // ── BONUS STAR ─────────────────────────────────────────────────────────
+    // Ditampilkan terpisah karena ia berlaku untuk SEMUA paket, termasuk yang
+    // gratis — dan itulah yang membuat pengunjung mau mencoba lebih dulu.
+    bonusStar: {
+      judul: 'Beri star, dapat tambahan',
+      teks: 'Beri star di repo GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya. Sekali per akun.',
+      // Tiga baris ini menjelaskan HASIL yang berbeda per paket. Tanpa ini,
+      // pengguna gratis akan mengira dia juga dapat token — padahal
+      // bonusnya untuk dia adalah pratinjau metrik.
+      hasil: [
+        { paket: 'Gratis', dapat: 'Buka data metrik satu proyek, sekali' },
+        // ── BUG BAHASA YANG DIPERBAIKI ────────────────────────────────────
+        // Versi pertama: "Kuota token jadi 2 bulan itu"
+        //
+        // Frasa itu ambigu — "jadi 2 bulan" bisa dibaca sebagai DURASI
+        // (langganannya jadi 2 bulan), padahal maksudnya JUMLAH token
+        // (bulan itu kuotanya jadi 2). Pembaca harus menebak.
+        //
+        // Yang benar menyebut satuannya: "jadi 2 token".
+        { paket: 'Standar', dapat: 'Kuota bulan itu jadi 2 token' },
+        { paket: 'Profesional', dapat: 'Kuota bulan itu jadi 6 token' },
+        { paket: 'Enterprise', dapat: 'Sudah tanpa batas' },
+      ],
+    },
     // Nama kolom tabel diambil dari paket — supaya tidak ada daftar kedua
     // yang harus dijaga sinkron.
     kolom: paket.map((p) => ({ id: p.id, nama: p.nama, unggulan: p.unggulan })),

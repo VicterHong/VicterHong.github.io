@@ -727,6 +727,87 @@ function gambarKartu(paket, hrefKontak, periode) {
 }
 
 
+/**
+ * Tiga langkah cara memakai token akses.
+ *
+ * ── KENAPA DIJELASKAN BERLANGKAH, BUKAN SATU PARAGRAF ──────────────────────
+ * "Token akses" adalah istilah yang belum tentu dipahami pengunjung. Paragraf
+ * yang menjelaskannya harus dibaca utuh sebelum mengerti; tiga langkah bernomor
+ * bisa dipindai dan langsung terbaca urutannya.
+ */
+function gambarLangkahToken(data) {
+  const list = el('ol', 'langkah-list');
+
+  for (const l of data.langkahToken ?? []) {
+    const li = el('li', 'langkah-item');
+
+    // Nomor sebagai elemen sendiri, bukan ::before. Alasannya: nomor ini
+    // bagian dari informasi (urutan langkah), jadi ia harus ada di DOM —
+    // pembaca layar ikut mendengarnya.
+    const nomor = el('span', 'langkah-nomor', l.nomor);
+    nomor.setAttribute('aria-hidden', 'true'); // urutannya sudah dibawa <ol>
+    li.append(nomor);
+
+    const isi = el('div', 'langkah-isi');
+    isi.append(el('h3', 'langkah-judul', l.judul));
+    isi.append(el('p', 'langkah-teks', l.teks));
+    li.append(isi);
+
+    list.append(li);
+  }
+
+  return list;
+}
+
+/**
+ * Bagian bonus star — termasuk hasil yang berbeda per paket.
+ *
+ * ── KENAPA HASILNYA DIRINCI, BUKAN DITULIS SATU KALIMAT ────────────────────
+ * "Beri star, dapat bonus" tanpa rincian menimbulkan salah paham: pengguna
+ * gratis akan mengira dia juga dapat token, padahal bonusnya untuk dia adalah
+ * pratinjau metrik. Rincian per paket menghilangkan tafsir ganda itu.
+ */
+function gambarBonusStar(data) {
+  const b = data.bonusStar;
+  if (!b) return null;
+
+  const kotak = el('div', 'bonus-kotak');
+
+  // Ikon bintang: dari ikon yang sudah ada di situs, bukan pustaka baru.
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'bonus-ikon');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.8');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  const jalur = document.createElementNS(NS, 'path');
+  jalur.setAttribute('d', 'm12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z');
+  svg.append(jalur);
+
+  const teks = el('div', 'bonus-teks');
+  teks.append(el('h3', 'bonus-judul', b.judul));
+  teks.append(el('p', 'bonus-deskripsi', b.teks));
+
+  const kepala = el('div', 'bonus-kepala');
+  kepala.append(svg, teks);
+  kotak.append(kepala);
+
+  // Rincian hasil per paket.
+  if (Array.isArray(b.hasil) && b.hasil.length) {
+    const daftar = el('dl', 'bonus-hasil');
+    for (const h of b.hasil) {
+      daftar.append(el('dt', 'bonus-paket', h.paket));
+      daftar.append(el('dd', 'bonus-dapat', h.dapat));
+    }
+    kotak.append(daftar);
+  }
+
+  return kotak;
+}
+
 function gambarFaq(data, hrefKontak) {
   const list = el('div', 'faq-list');
 
@@ -1043,6 +1124,23 @@ async function mulai() {
     // Delegasi ke grid, jadi tetap bekerja setelah kartu digambar ulang saat
     // periode berganti — tidak perlu dipasang ulang setiap kali.
     pasangKartuAktif(grid);
+
+    // ── CARA KERJA TOKEN + BONUS STAR ────────────────────────────────────
+    // Ditaruh setelah kartu harga, sebelum FAQ.
+    const wadahLangkah = root.querySelector('#wadahLangkahToken');
+    if (wadahLangkah) {
+      wadahLangkah.replaceChildren(gambarLangkahToken(data));
+      wadahLangkah.setAttribute('aria-busy', 'false');
+    }
+
+    const wadahBonus = root.querySelector('#wadahBonusStar');
+    if (wadahBonus) {
+      const bonus = gambarBonusStar(data);
+      // `replaceChildren(null)` menghapus isi tanpa error — jadi aman kalau
+      // data bonus tidak ada (mis. API versi lama).
+      wadahBonus.replaceChildren(...(bonus ? [bonus] : []));
+      wadahBonus.setAttribute('aria-busy', 'false');
+    }
 
     // ── FAQ ──────────────────────────────────────────────────────────────
     const wadahFaq = root.querySelector('#wadahFaq');

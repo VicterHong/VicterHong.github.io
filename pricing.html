@@ -200,6 +200,29 @@
       </a>
     </p>
 
+    <!-- ══ 3b. CARA KERJA TOKEN + BONUS STAR ════════════════════════════════
+         Ditaruh SETELAH kartu harga, SEBELUM FAQ.
+
+         ── KENAPA DI SINI ──────────────────────────────────────────────────
+         Setelah membaca harga, pertanyaan berikutnya adalah "bagaimana saya
+         memakainya?". Bagian ini menjawabnya dengan tiga langkah — dan
+         sekaligus menjelaskan apa yang sebenarnya dibeli.
+
+         Bonus star ditaruh di bagian yang sama karena ia berlaku untuk SEMUA
+         paket, termasuk yang gratis. Kalau ditaruh di dalam kartu paket, ia
+         terlihat seperti fitur satu paket saja.
+
+         ── KENAPA DIISI JAVASCRIPT, BUKAN DITULIS DI SINI ─────────────────
+         Angka kuotanya (1, 5, tanpa batas) harus cocok dengan sistem
+         langganan. Kalau ditulis di HTML, ada dua tempat yang bisa berbeda —
+         dan halaman akan menjanjikan yang tidak bisa dipenuhi. -->
+    <section class="bagian bagian-token" aria-labelledby="judulToken">
+      <h2 class="bagian-judul" id="judulToken">Cara memakai token akses</h2>
+      <p class="bagian-sub" id="subToken">Tiga langkah dari berlangganan sampai membuka proyek.</p>
+      <div id="wadahLangkahToken" aria-busy="true"></div>
+      <div id="wadahBonusStar" aria-busy="true"></div>
+    </section>
+
     <!-- ══ 4. FAQ ═══════════════════════════════════════════════════════════
          Pengguna yang sudah membaca semua informasi biasanya punya satu-dua
          keraguan terakhir sebelum memutuskan. FAQ menjawabnya DI HALAMAN YANG
