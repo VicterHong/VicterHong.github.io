@@ -89,3 +89,24 @@ test('dua repo diperiksa, dan namanya dalam bentuk owner/repo', () => {
 test('tidak ada repo duplikat di daftar', () => {
   assert.equal(new Set(REPO_DIPERIKSA).size, REPO_DIPERIKSA.length);
 });
+
+test('repo privat TIDAK ada di daftar', () => {
+  // ── KENAPA INI DIUJI ─────────────────────────────────────────────────────
+  // Repo privat tidak bisa di-star: GitHub tidak menampilkan tombolnya, dan
+  // API-nya menjawab 404. Kalau repo privat masuk daftar, pemeriksaan akan
+  // selalu gagal di situ — dan pengguna yang SUDAH star repo lain tetap
+  // ditolak, tanpa cara memperbaikinya.
+  //
+  // `portfolio-victer` (sumber situs ini) privat karena itu aset berharga.
+  // Ia tidak boleh masuk daftar pemeriksaan.
+  assert.ok(!REPO_DIPERIKSA.includes('VicterHong/portfolio-victer'),
+    'repo privat tidak boleh diperiksa starnya');
+});
+
+test('daftar repo memakai pemilik yang sama', () => {
+  // Kalau ada repo milik orang lain, star di repo itu akan memberi bonus —
+  // padahal yang ingin didorong adalah repo portofolio sendiri.
+  const pemilik = new Set(REPO_DIPERIKSA.map((r) => r.split('/')[0]));
+  assert.equal(pemilik.size, 1, `pemilik berbeda: ${[...pemilik].join(', ')}`);
+  assert.equal([...pemilik][0], 'VicterHong');
+});

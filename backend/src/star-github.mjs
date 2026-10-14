@@ -47,9 +47,30 @@ import { getDb, now } from './db.mjs';
 
 /** Repo yang starnya dihitung. Salah satu cukup. */
 export const REPO_DIPERIKSA = [
+  // Profile README — repo publik, dan yang paling masuk akal untuk di-star:
+  // pengunjung yang menemukan profil GitHub ini melihatnya lebih dulu.
+  'VicterHong/VicterHong',
+  // Repo situs portofolio (publik — GitHub Pages).
   'VicterHong/VicterHong.github.io',
-  'VicterHong/portfolio-victer',
 ];
+
+/**
+ * ── CATATAN: REPO PORTOFOLIO PRIBADI TIDAK DIPAKAI ─────────────────────────
+ *
+ * `VicterHong/portfolio-victer` (repo sumber situs ini) bersifat PRIVAT, dan
+ * itu keputusan pemilik proyek: "itu aset berharga".
+ *
+ * Konsekuensinya untuk fitur ini: repo privat TIDAK BISA di-star. GitHub
+ * tidak menyediakan tombol star di repo yang tidak bisa dilihat, dan API-nya
+ * menjawab 404 untuk repo yang tidak punya akses.
+ *
+ * Kalau repo itu dimasukkan ke daftar, endpoint stargazers-nya akan selalu
+ * menjawab 404 — dan pengguna yang sudah star repo lain akan tetap ditolak
+ * selama pemeriksaan berhenti di repo yang salah.
+ *
+ * Jadi daftar ini hanya berisi repo PUBLIK. Kalau nanti repo portofolio
+ * dijadikan publik, ia bisa ditambahkan di sini.
+ */
 
 /** Berapa lama hasil pemeriksaan di-cache, dalam milidetik. */
 const MASA_CACHE = 6 * 60 * 60 * 1000; // 6 jam
@@ -82,16 +103,49 @@ export function usernameSah(username) {
  *
  * Mengembalikan `{ starred, repo, dariCache, error }`.
  *
- * ── KENAPA SELALU MENGEMBALIKAN OBJEK, BUKAN BOOLEAN ──────────────────────
- * Pemanggil perlu membedakan tiga keadaan yang berbeda:
+ * ══════════════════════════════════════════════════════════════════════════
+ * BUG YANG DIPERBAIKI: ENDPOINT YANG DIPAKAI BUTUH AUTENTIKASI
+ * ══════════════════════════════════════════════════════════════════════════
  *
- *   starred: true              → berhasil, beri bonus
- *   starred: false             → berhasil, tapi belum star — beri tahu caranya
- *   error: 'github_tidak_jawab'→ TIDAK TAHU. Ini bukan "belum star".
+ * Versi pertama memakai:
  *
- * Kalau fungsi ini mengembalikan boolean, keadaan ketiga jadi `false` — dan
- * pengguna yang sudah star akan diberi tahu "kamu belum star" hanya karena
- * GitHub sedang lambat. Itu membuatnya memberi star dua kali, atau menyerah.
+ *     GET /repos/{owner}/{repo}/stargazers/{username}
+ *
+ * Endpoint itu TERLIHAT tepat — ia menjawab 204 kalau user sudah star, dan
+ * 404 kalau belum. Tapi ia BUTUH AUTENTIKASI. Diuji tanpa token GitHub:
+ *
+ *     /repos/cloudflare/workers-sdk/stargazers/octocat  → HTTP 404
+ *     /repos/cloudflare/workers-sdk/stargazers           → HTTP 401
+ *                                                    "Requires authentication"
+ *
+ * Artinya: setiap pengguna yang SUDAH star akan tetap ditolak, selamanya —
+ * dan tidak ada cara memperbaikinya dari sisi pengguna. Kegagalannya juga
+ * tidak terlihat sebagai error, hanya sebagai "belum star".
+ *
+ * ── ENDPOINT YANG BENAR ────────────────────────────────────────────────────
+ *     GET /users/{username}/starred
+ *
+ * Publik, tanpa autentikasi. Diuji:
+ *     user ada + punya star    → array berisi repo
+ *     user ada + tidak star    → array kosong
+ *     user tidak ada           → 404
+ *
+ * Tiga keadaan yang bisa dibedakan — dan itu yang dibutuhkan.
+ *
+ * ── KENAPA DIPERIKSA PER HALAMAN, BUKAN SATU REPO ──────────────────────────
+ * Daftar repo yang di-star bisa panjang (ratusan). Memeriksa satu per satu
+ * dengan `/repos/.../stargazers/...` berarti satu permintaan per repo.
+ * Dengan `/users/.../starred` kita mengambil daftarnya dan mencari di dalamnya
+ * — satu permintaan, berapa pun jumlah repo yang diperiksa.
+ *
+ * ── BATAS: 100 REPO PERTAMA ────────────────────────────────────────────────
+ * Endpoint ini mengembalikan 30 per halaman (maks 100 dengan `per_page`).
+ * Kalau pengguna punya lebih dari 100 star, repo kita mungkin tidak ada di
+ * halaman pertama.
+ *
+ * Untuk kasus itu, halaman berikutnya diambil — maksimal 3 halaman (300 repo).
+ * Batas 3 dipilih supaya tidak ada pengguna dengan 5.000 star yang memicu
+ * 50 permintaan ke GitHub hanya untuk satu pemeriksaan.
  */
 export async function verifikasiStar(username, { paksa = false } = {}) {
   const bersih = String(username || '').trim();
@@ -123,9 +177,12 @@ export async function verifikasiStar(username, { paksa = false } = {}) {
     }
   }
 
-  // ── Panggil GitHub ───────────────────────────────────────────────────────
-  for (const repo of REPO_DIPERIKSA) {
-    const url = `https://api.github.com/repos/${repo}/stargazers/${encodeURIComponent(bersih)}`;
+  const repoDicari = new Set(REPO_DIPERIKSA.map((r) => r.toLowerCase()));
+
+  // Maksimal 3 halaman × 100 = 300 repo terakhir yang di-star.
+  for (let halaman = 1; halaman <= 3; halaman++) {
+    const url = `https://api.github.com/users/${encodeURIComponent(bersih)}/starred`
+      + `?per_page=100&page=${halaman}`;
 
     let res;
     try {
@@ -145,28 +202,52 @@ export async function verifikasiStar(username, { paksa = false } = {}) {
       return { starred: false, repo: null, dariCache: false, error: 'github_tidak_jawab' };
     }
 
-    // 204 = ada (memberi star). 404 = tidak ada.
-    if (res.status === 204) {
-      simpanCache(kunci, true);
-      return { starred: true, repo, dariCache: false, error: null };
-    }
-
     if (res.status === 404) {
-      // Belum star repo INI. Lanjut memeriksa repo berikutnya.
-      continue;
+      // Username tidak ada di GitHub. Ini BUKAN "belum star" — usernamenya
+      // yang salah, dan pengguna perlu tahu itu supaya bisa memperbaikinya.
+      return { starred: false, repo: null, dariCache: false, error: 'username_tidak_ada' };
     }
 
     if (res.status === 403 || res.status === 429) {
-      // Batas laju GitHub tercapai. Sama seperti jaringan gagal: jangan cache,
-      // karena jawabannya tidak diketahui.
+      // Batas laju GitHub tercapai. Jangan cache: jawabannya tidak diketahui.
       return { starred: false, repo: null, dariCache: false, error: 'batas_github' };
     }
 
-    // Status lain yang tidak dikenal — perlakukan sebagai "tidak tahu".
-    return { starred: false, repo: null, dariCache: false, error: 'github_tidak_jawab' };
+    if (!res.ok) {
+      return { starred: false, repo: null, dariCache: false, error: 'github_tidak_jawab' };
+    }
+
+    let daftar;
+    try {
+      daftar = await res.json();
+    } catch {
+      return { starred: false, repo: null, dariCache: false, error: 'github_tidak_jawab' };
+    }
+
+    if (!Array.isArray(daftar)) {
+      return { starred: false, repo: null, dariCache: false, error: 'github_tidak_jawab' };
+    }
+
+    // Cari repo kita di halaman ini.
+    for (const repo of daftar) {
+      const nama = String(repo?.full_name || '').toLowerCase();
+      if (repoDicari.has(nama)) {
+        simpanCache(kunci, true);
+        // Kembalikan nama repo dalam bentuk asli (bukan lowercase).
+        return {
+          starred: true,
+          repo: REPO_DIPERIKSA.find((r) => r.toLowerCase() === nama) || nama,
+          dariCache: false,
+          error: null,
+        };
+      }
+    }
+
+    // Halaman terakhir (kurang dari 100) → tidak ada lagi yang perlu diperiksa.
+    if (daftar.length < 100) break;
   }
 
-  // Sudah memeriksa semua repo, tidak ada yang 204.
+  // Sudah memeriksa semua halaman, repo kita tidak ada di daftarnya.
   simpanCache(kunci, false);
   return { starred: false, repo: null, dariCache: false, error: null };
 }

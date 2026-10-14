@@ -93,9 +93,27 @@ async function panggilApi(url, opsi = {}) {
   }
 
   if (!res.ok || data.ok === false) {
-    const pesan = data.pesan || data.error || `Permintaan gagal (${res.status}).`;
+    // ── BUG YANG DIPERBAIKI: KODE MENTAH DITAMPILKAN KE PENGGUNA ────────────
+    // Versi pertama memakai `data.error` sebagai pesan kalau `data.pesan`
+    // tidak ada. Akibatnya pengguna melihat "tidak_ditemukan" — kode internal
+    // dengan garis bawah, yang tidak menjelaskan apa pun.
+    //
+    // Aturannya: yang ditampilkan ke pengguna hanya `pesan` (kalimat lengkap
+    // dari server). Kalau tidak ada, pakai kalimat umum yang menjelaskan APA
+    // yang gagal dan APA yang bisa dilakukan — bukan kode mentahnya.
+    //
+    // Kode aslinya tetap disimpan di `err.kode` untuk log, tidak untuk layar.
+    const pesan = data.pesan
+      || (res.status === 404
+        ? 'Fitur ini belum tersedia. Coba lagi nanti.'
+        : res.status === 403
+          ? 'Anda belum punya akses ke bagian ini.'
+          : res.status >= 500
+            ? 'Server sedang bermasalah. Coba beberapa saat lagi.'
+            : 'Tidak bisa memuat data. Coba muat ulang halaman.');
     const err = new Error(pesan);
     err.status = res.status;
+    err.kode = data.error || null;
     throw err;
   }
 

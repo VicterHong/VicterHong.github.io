@@ -395,10 +395,16 @@ const ruteKlaimStar = {
       // "Tidak tahu" BUKAN "belum star". Membedakan keduanya penting: kalau
       // GitHub sedang lambat, memberi tahu pengguna yang sudah star bahwa dia
       // belum akan membuatnya memberi star dua kali, atau menyerah.
-      return sendJson(res, 503, {
+      const pesanError = {
+        username_tidak_ada: `Nama pengguna @${username} tidak ditemukan di GitHub. Periksa ejaannya.`,
+        batas_github: 'Sedang terlalu banyak permintaan ke GitHub. Coba lagi beberapa menit lagi.',
+        github_tidak_jawab: 'Tidak bisa memeriksa star saat ini. Coba lagi sebentar lagi.',
+      }[hasil.error] || 'Tidak bisa memeriksa star saat ini. Coba lagi sebentar lagi.';
+
+      return sendJson(res, hasil.error === 'username_tidak_ada' ? 404 : 503, {
         ok: false,
         error: hasil.error,
-        pesan: 'Tidak bisa memeriksa star saat ini. Coba lagi sebentar lagi.',
+        pesan: pesanError,
       });
     }
 
