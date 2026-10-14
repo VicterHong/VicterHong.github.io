@@ -563,6 +563,34 @@ function formatHarga(paket, periode) {
   // ditagih, bukan hanya harga per bulan.
   const total = tahunan ? angka * 12 : null;
 
+  // ── PAKET GRATIS: TAMPILKAN "Gratis", BUKAN "Rp 0/bulan" ──────────────────
+  //
+  // ── KENAPA BUKAN "Rp 0/bulan" ─────────────────────────────────────────────
+  // "/bulan" adalah satuan langganan. Menempelkannya pada harga nol membuat
+  // paket gratis terlihat seperti langganan yang kebetulan berharga nol —
+  // dan itu menimbulkan pertanyaan yang tidak perlu: "setelah sebulan,
+  // bayar berapa?"
+  //
+  // "Gratis" tanpa satuan menjawab pertanyaan itu sebelum ditanyakan:
+  // tidak ada periode, tidak ada tagihan.
+  //
+  // ── KENAPA TANPA CORETAN DAN TANPA DISKON ─────────────────────────────────
+  // Tidak ada harga normal untuk dicoret, dan "Hemat 0%" bukan informasi.
+  // Yang ditampilkan justru catatannya: "Tanpa kartu kredit, tanpa batas
+  // waktu" — itu yang menjawab keraguan pada paket gratis.
+  if (angka === 0) {
+    return {
+      angka: 'Gratis',
+      teks: true,      // tidak pakai format angka — sama seperti Enterprise
+      satuan: null,
+      coret: null,
+      diskon: null,
+      total: null,
+      rupiah,
+      catatanKaki: paket.catatan,
+    };
+  }
+
   return {
     angka: `Rp ${rupiah.format(angka)}`,
     teks: false,

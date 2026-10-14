@@ -326,10 +326,28 @@
   perspective: 1600px;
 }
 
+/* ── EMPAT KOLOM DI LAYAR LEBAR ───────────────────────────────────────────────
+   Sebelumnya tiga kolom, karena paketnya tiga. Sekarang empat (Gratis,
+   Standar, Profesional, Enterprise).
+
+   ── KENAPA DUA BREAKPOINT, BUKAN SATU ───────────────────────────────────────
+   Empat kolom di 900px menyisakan ~200px per kartu — terlalu sempit untuk
+   daftar fitur yang isinya kalimat. Jadi:
+     56rem (896px)  → 2 kolom  (2×2)
+     75rem (1200px) → 4 kolom  (satu baris)
+
+   Di antara keduanya, 2×2 lebih terbaca daripada 4 kolom sempit.
+   ──────────────────────────────────────────────────────────────────────────── */
 @media (min-width: 56rem) {
   .harga-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--pr-5);
+  }
+}
+
+@media (min-width: 75rem) {
+  .harga-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

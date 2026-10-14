@@ -30,11 +30,192 @@
  * `urutan` menentukan tampilan kiri-ke-kanan. Angka lebih kecil = lebih kiri.
  * `unggulan: true` menandai paket yang disarankan — hanya satu yang boleh.
  */
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ANGKA KUOTA DIAMBIL DARI SISTEM LANGGANAN — BUKAN DIKETIK ULANG
+//
+// ── BUG YANG DIPERBAIKI ──────────────────────────────────────────────────────
+// Sebelumnya baris fitur berbunyi `'1 token akses per bulan'` sebagai TEKS
+// biasa, sementara komentar di sebelahnya berbunyi "angka ini HARUS cocok
+// dengan KUOTA_DASAR di langganan.mjs".
+//
+// Komentar tidak bisa menegakkan apa pun. Kalau kuota sistem diubah jadi 3,
+// halaman harga tetap menjanjikan 1 — dan itu jenis kesalahan yang paling
+// merugikan: pelanggan membayar berdasarkan janji yang tidak bisa dipenuhi.
+//
+// Sekarang angkanya diambil langsung dari KUOTA_DASAR, jadi tidak ada dua
+// tempat yang bisa berbeda.
+// ══════════════════════════════════════════════════════════════════════════════
+import { KUOTA_DASAR, BONUS_STAR } from './langganan.mjs';
+
+/**
+ * Baris fitur kuota token untuk sebuah paket — dihitung dari KUOTA_DASAR.
+ *
+ * ── KENAPA FUNGSI, BUKAN TEKS LANGSUNG ──────────────────────────────────────
+ * Karena teks langsung adalah masalahnya. Dengan fungsi ini, mengubah kuota
+ * di langganan.mjs otomatis mengubah halaman harga.
+ */
+function fiturKuota(paketId) {
+  const kuota = KUOTA_DASAR[paketId];
+
+  // null berarti tanpa batas — bukan nol.
+  //   null → "Token akses tanpa batas"
+  //   0    → tidak ditampilkan sama sekali (paket Gratis tidak punya token)
+  if (kuota === null) {
+    return { teks: 'Token akses tanpa batas', termasuk: true, tebal: true };
+  }
+  return {
+    teks: `${kuota} token akses per bulan`,
+    termasuk: true,
+    tebal: true,
+  };
+}
+
+/**
+ * Baris "hasil bonus star" untuk sebuah paket — dihitung dari KUOTA_DASAR.
+ *
+ * ── KENAPA PAKET GRATIS BERBEDA ─────────────────────────────────────────────
+ * Pengguna gratis yang memberi star mendapat PRATINJAU METRIK, bukan token —
+ * sistem tidak memberi token ke paket gratis. Menuliskan "1 token" di sini
+ * akan menjanjikan yang tidak bisa dipenuhi.
+ */
+function hasilBonusStar(paketId) {
+  const kuota = KUOTA_DASAR[paketId];
+
+  if (kuota === 0) return 'Buka data metrik satu proyek, sekali';
+  if (kuota === null) return 'Sudah tanpa batas';
+
+  // Frasa harus menyebut satuan ("jadi 2 token") — versi lama "jadi 2 bulan
+  // itu" bisa dibaca sebagai durasi, bukan jumlah.
+  return `Kuota bulan itu jadi ${kuota + BONUS_STAR} token`;
+}
+// ══════════════════════════════════════════════════════════════════════════════
+// ATURAN PENULISAN FITUR — BACA SEBELUM MENAMBAH PAKET
+//
+// ── FITUR POSITIF: TIDAK DIULANG ─────────────────────────────────────────────
+// Fitur yang sudah ada di paket bawah tidak ditulis lagi di paket atas,
+// karena paket atas sudah menyatakan "Mencakup seluruh fitur paket X".
+//
+// Mengulanginya merusak kepercayaan pada baris itu: kalau fitur paket bawah
+// benar-benar tercakup, kenapa satu di antaranya ditulis lagi?
+//
+// ── FITUR NEGATIF: SELALU DIULANG — DAN ITU DISENGAJA ────────────────────────
+// Batasan ("Belum bisa membaca kode sumber") ditulis di SETIAP paket yang
+// masih memilikinya. Ini bukan kelalaian, dan jangan "dirapikan".
+//
+// Alasannya: "Mencakup seluruh fitur paket Gratis" hanya mencakup fitur
+// POSITIF — batasan tidak ikut terbawa. Pengunjung yang membaca kartu
+// Standar tidak boleh dipaksa menyimpulkan sendiri bahwa kode sumber masih
+// terkunci.
+//
+// Efek sampingnya justru berguna: jumlah batasan berkurang di tiap tingkat
+// (Gratis 3 → Standar 2 → Profesional 1 → Enterprise 0), dan pengunjung
+// melihat kemajuannya sekilas.
+// ══════════════════════════════════════════════════════════════════════════════
 export const PAKET = [
+  {
+    // ── PAKET GRATIS: DITARUH PERTAMA ────────────────────────────────────────
+    //
+    // ── KENAPA ADA PAKET GRATIS ──────────────────────────────────────────────
+    // Sistemnya SUDAH ada: pengguna tanpa langganan otomatis masuk paket
+    // gratis (KUOTA_DASAR.gratis = 0), dan bisa membuka satu proyek dengan
+    // memberi star. Tapi halaman harga tidak menyebutnya — jadi pengunjung
+    // mengira harus membayar untuk mencoba.
+    //
+    // Referensi: "Three or four plans covers most SaaS products: an entry
+    // plan, a plan for your core buyer, a larger team plan and an enterprise
+    // path." Tanpa paket gratis, tiga paket berbayar terasa seperti tembok
+    // di depan pintu masuk.
+    //
+    // ── KENAPA DIURUTKAN PERTAMA (KIRI) ──────────────────────────────────────
+    // Alasan pertama: HARGA NOL MEMBERI KONTEKS. Melihat "Rp0" di kiri membuat
+    // "Rp63.200" di sebelahnya terbaca sebagai pilihan, bukan sebagai syarat.
+    //
+    // Alasan kedua (dan lebih penting): paket gratis punya fitur paling
+    // sedikit. Kalau ditaruh di tengah atau kanan, kolomnya terlihat seperti
+    // penurunan setelah paket yang lebih lengkap. Di kiri, ia terbaca sebagai
+    // titik awal yang wajar.
+    //
+    // ── KENAPA TIDAK DITANDAI "REKOMENDASI" ──────────────────────────────────
+    // Yang unggulan tetap Profesional. Menandai paket gratis sebagai
+    // rekomendasi akan bertentangan dengan tujuannya sendiri — ia pintu
+    // masuk, bukan tujuan.
+    id: 'gratis',
+    // ── NAMA: "Gratis", BUKAN NAMA KREATIF ────────────────────────────────────
+    //
+    // Referensi korporasi, dan mana yang dipakai:
+    //   Linear, Notion, GitHub, Supabase, Cloudflare → "Free"
+    //   Vercel → "Hobby"   ·   Figma → "Starter"
+    //
+    // Yang paling banyak dipakai perusahaan besar adalah kata biasa: "Free".
+    // Alasannya bukan kurang kreatif — nama kreatif memaksa pengunjung
+    // MEMPELAJARI artinya. "Gratis" langsung dipahami, dan di halaman harga
+    // kejelasan mengalahkan kepintaran.
+    //
+    // Vercel memakai "Hobby" karena paket itu melarang penggunaan komersial —
+    // namanya harus menyampaikan batas itu. Di sini tidak ada batas seperti
+    // itu, jadi tidak ada alasan menyimpang dari kata biasa.
+    nama: 'Gratis',
+
+    // ── DESKRIPSI: "UNTUK SIAPA", BUKAN "APA ISINYA" ──────────────────────────
+    //
+    // Setiap paket gratis korporasi punya baris ini:
+    //   Vercel      "The perfect starting place for your web app or personal project"
+    //   Notion      "For individuals to organize personal projects and life"
+    //   Cloudflare  "For personal or hobby projects that aren't business-critical"
+    //
+    // Baris itu melakukan kerja yang tidak bisa dilakukan daftar fitur: ia
+    // membuat pengunjung MEMILIH SENDIRI, bukan membandingkan fitur satu per
+    // satu. Versi pertama saya ("Untuk melihat cara kerjanya sebelum
+    // memutuskan") menjelaskan NIAT, bukan ORANG — dan itu tidak membantu
+    // siapa pun memutuskan.
+    deskripsi: 'Untuk yang ingin menilai dulu sebelum berlangganan.',
+    // ── HARGA: NOL, DAN ITU ANGKA SUNGGUHAN ─────────────────────────────────
+    // `hargaNormal: 0` — bukan null. Bedanya penting:
+    //   null → frontend menampilkan `teksHarga` ("Sesuai kebutuhan")
+    //   0    → frontend menampilkan "Rp0" yang bisa dibandingkan dengan paket lain
+    //
+    // Kalau memakai null + teksHarga "Gratis", kolomnya tidak bisa dibandingkan
+    // secara angka — dan justru itulah gunanya paket gratis di daftar harga.
+    hargaNormal: 0,
+    diskon: null,
+    // ── CATATAN: MENJAWAB "NANTI BAYAR?" ─────────────────────────────────────
+    // GitHub menulis "$0 USD per month forever" — kata "forever" ada di sana
+    // dengan sengaja: kekhawatiran terbesar pada paket gratis bukan "apa
+    // isinya", tapi "sampai kapan ini gratis".
+    //
+    // Tiga hal yang dijawab sekaligus: tidak ada kartu kredit (tidak akan
+    // ditagih diam-diam), tidak ada batas waktu (tidak akan berhenti), dan
+    // tidak ada kejutan.
+    catatan: 'Gratis selamanya, tanpa kartu kredit',
+    unggulan: false,
+    lencana: null,
+    cta: { teks: 'Mulai gratis', gaya: 'seragam' },
+    urutan: 0,
+    fitur: [
+      // ── LIMIT DITULIS EKSPLISIT — POLA SUPABASE ────────────────────────────
+      //
+      // Supabase menulis "500 MB database size", "Limit of 2 active projects".
+      // Bukan "penyimpanan terbatas" — ANGKANYA disebut.
+      //
+      // Alasannya: pengunjung yang tidak tahu batasnya akan menganggap ada
+      // jebakan. Angka yang jelas membuat dia bisa menilai sendiri apakah
+      // paket ini cukup — dan itu justru mempercepat keputusan.
+      { teks: 'Lihat semua proyek & ringkasannya', termasuk: true },
+      { teks: 'Dokumentasi publik', termasuk: true },
+      // Bonus star untuk paket gratis: PRATINJAU METRIK, bukan token.
+      // Menuliskan "1 token" di sini akan bohong — sistem tidak memberi token
+      // ke paket gratis (lihat catatan di langganan.mjs).
+      { teks: 'Beri star: buka data metrik 1 proyek, sekali', termasuk: true, tebal: true },
+      { teks: 'Belum bisa membuat token akses', termasuk: false },
+      { teks: 'Belum bisa membaca kode sumber', termasuk: false },
+      { teks: 'Belum boleh memakai ulang kodenya', termasuk: false },
+    ],
+  },
   {
     id: 'standar',
     nama: 'Standar',
-    deskripsi: 'Untuk yang ingin melihat cara kerjanya dulu sebelum memutuskan.',
+    deskripsi: 'Untuk yang ingin menilai kualitas kode dan data metrik sendiri.',
     // ── HARGA ────────────────────────────────────────────────────────────
       // `hargaNormal` — harga patokan, selalu ditampilkan dicoret.
       // `diskon`     — potongan per periode, dalam persen.
@@ -59,14 +240,35 @@ export const PAKET = [
     cta: { teks: 'Mulai dari sini', gaya: 'seragam' },
     urutan: 1,
     fitur: [
+      // ── "Dokumentasi publik" DIHAPUS DARI SINI ───────────────────────────
+      //
+      // Fitur itu sudah tercantum di kartu Gratis, dan kartu ini sudah menulis
+      // "Mencakup seluruh fitur paket Gratis" di bawah.
+      //
+      // Mengulanginya membuat baris "Mencakup seluruh fitur paket Gratis"
+      // terlihat tidak bisa dipercaya — kalau fitur paket bawah benar-benar
+      // tercakup, kenapa satu di antaranya ditulis lagi?
+      //
+      // Aturan yang dipakai: fitur yang sudah ada di paket bawah TIDAK diulang
+      // di paket atas. Yang ditulis hanya yang BARU.
       { teks: 'Pratinjau isi repo, struktur & daftar berkas', termasuk: true },
-      { teks: 'Dokumentasi publik', termasuk: true },
-      { teks: 'Lihat hasil uji & metrik semua proyek', termasuk: true, tebal: true },
+      { teks: 'Lihat hasil uji & metrik semua proyek', termasuk: true },
       // ── KUOTA TOKEN: 1 PER BULAN ──────────────────────────────────────────
       // Angka ini HARUS cocok dengan KUOTA_DASAR di langganan.mjs. Kalau
       // berbeda, halaman menjanjikan yang tidak bisa dipenuhi sistem.
-      { teks: '1 token akses per bulan', termasuk: true, tebal: true },
+      fiturKuota('standar'),
       { teks: 'Dukungan lewat email', termasuk: true },
+      // ── POLA "EVERYTHING IN X, AND:" — NOTION & LINEAR ─────────────────────
+      //
+      // Notion menulis "Everything in Free, and:" di paket Plus. Linear menulis
+      // "All Free features +" di paket Basic.
+      //
+      // Fungsinya: pengunjung tidak perlu memeriksa ulang apakah fitur paket
+      // bawah ikut terbawa. Satu baris menjawabnya.
+      //
+      // Tanpa baris ini, paket Standar terlihat seperti MENGGANTI paket
+      // Gratis — padahal ia menambah.
+      { teks: 'Mencakup seluruh fitur paket Gratis', termasuk: true },
       { teks: 'Belum bisa membaca kode sumber', termasuk: false },
       { teks: 'Belum boleh memakai ulang kodenya', termasuk: false },
     ],
@@ -84,7 +286,7 @@ export const PAKET = [
     urutan: 2,
     fitur: [
       { teks: 'Baca kode sumber penuh', termasuk: true, tebal: true },
-      { teks: '5 token akses per bulan', termasuk: true, tebal: true },
+      fiturKuota('profesional'),
       { teks: 'Diskusi teknis langsung', termasuk: true, tebal: true },
       { teks: 'Dokumentasi arsitektur & keputusan desain', termasuk: true },
       { teks: 'Balasan prioritas', termasuk: true },
@@ -107,7 +309,7 @@ export const PAKET = [
     urutan: 3,
     fitur: [
       { teks: 'Akses penuh repositori privat', termasuk: true, tebal: true },
-      { teks: 'Token akses tanpa batas', termasuk: true, tebal: true },
+      fiturKuota('enterprise'),
       { teks: 'Proyek tanpa batas', termasuk: true, tebal: true },
       { teks: 'Boleh memakai ulang kodenya', termasuk: true, tebal: true },
       { teks: 'Jaminan layanan (SLA)', termasuk: true },
@@ -164,6 +366,30 @@ export const TABEL = [
  * keduanya ada di tempat yang sama.
  */
 export const FAQ = [
+  // ══════════════════════════════════════════════════════════════════════════
+  // URUTAN FAQ: YANG PALING SERING DITANYAKAN DI ATAS
+  //
+  // ── KENAPA FAQ GRATIS DI NOMOR SATU ──────────────────────────────────────
+  // Referensi menyebut kesalahan yang membuat pengunjung berhenti:
+  // "A free plan and a free trial side by side with no guidance on which
+  // to pick."
+  //
+  // Halaman ini punya DUA jalur untuk mencoba tanpa membayar — paket Gratis
+  // dan bonus star. Dua jalur tanpa penjelasan membuat pengunjung bertanya
+  // "yang mana yang saya pakai?" — dan pertanyaan tanpa jawaban adalah
+  // tempat orang berhenti.
+  //
+  // Ditaruh di atas pertanyaan soal Enterprise karena pengunjung menghadapi
+  // pilihan ini SEBELUM dia memikirkan Enterprise.
+  // ══════════════════════════════════════════════════════════════════════════
+  {
+    tanya: 'Apa bedanya paket Gratis dan bonus dari memberi star?',
+    jawab: 'Paket Gratis adalah titik awalnya: lihat daftar proyek dan dokumentasi publik, tanpa membayar dan tanpa batas waktu. Bonus star adalah tambahan di atasnya — setelah memberi star, Anda bisa membuka data metrik satu proyek sekali. Kalau ingin membuka semua proyek dan membuat token akses, itu perlu paket berbayar. Ringkasnya: Gratis untuk melihat, star untuk mencoba satu proyek, berlangganan untuk memakai sepenuhnya.',
+  },
+  {
+    tanya: 'Apakah paket Gratis benar-benar gratis selamanya?',
+    jawab: 'Ya. Tidak ada batas waktu, tidak ada kartu kredit, dan tidak ada tagihan yang muncul kemudian. Paket Gratis bukan uji coba yang berakhir — ia paket yang bisa Anda pakai selama Anda mau. Anda hanya berpindah ke paket berbayar kalau memang butuh membuka kode sumber atau membuat token akses.',
+  },
   {
     tanya: 'Apa bedanya Profesional dan Enterprise?',
     jawab: 'Profesional memberi akses membaca seluruh kode sumber, untuk belajar, memahami arsitektur, dan berdiskusi teknis. Anda tidak boleh memakai ulang kodenya di produk Anda. Enterprise menambahkan hak untuk memakai ulang kodenya di proyek Anda sendiri, tanpa batas jumlah proyek, plus jaminan layanan dan pendampingan langsung.',
@@ -177,8 +403,17 @@ export const FAQ = [
     jawab: 'Bisa. Paket Standar dan Profesional ditagih bulanan, dan Anda bisa berhenti kapan saja tanpa penalti. Untuk Enterprise, jangka waktunya dibicarakan saat menentukan kebutuhan, karena biasanya melibatkan komitmen dukungan.',
   },
   {
+    // ── FAQ INI DIPERBARUI, BUKAN DIHAPUS ────────────────────────────────────
+    //
+    // Versi lamanya menjawab "Apakah ada uji coba gratis?" dengan menyebut
+    // dokumentasi publik dan garansi 7 hari — karena waktu itu TIDAK ADA
+    // paket gratis. Jawaban itu sekarang menyesatkan: pengunjung bisa
+    // menyimpulkan tidak ada cara mencoba tanpa membayar.
+    //
+    // Pertanyaannya tetap dipertahankan karena masih ditanyakan — tapi
+    // jawabannya diarahkan ke paket Gratis yang sekarang ada.
     tanya: 'Apakah ada uji coba gratis?',
-    jawab: 'Untuk Standar, dokumentasi publik dan hasil uji proyek bisa dilihat gratis, jadi Anda bisa menilai kualitasnya sebelum berlangganan. Kalau setelah berlangganan ternyata tidak sesuai harapan, hubungi saya dalam 7 hari dan pembayaran bulan itu dikembalikan.',
+    jawab: 'Tidak ada uji coba berbatas waktu, karena paket Gratis tidak berakhir — Anda bisa memakainya selama yang Anda mau, tanpa kartu kredit. Kalau ingin mencoba lebih jauh sebelum berlangganan, beri star ke repositori dan Anda bisa membuka data metrik satu proyek. Untuk paket berbayar, ada garansi 7 hari: kalau ternyata tidak sesuai harapan, hubungi saya dan pembayaran bulan itu dikembalikan.',
   },
   {
     tanya: 'Kode yang saya lihat, apakah boleh saya pakai di proyek saya?',
@@ -330,19 +565,13 @@ export function buildPricing() {
       // Tiga baris ini menjelaskan HASIL yang berbeda per paket. Tanpa ini,
       // pengguna gratis akan mengira dia juga dapat token — padahal
       // bonusnya untuk dia adalah pratinjau metrik.
+      // Hasil per paket DIHITUNG dari KUOTA_DASAR + BONUS_STAR — bukan diketik.
+      // Kalau bonusnya diubah jadi 2, keempat baris ini ikut berubah sendiri.
       hasil: [
-        { paket: 'Gratis', dapat: 'Buka data metrik satu proyek, sekali' },
-        // ── BUG BAHASA YANG DIPERBAIKI ────────────────────────────────────
-        // Versi pertama: "Kuota token jadi 2 bulan itu"
-        //
-        // Frasa itu ambigu — "jadi 2 bulan" bisa dibaca sebagai DURASI
-        // (langganannya jadi 2 bulan), padahal maksudnya JUMLAH token
-        // (bulan itu kuotanya jadi 2). Pembaca harus menebak.
-        //
-        // Yang benar menyebut satuannya: "jadi 2 token".
-        { paket: 'Standar', dapat: 'Kuota bulan itu jadi 2 token' },
-        { paket: 'Profesional', dapat: 'Kuota bulan itu jadi 6 token' },
-        { paket: 'Enterprise', dapat: 'Sudah tanpa batas' },
+        { paket: 'Gratis', dapat: hasilBonusStar('gratis') },
+        { paket: 'Standar', dapat: hasilBonusStar('standar') },
+        { paket: 'Profesional', dapat: hasilBonusStar('profesional') },
+        { paket: 'Enterprise', dapat: hasilBonusStar('enterprise') },
       ],
     },
     // Nama kolom tabel diambil dari paket — supaya tidak ada daftar kedua
