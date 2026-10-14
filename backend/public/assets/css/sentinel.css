@@ -14,6 +14,31 @@
    berbeda tetap sejajar saat dipindai ke bawah.
    ────────────────────────────────────────────────────────────────────────────── */
 
+/* ══ ATURAN [hidden] — HARUS DI ATAS SEGALANYA ════════════════════════════════
+ *
+ * ── BUG YANG DIPERBAIKI ─────────────────────────────────────────────────────
+ * Atribut `hidden` bawaan HTML hanya berarti `display: none` di stylesheet
+ * bawaan browser. Begitu CSS KITA menyetel `display` pada elemen yang sama,
+ * aturan kita MENANG (selektornya lebih spesifik), dan `hidden` berhenti
+ * bekerja.
+ *
+ * Akibatnya: panel detail muncul sejak halaman dibuka, dan tombol "Tutup"
+ * tidak bisa menutupnya — karena `element.hidden = true` tidak berpengaruh
+ * apa-apa lagi.
+ *
+ * ── KENAPA DITULIS DI SINI, BUKAN DI TIAP KOMPONEN ──────────────────────────
+ * Menambahkan `display: none` di setiap kelas yang punya `display` berarti
+ * bug ini akan kembali setiap kali ada elemen baru. Satu aturan `!important`
+ * menutup seluruh kelas masalah itu.
+ *
+ * `!important` memang jarang dibenarkan. Ini salah satu kasusnya: kita
+ * mengembalikan perilaku bawaan HTML yang ditimpa oleh kode kita sendiri.
+ */
+[hidden] {
+  display: none !important;
+}
+
+
 .sentinel-page {
   min-height: 100dvh;
   background: var(--bg);
