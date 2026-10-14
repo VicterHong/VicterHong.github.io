@@ -166,8 +166,9 @@ export const projects = [
       { title: 'Privasi dijaga', detail: 'Kunci sesi tidak pernah ditulis ke log, dua lapis penjaga mencegahnya bocor. Kosakata log tertutup: teks keluarga tidak pernah masuk journal.' },
     ],
     metrics: [
-      { label: 'tes otomatis', value: '1197' },
-      { label: 'berkas uji', value: '141' },
+      { label: 'tes otomatis', value: '1214' },
+      { label: 'berkas uji', value: '142' },
+      { label: 'RAM saat jalan', value: '64 MB' },
     ],
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
