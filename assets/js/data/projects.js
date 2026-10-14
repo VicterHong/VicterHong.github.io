@@ -301,7 +301,7 @@ export const visiMisi = {
       judul: 'Batas disebut di depan, bukan saat bermasalah',
       teks: 'Aset halaman dibatasi {anggaran}, dijaga skrip yang menolak rilis kalau lewat. Batas yang tidak bisa dilanggar lebih berguna daripada janji.',
       angka: [
-        { nilai: 940, teks: '940 KB', label: 'anggaran aset', suffix: ' KB' },
+        { nilai: 2048, teks: '2048 KB', label: 'anggaran aset', suffix: ' KB' },
       ],
     },
   ],

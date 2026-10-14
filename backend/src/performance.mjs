@@ -73,7 +73,22 @@ export const BUDGETS = {
   //
   // Kalau angka ini naik lagi TANPA fitur baru yang jelas, curigai duplikasi —
   // pernah terjadi: CSS dihitung dua kali (1166 vs 816 KB).
-  totalBytes: 940 * 1024,        // 940 KB total aset kritis (html+css+js, tanpa video)
+  //
+  // ── NAIK KE 2048 KB (dari 940 KB) ───────────────────────────────────────────
+  // Diputuskan pemilik proyek untuk memberi ruang sistem langganan: halaman
+  // area klien dengan daftar proyek, tampilan List/Card/Pack, dan tab
+  // pengelolaan token akses.
+  //
+  // ── YANG PERLU DIPERHATIKAN SAAT NAIK ──────────────────────────────────────
+  // Angka ini adalah jumlah SEMUA berkas di dist/, bukan yang diunduh satu
+  // pengunjung. Yang benar-benar diunduh tetap SATU halaman. Jadi naiknya
+  // anggaran ini TIDAK otomatis memperlambat halaman publik — TAPI ia juga
+  // berarti pagar terhadap pertumbuhan jadi jauh lebih longgar.
+  //
+  // Karena itu `maxJsBytes` TIDAK ikut dinaikkan: JS adalah biaya termahal
+  // bagi pengunjung, dan halaman area klien boleh punya lebih banyak berkas
+  // tanpa berarti boleh punya satu berkas JS raksasa.
+  totalBytes: 2048 * 1024,       // 2048 KB total aset kritis (html+css+js, tanpa video)
   maxRequests: 40,               // jumlah berkas kritis
   maxJsBytes: 250 * 1024,        // JS adalah yang paling mahal
   maxCssBytes: 120 * 1024,
