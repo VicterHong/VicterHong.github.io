@@ -278,6 +278,158 @@ async function tutupPaksa(host) {
   }
 }
 
+/* ══ MODE KEAMANAN ═══════════════════════════════════════════════════════════
+ *
+ * ── POLA YANG DIIKUTI: CLOUDFLARE "UNDER ATTACK MODE" ───────────────────────
+ * Cloudflare menaruh mode daruratnya di Quick Actions dengan tiga sifat:
+ *
+ *   1. SATU TOMBOL, langsung bekerja — tanpa halaman pengaturan
+ *   2. KEADAAN TERLIHAT — labelnya menyatakan mode mana yang aktif
+ *   3. MUDAH DIMATIKAN — tidak ada konfirmasi berlapis
+ *
+ * Yang ketiga paling penting di sini. Kalau mengembalikan mode butuh usaha,
+ * orang enggan mencobanya sama sekali — dan fitur yang tidak pernah dicoba
+ * sama dengan fitur yang tidak ada.
+ *
+ * ── KENAPA TIDAK ADA DIALOG KONFIRMASI ──────────────────────────────────────
+ * Mode ini tidak merusak apa pun: ia hanya mempersempit jendela. Mengubahnya
+ * kembali sama mudahnya. Dialog konfirmasi pada aksi yang mudah dibatalkan
+ * hanya melatih orang menekan "Ya" tanpa membaca.
+ */
+
+/** Satuan yang enak dibaca untuk tiap nilai. */
+const SATUAN_NILAI = {
+  toleransiTandaTanganDetik: (v) => `${v} detik`,
+  ambangGagalSirkuit: (v) => `${v}× gagal`,
+  jendelaDuplikatMs: (v) => (v >= 3_600_000 ? `${v / 3_600_000} jam` : `${v / 60_000} menit`),
+  batasBodyByte: (v) => `${v / 1024} KB`,
+  batasLajuPerMenit: (v) => `${v}/menit`,
+};
+
+/** Label yang menjelaskan APA yang diatur, bukan nama teknisnya. */
+const LABEL_NILAI = {
+  toleransiTandaTanganDetik: 'Toleransi selisih jam',
+  ambangGagalSirkuit: 'Gagal sebelum sirkuit diputus',
+  jendelaDuplikatMs: 'Jendela deteksi kiriman ulang',
+  batasBodyByte: 'Batas ukuran body',
+  batasLajuPerMenit: 'Batas permintaan per IP',
+};
+
+function gambarMode(data) {
+  const kartu = $('#kartuMode');
+  const tombol = $('#tombolMode');
+
+  const pro = data.mode === 'pro';
+
+  // Kelas penanda mode — dipakai CSS untuk mengubah tepi dan latar.
+  kartu.className = 'sentinel-mode' + (pro ? ' sentinel-mode--pro' : '');
+
+  $('#modeNama').textContent = data.label;
+  $('#modeKeterangan').textContent = data.keterangan;
+
+  // ── TOMBOL MENYATAKAN AKSI, BUKAN KEADAAN ─────────────────────────────────
+  // Keadaan sudah dinyatakan oleh nama mode di atas. Tombol yang menulis
+  // keadaan aktif ("Mode Pro aktif") membuat orang menebak apakah ia bisa
+  // ditekan, dan apa yang terjadi kalau ditekan.
+  tombol.textContent = pro ? 'Kembalikan ke Normal' : 'Perketat ke Pro';
+  tombol.dataset.modeTujuan = pro ? 'normal' : 'pro';
+  tombol.disabled = false;
+
+  // ── TABEL PERBANDINGAN NILAI ──────────────────────────────────────────────
+  // Kedua kolom ditampilkan sekaligus: operator bisa melihat apa yang
+  // diperketat tanpa harus mencoba mode lain dulu.
+  //
+  // ── KENAPA ANGKANYA DARI SERVER ───────────────────────────────────────────
+  // `data.semuaNilai` dikirim backend dan berisi nilai kedua mode. Angka yang
+  // ditulis ulang di sini akan berbeda dari kenyataan begitu ada yang
+  // mengubahnya di backend — dan tabelnya akan berbohong tanpa ada yang tahu.
+  const wadah = $('#modeNilai');
+  wadah.replaceChildren();
+
+  const kepala = el('div', 'sentinel-nilai-kepala');
+  kepala.appendChild(el('span', null, 'Pengaturan'));
+  kepala.appendChild(el('span', null, 'Normal'));
+  kepala.appendChild(el('span', null, 'Pro'));
+  wadah.appendChild(kepala);
+
+  const normal = data.semuaNilai?.normal ?? {};
+  const pro2 = data.semuaNilai?.pro ?? {};
+
+  for (const kunci of Object.keys(data.nilai)) {
+    const baris = el('div', 'sentinel-nilai-baris');
+    baris.appendChild(el('span', 'sentinel-nilai-label', LABEL_NILAI[kunci] ?? kunci));
+
+    const format = SATUAN_NILAI[kunci] ?? ((v) => String(v));
+
+    const vNormal = normal[kunci];
+    const vPro = pro2[kunci];
+    const beda = vNormal !== vPro;
+
+    // ── YANG BERBEDA DIBERI PENANDA, YANG SAMA DIREDUP ──────────────────────
+    // Mata langsung tertuju ke yang berubah. Tanpa penanda, tabel lima baris
+    // harus dibaca satu per satu untuk menemukan bedanya.
+    baris.appendChild(el(
+      'span',
+      `sentinel-nilai-angka sentinel-nilai-angka--normal ${beda ? '' : 'sentinel-nilai-angka--sama'}`,
+      vNormal != null ? format(vNormal) : '—',
+    ));
+    baris.appendChild(el(
+      'span',
+      `sentinel-nilai-angka ${beda ? 'sentinel-nilai-angka--beda' : 'sentinel-nilai-angka--sama'}`,
+      vPro != null ? format(vPro) : '—',
+    ));
+
+    wadah.appendChild(baris);
+  }
+
+  // Keterangan kaki: jelaskan cara membaca tabel.
+  wadah.appendChild(el(
+    'p',
+    'sentinel-sumber-header',
+    pro
+      ? 'Nilai Pro berlaku sekarang. Kembalikan ke Normal untuk memakai nilai yang lebih longgar.'
+      : 'Nilai Normal berlaku sekarang. Perketat ke Pro untuk mempersempit jendela serangan.',
+  ));
+
+  kartu.setAttribute('aria-busy', 'false');
+}
+
+async function ubahMode(tujuan) {
+  const tombol = $('#tombolMode');
+  tombol.disabled = true;
+  tombol.textContent = 'Mengubah…';
+
+  try {
+    const data = await panggil('/api/sentinel/mode', {
+      metode: 'POST',
+      body: { mode: tujuan },
+    });
+
+    gambarMode(data);
+    beritahu(
+      tujuan === 'pro'
+        ? 'Mode Pro aktif — pemeriksaan diperketat.'
+        : 'Kembali ke mode Normal.',
+      'sukses',
+    );
+  } catch (err) {
+    beritahu(err.message, 'galat');
+    tombol.disabled = false;
+    // Muat ulang keadaan sebenarnya supaya tombolnya tidak tertinggal
+    // menampilkan aksi yang sudah gagal.
+    await muatMode();
+  }
+}
+
+async function muatMode() {
+  try {
+    const data = await panggil('/api/sentinel/mode');
+    gambarMode(data);
+  } catch (err) {
+    $('#kartuMode').replaceChildren(el('p', 'sentinel-galat', err.message));
+  }
+}
+
 /* ── Sumber webhook ─────────────────────────────────────────────────────── */
 
 /**
@@ -567,6 +719,11 @@ async function muatSemua() {
     const daftar = await panggil(jalur);
     gambarPesan(daftar.pesan ?? []);
 
+    // ── MODE KEAMANAN ───────────────────────────────────────────────────────
+    // Dimuat bersama data lain: ia menentukan bagaimana angka-angka di
+    // halaman ini harus dibaca (mis. toleransi 300s vs 60s).
+    await muatMode();
+
     // ── SUMBER DIMUAT TERAKHIR ──────────────────────────────────────────────
     // Ia bukan data yang berubah cepat, dan kegagalannya tidak boleh
     // menggagalkan tampilan antrean yang lebih penting.
@@ -660,6 +817,13 @@ function mulai() {
   $('#muatUlang')?.addEventListener('click', () => muatSemua());
   $('#keluar')?.addEventListener('click', () => bukaGerbang());
   $('#kirimSekarang')?.addEventListener('click', kirimSekarang);
+
+  // ── TOMBOL MODE: SATU KLIK, LANGSUNG BEKERJA ──────────────────────────────
+  // Tanpa dialog konfirmasi — lihat catatan di atas.
+  $('#tombolMode')?.addEventListener('click', (e) => {
+    const tujuan = e.currentTarget.dataset.modeTujuan;
+    if (tujuan) ubahMode(tujuan);
+  });
 
   $('#saringStatus')?.addEventListener('change', (e) => {
     saringStatus = e.target.value;

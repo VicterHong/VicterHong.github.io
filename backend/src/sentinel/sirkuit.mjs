@@ -65,6 +65,7 @@
  */
 
 import { getDb, now } from '../db.mjs';
+import { nilai } from './mode.mjs';
 
 /* ── Konfigurasi ────────────────────────────────────────────────────────── */
 
@@ -346,7 +347,9 @@ export function catatGagal(url, { pesanGalat = '', sekarang = now() } = {}) {
   // sampai ambang lagi — satu percobaan sudah cukup membuktikan.
   const sedangUji = baris?.keadaan === KEADAAN.SETENGAH;
 
-  const harusBuka = sedangUji || gagalBaru >= AMBANG_GAGAL;
+  // ── AMBANG DARI MODE KEAMANAN ────────────────────────────────────────────
+  // Mode Normal: 5 kegagalan. Mode Pro: 3 — gangguan terdeteksi lebih cepat.
+  const harusBuka = sedangUji || gagalBaru >= nilai('ambangGagalSirkuit');
 
   if (!harusBuka) {
     db.prepare(`

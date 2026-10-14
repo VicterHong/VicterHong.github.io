@@ -262,6 +262,134 @@ bagian('8. JALUR MIDTRANS LAMA TIDAK TERGANGGU');
   periksa('/api/midtrans/webhook masih memverifikasi → 401', r.status === 401, `dapat ${r.status}`);
 }
 
+/* ══ 9. MODE KEAMANAN ═════════════════════════════════════════════════════ */
+
+bagian('9. MODE KEAMANAN — UBAH & KEMBALIKAN');
+
+const KUNCI = { 'x-admin-key': 'admin-uji-panjang-1234567890' };
+
+{
+  const r = await minta('/api/sentinel/mode', { headers: KUNCI });
+  periksa('mode awal = normal', r.data?.mode === 'normal', `dapat ${r.data?.mode}`);
+  periksa('kedua mode tersedia', r.data?.tersedia?.length === 2, `dapat ${r.data?.tersedia?.length}`);
+  periksa('nilai kedua mode dikirim', !!r.data?.semuaNilai?.normal && !!r.data?.semuaNilai?.pro);
+}
+
+{
+  const r = await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'pro' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+  periksa('ubah ke pro → 200', r.status === 200, `dapat ${r.status}`);
+  periksa('mode jadi pro', r.data?.mode === 'pro', `dapat ${r.data?.mode}`);
+  periksa('nilai pro lebih ketat', r.data?.nilai?.toleransiTandaTanganDetik === 60, `dapat ${r.data?.nilai?.toleransiTandaTanganDetik}`);
+}
+
+{
+  const r = await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'normal' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+  periksa('KEMBALIKAN ke normal → 200', r.status === 200, `dapat ${r.status}`);
+  periksa('mode kembali normal', r.data?.mode === 'normal', `dapat ${r.data?.mode}`);
+}
+
+{
+  const r = await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'mode-ngawur' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+  periksa('mode tidak dikenal → 400', r.status === 400, `dapat ${r.status}`);
+}
+
+{
+  const r = await minta('/api/sentinel/mode');
+  periksa('mode tanpa kunci admin → 401', r.status === 401, `dapat ${r.status}`);
+}
+
+/* ══ 10. MODE PRO BENAR-BENAR MEMPERKETAT ═════════════════════════════════ */
+
+bagian('10. MODE PRO BENAR-BENAR MEMPERKETAT VERIFIKASI');
+
+{
+  // ── INI INTI DARI SELURUH FITUR MODE ──────────────────────────────────────
+  // Kalau mode tidak benar-benar mengubah perilaku, ia hanya hiasan.
+  //
+  // Diuji dengan tanda tangan ber-timestamp 120 detik lalu: DITERIMA di mode
+  // Normal (toleransi 300s), DITOLAK di mode Pro (toleransi 60s).
+  const body = JSON.stringify({ id: 'evt_umur_120s', type: 'charge' });
+  const t = Math.floor(Date.now() / 1000) - 120;
+  const tanda = `t=${t},v1=${createHmac('sha256', SECRET).update(`${t}.${body}`).digest('hex')}`;
+  const headers = { 'content-type': 'application/json', 'stripe-signature': tanda };
+
+  // Pastikan mode normal dulu.
+  await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'normal' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+
+  const diNormal = await minta('/api/sentinel/masuk/stripe', { metode: 'POST', body, headers });
+  periksa('tanda tangan umur 120s DITERIMA di mode Normal', diNormal.status === 200, `dapat ${diNormal.status}`);
+
+  // Ubah ke pro.
+  await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'pro' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+
+  const body2 = JSON.stringify({ id: 'evt_umur_120s_kedua', type: 'charge' });
+  const tanda2 = `t=${t},v1=${createHmac('sha256', SECRET).update(`${t}.${body2}`).digest('hex')}`;
+
+  const diPro = await minta('/api/sentinel/masuk/stripe', {
+    metode: 'POST',
+    body: body2,
+    headers: { 'content-type': 'application/json', 'stripe-signature': tanda2 },
+  });
+
+  periksa('tanda tangan umur 120s DITOLAK di mode Pro', diPro.status === 401, `dapat ${diPro.status}`);
+
+  // Kembalikan supaya tes lain tidak terpengaruh.
+  await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'normal' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+}
+
+{
+  // ── TANDA TANGAN BARU TETAP DITERIMA DI MODE PRO ──────────────────────────
+  // Ini yang membuktikan mode Pro TIDAK terlalu ketat: webhook yang sah
+  // (dikirim sekarang) harus tetap lewat.
+  await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'pro' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+
+  const body = JSON.stringify({ id: 'evt_pro_sah', type: 'charge' });
+  const t = Math.floor(Date.now() / 1000);
+  const tanda = `t=${t},v1=${createHmac('sha256', SECRET).update(`${t}.${body}`).digest('hex')}`;
+
+  const r = await minta('/api/sentinel/masuk/stripe', {
+    metode: 'POST',
+    body,
+    headers: { 'content-type': 'application/json', 'stripe-signature': tanda },
+  });
+
+  periksa('tanda tangan BARU tetap diterima di mode Pro', r.status === 200, `dapat ${r.status}`);
+
+  await minta('/api/sentinel/mode', {
+    metode: 'POST',
+    body: JSON.stringify({ mode: 'normal' }),
+    headers: { ...KUNCI, 'content-type': 'application/json' },
+  });
+}
+
 /* ══ RINGKASAN ════════════════════════════════════════════════════════════ */
 
 server.kill('SIGTERM');

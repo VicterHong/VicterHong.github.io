@@ -69,6 +69,11 @@
 
 import { randomUUID, createHash } from 'node:crypto';
 import { getDb, now } from '../db.mjs';
+// ── NILAI KEAMANAN DARI MODE YANG SEDANG AKTIF ──────────────────────────────
+// Jendela duplikat dan batas body berbeda antara mode Normal dan Pro.
+// Membacanya dari mode (bukan konstanta) membuat perubahan mode langsung
+// berlaku tanpa restart.
+import { nilai } from './mode.mjs';
 
 /* ── Konfigurasi ────────────────────────────────────────────────────────── */
 
@@ -277,7 +282,11 @@ export function masukAntrean({ sumber, idPeristiwa = null, url, body, headers = 
   // membatalkannya. Sidik jari dipakai hanya saat tidak ada ID — di situ ia
   // satu-satunya perlindungan.
   if (!idPeristiwa) {
-    const jendela = diterimaAt - 60 * 60 * 1000;
+    // ── JENDELA DARI MODE KEAMANAN ──────────────────────────────────────────
+    // Mode Normal: 1 jam. Mode Pro: 24 jam — provider mengirim ulang dalam
+    // hitungan menit sampai jam, jadi 24 jam menangkap semuanya tanpa
+    // menyimpan sidik jari yang tidak berguna lagi.
+    const jendela = diterimaAt - nilai('jendelaDuplikatMs');
     const kembar = db.prepare(`
       SELECT id FROM sentinel_antrean
       WHERE sumber = ? AND sidik_jari = ? AND diterima_at > ?

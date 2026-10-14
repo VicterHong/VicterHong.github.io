@@ -35,6 +35,7 @@ import { config } from '../config.mjs';
 import { verifikasiTandaTangan, PROVIDER, pesanAlasan } from './tanda-tangan.mjs';
 import { masukAntrean, BATAS_BODY_BYTE } from './antrean.mjs';
 import { verifikasiTandaTanganMidtrans } from '../midtrans.mjs';
+import { nilai } from './mode.mjs';
 
 /* ══ DAFTAR SUMBER ═════════════════════════════════════════════════════════ */
 
@@ -59,7 +60,14 @@ export const SUMBER = {
     label: 'Stripe',
     ambilSecret: () => config.sentinelStripeSecret,
     periksa: ({ bodyMentah, headers, secret }) =>
-      verifikasiTandaTangan({ provider: 'stripe', bodyMentah, headers, secret }),
+      verifikasiTandaTangan({
+        provider: 'stripe',
+        bodyMentah,
+        headers,
+        secret,
+        // Toleransi dari mode: Normal 300s, Pro 60s.
+        toleransiDetik: nilai('toleransiTandaTanganDetik'),
+      }),
   },
 
   github: {
@@ -136,12 +144,15 @@ export function terimaWebhook({ sumber, bodyMentah, headers = {} }) {
   // ── 3. BATAS UKURAN BODY ──────────────────────────────────────────────────
   // Diperiksa SEBELUM verifikasi: menghitung panjang string jauh lebih murah
   // daripada menghitung HMAC atas 10 MB payload.
-  if (Buffer.byteLength(bodyMentah, 'utf8') > BATAS_BODY_BYTE) {
+  // ── BATAS DARI MODE KEAMANAN ──────────────────────────────────────────────
+  // Mode Normal: 64 KB (sama dengan batas readBody HTTP). Mode Pro: 32 KB.
+  const batasBody = nilai('batasBodyByte');
+  if (Buffer.byteLength(bodyMentah, 'utf8') > batasBody) {
     return {
       ok: false,
       kode: 413,
       alasan: 'body_terlalu_besar',
-      pesan: `Body melebihi batas ${BATAS_BODY_BYTE} byte`,
+      pesan: `Body melebihi batas ${batasBody} byte`,
     };
   }
 

@@ -313,6 +313,139 @@
   font-size: 0.8125rem;
 }
 
+/* ══ KARTU MODE KEAMANAN ═════════════════════════════════════════════════════
+ *
+ * ── REFERENSI: CLOUDFLARE "UNDER ATTACK MODE" ───────────────────────────────
+ * Cloudflare menaruh mode daruratnya di Quick Actions — bukan terkubur di
+ * halaman pengaturan — karena mode itu dipakai SAAT SEDANG ada gangguan, dan
+ * saat itu orang tidak punya waktu mencari-cari.
+ *
+ * Tiga hal yang diambil dari sana:
+ *
+ *   1. AKSES CEPAT. Kartu ini ada di halaman utama inspector, bukan di submenu.
+ *   2. KEADAAN JELAS. Labelnya menyatakan mode mana yang aktif, bukan hanya
+ *      "aktif/nonaktif".
+ *   3. DAMPAK DITULIS. Cloudflare memperingatkan bahwa mode itu bisa
+ *      memengaruhi lalu lintas API. Di sini, nilai yang berubah ditampilkan
+ *      berdampingan supaya terlihat apa yang diperketat.
+ *
+ * Yang TIDAK diambil: warna merah menyala. Mode ini bukan keadaan darurat —
+ * ia pengaturan yang lebih ketat, dan di sini memang normal dipakai.
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+.sentinel-mode {
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius);
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+/* ── MODE PRO: TEPI DAN LATAR BERUBAH ────────────────────────────────────────
+   Penandanya sengaja halus. Yang memberi tahu mode aktif adalah LABEL dan
+   NILAI yang ditampilkan, bukan warnanya — warna hanya membantu sekilas
+   pandang. Bergantung pada warna saja akan menyulitkan yang tidak bisa
+   membedakannya. */
+.sentinel-mode--pro {
+  border-color: rgba(245, 197, 66, 0.35);
+  background: linear-gradient(180deg, rgba(245, 197, 66, 0.04), transparent 60%);
+}
+
+.sentinel-mode-kepala {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.sentinel-mode-nama {
+  margin-bottom: 0.25rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.sentinel-mode-ket {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.sentinel-mode-aksi {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── TABEL NILAI: NORMAL vs PRO BERDAMPINGAN ─────────────────────────────────
+   Menampilkan kedua kolom sekaligus membuat "apa yang diperketat" terlihat
+   tanpa harus mencoba mode lain dulu. Kalau hanya nilai aktif yang tampil,
+   operator harus bolak-balik mengubah mode untuk membandingkan. */
+.sentinel-mode-nilai {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+}
+
+.sentinel-nilai-baris {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.4375rem 0;
+  font-size: 0.8125rem;
+}
+
+.sentinel-nilai-label {
+  color: var(--text-dim);
+}
+
+.sentinel-nilai-angka {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Nilai yang BERBEDA diberi penanda. Yang sama dibiarkan redup — supaya mata
+   langsung tertuju ke yang berubah. */
+.sentinel-nilai-angka--beda {
+  color: #f7d77a;
+  font-weight: 500;
+}
+
+.sentinel-nilai-angka--sama {
+  color: var(--text-faint);
+}
+
+.sentinel-nilai-kepala {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  color: var(--text-faint);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Layar sempit ────────────────────────────────────────────────────────── */
+@media (max-width: 30rem) {
+  .sentinel-nilai-baris,
+  .sentinel-nilai-kepala {
+    grid-template-columns: 1fr auto;
+  }
+
+  /* Kolom "Normal" disembunyikan di layar sangat sempit — yang dibandingkan
+     adalah nilai AKTIF. Membiarkannya membuat teksnya terpotong. */
+  .sentinel-nilai-angka--normal,
+  .sentinel-nilai-kepala > :nth-child(2) {
+    display: none;
+  }
+}
+
 /* ── Kartu sumber ───────────────────────────────────────────────────────── */
 
 .sentinel-sumber-baris {

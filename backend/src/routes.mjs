@@ -143,6 +143,7 @@ import { ruteKlien } from './klien-routes.mjs';
 import { ruteSentinel } from './sentinel/rute.mjs';
 import { siapkanTabelAntrean } from './sentinel/antrean.mjs';
 import { siapkanTabelSirkuit } from './sentinel/sirkuit.mjs';
+import { siapkanTabelPengaturan } from './sentinel/mode.mjs';
 // ── PINTU MASUK WEBHOOK ─────────────────────────────────────────────────────
 // Rute ini TIDAK dikunci admin: yang memanggilnya layanan luar (Stripe,
 // GitHub, Telegram), dan mereka tidak punya ADMIN_KEY kita.
@@ -329,6 +330,7 @@ export function initRoutes() {
   // sebelum openDb() dan melempar "database belum dibuka".
   siapkanTabelAntrean();
   siapkanTabelSirkuit();
+  siapkanTabelPengaturan();
 
   // ══ MIGRASI ULANG SETELAH TABEL PENGGUNA DIBUAT ═══════════════════════════
   //

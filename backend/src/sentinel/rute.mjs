@@ -69,6 +69,7 @@ import {
 import { PROVIDER, TOLERANSI_DETIK } from './tanda-tangan.mjs';
 import { terimaWebhook, daftarSumber } from './gerbang.mjs';
 import { readBody } from '../http-util.mjs';
+import { ringkasMode, setMode } from './mode.mjs';
 
 /* ── Penguncian ─────────────────────────────────────────────────────────── */
 
@@ -280,6 +281,41 @@ export function ruteSentinel() {
 
         const ringkas = await jalankanPutaran({ batas });
         return sendJson(res, 200, { ok: true, ...ringkas });
+      },
+    },
+
+    /* ── Mode keamanan: lihat & ubah ────────────────────────────────────── */
+    {
+      method: 'GET',
+      pattern: '/api/sentinel/mode',
+      handler: async (req, res) => {
+        return sendJson(res, 200, { ok: true, ...ringkasMode() });
+      },
+    },
+
+    {
+      method: 'POST',
+      pattern: '/api/sentinel/mode',
+      handler: async (req, res) => {
+        const body = await bacaJson(req);
+        if (body === null) return sendJson(res, 400, { ok: false, error: 'body_tidak_valid' });
+
+        const modeBaru = String(body.mode ?? '').trim();
+        const hasil = setMode(modeBaru);
+
+        if (!hasil.ok) {
+          return sendJson(res, 400, {
+            ok: false,
+            error: hasil.alasan,
+            message: 'Mode tidak dikenal. Pilihan: normal, pro.',
+          });
+        }
+
+        // ── RINGKASAN DIKEMBALIKAN, BUKAN HANYA "OK" ────────────────────────
+        // Yang menekan tombol ini ingin tahu APA YANG BERUBAH. Mengembalikan
+        // ringkasannya berarti UI bisa langsung menampilkan nilai barunya
+        // tanpa permintaan kedua.
+        return sendJson(res, 200, { ok: true, ...ringkasMode() });
       },
     },
 
