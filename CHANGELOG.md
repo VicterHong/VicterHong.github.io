@@ -2,21 +2,81 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 395 perubahan dari 397 commit (2026-10-01 → 2026-10-13).
+Total 438 perubahan dari 440 commit (2026-10-01 → 2026-10-14).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
+
+## 2026-10-14
+
+### Fitur baru
+
+- **portofolio**: Arsip latihan, badge CI nyata, kalkulator ROI (`a10ddbb`)
+- **sentinel**: Mode keamanan Pro — perketat sekali klik, bisa dikembalikan (`0b5a076`)
+- **sentinel**: Sambungkan gateway ke produksi — pintu masuk + worker (`643fe21`)
+- **sentinel**: Gateway webhook mandiri — tanda tangan, antrean WAL, DLQ, sirkuit, inspector (`b1a8af7`)
+- **harga**: Paket "Free" + tombol "Sedang digunakan" dengan efek disabled (`c0765d2`)
+- **gratis**: Jatah metrik 3 dari login + 2 dari star = 5 proyek (`9203d63`)
+- **harga**: Tombol "Paket aktif" otomatis + bug tombol Gratis yang membuka dialog bayar (`c8e0e79`)
+- **harga**: Teks marketing profesional + 2 klaim berbahaya dihapus (`44bf507`)
+- **paket**: Gratis otomatis aktif saat login + tabel paket_akun (`4e8d902`)
+- **harga**: Paket Gratis — dan angka kuota yang tidak bisa lagi berbohong (`0f0d38c`)
+- **harga**: Bagian token akses + bonus star — fitur yang sudah ada tapi belum dijelaskan (`6514485`)
+- **langganan**: Aktivasi otomatis dari pembayaran Midtrans (`c834e83`)
+- **klien**: Halaman area klien — daftar proyek 3 tampilan + tab token (`874f393`)
+- **klien**: 7 endpoint area klien — daftar proyek, kuota token, klaim star (`a51ab1d`)
+- **akses**: Modul keputusan akses + verifikasi star GitHub (`f69764f`)
+- **langganan**: Fondasi sistem paket + kuota token akses (`b482cf2`)
+- **visi-misi**: Fade ala korporasi untuk kalimat — efek ketik dihapus (`37a7e85`)
+- **beranda**: Visi & Misi jadi kartu zigzag "dipin" — tanpa teks/CTA di luar kartu (`ccaddab`)
+- **beranda**: Visi & Misi + animasi ketik & count-up, menggantikan "Cara saya bekerja" (`c96abd1`)
+- **visi-misi**: Isi tentang portofolio + angka yang dijaga skrip (`7a4eb48`)
+- **ui**: Desain "kartu dipin" — sesuai referensi 21st.dev/chamaac (`76749bc`)
+- **ui**: Timeline zigzag pola sumbu tengah + seksi Visi & Misi (`0dc1d68`)
+- **ui**: Komponen How It Works — konversi TSX ke vanilla JS + reveal per kartu (`25fe800`)
+
+### Perbaikan
+
+- **sentinel**: Panel detail selalu tampil & tombol Tutup tidak bekerja (`7c71de9`)
+- **panduan**: Tabel perbandingan salah baca satu kolom penuh (`0b45765`)
+- **harga**: Tinggi tombol tidak rata — dua bug, satu akar (`9ae6cc9`)
+- **admin**: Perintah `langganan` — dua helper yang saya tebak salah (`ee95814`)
+- **star**: Endpoint GitHub yang butuh autentikasi diganti — repo privat dikeluarkan (`c496922`)
+- **langganan**: Trial metrik PER AKUN, bukan per proyek — sesuai konfirmasi (`be3e51a`)
+- **visi-misi**: Ujung jalur meleset di produksi — gambar ulang saat transisi SELESAI (`4e0ecc8`)
+- **ui**: Zigzag nyata di semua lebar layar + fade yang benar-benar terlihat (`488259d`)
+
+### Dokumentasi
+
+- **midtrans**: Perbaiki menu dashboard + kunci URL webhook dengan tes (`0fb98ff`)
+
+### Pemeliharaan
+
+- **harga**: Hapus titik kuning dari tombol "Sedang digunakan" (`008494d`)
+- **harga**: Jatah gratis ditulis sebagai ANGKA, bukan mekanisme 3+2 (`9ae3d9e`)
+- **anggaran**: Naikkan total aset 940 KB → 2048 KB untuk sistem langganan (`8e126f4`)
 
 ## 2026-10-13
 
 ### Fitur baru
 
+- **keamanan**: Lupa sandi & hapus akun wajib verifikasi 2FA kalau aktif (`d7398ae`)
+- **checkout**: Pembelian wajib akun + step-up 2FA sebelum bayar (`b6fea6f`)
 - **g1**: RSS changelog + twitter meta + temuan domain canonical (`560f7eb`)
 
 ### Perbaikan
 
+- **checkout**: Step-up 2FA tidak lagi butuh Turnstile (`0b60222`)
+- **backend**: Rute :slug/:id hidup lagi + idempotensi checkout tidak bocor (`4aca334`)
+- **checkout**: Tombol harga memulai pembayaran Midtrans, bukan ke anchor beranda (`8df6fdf`)
 - **db**: Migrasi kolom midtrans_* untuk database skema Xendit (`056c80d`)
 - **a6**: Tap target auth — reveal & copy 34→44px (WCAG 2.5.8) (`8940f5f`)
 - **a5**: Changelog — filter 44px + aria-pressed + <time> semantik (`d1191d5`)
+
+### Dokumentasi
+
+- **keamanan**: Verifikasi 2FA untuk lupa sandi & hapus akun (`5c38b16`)
+- **pembayaran**: Gerbang korporat + step-up 2FA + catatan Turnstile (`b3543ac`)
+- **pembayaran**: Host Midtrans, catatan idempotensi, berkas frontend (`0b0de5c`)
 
 ### Pemeliharaan
 

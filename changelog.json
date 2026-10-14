@@ -1,18 +1,231 @@
 {
- "dibuat": "2026-10-13T15:32:19.380Z",
- "totalCommit": 397,
- "totalDicatat": 395,
+ "dibuat": "2026-10-14T15:50:56.317Z",
+ "totalCommit": 440,
+ "totalDicatat": 438,
  "hariPertama": "2026-10-01",
- "hariTerakhir": "2026-10-13",
+ "hariTerakhir": "2026-10-14",
  "rilis": [
   {
-   "tanggal": "2026-10-13",
-   "jumlah": 10,
+   "tanggal": "2026-10-14",
+   "jumlah": 35,
    "ringkasan": {
-    "fitur": 1,
-    "perbaikan": 3,
+    "fitur": 23,
+    "perbaikan": 8,
     "performa": 0,
-    "dokumentasi": 0,
+    "dokumentasi": 1,
+    "data": 0,
+    "pemeliharaan": 3
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "a10ddbb",
+       "teks": "Arsip latihan, badge CI nyata, kalkulator ROI",
+       "scope": "portofolio"
+      },
+      {
+       "hash": "0b5a076",
+       "teks": "Mode keamanan Pro — perketat sekali klik, bisa dikembalikan",
+       "scope": "sentinel"
+      },
+      {
+       "hash": "643fe21",
+       "teks": "Sambungkan gateway ke produksi — pintu masuk + worker",
+       "scope": "sentinel"
+      },
+      {
+       "hash": "b1a8af7",
+       "teks": "Gateway webhook mandiri — tanda tangan, antrean WAL, DLQ, sirkuit, inspector",
+       "scope": "sentinel"
+      },
+      {
+       "hash": "c0765d2",
+       "teks": "Paket \"Free\" + tombol \"Sedang digunakan\" dengan efek disabled",
+       "scope": "harga"
+      },
+      {
+       "hash": "9203d63",
+       "teks": "Jatah metrik 3 dari login + 2 dari star = 5 proyek",
+       "scope": "gratis"
+      },
+      {
+       "hash": "c8e0e79",
+       "teks": "Tombol \"Paket aktif\" otomatis + bug tombol Gratis yang membuka dialog bayar",
+       "scope": "harga"
+      },
+      {
+       "hash": "44bf507",
+       "teks": "Teks marketing profesional + 2 klaim berbahaya dihapus",
+       "scope": "harga"
+      },
+      {
+       "hash": "4e8d902",
+       "teks": "Gratis otomatis aktif saat login + tabel paket_akun",
+       "scope": "paket"
+      },
+      {
+       "hash": "0f0d38c",
+       "teks": "Paket Gratis — dan angka kuota yang tidak bisa lagi berbohong",
+       "scope": "harga"
+      },
+      {
+       "hash": "6514485",
+       "teks": "Bagian token akses + bonus star — fitur yang sudah ada tapi belum dijelaskan",
+       "scope": "harga"
+      },
+      {
+       "hash": "c834e83",
+       "teks": "Aktivasi otomatis dari pembayaran Midtrans",
+       "scope": "langganan"
+      },
+      {
+       "hash": "874f393",
+       "teks": "Halaman area klien — daftar proyek 3 tampilan + tab token",
+       "scope": "klien"
+      },
+      {
+       "hash": "a51ab1d",
+       "teks": "7 endpoint area klien — daftar proyek, kuota token, klaim star",
+       "scope": "klien"
+      },
+      {
+       "hash": "f69764f",
+       "teks": "Modul keputusan akses + verifikasi star GitHub",
+       "scope": "akses"
+      },
+      {
+       "hash": "b482cf2",
+       "teks": "Fondasi sistem paket + kuota token akses",
+       "scope": "langganan"
+      },
+      {
+       "hash": "37a7e85",
+       "teks": "Fade ala korporasi untuk kalimat — efek ketik dihapus",
+       "scope": "visi-misi"
+      },
+      {
+       "hash": "ccaddab",
+       "teks": "Visi & Misi jadi kartu zigzag \"dipin\" — tanpa teks/CTA di luar kartu",
+       "scope": "beranda"
+      },
+      {
+       "hash": "c96abd1",
+       "teks": "Visi & Misi + animasi ketik & count-up, menggantikan \"Cara saya bekerja\"",
+       "scope": "beranda"
+      },
+      {
+       "hash": "7a4eb48",
+       "teks": "Isi tentang portofolio + angka yang dijaga skrip",
+       "scope": "visi-misi"
+      },
+      {
+       "hash": "76749bc",
+       "teks": "Desain \"kartu dipin\" — sesuai referensi 21st.dev/chamaac",
+       "scope": "ui"
+      },
+      {
+       "hash": "0dc1d68",
+       "teks": "Timeline zigzag pola sumbu tengah + seksi Visi & Misi",
+       "scope": "ui"
+      },
+      {
+       "hash": "25fe800",
+       "teks": "Komponen How It Works — konversi TSX ke vanilla JS + reveal per kartu",
+       "scope": "ui"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "7c71de9",
+       "teks": "Panel detail selalu tampil & tombol Tutup tidak bekerja",
+       "scope": "sentinel"
+      },
+      {
+       "hash": "0b45765",
+       "teks": "Tabel perbandingan salah baca satu kolom penuh",
+       "scope": "panduan"
+      },
+      {
+       "hash": "9ae6cc9",
+       "teks": "Tinggi tombol tidak rata — dua bug, satu akar",
+       "scope": "harga"
+      },
+      {
+       "hash": "ee95814",
+       "teks": "Perintah `langganan` — dua helper yang saya tebak salah",
+       "scope": "admin"
+      },
+      {
+       "hash": "c496922",
+       "teks": "Endpoint GitHub yang butuh autentikasi diganti — repo privat dikeluarkan",
+       "scope": "star"
+      },
+      {
+       "hash": "be3e51a",
+       "teks": "Trial metrik PER AKUN, bukan per proyek — sesuai konfirmasi",
+       "scope": "langganan"
+      },
+      {
+       "hash": "4e0ecc8",
+       "teks": "Ujung jalur meleset di produksi — gambar ulang saat transisi SELESAI",
+       "scope": "visi-misi"
+      },
+      {
+       "hash": "488259d",
+       "teks": "Zigzag nyata di semua lebar layar + fade yang benar-benar terlihat",
+       "scope": "ui"
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "0fb98ff",
+       "teks": "Perbaiki menu dashboard + kunci URL webhook dengan tes",
+       "scope": "midtrans"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "008494d",
+       "teks": "Hapus titik kuning dari tombol \"Sedang digunakan\"",
+       "scope": "harga"
+      },
+      {
+       "hash": "9ae3d9e",
+       "teks": "Jatah gratis ditulis sebagai ANGKA, bukan mekanisme 3+2",
+       "scope": "harga"
+      },
+      {
+       "hash": "8e126f4",
+       "teks": "Naikkan total aset 940 KB → 2048 KB untuk sistem langganan",
+       "scope": "anggaran"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-13",
+   "jumlah": 18,
+   "ringkasan": {
+    "fitur": 3,
+    "perbaikan": 6,
+    "performa": 0,
+    "dokumentasi": 3,
     "data": 0,
     "pemeliharaan": 6
    },
@@ -21,6 +234,16 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "d7398ae",
+       "teks": "Lupa sandi & hapus akun wajib verifikasi 2FA kalau aktif",
+       "scope": "keamanan"
+      },
+      {
+       "hash": "b6fea6f",
+       "teks": "Pembelian wajib akun + step-up 2FA sebelum bayar",
+       "scope": "checkout"
+      },
       {
        "hash": "560f7eb",
        "teks": "RSS changelog + twitter meta + temuan domain canonical",
@@ -32,6 +255,21 @@
      "kunci": "perbaikan",
      "label": "Perbaikan",
      "item": [
+      {
+       "hash": "0b60222",
+       "teks": "Step-up 2FA tidak lagi butuh Turnstile",
+       "scope": "checkout"
+      },
+      {
+       "hash": "4aca334",
+       "teks": "Rute :slug/:id hidup lagi + idempotensi checkout tidak bocor",
+       "scope": "backend"
+      },
+      {
+       "hash": "8df6fdf",
+       "teks": "Tombol harga memulai pembayaran Midtrans, bukan ke anchor beranda",
+       "scope": "checkout"
+      },
       {
        "hash": "056c80d",
        "teks": "Migrasi kolom midtrans_* untuk database skema Xendit",
@@ -46,6 +284,27 @@
        "hash": "d1191d5",
        "teks": "Changelog — filter 44px + aria-pressed + <time> semantik",
        "scope": "a5"
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "5c38b16",
+       "teks": "Verifikasi 2FA untuk lupa sandi & hapus akun",
+       "scope": "keamanan"
+      },
+      {
+       "hash": "b3543ac",
+       "teks": "Gerbang korporat + step-up 2FA + catatan Turnstile",
+       "scope": "pembayaran"
+      },
+      {
+       "hash": "0b0de5c",
+       "teks": "Host Midtrans, catatan idempotensi, berkas frontend",
+       "scope": "pembayaran"
       }
      ]
     },

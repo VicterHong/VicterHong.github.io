@@ -153,13 +153,13 @@ export const metrikProyek = {
         label: 'Endpoint API',
         nilai: '111',
         jenis: 'terukur',
-        sumber: 'Jumlah `pattern: \'/api...\'` di backend/src/*.mjs',
+        sumber: "grep -c \"pattern: '/api\" backend/src/routes.mjs backend/src/klien-routes.mjs backend/src/sentinel/rute.mjs", 
       },
       {
         label: 'Tabel database',
         nilai: '40',
         jenis: 'terukur',
-        sumber: 'sqlite_master di database produksi',
+        sumber: "sqlite3 tokens.db \"SELECT COUNT(*) FROM sqlite_master WHERE type='table'\"", 
       },
       {
         label: 'Pemakaian memori',

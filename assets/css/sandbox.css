@@ -1,0 +1,420 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   SANDBOX — ANTARMUKA DEMO
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA PEMBERITAHUANNYA DI ATAS, BUKAN DI BAWAH ─────────────────────────
+   Pengunjung harus tahu ini demo SEBELUM ia mulai mengklik. Pemberitahuan di
+   bawah berarti ia sudah menjelajah dulu dengan asumsi yang salah — dan
+   menemukan kenyataannya setelah terlanjur.
+
+   ── KENAPA WARNA PEMBERITAHUANNYA NETRAL, BUKAN KUNING MENYALA ──────────────
+   Kuning menyala menyampaikan "ada masalah". Demo bukan masalah — ia cara
+   mencoba tanpa memasang. Warna netral dengan label "DEMO" menyampaikan hal
+   yang sama tanpa nada peringatan.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.sandbox-bagian {
+  margin: 5rem 0;
+}
+
+/* ── Pemberitahuan demo ─────────────────────────────────────────────────── */
+
+.sandbox-notis {
+  padding: 1.125rem 1.25rem;
+  margin-bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+}
+
+.sandbox-notis-kepala {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.sandbox-notis-lencana {
+  padding: 0.1875rem 0.5rem;
+  background: var(--accent);
+  border-radius: 999px;
+  color: #1a1a0a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.sandbox-notis-judul {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.sandbox-notis-daftar {
+  margin: 0;
+  padding-left: 1.125rem;
+  color: var(--text-dim);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+.sandbox-notis-daftar li {
+  margin-bottom: 0.375rem;
+}
+
+.sandbox-notis-daftar li:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Kartu ringkasan ────────────────────────────────────────────────────── */
+
+.sandbox-kartu-baris {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sandbox-kartu {
+  padding: 1rem 1.125rem;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+}
+
+.sandbox-kartu-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sandbox-kartu-angka {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.sandbox-angka--peringatan { color: #f7d77a; }
+.sandbox-angka--aman { color: #86efac; }
+
+/* ── Pencarian ──────────────────────────────────────────────────────────── */
+
+.sandbox-alat {
+  margin-bottom: 1rem;
+}
+
+.sandbox-cari {
+  width: 100%;
+  max-width: 24rem;
+  padding: 0.625rem 0.875rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.sandbox-cari:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Tabel ──────────────────────────────────────────────────────────────── */
+
+/* Pembungkus gulir untuk tabel — di layar sempit, tabelnya bisa digulir
+   horizontal tanpa memaksa seluruh halaman ikut melebar. */
+.sandbox-tabel-wrap {
+  overflow-x: auto;
+}
+
+.sandbox-wadah-tabel {
+  overflow-x: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+}
+
+.sandbox-tabel {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.sandbox-tabel th {
+  padding: 0;
+  background: rgba(255, 255, 255, 0.025);
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* ── JUDUL KOLOM SEBAGAI TOMBOL URUT ─────────────────────────────────────────
+   Dijadikan tombol, bukan <th> yang bisa diklik: pengguna keyboard harus bisa
+   mencapainya, dan itu hanya bekerja kalau elemennya benar-benar tombol. */
+.sandbox-urut {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sandbox-urut:hover {
+  color: var(--text);
+}
+
+.sandbox-urut:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sandbox-urut-panah {
+  color: var(--accent);
+}
+
+.sandbox-tabel td {
+  padding: 0.625rem 0.875rem;
+  border-top: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+
+.sandbox-tabel tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.sandbox-tabel tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.sandbox-tabel tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ── BARIS YANG PERLU RESTOCK DISOROT ────────────────────────────────────────
+   Ini fitur yang paling terasa manfaatnya — memberi tahu saat ada yang perlu
+   ditindak. Menyorotnya di tabel membuat pengunjung langsung melihat nilainya. */
+.sandbox-baris--menipis {
+  background: rgba(247, 215, 122, 0.045);
+}
+
+.sandbox-stok--menipis {
+  color: #f7d77a;
+  font-weight: 500;
+}
+
+.sandbox-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.sandbox-kosong {
+  padding: 2rem 1rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ── Panel detail ───────────────────────────────────────────────────────── */
+
+.sandbox-wadah-detail {
+  margin-top: 1rem;
+}
+
+.sandbox-detail-petunjuk {
+  margin: 0;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.012);
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sandbox-detail {
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+}
+
+.sandbox-detail-kepala {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sandbox-detail-nama {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sandbox-detail-daftar {
+  display: grid;
+  gap: 0.4375rem;
+  margin: 0 0 1.25rem;
+}
+
+.sandbox-detail-baris {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.sandbox-detail-label {
+  color: var(--text-dim);
+}
+
+.sandbox-detail-nilai {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.sandbox-detail-subjudul {
+  margin: 1.25rem 0 0.625rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sandbox-detail-kosong {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.8125rem;
+}
+
+/* ── Riwayat pergerakan ─────────────────────────────────────────────────── */
+
+.sandbox-gerak {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.375rem;
+}
+
+.sandbox-gerak-item {
+  display: grid;
+  grid-template-columns: 1.25rem 5rem 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.8125rem;
+}
+
+.sandbox-gerak-jenis {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sandbox-gerak-item--masuk .sandbox-gerak-jenis { color: #86efac; }
+.sandbox-gerak-item--keluar .sandbox-gerak-jenis { color: #fca5a5; }
+
+.sandbox-gerak-jumlah {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+}
+
+.sandbox-gerak-catatan {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+/* ── Aksi contoh ────────────────────────────────────────────────────────── */
+
+.sandbox-detail-aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.sandbox-tombol {
+  display: inline-flex;
+  gap: 0.375rem;
+  align-items: center;
+  padding: 0.5rem 0.875rem;
+  min-height: 2.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* ── TOMBOL CONTOH: DINONAKTIFKAN TAPI TETAP TERBACA ─────────────────────────
+   Kontras teksnya dijaga ≥4.5:1 (WCAG AA) walaupun tombolnya tidak bisa
+   ditekan. Tombol yang teksnya terlalu redup membuat pengunjung mengira
+   halamannya rusak — bukan mengira tombolnya sengaja dimatikan. */
+.sandbox-tombol--contoh {
+  cursor: not-allowed;
+  color: #a1a1aa;
+}
+
+.sandbox-lencana-contoh {
+  padding: 0.0625rem 0.375rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  color: var(--text-faint);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Layar sempit ───────────────────────────────────────────────────────── */
+
+@media (max-width: 40rem) {
+  .sandbox-bagian {
+    margin: 3.5rem 0;
+  }
+
+  .sandbox-cari {
+    max-width: none;
+  }
+
+  /* Kolom "Minimum" dan "Kategori" disembunyikan — tabelnya harus terbaca
+     tanpa menggulir horizontal untuk informasi yang paling sering dilihat. */
+  .sandbox-tabel th:nth-child(3),
+  .sandbox-tabel td:nth-child(3),
+  .sandbox-tabel th:nth-child(5),
+  .sandbox-tabel td:nth-child(5) {
+    display: none;
+  }
+
+  .sandbox-gerak-item {
+    grid-template-columns: 1.25rem 4rem 1fr;
+    gap: 0.375rem;
+  }
+}

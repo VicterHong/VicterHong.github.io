@@ -76,6 +76,9 @@
 </script>
 
 <link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/metrik.css">
+<link rel="stylesheet" href="assets/css/diagram.css">
+<link rel="stylesheet" href="assets/css/sandbox.css">
 <link rel="stylesheet" href="assets/css/astra.css">
 <link rel="stylesheet" href="assets/css/cinematic.css">
 <link rel="stylesheet" href="assets/css/logo.css">
@@ -234,6 +237,88 @@
     </div>
 
     <div id="featuredProjects" class="projects-bento"></div>
+
+    <!-- ══ METRIK TERVERIFIKASI ═══════════════════════════════════════════════
+         ── KENAPA SETELAH PROYEK, BUKAN DI DALAM KARTU ─────────────────────────
+         Kartu proyek menampilkan ringkasan. Metrik ini menampilkan BUKTI, dan
+         bukti butuh ruang: setiap angka disertai perintah untuk memeriksanya.
+
+         Ditaruh di dalam kartu, perintahnya akan terpotong atau disembunyikan —
+         dan angka tanpa cara memeriksa sama saja dengan klaim.
+
+         ── KENAPA TIDAK ADA METRIK DAMPAK BISNIS ───────────────────────────────
+         "Menghemat 12 jam per minggu" mengandaikan kita tahu berapa jam yang
+         dipakai SEBELUM sistemnya. Tidak ada klien, tidak ada pengukuran
+         sebelum/sesudah — jadi angkanya tidak bisa ditulis tanpa mengarang.
+
+         Untuk hitungan penghematan, ada kalkulator di halaman harga: ia
+         menghitung dari angka yang diketik pengunjung sendiri.
+
+         Diisi oleh metrik-view.js.
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="metrik-bagian" aria-labelledby="judulMetrik">
+      <div class="metrik-kepala-bagian">
+        <h2 class="metrik-judul-bagian" id="judulMetrik">Angka yang bisa Anda periksa</h2>
+        <p class="metrik-teks-bagian">
+          Setiap angka di bawah punya perintah atau lokasi yang bisa dibuka
+          untuk memeriksanya. Yang tidak bisa saya periksa sendiri, saya
+          sebutkan sumbernya — bukan ditulis seolah-olah saya yang mengukur.
+        </p>
+      </div>
+      <div id="metrikHost"></div>
+    </section>
+
+    <!-- ══ DIAGRAM ARSITEKTUR ═════════════════════════════════════════════════
+         ── KENAPA SETELAH METRIK ───────────────────────────────────────────────
+         Metrik menjawab "seberapa besar". Diagram menjawab "bagaimana ia
+         bekerja" — dan pertanyaan kedua muncul setelah yang pertama terjawab.
+
+         ── KENAPA DUA TINGKAT KEDALAMAN ────────────────────────────────────────
+         Pemilik bisnis butuh tahu ALURNYA. Engineer butuh tahu BAGAIMANA.
+         Tiap langkah menampilkan satu kalimat saat dilihat, dan penjelasan
+         teknis saat diklik — jadi yang tidak butuh detail tidak dipaksa
+         membacanya.
+
+         Diisi oleh diagram-view.js.
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="diagram-bagian" aria-labelledby="judulDiagram">
+      <div class="metrik-kepala-bagian">
+        <h2 class="metrik-judul-bagian" id="judulDiagram">Bagaimana ia bekerja</h2>
+        <p class="metrik-teks-bagian">
+          Alur tiap sistem, termasuk di mana lapisan keamanannya. Klik langkah
+          mana pun untuk penjelasan teknisnya.
+        </p>
+      </div>
+      <div id="diagramHost"></div>
+    </section>
+
+    <!-- ══ SANDBOX DEMO ═══════════════════════════════════════════════════════
+         ── KENAPA INI ADA ──────────────────────────────────────────────────────
+         Calon klien tidak bisa mencoba sistem tanpa memasangnya dulu. Memasang
+         butuh server, database, dan waktu — dan kebanyakan orang tidak akan
+         melakukannya hanya untuk melihat apakah sistemnya cocok.
+
+         Akibatnya keputusan diambil dari tangkapan layar. Sandbox ini memberi
+         yang tidak bisa diberikan tangkapan layar: antarmuka yang BENAR-BENAR
+         bisa diklik.
+
+         ── KENAPA TIDAK MENYENTUH SERVER ───────────────────────────────────────
+         Seluruh sandbox berjalan di browser. Kalau ia mengirim permintaan ke
+         backend, siapa pun bisa mengisi database produksi dengan data sampah —
+         dari halaman publik yang tidak butuh login.
+
+         Diisi oleh sandbox-view.js.
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="sandbox-bagian" aria-labelledby="judulSandbox">
+      <div class="metrik-kepala-bagian">
+        <h2 class="metrik-judul-bagian" id="judulSandbox">Coba sendiri, tanpa memasang</h2>
+        <p class="metrik-teks-bagian">
+          Ini bentuk antarmuka Spareparts Inventory System. Semuanya bisa
+          diklik — dan tidak ada yang tersimpan.
+        </p>
+      </div>
+      <div id="sandboxHost"></div>
+    </section>
 
     <!-- Carousel spotlight: gambaran cepat seluruh koleksi. Ditaruh SEBELUM
          kartu bento — carousel untuk menjelajah, bento untuk membaca detail.
@@ -504,6 +589,19 @@
      modul terpisah supaya kegagalannya tidak menghentikan app.js — badge yang
      tidak bisa dimuat tidak boleh membuat seluruh halaman kosong. -->
 <script type="module" src="assets/js/ci-badge.js"></script>
+<!-- Metrik terverifikasi: modul terpisah. Ia membaca dari data/metrik.js dan
+     tidak bergantung pada app.js — kegagalannya tidak boleh mengosongkan
+     halaman utama. -->
+<script type="module">
+  import { pasangMetrik } from '/assets/js/metrik-view.js';
+  pasangMetrik('metrikHost');
+
+  import { pasangDiagram } from '/assets/js/diagram-view.js';
+  pasangDiagram('diagramHost');
+
+  import { pasangSandbox } from '/assets/js/sandbox-view.js';
+  pasangSandbox('sandboxHost');
+</script>
 
 <!-- Gerbang verifikasi: setiap halaman memeriksa clearance (30 menit).
      Kalau belum ada, overlay Cloudflare-style muncul sebelum konten. -->

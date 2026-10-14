@@ -1,0 +1,221 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   DIAGRAM ARSITEKTUR
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA TIDAK ADA SVG ATAU KOTAK YANG SALING TERHUBUNG ───────────────────
+   Diagram alur bergaya bagan memakan lebar dan sulit dibaca di ponsel. Yang
+   dipakai di sini adalah daftar bernomor vertikal — ia menyampaikan urutan yang
+   sama, terbaca di layar sempit, dan bisa dibaca pembaca layar.
+
+   ── KENAPA WARNA JENIS DITAMPILKAN SEBAGAI TEPI KIRI, BUKAN LATAR ───────────
+   Latar berwarna membuat teksnya harus kontras dengan warna itu — dan menjaga
+   kontras di 5 warna berbeda jauh lebih sulit daripada menjaga satu warna teks.
+   Tepi kiri memberi penanda visual tanpa menyentuh keterbacaan teksnya.
+
+   Label jenisnya tetap ditulis, jadi yang tidak bisa membedakan warna tidak
+   kehilangan informasi.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.diagram-bagian {
+  margin: 5rem 0;
+}
+
+/* ── Tab ────────────────────────────────────────────────────────────────── */
+
+.alur-tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.alur-tab {
+  padding: 0.5rem 0.875rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.alur-tab:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+}
+
+.alur-tab--aktif {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: var(--line-soft);
+  color: var(--text);
+}
+
+.alur-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Panel ──────────────────────────────────────────────────────────────── */
+
+/* Wadah panel: hanya satu panel yang tampil sekaligus. Tanpa wadah ini,
+   panel yang disembunyikan masih memengaruhi tata letak grid induknya. */
+.alur-panel-wadah {
+  min-height: 1px;
+}
+
+.alur-panel-ringkas {
+  margin: 0 0 1.5rem;
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.alur-daftar {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* ── Satu langkah ───────────────────────────────────────────────────────── */
+
+.alur-langkah {
+  /* Tepi kiri sebagai penanda jenis — lihat catatan di atas. */
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.012);
+  overflow: hidden;
+}
+
+.alur-langkah--masuk  { border-left-color: #93c5fd; }
+.alur-langkah--aman   { border-left-color: #86efac; }
+.alur-langkah--proses { border-left-color: #c4b5fd; }
+.alur-langkah--simpan { border-left-color: #f7d77a; }
+.alur-langkah--keluar { border-left-color: #fca5a5; }
+
+/* ── Ringkasan (yang selalu terlihat) ───────────────────────────────────── */
+
+.alur-ringkas {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.875rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* Panah bawaan <summary> disembunyikan di WebKit; penanda buka-tutup dibuat
+   sendiri supaya konsisten lintas browser. */
+.alur-ringkas::-webkit-details-marker {
+  display: none;
+}
+
+.alur-ringkas:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.alur-ringkas:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.alur-nomor {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.alur-teks {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.alur-label {
+  display: block;
+  margin-bottom: 0.1875rem;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.alur-kalimat {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.alur-jenis {
+  flex: 0 0 auto;
+  padding: 0.125rem 0.4375rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  color: var(--text-faint);
+  font-size: 0.625rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── Isi (muncul saat diklik) ───────────────────────────────────────────── */
+
+.alur-isi {
+  padding: 0 1rem 1rem 2.75rem;
+}
+
+.alur-detail {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+.alur-fakta {
+  margin: 0.875rem 0 0;
+  padding-left: 1.125rem;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  line-height: 1.65;
+}
+
+.alur-fakta li {
+  margin-bottom: 0.375rem;
+}
+
+.alur-fakta li:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Layar sempit ───────────────────────────────────────────────────────── */
+
+@media (max-width: 40rem) {
+  .diagram-bagian {
+    margin: 3.5rem 0;
+  }
+
+  /* Lencana jenis pindah ke barisnya sendiri — di layar sempit ia mendesak
+     teksnya sampai terpotong. */
+  .alur-ringkas {
+    flex-wrap: wrap;
+  }
+
+  .alur-jenis {
+    order: 3;
+    margin-left: 2.25rem;
+  }
+
+  .alur-isi {
+    padding-left: 1rem;
+  }
+
+  .alur-tab {
+    flex: 1 1 auto;
+  }
+}
