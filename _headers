@@ -1,0 +1,73 @@
+# Header keamanan — Cloudflare Pages membaca berkas ini dan menyuntikkan
+# headernya ke setiap respons. Tanpa berkas ini, situs hanya punya dua header
+# keamanan (referrer-policy, x-content-type-options) dan tidak punya HSTS,
+# CSP, maupun proteksi framing.
+#
+# ── KENAPA HEADER INI PENTING UNTUK SITUS STATIS ────────────────────────────
+# Situs statis tetap punya permukaan serangan:
+#
+#   • Clickjacking — situs lain menaruh halaman ini dalam iframe transparan
+#     di atas tombol palsu. Pengunjung mengira menekan tombol kita, padahal
+#     menekan tombol penyerang. X-Frame-Options menutupnya.
+#
+#   • Downgrade HTTPS — permintaan pertama lewat http:// bisa disadap sebelum
+#     dialihkan. HSTS memaksa browser memakai HTTPS sejak permintaan pertama,
+#     dan tidak bisa dibatalkan pengunjung.
+#
+#   • Injeksi skrip — kalau suatu saat ada celah yang menyisipkan <script>,
+#     CSP membatasi apa yang boleh dijalankan dan ke mana data boleh dikirim.
+#
+#   • Kebocoran referrer — URL lengkap halaman terkirim ke situs luar saat
+#     pengunjung mengklik tautan keluar. Referrer-Policy memotongnya.
+#
+# ── KENAPA CSP-NYA SPESIFIK, BUKAN 'unsafe-inline' SAJA ─────────────────────
+# Halaman ini memakai skrip inline (20 blok) dan style inline (25 atribut),
+# jadi 'unsafe-inline' memang diperlukan — tanpa itu situs rusak. Tapi itu
+# BUKAN alasan untuk menyerah pada CSP: dengan daftar sumber eksplisit, skrip
+# yang disisipkan penyerang tetap tidak bisa mengirim data ke servernya
+# sendiri, karena connect-src hanya mengizinkan tujuan yang terdaftar.
+#
+# ── DAFTAR SUMBER ───────────────────────────────────────────────────────────
+# Dikumpulkan dari pemindaian seluruh berkas HTML dan JS:
+#
+#   challenges.cloudflare.com  → Turnstile (widget + skrip verifikasi)
+#   api.fontshare.com          → font (CSS)
+#   cdn.fontshare.com          → font (berkas .woff2 — BERBEDA dari api.*)
+#   fonts.googleapis.com       → font (CSS)
+#   fonts.gstatic.com          → font (berkas)
+#   cdn.jsdelivr.net           → pustaka pihak ketiga
+#   api.iconify.design         → ikon
+#   api.github.com             → status CI (badge pipeline)
+#   workers.dev                → backend sendiri (API akun/pesanan)
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Cross-Origin-Opener-Policy: same-origin
+  X-DNS-Prefetch-Control: on
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.github.com https://challenges.cloudflare.com https://api.iconify.design https://portfolio-victer.victerphanjaya.workers.dev; frame-src https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+
+# ── Aset statis: selalu divalidasi ulang, JANGAN di-cache lama ───────────────
+# Nama berkas TIDAK berisi hash isi (app.min.js, main.min.css) — nama yang sama
+# dipakai ulang setiap deploy. Kalau di-cache setahun, pengunjung akan memakai
+# JS/CSS lama sampai setahun sementara HTML-nya sudah baru: halaman rusak
+# dengan cara yang sangat sulit didiagnosis.
+#
+# max-age=0 + must-revalidate berarti browser selalu bertanya "masih sama?".
+# Dengan ETag, jawabannya sering "ya, pakai yang kamu punya" — hanya beberapa
+# ratus byte per berkas, bukan unduhan ulang.
+/assets/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# ── HTML: selalu divalidasi ulang ────────────────────────────────────────────
+# Halaman TIDAK boleh di-cache lama: pengunjung harus selalu mendapat versi
+# terbaru. ETag membuat validasi ini murah — server hanya mengirim ulang kalau
+# isinya benar-benar berubah.
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
