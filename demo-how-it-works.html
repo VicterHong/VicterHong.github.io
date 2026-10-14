@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How It Works — demo komponen | VIVASTIC</title>
+<meta name="description" content="Demo komponen How It Works: kartu langkah ber-nomor dengan jalur penghubung dan reveal satu per satu saat scroll.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0a0b">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!--
+  ── CSS: main.css dulu (token + tipografi), baru how-it-works.css ─────────────
+  Komponen ini memakai token dari main.css (--bg, --text, --accent, --ease).
+  Urutan ini wajib: kalau dibalik, token-nya belum ada saat komponen dimuat.
+-->
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/how-it-works.css">
+</head>
+<body class="hiw-page">
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  HOW IT WORKS — kartu langkah ber-nomor, disambung jalur, muncul satu per satu
+
+  ── CARA PAKAI DI HALAMAN LAIN ───────────────────────────────────────────────
+  1. Salin blok <section data-hiw> di bawah ke halaman tujuan
+  2. Tambah/ubah <li class="hiw-item"> sesuai langkah yang dibutuhkan
+     (tidak ada angka yang perlu disesuaikan — posisi & jalur dihitung sendiri)
+  3. Muat how-it-works.css + how-it-works.js di halaman itu
+  4. Panggil initHowItWorks() — lihat <script> di bawah
+
+  ── ATRIBUT PER LANGKAH ──────────────────────────────────────────────────────
+  data-tema="gold|biru|ungu"   warna kartu (gold = aksen situs, bawaan)
+
+  Nomor langkah ("01", "02", ...) ditulis di HTML, bukan dihitung JS — supaya
+  teksnya tetap ada kalau JavaScript dimatikan, dan supaya bisa diganti jadi
+  kata ("Langkah awal") tanpa menyentuh skrip.
+  ══════════════════════════════════════════════════════════════════════════════
+-->
+
+<header class="hiw-head">
+  <p class="hiw-eyebrow">Alur kerja</p>
+  <h1 class="hiw-title">Bagaimana prosesnya berjalan</h1>
+  <p class="hiw-lede">
+    Lima langkah dari percakapan pertama sampai proyek berjalan. Setiap langkah
+    muncul saat Anda sampai di sana.
+  </p>
+</header>
+
+<section data-hiw aria-labelledby="hiw-judul">
+  <h2 class="hiw-sr-only" id="hiw-judul" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;">
+    Langkah-langkah kerja
+  </h2>
+
+  <div class="hiw-stage">
+    <!--
+      Jalur penghubung. Kosong di HTML — isinya dibuat JS dari posisi kartu
+      yang sebenarnya, supaya tidak meleset saat jumlah/tinggi kartu berubah.
+      `aria-hidden` karena ini murni visual: pembaca layar sudah tahu urutannya
+      dari daftar bernomor di bawah.
+    -->
+    <svg class="hiw-jalur" aria-hidden="true" focusable="false"></svg>
+
+    <ol class="hiw-daftar">
+      <li class="hiw-item" data-tema="gold">
+        <article class="hiw-kartu">
+          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
+          </svg>
+          <div class="hiw-badan">
+            <span class="hiw-nomor">01</span>
+            <h3 class="hiw-judul">Ceritakan kebutuhan</h3>
+            <p class="hiw-deskripsi">
+              Satu percakapan singkat: apa yang ingin dicapai, apa yang sudah ada,
+              dan batasannya. Tidak ada kewajiban setelahnya.
+            </p>
+          </div>
+        </article>
+      </li>
+
+      <li class="hiw-item" data-tema="biru">
+        <article class="hiw-kartu">
+          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
+          </svg>
+          <div class="hiw-badan">
+            <span class="hiw-nomor">02</span>
+            <h3 class="hiw-judul">Rencana &amp; estimasi</h3>
+            <p class="hiw-deskripsi">
+              Anda menerima rincian lingkup, tahapan, dan perkiraan waktu. Semua
+              angka terbuka — tidak ada biaya yang muncul di tengah jalan.
+            </p>
+          </div>
+        </article>
+      </li>
+
+      <li class="hiw-item" data-tema="ungu">
+        <article class="hiw-kartu">
+          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
+          </svg>
+          <div class="hiw-badan">
+            <span class="hiw-nomor">03</span>
+            <h3 class="hiw-judul">Bangun bertahap</h3>
+            <p class="hiw-deskripsi">
+              Pekerjaan berjalan per tahap, dan setiap tahap bisa Anda lihat
+              hasilnya sebelum lanjut. Tidak ada kejutan di akhir.
+            </p>
+          </div>
+        </article>
+      </li>
+
+      <li class="hiw-item" data-tema="gold">
+        <article class="hiw-kartu">
+          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
+          </svg>
+          <div class="hiw-badan">
+            <span class="hiw-nomor">04</span>
+            <h3 class="hiw-judul">Uji &amp; serahkan</h3>
+            <p class="hiw-deskripsi">
+              Hasilnya diuji terhadap kebutuhan awal, bukan sekadar "sudah jadi".
+              Anda menerima kode, dokumentasi, dan cara menjalankannya.
+            </p>
+          </div>
+        </article>
+      </li>
+
+      <li class="hiw-item" data-tema="biru">
+        <article class="hiw-kartu">
+          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
+          </svg>
+          <div class="hiw-badan">
+            <span class="hiw-nomor">05</span>
+            <h3 class="hiw-judul">Dampingan setelahnya</h3>
+            <p class="hiw-deskripsi">
+              Pertanyaan setelah serah terima tetap dijawab. Kalau perlu
+              penyesuaian, itu percakapan terpisah — bukan tambahan diam-diam.
+            </p>
+          </div>
+        </article>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<script type="module">
+  // ── CARA MEMAKAI ───────────────────────────────────────────────────────────
+  // Modul ini mengekspor initHowItWorks(). Ia mencari [data-hiw] di halaman dan
+  // tidak melakukan apa-apa kalau tidak menemukannya — jadi aman dimuat di
+  // halaman yang tidak memakai komponen ini.
+  import { initHowItWorks } from './assets/js/how-it-works.js';
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => initHowItWorks(), { once: true });
+  } else {
+    initHowItWorks();
+  }
+</script>
+
+</body>
+</html>

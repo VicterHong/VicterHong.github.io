@@ -1,0 +1,328 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   HOW IT WORKS — kartu langkah ber-nomor dengan jalur penghubung
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── ASAL USUL ───────────────────────────────────────────────────────────────
+   Konversi dari komponen React/TSX (21st.dev, "How It Works" oleh chamaac) ke
+   vanilla JS + CSS untuk situs ini. Yang dibuang: React, motion/react,
+   Tailwind. Yang dipertahankan: gagasan visualnya — kartu ber-nomor, miring
+   bergantian, disambung jalur putus-putus, plus gerak scroll satu per satu.
+
+   ── KENAPA NOL DEPENDENSI ───────────────────────────────────────────────────
+   Situs ini sudah punya aturan tidak tertulis: `cinematic.js` menulis
+   "Nol dependency (PRIOR pakai GSAP; kita pakai rAF + IntersectionObserver)".
+   Menambah motion/react (±34 KB) untuk satu seksi berarti setiap pengunjung
+   membayar untuk animasi yang hanya dilihat sekali. Gerak yang sama bisa
+   dicapai dengan CSS transition + IntersectionObserver + satu rAF.
+
+   ── PRINSIP (dari panduan desain) ───────────────────────────────────────────
+   1. Tidak ada scroll-jacking — halaman tidak pernah dikunci atau dipindah
+      paksa. Pemicu gerak adalah posisi elemen, bukan posisi scroll global.
+   2. Jarak reveal KECIL (14px) supaya terbaca sebagai fade, bukan slide.
+   3. `prefers-reduced-motion` dihormati: semua elemen langsung di keadaan
+      akhir, tanpa transisi.
+   4. Tanpa JavaScript, semua konten tetap terlihat (lihat jaring pengaman).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Kerangka halaman demo ───────────────────────────────────────────────── */
+
+.hiw-page {
+  --hiw-card-w: 300px;
+  --hiw-gap: 2rem;
+  /* Satu sumber jarak reveal — dipakai CSS dan dibaca JS kalau perlu. */
+  --hiw-rise: 14px;
+
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 4rem 1.5rem 6rem;
+}
+
+.hiw-head {
+  max-width: 40rem;
+  margin: 0 auto 3.5rem;
+  text-align: center;
+}
+
+.hiw-eyebrow {
+  display: inline-block;
+  margin: 0 0 0.9rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-light);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hiw-title {
+  margin: 0 0 0.75rem;
+  font-size: var(--fs-5);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hiw-lede {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-3);
+  line-height: 1.6;
+}
+
+/* ── Panggung ─────────────────────────────────────────────────────────────── */
+
+.hiw-stage {
+  position: relative;
+  max-width: 62rem;
+  margin: 0 auto;
+}
+
+/* Jalur penghubung: hanya di layar lebar, karena di ponsel kartunya menumpuk
+   dan garis melengkung antar kartu justru menyesatkan. */
+.hiw-jalur {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.hiw-jalur path {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+  stroke-linecap: round;
+  /* Pola putus-putus yang sama dengan versi aslinya: 8 on, 6 off. */
+  stroke-dasharray: 8 6;
+}
+
+/* ── JALUR YANG TERGAMBAR ────────────────────────────────────────────────────
+   Lapisan aksen di atas jalur redup. Panjangnya diisi JS (`strokeDasharray` +
+   `strokeDashoffset`), dan transisi di bawah membuat tiap segmen tergambar
+   MENGALIR saat kartunya muncul — bukan melompat.
+
+   ── KENAPA TRANSISI DI SINI, BUKAN ANIMASI TERUS-MENERUS ────────────────────
+   Versi aslinya menganimasikan dashoffset tanpa henti (loop 3 detik). Gerak
+   yang tidak pernah berhenti menarik mata ke dirinya sendiri, bukan ke isinya.
+   Di sini garis bergerak HANYA saat ada kemajuan — scroll atau reveal kartu —
+   lalu diam. Geraknya membawa makna, bukan hiasan. */
+.hiw-jalur path.hiw-jalur-isi {
+  stroke: var(--accent);
+  stroke-dasharray: none;
+  transition: stroke-dashoffset 0.55s var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw-jalur path.hiw-jalur-isi { transition: none; }
+}
+
+.hiw-daftar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hiw-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Kartu ────────────────────────────────────────────────────────────────── */
+
+.hiw-item {
+  /* Keadaan awal: turun sedikit + transparan. JS menambahkan `.is-muncul`
+     saat kartu masuk viewport. */
+  opacity: 0;
+  transform: translateY(var(--hiw-rise));
+  transition:
+    opacity 0.42s var(--ease) var(--hiw-tunda, 0ms),
+    transform 0.42s var(--ease) var(--hiw-tunda, 0ms);
+}
+
+.hiw-item.is-muncul {
+  opacity: 1;
+  transform: none;
+}
+
+/* Jaring pengaman: tanpa JavaScript, atau kalau observer gagal, kartu tidak
+   boleh tersembunyi selamanya. `html:not(.js-ready)` dipasang app.js/demo ini
+   saat init berhasil — pola yang sama dengan [data-reveal] di main.css. */
+html:not(.js-ready) .hiw-item,
+.hiw-item.is-paksa {
+  opacity: 1;
+  transform: none;
+}
+
+.hiw-kartu {
+  position: relative;
+  width: 100%;
+  max-width: var(--hiw-card-w);
+  margin: 0 auto;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 25px;
+  background: var(--bg-card);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+
+.hiw-kartu:hover,
+.hiw-kartu:focus-within {
+  border-color: var(--line);
+  transform: translateY(-3px);
+}
+
+/* ── Pin ──────────────────────────────────────────────────────────────────── */
+
+.hiw-pin {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 1.5rem;
+  /* Warna diisi per-tema lewat --hiw-teks. */
+  color: var(--hiw-teks, var(--accent));
+}
+
+/* ── Badan kartu ──────────────────────────────────────────────────────────── */
+
+.hiw-badan {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  border: 1px solid var(--hiw-garis, var(--accent-line));
+  border-radius: 15px;
+  background: var(--hiw-latar, var(--accent-soft));
+}
+
+/* Nomor langkah. Versi aslinya memakai Comic Sans; di sini JetBrains Mono
+   supaya sejalan dengan bahasa visual situs (teknis, presisi) — dan angka
+   "01/02/03" memang terbaca lebih baik di huruf monospace. */
+.hiw-nomor {
+  display: block;
+  margin-bottom: 1.25rem;
+  color: var(--hiw-teks, var(--accent));
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 2.25rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.hiw-judul {
+  margin: 0 0 0.625rem;
+  color: var(--text);
+  font-size: var(--fs-4);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.hiw-deskripsi {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-2);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+}
+
+/* ── Tema warna ───────────────────────────────────────────────────────────────
+   Versi aslinya memakai orange/blue/purple terang untuk latar putih. Situs ini
+   berlatar hampir hitam dengan SATU aksen (emas) — jadi tiap tema di sini
+   adalah versi redup yang tetap menyatu: latar tipis, garis lebih tipis,
+   teks sebagai satu-satunya pembawa warna.
+
+   `gold` adalah bawaan karena itu warna aksen situs. `biru` dan `ungu`
+   disediakan kalau nanti perlu membedakan kelompok langkah. */
+.hiw-item[data-tema='gold'] {
+  --hiw-latar: var(--accent-soft);
+  --hiw-garis: var(--accent-line);
+  --hiw-teks: var(--accent);
+}
+
+.hiw-item[data-tema='biru'] {
+  --hiw-latar: rgba(96, 165, 250, 0.1);
+  --hiw-garis: rgba(96, 165, 250, 0.3);
+  --hiw-teks: #93c5fd;
+}
+
+.hiw-item[data-tema='ungu'] {
+  --hiw-latar: rgba(167, 139, 250, 0.1);
+  --hiw-garis: rgba(167, 139, 250, 0.3);
+  --hiw-teks: #c4b5fd;
+}
+
+/* ── Layar lebar: tata letak zigzag ───────────────────────────────────────────
+   Kartu bergantian kiri/kanan, sedikit miring, dan saling tumpang tindih
+   vertikal — supaya jalur penghubungnya punya ruang untuk melengkung.
+   `--hiw-tinggi` diisi JS: tinggi total panggung setelah kartu tersusun. */
+@media (min-width: 768px) {
+  .hiw-daftar {
+    display: block;
+    position: relative;
+    height: var(--hiw-tinggi, auto);
+  }
+
+  /* ── POSISI HORIZONTAL: KIRI / KANAN BERGANTIAN ─────────────────────────────
+     ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
+     Versi pertama hanya mengatur `left: 50%` untuk SEMUA kartu — jadi semua
+     menumpuk di tengah dan `data-putar` hanya memiringkannya di tempat.
+     Hasilnya: tumpukan kartu miring, bukan jalur zigzag.
+
+     Sekarang kartu ganjil menempel ke kiri, genap ke kanan — dan jalur
+     penghubung punya ruang horizontal untuk melengkung di antaranya.
+     Angkanya dari versi aslinya (left-[15%] / right-[15%]). */
+  .hiw-item {
+    position: absolute;
+    width: var(--hiw-card-w);
+  }
+
+  .hiw-item[data-putar='kanan'] { left: 8%; }
+  .hiw-item[data-putar='kiri'] { right: 8%; }
+
+  .hiw-kartu {
+    max-width: none;
+  }
+
+  /* Kemiringan kecil (3-4 derajat). Lebih dari itu membuat teks sulit dibaca
+     dan di layar sentuh terasa seperti halaman yang rusak. */
+  .hiw-item[data-putar='kanan'] .hiw-kartu { transform: rotate(3deg); }
+  .hiw-item[data-putar='kiri'] .hiw-kartu { transform: rotate(-3deg); }
+
+  .hiw-item[data-putar='kanan'] .hiw-kartu:hover,
+  .hiw-item[data-putar='kanan'] .hiw-kartu:focus-within {
+    transform: rotate(3deg) translateY(-3px);
+  }
+
+  .hiw-item[data-putar='kiri'] .hiw-kartu:hover,
+  .hiw-item[data-putar='kiri'] .hiw-kartu:focus-within {
+    transform: rotate(-3deg) translateY(-3px);
+  }
+}
+
+/* ── Gerak yang dikurangi ────────────────────────────────────────────────────
+   Semua elemen langsung di keadaan akhir. Tidak ada transisi, tidak ada
+   jalur yang tergambar — informasinya tetap utuh, geraknya yang hilang. */
+@media (prefers-reduced-motion: reduce) {
+  .hiw-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .hiw-kartu {
+    transition: none;
+  }
+
+  .hiw-item[data-putar] .hiw-kartu {
+    transform: none;
+  }
+
+  .hiw-jalur path.hiw-jalur-isi {
+    stroke-dashoffset: 0;
+  }
+}
