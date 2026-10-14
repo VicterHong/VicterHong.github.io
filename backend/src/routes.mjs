@@ -103,6 +103,7 @@ import {
 } from './http-util.mjs';
 import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
 import { ruteAuth } from './auth-routes.mjs';
+import { ruteKlien } from './klien-routes.mjs';
 import { providerSiap } from './oauth.mjs';
 import { siapkanTabelIdentitas, bersihkanStateOauth, bersihkanChallenge } from './auth-identities.mjs';
 
@@ -4274,6 +4275,17 @@ export const routes = [
   //   GET  /api/auth/identitas                  → daftar cara masuk
   //   POST /api/auth/identitas/hapus            → cabut satu cara masuk
   ...ruteAuth(),
+
+  // ── AREA KLIEN ────────────────────────────────────────────────────────────
+  // Semua rute ini BUTUH LOGIN. Isinya: daftar proyek dengan status akses,
+  // data metrik (dengan pemeriksaan paket), pembuatan token (dengan
+  // pemeriksaan kuota), dan klaim bonus star (dengan verifikasi GitHub).
+  //
+  // Dipisah dari auth-routes.mjs karena mengurus hal yang berbeda: berkas itu
+  // soal IDENTITAS (siapa kamu, bagaimana masuk), berkas ini soal apa yang
+  // BOLEH KAMU LAKUKAN setelah masuk. Aturan langganan bisa berubah tanpa
+  // menyentuh berkas identitas yang sudah 1400+ baris.
+  ...ruteKlien(),
 ];
 
 /** Cari rute yang cocok untuk satu permintaan. */
