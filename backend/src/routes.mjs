@@ -53,6 +53,10 @@ import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
 // dan ia membuat sesinya sendiri dengan createSession(), tidak lewat
 // buatSesiUntuk(). Jadi pencatatan harus disambungkan di sini juga.
 import { catatPaketGratis, punyaLanggananBerbayar } from './paket-akun.mjs';
+// ── paketPengguna UNTUK MENANDAI TOMBOL PAKET AKTIF ──────────────────────────
+// Dipakai /api/checkout/konteks supaya halaman harga tahu paket mana yang
+// sedang dipakai pengguna, lalu menonaktifkan tombolnya.
+import { paketPengguna } from './akses-proyek.mjs';
 
 /**
  * Catat paket gratis untuk pengguna yang baru masuk — kalau memang tidak berbayar.
@@ -1103,6 +1107,22 @@ export const routes = [
         masuk: true,
         email,
         nama: pengguna.nama || '',
+        // ── PAKET YANG SEDANG DIPAKAI ────────────────────────────────────────
+        //
+        // Dipakai halaman harga untuk menandai tombol paket yang sedang aktif
+        // sebagai "Sedang digunakan" dan menonaktifkannya — supaya pengunjung
+        // tidak mencoba berlangganan paket yang sudah dia pakai.
+        //
+        // ── KENAPA DI SINI, BUKAN ENDPOINT BARU ──────────────────────────────
+        // Halaman harga SUDAH memanggil endpoint ini saat tombol paket ditekan.
+        // Menambah satu bidang di sini berarti tidak ada permintaan tambahan,
+        // dan tidak ada endpoint baru yang harus dijaga konsisten.
+        //
+        // ── KENAPA 'gratis' UNTUK YANG TIDAK PUNYA LANGGANAN ─────────────────
+        // paketPengguna() mengembalikan 'gratis' sebagai default. Itu memang
+        // paket yang berlaku untuk akun tanpa langganan berbayar — dan justru
+        // itulah yang membuat tombol paket Gratis bisa ditandai dengan benar.
+        paket: paketPengguna(pengguna.id),
         punya_2fa: punya2fa,
         // Sudo aktif = tidak perlu kode lagi (baru saja masuk lewat 2FA,
         // atau baru saja memverifikasi). Jendela 30 menit.

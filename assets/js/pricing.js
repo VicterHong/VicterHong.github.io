@@ -143,7 +143,87 @@ function tombol(teks, gaya, href) {
  * Paket tanpa harga (Enterprise) memang mengajak bicara; untuk itu <a> ke
  * bagian kontak sudah benar.
  */
-function tombolPaket(paket, periode, hrefKontak) {
+function tombolPaket(paket, periode, hrefKontak, paketAktif) {
+  // ══ 1. PAKET YANG SEDANG DIPAKAI ═════════════════════════════════════════
+  //
+  // ── KENAPA TOMBOLNYA DINONAKTIFKAN, BUKAN DISEMBUNYI ──────────────────────
+  // Menyembunyikan tombolnya membuat kartunya terlihat rusak: pengunjung yang
+  // sadar paket itu ada akan mengira halamannya salah muat. Menonaktifkan
+  // dengan label "Sedang digunakan" menjawab pertanyaannya di tempat:
+  // "kenapa saya tidak bisa menekan ini?" → "karena sudah aktif".
+  //
+  // ── KENAPA DISABLED, BUKAN DIHILANGKAN DARI TAB ORDER ────────────────────
+  // Tombol yang dinonaktifkan tetap bisa dibaca pembaca layar, dan alasannya
+  // disampaikan lewat aria-describedby. Kalau elemennya dihilangkan, pengguna
+  // pembaca layar tidak tahu paket itu ada sama sekali.
+  if (paketAktif && paket.id === paketAktif) {
+    const b = el('button', 'tombol tombol--seragam tombol--aktif');
+    b.type = 'button';
+    b.disabled = true;
+    b.setAttribute('aria-disabled', 'true');
+
+    // Alasan yang bisa dibaca pembaca layar — bukan cuma labelnya.
+    const alasan = el('span', 'sr-only',
+      `Paket ${paket.nama} sedang aktif di akun Anda. Tidak perlu berlangganan lagi.`);
+    alasan.id = `alasan-paket-${paket.id}`;
+    b.setAttribute('aria-describedby', alasan.id);
+
+    // ── TITIK PENANDA SEBAGAI ELEMEN ANAK, BUKAN ::before ────────────────────
+    // ── BUG YANG DIPERBAIKI ──────────────────────────────────────────────────
+    // Versi pertama memakai ::before dengan display: inline-block. Titik 6px
+    // itu menambah tinggi LINE BOX tombol, dan karena tombol normal memakai
+    // `display: flex` sedangkan versi itu `inline-flex`, keduanya tidak
+    // sejajar: tombol mati jadi 62px sementara tombol lain 44px. Terukur.
+    //
+    // Sebagai elemen anak, titiknya jadi flex item — ikut di tengah secara
+    // vertikal tanpa menambah tinggi apa pun. display: flex-nya sama persis
+    // dengan tombol paket lain, jadi tingginya pasti sama.
+    const titik = el('span', 'tombol-aktif-titik');
+    titik.setAttribute('aria-hidden', 'true');
+
+    // ── LABEL DIPENDEKKAN: "Paket aktif", BUKAN "Sedang digunakan" ────────────
+    // ── KENAPA ────────────────────────────────────────────────────────────────
+    // "Sedang digunakan" butuh 128px. Lebar isi tombol di desktop hanya 140px
+    // (lebar kartu 188px dikurangi padding 24px kiri-kanan). Sisa 12px itu
+    // tidak cukup untuk titik penanda (6px) plus jaraknya (8px) — jadi
+    // titiknya harus diposisikan absolut, dan hasilnya terlihat tidak
+    // seimbang: teks di tengah, titik menggantung di kiri.
+    //
+    // "Paket aktif" butuh sekitar 80px. Dengan titik sebagai flex item biasa,
+    // keduanya bisa di tengah BERSAMA — tidak ada yang menggantung.
+    //
+    // Artinya sama jelasnya, dan justru lebih tegas: "aktif" menyatakan
+    // keadaan, "sedang digunakan" menyatakan proses.
+    b.append(titik, 'Paket aktif');
+
+    const wadah = el('span', 'tombol-aktif-wadah');
+    wadah.append(b, alasan);
+    return wadah;
+  }
+
+  // ══ 2. PAKET GRATIS: TIDAK PERNAH MASUK ALUR PEMBAYARAN ══════════════════
+  //
+  // ── BUG YANG DIPERBAIKI ──────────────────────────────────────────────────
+  // Pemeriksaannya dulu `paket.harga?.normal != null`. Untuk paket Gratis
+  // hargaNormal-nya 0, dan `0 != null` bernilai TRUE — jadi tombol Gratis
+  // dirender sebagai tombol PEMBAYARAN.
+  //
+  // Akibatnya: menekan "Mulai gratis" membuka dialog berjudul "Langganan
+  // Gratis" dengan total "Gratis", lalu server menolaknya karena cariHarga()
+  // memang menolak harga 0. Pengunjung melihat dialog pembayaran untuk paket
+  // yang tidak perlu dibayar.
+  //
+  // Yang benar: harga 0 bukan paket berbayar. Tombolnya mengarahkan ke
+  // pendaftaran, bukan ke pembayaran.
+  const gratis = paket.harga?.normal === 0;
+  if (gratis) {
+    const tujuan = `/sign-up?lanjut=${encodeURIComponent('/pricing')}`;
+    const a = el('a', `tombol tombol--${paket.cta?.gaya ?? 'seragam'}`);
+    a.href = tujuan;
+    a.append(paket.cta?.teks ?? 'Mulai gratis', ' ', panahKeluar());
+    return a;
+  }
+
   const berbayar = paket.harga?.normal != null;
 
   if (!berbayar) {
@@ -604,7 +684,7 @@ function formatHarga(paket, periode) {
   };
 }
 
-function gambarKartu(paket, hrefKontak, periode) {
+function gambarKartu(paket, hrefKontak, periode, paketAktif) {
   const kartu = el('div', `harga-kartu${paket.unggulan ? ' harga-kartu--unggulan' : ''}`);
   kartu.dataset.paket = paket.id;
 
@@ -749,7 +829,7 @@ function gambarKartu(paket, hrefKontak, periode) {
   }
   kartu.appendChild(ul);
 
-  kartu.appendChild(tombolPaket(paket, periode, hrefKontak));
+  kartu.appendChild(tombolPaket(paket, periode, hrefKontak, paketAktif));
 
   return kartu;
 }
@@ -1129,11 +1209,45 @@ async function mulai() {
 
     let periodeAktif = data.periode?.default ?? 'bulanan';
 
+    // ── PAKET YANG SEDANG DIPAKAI ────────────────────────────────────────────
+    //
+    // ── KENAPA DIMUAT SEBELUM KARTU DIGAMBAR ─────────────────────────────────
+    // Kalau kartunya digambar dulu lalu tombolnya diperbarui belakangan,
+    // pengunjung melihat tombol aktif berkedip berubah jadi "Sedang digunakan"
+    // — dan kedipan itu justru menarik perhatian ke hal yang salah.
+    //
+    // Satu permintaan sebelum render: tidak ada kedipan, tidak ada kartu yang
+    // sempat salah.
+    //
+    // ── KENAPA GAGALNYA DIAM-DIAM ────────────────────────────────────────────
+    // Endpoint ini butuh sesi. Pengunjung yang belum masuk akan menerima 401
+    // — dan itu keadaan NORMAL, bukan error. Kalau kegagalannya ditampilkan,
+    // setiap pengunjung baru akan melihat pesan error di halaman harga.
+    //
+    // null berarti "tidak tahu paket siapa" → semua tombol tampil normal.
+    // Itu keadaan yang benar untuk pengunjung yang belum masuk.
+    let paketAktif = null;
+    try {
+      const res = await fetch('/api/checkout/konteks', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      if (res.ok) {
+        const ctx = await res.json().catch(() => null);
+        if (ctx?.masuk && ctx.paket) paketAktif = ctx.paket;
+      }
+    } catch {
+      // Tidak bisa memeriksa: tampilkan semua tombol normal. Lebih baik
+      // pengunjung bisa menekan tombol yang ternyata sudah aktif (dan
+      // servernya menolak dengan jelas) daripada semua tombol mati karena
+      // satu permintaan gagal.
+    }
+
     const gambarKartuSemua = () => {
       if (!grid) return;
       grid.className = 'harga-grid';
       grid.replaceChildren(
-        ...data.paket.map((p) => gambarKartu(p, hrefKontak, periodeAktif)),
+        ...data.paket.map((p) => gambarKartu(p, hrefKontak, periodeAktif, paketAktif)),
       );
     };
 

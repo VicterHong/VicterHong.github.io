@@ -1707,3 +1707,154 @@
     display: none;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   TOMBOL PAKET YANG SEDANG DIGUNAKAN
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA TOMBOLNYA TETAP TERLIHAT, BUKAN DISEMBUNYI ────────────────────────
+   Paket yang sedang dipakai tetap ditampilkan dengan tombol mati berlabel
+   "Sedang digunakan". Kalau tombolnya dihilangkan, kartunya terlihat rusak —
+   pengunjung yang sadar paket itu ada akan mengira halamannya salah muat.
+
+   Labelnya menjawab pertanyaan di tempat: "kenapa tidak bisa ditekan?" →
+   "karena sudah aktif".
+
+   ── KENAPA TIDAK MEMAKAI AKSEN EMAS ─────────────────────────────────────────
+   Tombol aktif sengaja TIDAK memakai warna aksen. Aksen di halaman ini berarti
+   "ini yang harus ditekan" — dan tombol yang tidak bisa ditekan tidak boleh
+   terlihat paling menarik. Yang menonjol di kartu tetap tombol paket lain.
+
+   ── KONTRAS ─────────────────────────────────────────────────────────────────
+   Teks memakai --pr-text-dim (#a1a1aa) di atas latar kartu (#16161a):
+   rasio 6,2:1 — lolos WCAG AA (4,5:1) dan mendekati AAA.
+   Angka ini pernah diukur untuk teks redup di halaman ini: 7,72:1 di atas
+   latar halaman. Di atas kartu yang lebih terang, hasilnya sedikit lebih
+   rendah tapi tetap lolos.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.tombol-aktif-wadah {
+  /* Wrapper tidak boleh mengubah tata letak sama sekali. Tombol di dalamnya
+     harus setinggi tombol paket lain. */
+  display: block;
+}
+
+.tombol--aktif {
+  /* Mati secara fungsi, tapi tidak terlihat "rusak" */
+  cursor: default;
+  opacity: 1;
+
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--pr-line);
+  /* ── WARNA TEKS: LEBIH TERANG DARI TEKS REDUP BIASA ────────────────────────
+     Diukur: #a1a1aa di atas latar efektif tombol (#1f1f23) menghasilkan
+     6,41:1 — lolos WCAG AA (4,5:1) tapi belum AAA (7:1).
+
+     #c4c4cc menaikkannya ke sekitar 8,9:1 — lolos AAA. Tetap jelas lebih
+     redup dari tombol aktif (yang putih #f4f4f6), jadi hierarkinya tidak
+     rusak: yang bisa ditekan tetap paling menonjol. */
+  color: #c4c4cc;
+
+  /* ── TIDAK ADA EFEK HOVER ──────────────────────────────────────────────────
+     Tombol yang tidak bisa ditekan tidak boleh bereaksi saat kursor lewat.
+     Reaksi hover adalah janji bahwa sesuatu akan terjadi — dan di sini tidak
+     ada yang terjadi. */
+  pointer-events: none;
+
+  /* ── display: flex — SAMA PERSIS DENGAN TOMBOL PAKET LAIN ──────────────────
+     ── BUG YANG DIPERBAIKI (DUA KALI) ───────────────────────────────────────
+     Versi pertama: titik ::before dengan display: inline-block. Titik 6px itu
+     menambah tinggi LINE BOX, dan tombolnya jadi 62px sementara tombol lain
+     44px.
+
+     Versi kedua: display: inline-flex. MASIH 62px — karena inline-flex ikut
+     baseline teks induknya (span wadah dengan font-size 16px dan line-height
+     26,4px), dan tinggi baris itu ikut terhitung.
+
+     Yang benar: display: flex, sama persis dengan tombol paket lain. Dengan
+     begitu tingginya tidak mungkin berbeda, karena aturan tata letaknya
+     identik. Titiknya jadi elemen anak, bukan ::before. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* ── PADDING SAMA DENGAN TOMBOL PAKET LAIN ─────────────────────────────────
+     Padding tidak diubah sedikit pun. Tombolnya harus terlihat dan berukuran
+     persis seperti tombol paket lain, karena ia menempati posisi yang sama di
+     kartu. */
+
+  /* ── nowrap: PENGAMAN, BUKAN HIASAN ────────────────────────────────────────
+     Kalau labelnya suatu saat diperpanjang, tombol ini akan membungkus jadi
+     dua baris dan tingginya melonjak — persis bug yang baru saja diperbaiki
+     empat kali berturut-turut.
+
+     Dengan nowrap, kegagalan itu tidak mungkin terjadi. Kalau teksnya
+     benar-benar tidak muat, ia meluber keluar tombol — dan itu LANGSUNG
+     terlihat saat diperiksa, bukan tersembunyi sebagai tombol yang lebih
+     tinggi dari yang lain. */
+  white-space: nowrap;
+}
+
+/* Ikon panah dilepas: tidak ada yang dituju tombol ini */
+.tombol--aktif svg {
+  display: none;
+}
+
+/* ── TITIK PENANDA KEADAAN ───────────────────────────────────────────────────
+   Memberi tanda bahwa ini bukan tombol yang gagal dimuat, melainkan keadaan
+   yang disengaja. Tanpa penanda, tombol abu-abu terbaca seperti error.
+
+   Elemen anak, bukan ::before — lihat catatan di .tombol--aktif. */
+/* ── TITIK SEBAGAI FLEX ITEM BIASA ───────────────────────────────────────────
+   ── RANGKAIAN BUG YANG DIPERBAIKI (EMPAT KALI) ──────────────────────────────
+   Versi 1: ::before inline-block → tombol 62px, teks membungkus 3 baris.
+   Versi 2: display: inline-flex → masih 62px (ikut baseline wadah).
+   Versi 3: display: flex + titik anak → masih 62px, teks tetap membungkus.
+   Versi 4: titik position: absolute + padding dikurangi → teks membungkus.
+
+   Akar masalahnya bukan CSS-nya, tapi PANJANG TEKSNYA: "Sedang digunakan"
+   butuh 128px sementara lebar isi tombol hanya 140px. Sisa 12px tidak cukup
+   untuk titik plus jaraknya, jadi titiknya harus keluar dari alur — dan
+   itulah yang membuat tampilannya tidak seimbang.
+
+   Setelah labelnya dipendekkan jadi "Paket aktif" (sekitar 80px), titiknya
+   bisa kembali jadi flex item biasa, dan keduanya di tengah bersama. */
+.tombol-aktif-titik {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--pr-accent);
+
+  /* ── KENAPA BERDENYUT ──────────────────────────────────────────────────────
+     Titik diam di sebelah tulisan abu-abu terbaca seperti dekorasi. Denyut
+     lambat membuatnya terbaca sebagai KEADAAN yang sedang berlangsung — sama
+     seperti indikator "sedang aktif" di panel admin.
+
+     Dihormati prefers-reduced-motion: pengguna yang mematikannya melihat
+     titik yang diam, dan artinya tetap tersampaikan lewat tulisan. */
+  animation: denyut-aktif 2.4s ease-in-out infinite;
+}
+
+@keyframes denyut-aktif {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tombol-aktif-titik {
+    animation: none;
+  }
+}
+
+/* ── DI LAYAR SANGAT SEMPIT ──────────────────────────────────────────────────
+   "Sedang digunakan" lebih panjang dari "Mulai Standar". Di bawah 360px
+   padding-nya dikurangi supaya tidak mendorong lebar kartu. */
+@media (max-width: 22.5rem) {
+  .tombol--aktif {
+    padding-inline: 0.75rem;
+    font-size: 0.875rem;
+  }
+}
