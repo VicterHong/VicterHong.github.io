@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 440 perubahan dari 442 commit (2026-10-01 → 2026-10-14).
+Total 444 perubahan dari 450 commit (2026-10-01 → 2026-10-14).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -37,6 +37,9 @@ Total 440 perubahan dari 442 commit (2026-10-01 → 2026-10-14).
 
 ### Perbaikan
 
+- **changelog**: Muat logo-mount.js sebagai module — monogram hilang (`67c9974`)
+- **build**: Jangan deploy cloudflare.config.ts — ia membocorkan topologi (`6b10630`)
+- **angka**: Sinkronkan hitungan tes 1.428 → 1.467 di tiga tempat (`8b03f8c`)
 - **beranda**: Hapus 2 em-dash yang terlihat di bagian metrik & sandbox (`78c3e90`)
 - **sentinel**: Panel detail selalu tampil & tombol Tutup tidak bekerja (`7c71de9`)
 - **panduan**: Tabel perbandingan salah baca satu kolom penuh (`0b45765`)
@@ -49,6 +52,7 @@ Total 440 perubahan dari 442 commit (2026-10-01 → 2026-10-14).
 
 ### Dokumentasi
 
+- **runbook**: Tambah prosedur rollback yang sebelumnya tidak ada (`6f5bc10`)
 - **midtrans**: Perbaiki menu dashboard + kunci URL webhook dengan tes (`0fb98ff`)
 
 ### Pemeliharaan

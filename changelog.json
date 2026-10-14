@@ -1,18 +1,18 @@
 {
- "dibuat": "2026-10-14T16:01:38.741Z",
- "totalCommit": 442,
- "totalDicatat": 440,
+ "dibuat": "2026-10-14T19:18:44.831Z",
+ "totalCommit": 450,
+ "totalDicatat": 444,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-14",
  "rilis": [
   {
    "tanggal": "2026-10-14",
-   "jumlah": 37,
+   "jumlah": 41,
    "ringkasan": {
     "fitur": 24,
-    "perbaikan": 9,
+    "perbaikan": 12,
     "performa": 0,
-    "dokumentasi": 1,
+    "dokumentasi": 2,
     "data": 0,
     "pemeliharaan": 3
    },
@@ -148,6 +148,21 @@
      "label": "Perbaikan",
      "item": [
       {
+       "hash": "67c9974",
+       "teks": "Muat logo-mount.js sebagai module — monogram hilang",
+       "scope": "changelog"
+      },
+      {
+       "hash": "6b10630",
+       "teks": "Jangan deploy cloudflare.config.ts — ia membocorkan topologi",
+       "scope": "build"
+      },
+      {
+       "hash": "8b03f8c",
+       "teks": "Sinkronkan hitungan tes 1.428 → 1.467 di tiga tempat",
+       "scope": "angka"
+      },
+      {
        "hash": "78c3e90",
        "teks": "Hapus 2 em-dash yang terlihat di bagian metrik & sandbox",
        "scope": "beranda"
@@ -198,6 +213,11 @@
      "kunci": "dokumentasi",
      "label": "Dokumentasi",
      "item": [
+      {
+       "hash": "6f5bc10",
+       "teks": "Tambah prosedur rollback yang sebelumnya tidak ada",
+       "scope": "runbook"
+      },
       {
        "hash": "0fb98ff",
        "teks": "Perbaiki menu dashboard + kunci URL webhook dengan tes",
