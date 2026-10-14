@@ -56,6 +56,11 @@ Perintah:
   show      --id <token_id>
   revoke    --id <token_id> [--reason <teks>]
   audit     [--project <slug>] [--token <token_id>] [--limit <n>]
+  langganan --aksi lihat    --email <email>
+  langganan --aksi aktifkan --email <email> --paket <standar|profesional|enterprise>
+                            [--periode bulanan|tahunan]
+            (dipakai kalau aktivasi otomatis gagal: email belum terdaftar,
+             atau paket tidak dikenal saat pembayaran masuk)
   leads     [--status new|contacted|review] [--limit <n>]
   review    [--limit <n>]            lead yang ditandai mencurigakan (status review)
   mark      --id <lead_id> --status <new|contacted|review|spam>  ubah status lead
@@ -357,6 +362,87 @@ async function main() {
         console.log(output);
       }
       return 0;
+    }
+
+    case 'langganan': {
+      // ── PERINTAH: kelola langganan pengguna ───────────────────────────────
+      //
+      // ── KENAPA PERINTAH INI ADA ────────────────────────────────────────────
+      // Aktivasi langganan berjalan otomatis dari webhook Midtrans. Tapi ada
+      // dua kasus di mana aktivasi otomatis GAGAL, dan keduanya bukan
+      // kesalahan teknis:
+      //
+      //   1. Pembeli membayar dengan email yang belum didaftarkan
+      //   2. Paketnya tidak dikenal (mis. diketik manual di dashboard Midtrans)
+      //
+      // Dalam kedua kasus itu, uangnya sudah masuk tapi aksesnya tidak bisa
+      // dibuat otomatis. Tanpa perintah ini, satu-satunya jalan adalah
+      // mengedit database langsung — dan itu rawan salah.
+      const aksi = arg('--aksi', 'lihat');
+
+      if (aksi === 'lihat') {
+        const email = arg('--email');
+        if (!email) {
+          console.error('  Butuh --email <email>');
+          return 1;
+        }
+        const pengguna = db.prepare('SELECT id, email, nama FROM users WHERE lower(email) = ?')
+          .get(String(email).trim().toLowerCase());
+
+        if (!pengguna) {
+          console.log(`  Tidak ada akun dengan email "${email}".`);
+          return 1;
+        }
+
+        const baris = db.prepare(`
+          SELECT paket, periode, mulai_at, selesai_at, status, payment_id
+          FROM langganan WHERE user_id = ? ORDER BY dibuat_at DESC
+        `).all(pengguna.id);
+
+        console.log(`\n  Langganan ${pengguna.email} (${pengguna.nama}):`);
+        if (!baris.length) {
+          console.log('    (belum ada langganan)');
+        }
+        for (const b of baris) {
+          const selesai = b.selesai_at ? new Date(b.selesai_at).toISOString().slice(0, 10) : '—';
+          console.log(`    ${b.paket.padEnd(13)} ${b.periode.padEnd(9)} selesai ${selesai}  [${b.status}]`);
+        }
+        console.log('');
+        return 0;
+      }
+
+      if (aksi === 'aktifkan') {
+        const email = arg('--email');
+        const paket = arg('--paket');
+        const periode = arg('--periode', 'bulanan');
+
+        if (!email || !paket) {
+          console.error('  Butuh --email <email> --paket <standar|profesional|enterprise> [--periode bulanan|tahunan]');
+          return 1;
+        }
+
+        const { aktifkanLangganan } = await import('./langganan-aktivasi.mjs');
+        const hasil = aktifkanLangganan({
+          // Tanpa paymentId: ini aktivasi manual, bukan dari pembayaran.
+          // Kalau diberi paymentId palsu, idempotensinya akan salah.
+          paymentId: null,
+          email,
+          paket,
+          periode,
+        });
+
+        if (hasil.aktif) {
+          console.log(`  ✅ ${hasil.pesan}`);
+          const selesai = new Date(hasil.langganan.selesai_at).toISOString().slice(0, 10);
+          console.log(`     Aktif sampai ${selesai}`);
+          return 0;
+        }
+        console.error(`  ✗ ${hasil.pesan}`);
+        return 1;
+      }
+
+      console.error('  --aksi harus: lihat | aktifkan');
+      return 1;
     }
 
     case 'notify-test': {

@@ -665,8 +665,24 @@ function migrate(handle) {
       periode       TEXT NOT NULL DEFAULT 'bulanan',
       mulai_at      INTEGER NOT NULL,
       selesai_at    INTEGER,                    -- NULL = masih berjalan
-      status        TEXT NOT NULL DEFAULT 'aktif',  -- aktif | berakhir | dibatalkan
-      dibuat_at     INTEGER NOT NULL
+      status        TEXT NOT NULL DEFAULT 'aktif',
+      -- aktif | diperpanjang | berakhir | dibatalkan
+      --
+      -- 'diperpanjang' dibedakan dari 'berakhir': yang pertama berarti
+      -- pengguna membayar lagi dan masa aktifnya digantikan baris baru;
+      -- yang kedua berarti waktunya habis sendiri.
+      dibuat_at     INTEGER NOT NULL,
+
+      -- ── KENAPA payment_id UNIK ────────────────────────────────────────────
+      -- Midtrans bisa mengirim webhook yang sama lebih dari sekali (kalau
+      -- balasan kita lambat). Kalau setiap webhook menambah masa aktif,
+      -- pembeli mendapat 2× masa aktif dari 1× pembayaran.
+      --
+      -- UNIQUE di sini membuat pelanggaran itu DITOLAK DATABASE — bukan hanya
+      -- diperiksa kode. Pemeriksaan kode punya celah: dua webhook yang datang
+      -- BERSAMAAN bisa dua-duanya membaca "belum ada" sebelum salah satunya
+      -- menulis. Database tidak punya celah itu.
+      payment_id    TEXT UNIQUE
     );
 
     CREATE INDEX IF NOT EXISTS idx_langganan_user   ON langganan(user_id);
@@ -744,6 +760,22 @@ function migrate(handle) {
       dicek_at     INTEGER NOT NULL
     );
   `);
+
+  // ── LANGGANAN: kolom payment_id ───────────────────────────────────────────
+  // Database yang dibuat SEBELUM fitur aktivasi otomatis belum punya kolom
+  // ini. Tanpa migrasi, INSERT-nya gagal dengan "no such column: payment_id"
+  // dan pembeli yang sudah membayar tidak mendapat langganannya.
+  //
+  // UNIQUE tidak bisa ditambahkan lewat addColumn() (SQLite hanya
+  // mengizinkan kolom baru tanpa constraint tabel). Jadi indeks uniknya
+  // dibuat terpisah — hasilnya sama: duplikat ditolak.
+  addColumn('langganan', 'payment_id', 'TEXT');
+  try {
+    handle.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_langganan_payment ON langganan(payment_id) WHERE payment_id IS NOT NULL');
+  } catch {
+    // Kalau sudah ada (atau database lama punya duplikat), jangan gagalkan
+    // migrasi — indeks adalah pengaman tambahan, bukan syarat berjalannya.
+  }
 
   addColumn('sessions', 'wilayah', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'asn', "TEXT NOT NULL DEFAULT ''");

@@ -534,6 +534,47 @@ async function tanganiTransaksi(payload) {
 
   console.log(`[midtrans] ✅ ${orderId} dibayar — token ${token.id} diterbitkan untuk ${bayar.email}`);
 
+  // ── AKTIFKAN LANGGANAN ─────────────────────────────────────────────────────
+  //
+  // ── BUG YANG DIPERBAIKI: PEMBELI TIDAK MENDAPAT AKSES PAKETNYA ───────────
+  // Webhook ini sudah menerbitkan TOKEN AKSES, tapi paket pengguna dibaca dari
+  // tabel `langganan` — dan tabel itu tidak pernah diisi. Akibatnya pembeli
+  // yang sudah membayar tetap dianggap GRATIS: semua proyek terkunci dan dia
+  // tidak bisa membuat token. Uangnya masuk, aksesnya tidak.
+  //
+  // ── KENAPA HASILNYA DIPERIKSA, BUKAN DIAIBAIKAN ──────────────────────────
+  // Aktivasi bisa gagal dengan cara yang TIDAK salah secara teknis:
+  //   · pembeli membayar dengan email yang belum terdaftar
+  //   · paketnya tidak dikenal
+  //
+  // Dalam kasus itu, pembayaran TETAP SAH (uangnya sudah masuk) tapi aksesnya
+  // tidak bisa dibuat otomatis. Itu harus terlihat di log supaya bisa
+  // ditindaklanjuti manual — bukan gagal diam-diam.
+  try {
+    const { aktifkanLangganan } = await import('./langganan-aktivasi.mjs');
+
+    const hasil = aktifkanLangganan({
+      paymentId: bayar.id,
+      email: bayar.email,
+      paket: bayar.tier,
+      periode: bayar.periode,
+      nama: bayar.nama,
+    });
+
+    if (hasil.aktif) {
+      console.log(`[midtrans] ✅ langganan ${hasil.diperpanjang ? 'diperpanjang' : 'aktif'} — ${hasil.pesan}`);
+    } else {
+      // Pembayaran sah, langganan gagal dibuat. Ini butuh perhatian manusia.
+      console.error(`[midtrans] ⚠️  ${orderId}: pembayaran DIBAYAR tapi langganan TIDAK aktif — ${hasil.pesan}`);
+      console.error('[midtrans]    Tindakan: pastikan pembeli punya akun dengan email itu, lalu aktifkan manual lewat admin-cli.mjs');
+    }
+  } catch (err) {
+    // Kegagalan tak terduga (database terkunci, bug). Pembayaran tetap sah —
+    // jangan gagalkan webhook, karena Midtrans akan mengirim ulang dan
+    // pembayaran bisa tercatat dua kali.
+    console.error(`[midtrans] ⚠️  ${orderId}: gagal aktivasi langganan — ${err.message}`);
+  }
+
   // ── STRUK PEMBAYARAN ───────────────────────────────────────────────────────
   //
   // Dikirim SETELAH token terbit dan pembayaran tersimpan. Kalau email gagal,
