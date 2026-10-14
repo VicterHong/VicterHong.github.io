@@ -647,6 +647,95 @@ function migrate(handle) {
   addColumn('users', 'notif_produk', 'INTEGER NOT NULL DEFAULT 1');
   addColumn('users', 'notif_pembayaran', 'INTEGER NOT NULL DEFAULT 1');
   addColumn('users', 'notif_promosi', 'INTEGER NOT NULL DEFAULT 0');
+
+  // ── LANGGANAN & KUOTA TOKEN ───────────────────────────────────────────────
+  //
+  // ── KENAPA TABEL TERPISAH, BUKAN KOLOM DI users ───────────────────────────
+  // Paket langganan punya SIKLUS HIDUP: mulai, diperbarui, berakhir. Kalau
+  // disimpan sebagai kolom `tier` di `users`, riwayatnya hilang — dan kita
+  // tidak bisa menjawab "bulan lalu dia paket apa" saat ada sengketa tagihan.
+  //
+  // Tabel terpisah juga membuat kuota bisa dihitung PER BULAN tanpa
+  // menimpa catatan bulan sebelumnya.
+  handle.exec(`
+    CREATE TABLE IF NOT EXISTS langganan (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL,
+      paket         TEXT NOT NULL,              -- standar | profesional | enterprise
+      periode       TEXT NOT NULL DEFAULT 'bulanan',
+      mulai_at      INTEGER NOT NULL,
+      selesai_at    INTEGER,                    -- NULL = masih berjalan
+      status        TEXT NOT NULL DEFAULT 'aktif',  -- aktif | berakhir | dibatalkan
+      dibuat_at     INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_langganan_user   ON langganan(user_id);
+    CREATE INDEX IF NOT EXISTS idx_langganan_status ON langganan(status);
+
+    -- Pemakaian kuota token per pengguna PER BULAN.
+    --
+    -- Satu baris = satu bulan. Dibuat saat pertama kali token dibuat di bulan
+    -- itu; kalau belum ada barisnya, berarti terpakai = 0.
+    --
+    -- ── KENAPA DIBUAT SAAT DIPAKAI, BUKAN DI AWAL BULAN ─────────────────────
+    -- Membuat baris untuk SEMUA pengguna di awal bulan berarti pekerjaan
+    -- terjadwal yang harus berjalan tepat waktu — dan kalau meleset, semua
+    -- orang tidak bisa membuat token. Dibuat saat dipakai: tidak ada jadwal
+    -- yang bisa gagal, dan pengguna yang tidak aktif tidak menghasilkan baris.
+    CREATE TABLE IF NOT EXISTS kuota_token (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL,
+      bulan       TEXT NOT NULL,                -- YYYY-MM, zona Asia/Jakarta
+      terpakai    INTEGER NOT NULL DEFAULT 0,
+      updated_at  INTEGER NOT NULL,
+      UNIQUE(user_id, bulan)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_kuota_user_bulan ON kuota_token(user_id, bulan);
+
+    -- Bonus dari memberi star di repo GitHub.
+    --
+    -- UNIQUE(user_id) — SEKALI seumur akun, bukan per bulan. Ini yang membuat
+    -- "hanya bisa terbaca 1" berlaku: klaim kedua ditolak database, bukan
+    -- hanya diperiksa kode.
+    CREATE TABLE IF NOT EXISTS bonus_star (
+      id             TEXT PRIMARY KEY,
+      user_id        TEXT NOT NULL UNIQUE,
+      paket_saat_itu TEXT NOT NULL DEFAULT '',
+      sumber         TEXT NOT NULL DEFAULT 'github',  -- github | manual
+      github_user    TEXT NOT NULL DEFAULT '',
+      diberikan_at   INTEGER NOT NULL,
+      catatan        TEXT NOT NULL DEFAULT ''
+    );
+
+    -- Trial melihat data metrik untuk pengguna GRATIS.
+    --
+    -- UNIQUE(user_id, project_slug) — sekali per proyek. Orang yang ingin
+    -- menilai tiga proyek bisa melihat ketiganya sekali, lalu memutuskan.
+    CREATE TABLE IF NOT EXISTS trial_metrik (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL,
+      project_slug  TEXT NOT NULL,
+      dibuka_at     INTEGER NOT NULL,
+      ip            TEXT NOT NULL DEFAULT '',
+      user_agent    TEXT NOT NULL DEFAULT '',
+      UNIQUE(user_id, project_slug)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_trial_user ON trial_metrik(user_id);
+  `);
+
+  // Cache hasil pemeriksaan star GitHub, supaya tidak memanggil API setiap
+  // permintaan. 6 jam: cukup lama untuk menghemat panggilan, cukup pendek
+  // supaya orang yang baru memberi star tidak menunggu lama.
+  handle.exec(`
+    CREATE TABLE IF NOT EXISTS star_cache (
+      github_user  TEXT PRIMARY KEY,
+      starred      INTEGER NOT NULL DEFAULT 0,
+      dicek_at     INTEGER NOT NULL
+    );
+  `);
+
   addColumn('sessions', 'wilayah', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'asn', "TEXT NOT NULL DEFAULT ''");
   addColumn('sessions', 'zona_waktu', "TEXT NOT NULL DEFAULT ''");
