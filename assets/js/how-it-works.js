@@ -1,43 +1,49 @@
 /**
- * HOW IT WORKS — reveal satu per satu + sumbu yang bertambah tinggi.
+ * HOW IT WORKS — jalur mengalir + reveal kartu.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * KENAPA VANILLA, BUKAN REACT + MOTION
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Komponen asalnya (21st.dev) memakai React, motion/react, dan Tailwind.
- * Situs ini HTML statis + vanilla JS — dan sudah punya aturan itu sejak awal:
- * `cinematic.js` menulis "Nol dependency (PRIOR pakai GSAP; kita pakai rAF +
- * IntersectionObserver)".
+ * Komponen asalnya (chamaac, 21st.dev) memakai React, motion/react, dan
+ * Tailwind. Situs ini HTML statis + vanilla JS — dan sudah punya aturan itu
+ * sejak awal: `cinematic.js` menulis "Nol dependency (PRIOR pakai GSAP; kita
+ * pakai rAF + IntersectionObserver)".
  *
  * Gerak yang sama tanpa 34 KB library:
  *
  *   yang dibutuhkan          cara di sini
  *   ────────────────────     ────────────────────────────────────────────────
- *   reveal satu per satu     IntersectionObserver, satu entri per langkah
- *   sumbu yang bertambah     tinggi elemen di-set seiring langkah muncul
+ *   garis mengalir           @keyframes stroke-dashoffset di CSS
+ *   reveal satu per satu     IntersectionObserver, satu entri per kartu
+ *   jalur antar kartu        satu <path> yang `d`-nya diisi dari titik tengah
  *   menghormati reduced      matchMedia, berhenti tanpa memanggil apa pun
  *
  * ══════════════════════════════════════════════════════════════════════════
- * KENAPA LEBIH SEDERHANA DARI VERSI PERTAMA
+ * KUNCI: GARIS DIMULAI DARI TITIK TENGAH KARTU, BUKAN DARI TEPINYA
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Versi pertama menghitung kurva SVG antar kartu: posisi tiap kartu dibaca,
- * titik jangkar dihitung dengan kompensasi rotasi, panjang tiap segmen diukur
- * satu per satu. Itu ~120 baris geometri yang harus dihitung ulang setiap kali
- * ukuran berubah — dan tetap meleset karena kartunya diputar (garisnya
- * berhenti 7,7px di luar tepi kartu, jadi terlihat melayang).
+ * Ini yang menyelesaikan masalah "garis tidak menempel ke kartu" untuk
+ * selamanya — masalah yang bertahan di tiga versi sebelumnya.
  *
- * Sekarang konektor adalah elemen CSS biasa. Ia menghubungkan tepi kartu ke
- * sumbu, dan keduanya adalah elemen nyata di layout — jadi tidak ada angka
- * yang bisa salah. JS hanya perlu:
+ * Versi-versi itu menggambar garis dari TEPI kartu. Tepi bergerak setiap kali
+ * ukuran huruf, lebar layar, atau panjang teks berubah. Dan karena kartunya
+ * DIMIRINGKAN, `getBoundingClientRect()` mengembalikan kotak PEMBATAS yang
+ * ~7,7px lebih besar dari tepi visualnya — jadi garisnya mulai di luar kartu
+ * dan terlihat melayang.
  *
- *   1. menandai sisi kiri/kanan tiap langkah (untuk konektor & posisi kartu)
- *   2. menandai langkah yang sudah muncul (untuk reveal)
- *   3. menaikkan sumbu aksen setinggi langkah terakhir yang muncul
+ * Sekarang: garis mulai dari TITIK TENGAH kartu dan digambar DI BELAKANG
+ * kartu. Ujungnya tersembunyi di bawah kartu, jadi tidak ada celah yang
+ * MUNGKIN terlihat — berapa pun ukuran kartunya.
  *
- * Semuanya diukur dari DOM saat itu juga — jadi jumlah langkah boleh berubah
- * kapan saja tanpa ada yang perlu disesuaikan.
+ * Dua sifat membuat ini kokoh:
+ *
+ *   1. Memutar persegi panjang tidak memindahkan titik tengahnya. Jadi
+ *      rotasi 8° sama sekali tidak berpengaruh — tidak perlu kompensasi
+ *      trigonometri seperti versi pertama.
+ *   2. Kotak pembatas dan tepi visual boleh berbeda; yang dipakai adalah
+ *      TITIK TENGAH, dan titik tengah kotak pembatas = titik tengah
+ *      persegi panjang yang diputar. Selisih 7,7px itu tidak lagi relevan.
  */
 
 const prefersReduced = () =>
@@ -62,22 +68,15 @@ function tandaiSisi(langkah) {
 }
 
 /**
- * Tandai satu langkah sebagai "sudah muncul".
+ * Tandai satu kartu sebagai "sudah muncul".
  *
- * ── KENAPA DUA ELEMEN, BUKAN SATU ───────────────────────────────────────────
+ * ── BUG YANG PERNAH TERJADI, JANGAN DIULANG ────────────────────────────────
+ * Kelas ini sempat dipasang di elemen yang salah: di `.hiw-langkah` (elemen
+ * yang di-observe), padahal CSS menaruh `opacity: 0` di `.hiw-item`. Kelas dan
+ * pemilik opacity-nya BEDA ELEMEN, jadi kartunya transparan selamanya —
+ * observer jalan, tapi tidak ada yang terlihat.
  *
- * ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
- * Kelas `is-muncul` sempat hanya dipasang di `.hiw-langkah` (elemen yang
- * di-observe). Tapi CSS menaruh `opacity: 0` di `.hiw-item` — anak di dalamnya.
- * Kelas dan pemilik opacity-nya BEDA ELEMEN, jadi kartunya transparan
- * selamanya: sumbunya naik (karena ia membaca `.hiw-langkah`), tapi kartunya
- * tidak pernah terlihat. Persis yang terlihat di tangkapan layar.
- *
- * Sekarang kelas dipasang di KEDUANYA:
- *   `.hiw-langkah` — dipakai `naikkanSumbu()` untuk tahu sejauh mana garis
- *   `.hiw-item`    — pemilik `opacity` + `transform` yang dianimasikan
- *
- * Satu helper, supaya keduanya tidak pernah bisa berbeda lagi.
+ * Sekarang satu helper menandai KEDUANYA, jadi tidak mungkin berbeda lagi.
  */
 function tandaiMuncul(li) {
   li.classList.add('is-muncul');
@@ -85,54 +84,64 @@ function tandaiMuncul(li) {
 }
 
 /**
- * Naikkan sumbu aksen setinggi bagian yang sudah dilalui.
+ * Gambar jalur yang menghubungkan titik tengah tiap kartu.
  *
- * ── KENAPA SAMPAI LANGKAH TERAKHIR YANG MUNCUL, BUKAN POSISI SCROLL ─────────
- * Kalau sumbu dipetakan ke posisi scroll, ia bisa sudah 40% terisi saat
- * halaman baru dibuka (karena sebagian timeline memang sudah terlihat) dan
- * berhenti di 70% saat timeline selesai lewat layar. Dua-duanya salah.
+ * ── BENTUK KURVA ────────────────────────────────────────────────────────────
+ * Kurva Bézier kubik dengan TANGEN HORIZONTAL di kedua ujungnya:
  *
- * Dengan mengikatnya ke langkah yang sudah muncul, sumbu dan kartu selalu
- * sinkron — dan sumbu pasti penuh tepat saat langkah terakhir muncul.
+ *     M  x1 y1  C  x1+dx/2 y1 , x2-dx/2 y2 , x2 y2
+ *
+ * Karena `dx` sama untuk kedua titik kontrol, keduanya berada di kolom x yang
+ * sama (titik tengah). Itu yang membuat kurvanya berbentuk S yang mulus:
+ * meninggalkan kartu secara mendatar, berbelok di tengah, lalu masuk ke kartu
+ * berikutnya secara mendatar juga.
+ *
+ * ── KENAPA TANGEN HORIZONTAL PENTING ────────────────────────────────────────
+ * Garis yang menembus tepi kartu secara miring terlihat seperti menusuk.
+ * Dengan tangen horizontal, ujungnya keluar sejajar tepi kartu — dan karena
+ * ujungnya tersembunyi DI BAWAH kartu, transisinya tidak terlihat sama sekali.
  *
  * ── CARA MENGUKUR ───────────────────────────────────────────────────────────
- * Titik tengah marker langkah terakhir, relatif terhadap timeline. Memakai
- * `getBoundingClientRect()` karena marker bisa punya margin yang tidak ikut
- * terhitung di `offsetTop`.
+ * `getBoundingClientRect()` untuk tiap kartu, lalu titik tengahnya dihitung
+ * relatif terhadap papan. Titik tengah kotak pembatas = titik tengah kartu
+ * (rotasi tidak memindahkannya), jadi hasilnya tepat walau kartunya miring.
+ *
+ * Dipanggil ulang saat ukuran berubah dan saat font selesai dimuat — posisi
+ * kartu bergeser setiap kali teks membungkus ulang.
  */
-function naikkanSumbu(timeline, sumbuIsi, langkah) {
-  if (!sumbuIsi) return;
+function gambarJalur(papan, jalur, langkah) {
+  const path = jalur?.querySelector('path');
+  if (!path || langkah.length < 2) return;
 
-  const muncul = langkah.filter((li) => li.classList.contains('is-muncul'));
-  if (!muncul.length) {
-    sumbuIsi.style.height = '0px';
-    return;
+  const kotakPapan = papan.getBoundingClientRect();
+  const lebar = Math.round(kotakPapan.width);
+  const tinggi = Math.round(kotakPapan.height);
+  if (lebar < 2 || tinggi < 2) return;
+
+  // viewBox disetel sama persis dengan ukuran piksel — jadi 1 satuan = 1 px
+  // dan tidak ada peregangan yang bisa mengubah ketebalan garis.
+  jalur.setAttribute('viewBox', `0 0 ${lebar} ${tinggi}`);
+  jalur.setAttribute('width', lebar);
+  jalur.setAttribute('height', tinggi);
+
+  const titik = langkah.map((li) => {
+    const kartu = li.querySelector('.hiw-kartu') ?? li;
+    const r = kartu.getBoundingClientRect();
+    return {
+      x: Math.round(r.left - kotakPapan.left + r.width / 2),
+      y: Math.round(r.top - kotakPapan.top + r.height / 2),
+    };
+  });
+
+  let d = `M ${titik[0].x} ${titik[0].y}`;
+  for (let i = 1; i < titik.length; i++) {
+    const a = titik[i - 1];
+    const b = titik[i];
+    const setengah = (b.x - a.x) / 2;
+    d += ` C ${a.x + setengah} ${a.y}, ${b.x - setengah} ${b.y}, ${b.x} ${b.y}`;
   }
 
-  const kotakTimeline = timeline.getBoundingClientRect();
-  const terakhir = muncul[muncul.length - 1];
-  const marker = terakhir.querySelector('.hiw-marker') ?? terakhir;
-  const kotakMarker = marker.getBoundingClientRect();
-
-  // ── KENAPA SAMPAI BAWAH MARKER, BUKAN TENGAHNYA ────────────────────────────
-  //
-  // ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
-  // Versi pertama berhenti di TENGAH marker terakhir. Itu terlihat benar
-  // selama belum semua langkah muncul (garis "berjalan" menuju marker
-  // berikutnya), tapi salah begitu langkah terakhir muncul: garisnya berhenti
-  // di tengah lingkaran, dan bagian bawah timeline terlihat kosong —
-  // seperti ada satu langkah lagi yang belum muncul.
-  //
-  // Kalau SEMUA langkah sudah muncul, sumbu harus melewati marker terakhir
-  // sampai bawah. Kalau belum, ia berhenti di tengah marker terakhir yang
-  // muncul — supaya terlihat "sedang berjalan" ke langkah berikutnya.
-  const semuaMuncul = muncul.length === langkah.length;
-
-  const tinggi = semuaMuncul
-    ? kotakMarker.bottom - kotakTimeline.top
-    : kotakMarker.top - kotakTimeline.top + kotakMarker.height / 2;
-
-  sumbuIsi.style.height = `${Math.max(0, tinggi)}px`;
+  path.setAttribute('d', d);
 }
 
 /**
@@ -145,7 +154,10 @@ export function initHowItWorks(akar = document) {
   const timeline = akar.querySelector('[data-hiw]');
   if (!timeline) return;
 
-  const sumbuIsi = timeline.querySelector('.hiw-sumbu-isi');
+  // Papan adalah pembungkus yang memuat SVG + daftar. Kalau tidak ada
+  // (HTML lama), jalurnya dilewati saja — kartunya tetap tampil.
+  const papan = timeline.closest('.hiw-papan') ?? timeline;
+  const jalur = papan.querySelector('.hiw-jalur');
   const langkah = Array.from(timeline.querySelectorAll('.hiw-langkah'));
   if (!langkah.length) return;
 
@@ -154,24 +166,25 @@ export function initHowItWorks(akar = document) {
   // Pola yang sama dengan `.js-ready` di main.css.
   document.documentElement.classList.add('js-ready');
 
-  // Sisi kiri/kanan ditandai SEBELUM apa pun — konektor dan posisi kartu
-  // bergantung padanya.
+  // Sisi kiri/kanan ditandai SEBELUM apa pun — posisi kartu dan arah
+  // rotasinya bergantung padanya.
   tandaiSisi(langkah);
 
-  // ── Reduced motion: semua langsung muncul, sumbu langsung penuh ───────────
+  // ── Jalur: digambar setelah layout siap ───────────────────────────────────
+  // Satu frame ditunda supaya font dan ukuran kartu sudah final saat diukur.
+  const gambar = () => gambarJalur(papan, jalur, langkah);
+  if (jalur) requestAnimationFrame(gambar);
+
+  // ── Reduced motion: kartu langsung muncul, garis berhenti mengalir ───────
   //
-  // Tidak ada yang disembunyikan dan tidak ada yang dianimasikan — pengguna
-  // meminta gerak diminimalkan. Sumbu penuh diatur CSS (`height: 100%
-  // !important` di media query), jadi JS tidak perlu menyentuhnya.
+  // Kartunya tetap terlihat semua (itu informasi), dan jalurnya tetap
+  // tergambar (itu juga informasi — ia menunjukkan urutan). Yang hilang hanya
+  // geraknya: animasi dash dimatikan CSS, transisi reveal dilewati di sini.
   if (prefersReduced() || !('IntersectionObserver' in window)) {
     for (const li of langkah) tandaiMuncul(li);
+    if (jalur) requestAnimationFrame(gambar);
     return;
   }
-
-  // Timer untuk menunda pengangkatan sumbu sampai transisi kartu selesai.
-  // Satu timer di scope ini, bukan properti di observer — supaya jelas bahwa
-  // hanya ada SATU penundaan yang berjalan pada satu waktu.
-  let timerSumbu = null;
 
   const pengamat = new IntersectionObserver((entri) => {
     // Daftar dibaca ulang: jumlah langkah bisa berubah setelah init, dan
@@ -186,47 +199,40 @@ export function initHowItWorks(akar = document) {
       .sort((a, b) => kini.indexOf(a.target) - kini.indexOf(b.target));
 
     masuk.forEach((e, i) => {
-      // Jeda bertingkat: langkah yang masuk bersamaan tetap muncul berurutan,
-      // 110ms satu sama lain. Langkah yang masuk sendiriian (scroll lambat)
+      // Jeda bertingkat: kartu yang masuk bersamaan tetap muncul berurutan,
+      // 110ms satu sama lain. Kartu yang masuk sendiriian (scroll lambat)
       // tidak menunggu — `i` = 0 saat hanya satu yang masuk.
-      //
-      // 110ms dipilih dari anjuran skill (0,03-0,1 detik per item untuk daftar
-      // pendek): cukup untuk melihat urutannya, tidak sampai terasa lambat.
       e.target.style.setProperty('--hiw-tunda', `${i * 110}ms`);
       tandaiMuncul(e.target);
       pengamat.unobserve(e.target);
-    });
 
-    // Sumbu menyusul setelah transisi kartu berjalan, supaya garisnya terlihat
-    // "menyambung" ke marker yang baru muncul — bukan mendahuluinya.
-    //
-    // 260ms ≈ sepertiga durasi reveal (0,7 detik). Kalau menunggu transisi
-    // selesai penuh, sumbu terasa lambat; kalau langsung, ia mendahului
-    // kartunya. Sepertiga durasi membuat keduanya terbaca sebagai satu gerakan.
-    clearTimeout(timerSumbu);
-    timerSumbu = setTimeout(() => naikkanSumbu(timeline, sumbuIsi, kini), 260);
+      // ── Jalur digambar ulang saat kartu ini muncul ─────────────────────────
+      // Sebelum muncul, kartunya `translateY(28px)` — kotak pembatasnya ada di
+      // posisi yang lebih rendah dari posisi finalnya. Kalau jalurnya dibiarkan
+      // memakai ukuran itu, ujungnya berhenti di tempat yang salah.
+      //
+      // Digambar dua kali: sekali segera (supaya jalurnya mengikuti gerakan),
+      // sekali setelah transisi selesai (supaya ujungnya tepat di posisi
+      // final). Yang kedua itu yang menentukan.
+      if (jalur) {
+        requestAnimationFrame(gambar);
+        setTimeout(gambar, 800);
+      }
+    });
   }, {
     // ── KENAPA rootMargin NEGATIF, BUKAN POSITIF ─────────────────────────────
-    // Nilai negatif MEMPERSEMPIT area pemicu, sehingga langkah harus masuk
+    // Nilai negatif MEMPERSEMPIT area pemicu, sehingga kartu harus masuk
     // sedikit ke dalam layar sebelum muncul. Dengan rootMargin positif,
-    // langkah yang masih di bawah layar sudah dianggap masuk — dan beberapa
+    // kartu yang masih di bawah layar sudah dianggap masuk — dan beberapa
     // terpicu sekaligus sehingga urutannya hilang.
     //
-    // Batas atas tetap 0 supaya langkah yang sudah lewat tidak pernah "belum
-    // muncul" — langkah pertama harus terlihat tanpa menunggu scroll.
+    // Batas atas tetap 0 supaya kartu yang sudah lewat tidak pernah "belum
+    // muncul" — kartu pertama harus terlihat tanpa menunggu scroll.
     //
-    // ── BUG YANG DIPERBAIKI: FADE TIDAK TERLIHAT ────────────────────────────
-    // Versi sebelumnya memakai -18%. Kartu baru mulai memudar setelah 18%
-    // masuk ke dalam layar — sudah cukup jauh dari tepi bawah. Ditambah durasi
-    // 0,42 detik yang pendek, animasinya selesai SEBELUM mata sempat sampai
-    // ke kartu itu saat menggulir. Pemilik proyek melaporkan "ga fade
-    // animation sama sekali" — dan itu benar: animasinya ada, tapi habis
-    // sebelum terlihat.
-    //
-    // Sekarang -8%: kartu mulai memudar begitu tepinya masuk ~8% ke dalam
-    // layar (setara `start: 'top 92%'` di ScrollTrigger). Dipadukan dengan
-    // durasi 0,7 detik dan angkat 28px, geraknya cukup lama dan cukup jauh
-    // untuk benar-benar terlihat.
+    // -8% dipilih supaya kartu mulai memudar begitu tepinya masuk ~8% ke
+    // dalam layar. Dengan nilai yang lebih besar (pernah dipakai -18%),
+    // animasinya selesai SEBELUM mata sempat sampai saat menggulir — dan
+    // pemilik proyek melaporkan "ga fade animation sama sekali".
     rootMargin: '0px 0px -8% 0px',
     threshold: 0.01,
   });
@@ -238,46 +244,37 @@ export function initHowItWorks(akar = document) {
   // Kalau observer tidak pernah menembak (bug browser, halaman dibuka dengan
   // scroll sudah di tengah, atau elemen dirender ulang), kartu tetap
   // transparan SELAMANYA. Sekali diperiksa di 2,5 detik — bukan loop — dan
-  // hanya untuk langkah yang sudah terlihat.
+  // hanya untuk kartu yang sudah terlihat.
   setTimeout(() => {
     const kini = Array.from(timeline.querySelectorAll('.hiw-langkah'));
     const batas = window.innerHeight;
-    let adaBaru = false;
 
     for (const li of kini) {
       if (li.classList.contains('is-muncul')) continue;
-      if (li.getBoundingClientRect().top < batas) {
-        tandaiMuncul(li);
-        adaBaru = true;
-      }
+      if (li.getBoundingClientRect().top < batas) tandaiMuncul(li);
     }
-
-    if (adaBaru) naikkanSumbu(timeline, sumbuIsi, kini);
+    if (jalur) gambar();
   }, 2500);
 
   // ── Ukuran berubah ────────────────────────────────────────────────────────
   //
-  // Sumbu diukur dari posisi marker, dan posisi itu berubah saat lebar layar
-  // berubah (kartu menumpuk di ponsel, teks membungkus ulang di layar sempit).
-  // Tanpa perhitungan ulang, sumbunya berhenti di tempat yang salah.
+  // Jalur diukur dari posisi kartu, dan posisi itu berubah saat lebar layar
+  // berubah (kartu mengecil, teks membungkus ulang). Tanpa perhitungan ulang,
+  // jalurnya berhenti di tempat yang salah.
   //
   // Ditunda 150ms: `resize` menyala terus saat pengguna menyeret tepi jendela,
   // dan menghitung pada setiap frame membuang kerja yang langsung basi.
   let timerUbah = null;
   window.addEventListener('resize', () => {
     clearTimeout(timerUbah);
-    timerUbah = setTimeout(() => {
-      const kini = Array.from(timeline.querySelectorAll('.hiw-langkah'));
-      naikkanSumbu(timeline, sumbuIsi, kini);
-    }, 150);
+    timerUbah = setTimeout(gambar, 150);
   });
 
-  // Font web bisa tiba setelah init dan mengubah tinggi kartu — posisi marker
-  // ikut bergeser. Satu perhitungan ulang setelah font siap menutup selisih itu.
+  // Font web bisa tiba setelah init dan mengubah tinggi kartu — posisi
+  // titik tengahnya ikut bergeser. Satu perhitungan ulang setelah font siap
+  // menutup selisih itu.
   if (document.fonts?.ready) {
-    document.fonts.ready
-      .then(() => naikkanSumbu(timeline, sumbuIsi, langkah))
-      .catch(() => {});
+    document.fonts.ready.then(gambar).catch(() => {});
   }
 }
 
