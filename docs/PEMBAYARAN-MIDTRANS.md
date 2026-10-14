@@ -72,13 +72,38 @@ CHECKOUT_BATAL_URL=https://portfolio-victer.pages.dev/pricing
 
 ### 4. Daftarkan Webhook di Dashboard Midtrans
 
-**Settings → Configuration → Notification URL**
+**Settings → Payment → Payment Notification URL**
+
+> **Catatan menu:** dokumentasi lama Midtrans menyebut *Settings → Configuration*.
+> Dashboard sekarang tidak punya menu "Configuration" — yang ada adalah
+> **Settings → Payment**. Kalau mencari "Configuration" di sidebar, tidak akan
+> ketemu; menunya bernama **Payment** (item di bawah *Email Notification*).
 
 ```
 URL: https://portfolio-victer.pages.dev/api/midtrans/webhook
 ```
 
-Aktifkan untuk: **Payment Notification**.
+Isi di kolom **Payment Notification URL**, lalu klik **Update**.
+Tidak perlu mengisi kolom lain (Recurring / Finish Redirect / Unfinish / Error).
+
+**Syarat URL notifikasi (dari Midtrans):**
+
+- Protokol `https://` — bukan `http://`
+- Bukan alamat IP mentah
+- Port standar (443) — jangan port tidak biasa seperti `:20070`
+- Tidak di belakang VPN, tidak butuh password, tidak ter-redirect
+
+Endpoint kita memenuhi semuanya. Cara memastikan sendiri:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  -H 'content-type: application/json' -d '{}' \
+  https://portfolio-victer.pages.dev/api/midtrans/webhook
+# Harus 401 (endpoint hidup, tanda tangan ditolak) — BUKAN 404.
+```
+
+**404 artinya URL-nya salah.** Endpoint yang benar adalah
+`/api/midtrans/webhook`, bukan `/api/checkout/midtrans-webhook`.
 
 ### 5. Restart Backend
 
