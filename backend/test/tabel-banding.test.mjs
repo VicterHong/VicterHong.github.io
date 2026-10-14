@@ -73,14 +73,36 @@ test('setiap baris tabel punya satu nilai per paket', () => {
 });
 
 test('tidak ada baris dengan nilai kosong atau null', () => {
-  // `null` bukan true/false, jadi frontend akan menampilkannya sebagai teks
-  // "null" di dalam sel tabel.
+  // ── TIGA NILAI YANG SAH: true, false, dan TEKS ────────────────────────────
+  // Sebagian besar baris memang ya/tidak. Tapi ada baris yang jawabannya
+  // BERBEDA di tiap kolom — misalnya jumlah proyek: 5 untuk Gratis, "Semua
+  // proyek" untuk yang berbayar. Itu bukan pertanyaan ya/tidak, jadi
+  // jawabannya juga bukan centang.
+  //
+  // Yang dilarang: null dan string kosong — frontend akan menampilkannya
+  // sebagai teks "null" atau sel kosong di dalam tabel.
   for (const b of barisFitur) {
     for (let i = 0; i < b.nilai.length; i++) {
       const v = b.nilai[i];
-      assert.ok(v === true || v === false,
-        `${b.fitur} kolom ${kolom[i]?.nama}: nilai harus true/false, dapat ${JSON.stringify(v)}`);
+      const sah = v === true || v === false
+        || (typeof v === 'string' && v.trim().length > 0);
+      assert.ok(sah,
+        `${b.fitur} kolom ${kolom[i]?.nama}: nilai harus true/false/teks, dapat ${JSON.stringify(v)}`);
     }
+  }
+});
+
+test('baris bernilai teks tidak dicampur dengan centang di baris yang sama', () => {
+  // Mencampur teks dan centang dalam satu baris membuat tabelnya sulit dibaca:
+  // kolom pertama menampilkan "5 proyek", kolom kedua menampilkan centang —
+  // dan pembaca tidak bisa membandingkannya.
+  //
+  // Aturannya: satu baris memakai SATU bentuk jawaban.
+  for (const b of barisFitur) {
+    const adaTeks = b.nilai.some((v) => typeof v === 'string');
+    const adaBool = b.nilai.some((v) => typeof v === 'boolean');
+    assert.ok(!(adaTeks && adaBool),
+      `baris "${b.fitur}" mencampur teks dan centang: ${JSON.stringify(b.nilai)}`);
   }
 });
 
@@ -234,37 +256,44 @@ test('setiap baris punya label fitur', () => {
 // 5. KLAIM "SEKALI PER AKUN" HARUS COCOK DENGAN ATURAN SISTEM
 // ══════════════════════════════════════════════════════════════════════════════
 
-test('teks bonus star menyebut ANGKANYA, bukan kata samar', () => {
-  // ── ATURAN BARU: 3 DARI LOGIN + 2 DARI STAR ───────────────────────────────
-  // Versi sebelumnya memeriksa frasa "sekali per akun" — aturan LAMA, di mana
-  // satu proyek per akun dan wajib star.
+test('teks bonus star menyebut HASIL AKHIRNYA, bukan mekanismenya', () => {
+  // ── KENAPA HASIL, BUKAN TAMBAHAN ──────────────────────────────────────────
+  // Versi sebelumnya menulis "Tambah 2 proyek lagi (jadi 5)" — mekanisme plus
+  // hasilnya. Pembaca harus menghitung sendiri untuk tahu apa yang dia dapat.
   //
-  // Sekarang yang penting: teksnya menyebut ANGKA yang benar. "Buka beberapa
-  // proyek lagi" tidak memberi tahu apa pun; "tambah 2 proyek" bisa diperiksa.
+  // Di kotak bonus, yang dicari pembaca adalah HASILNYA — sama seperti baris
+  // paket berbayar di bawahnya yang berbunyi "Kuota bulan itu jadi 2 token",
+  // bukan "tambah 1 token".
   //
-  // Angkanya diambil dari KUOTA_METRIK_GRATIS — jadi kalau jatahnya diubah di
-  // langganan.mjs tanpa memperbarui teks, tes ini gagal.
-  const teksStar = [];
+  // Sekarang semuanya sejajar bentuknya: menyebut hasil akhir.
+  const teksGratis = [];
 
   for (const p of data.paket) {
     for (const f of p.fitur) {
-      if (/star/i.test(f.teks)) teksStar.push(f.teks);
+      if (/star/i.test(f.teks)) teksGratis.push(f.teks);
     }
   }
-  for (const h of data.bonusStar.hasil) {
-    if (/proyek lagi/i.test(h.dapat)) teksStar.push(h.dapat);
-  }
+  const bonusGratis = data.bonusStar.hasil.find((h) => h.paket === 'Gratis');
+  assert.ok(bonusGratis, 'harus ada baris bonus untuk paket Gratis');
+  teksGratis.push(bonusGratis.dapat);
 
-  assert.ok(teksStar.length >= 2, `harus ada minimal 2 teks bonus star, ada ${teksStar.length}`);
+  // ── MINIMAL SATU, BUKAN DUA ───────────────────────────────────────────────
+  // Versi sebelumnya mengharapkan dua: satu di kartu, satu di kotak bonus.
+  // Sekarang kartunya tidak lagi menyebut star — barisnya digabung jadi
+  // "Dokumentasi publik tanpa batas, 5 proyek terbuka penuh".
+  //
+  // Jadi yang tersisa satu: kotak bonus. Itu memang tempatnya.
+  assert.ok(teksGratis.length >= 1, `harus ada minimal 1 teks bonus star, ada ${teksGratis.length}`);
 
-  const tanpaAngka = teksStar.filter((t) => !/\d/.test(t));
-  assert.deepEqual(tanpaAngka, [],
-    `teks bonus star harus menyebut angkanya:\n  ${tanpaAngka.join('\n  ')}`);
+  // Angka 5 (total proyek) harus disebut — itu hasil akhirnya
+  const angkaBenar = teksGratis.filter((t) => t.includes(String(TOTAL_METRIK_GRATIS)));
+  assert.ok(angkaBenar.length >= 1,
+    `teks bonus harus menyebut hasil akhirnya (${TOTAL_METRIK_GRATIS} proyek):\n  ${teksGratis.join('\n  ')}`);
 
-  // Dan angkanya harus cocok dengan aturan sistem
-  const angkaBenar = teksStar.filter((t) => t.includes(String(KUOTA_METRIK_GRATIS.star)));
-  assert.ok(angkaBenar.length >= 2,
-    `teks bonus star harus menyebut angka ${KUOTA_METRIK_GRATIS.star}`);
+  // Dan TIDAK boleh ada yang menuliskan mekanisme "3 + 2" di kartu
+  const mekanisme = teksGratis.filter((t) => /3 proyek|tambah 2|jadi 5/i.test(t));
+  assert.deepEqual(mekanisme, [],
+    `kartu dan kotak bonus tidak boleh menuliskan mekanisme 3+2:\n  ${mekanisme.join('\n  ')}`);
 });
 
 test('tidak ada teks yang MENGKLAIM star bisa diklaim per proyek', () => {
@@ -315,22 +344,35 @@ test('aturan sistem: paket Gratis dapat 5 proyek (3 login + 2 star)', () => {
 });
 
 test('bonus star untuk paket berbayar berbeda dari hak paket gratis', () => {
-  // Paket berbayar mendapat TOKEN dari star; paket gratis mendapat PROYEK
-  // METRIK tambahan. Dua hal berbeda, dan itu sebabnya baris tabelnya ditandai
-  // `hakTerpisah` — paket berbayar tidak "mencakup" hak ini, karena dia sudah
-  // membuka seluruh proyek.
+  // ── BARIS TABEL BONUS STAR SUDAH DIHAPUS ──────────────────────────────────
+  // Versi sebelumnya punya baris terpisah "Tambah 2 proyek dengan memberi
+  // star", ditandai `hakTerpisah` karena hanya Gratis yang dicentang.
+  //
+  // Baris itu dihapus: di tabel perbandingan, baris yang cuma dicentang di
+  // satu kolom membuat tabelnya terlihat tidak konsisten — dan pembaca yang
+  // membandingkan paket tidak sedang mempelajari mekanisme.
+  //
+  // Yang tersisa: baris "Akses data metrik" dengan nilai TEKS — "5 proyek"
+  // untuk Gratis, "Semua proyek" untuk yang berbayar.
+  //
+  // Jadi yang diuji sekarang: perbedaan haknya memang tercermin di baris itu.
   assert.ok(BONUS_STAR >= 1, 'bonus star untuk paket berbayar minimal 1 token');
 
   const iG = kolom.findIndex((k) => k.id === 'gratis');
-  const barisStar = barisFitur.find((b) => /memberi star/i.test(b.fitur));
-  assert.ok(barisStar, 'harus ada baris tabel tentang tambahan proyek dari star');
-  assert.equal(barisStar.hakTerpisah, true,
-    'baris bonus star harus ditandai hakTerpisah — paket berbayar sudah membuka semua proyek');
-  assert.equal(barisStar.nilai[iG], true, 'Gratis harus dicentang di baris bonus star');
+  const barisAkses = barisFitur.find((b) => /akses data metrik/i.test(b.fitur));
+  assert.ok(barisAkses, 'harus ada baris "Akses data metrik" di tabel');
 
-  // Dan tidak ada paket berbayar yang dicentang di baris itu
+  // Nilainya harus TEKS, bukan centang — karena jawabannya berbeda per kolom
+  assert.equal(typeof barisAkses.nilai[iG], 'string',
+    'kolom Gratis harus berisi teks ("5 proyek"), bukan centang');
+  assert.ok(barisAkses.nilai[iG].includes(String(TOTAL_METRIK_GRATIS)),
+    `kolom Gratis harus menyebut ${TOTAL_METRIK_GRATIS} proyek`);
+
+  // Paket berbayar: seluruh proyek, bukan angka
   for (let i = 1; i < kolom.length; i++) {
-    assert.equal(barisStar.nilai[i], false,
-      `${kolom[i].nama} tidak boleh dicentang di baris bonus star — dia sudah membuka semua proyek`);
+    assert.equal(typeof barisAkses.nilai[i], 'string',
+      `${kolom[i].nama} harus berisi teks, bukan centang`);
+    assert.match(barisAkses.nilai[i], /semua proyek/i,
+      `${kolom[i].nama} harus menyebut "Semua proyek"`);
   }
 });

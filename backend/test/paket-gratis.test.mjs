@@ -21,7 +21,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPricing } from '../src/pricing.mjs';
-import { KUOTA_DASAR, BONUS_STAR, KUOTA_METRIK_GRATIS } from '../src/langganan.mjs';
+import { KUOTA_DASAR, BONUS_STAR, KUOTA_METRIK_GRATIS, TOTAL_METRIK_GRATIS } from '../src/langganan.mjs';
 
 const data = buildPricing();
 const gratis = data.paket.find((p) => p.id === 'gratis');
@@ -86,19 +86,27 @@ test('Gratis memberi JATAH PROYEK, BUKAN token', () => {
   // Kalau kartu menjanjikan "1 token", halaman menjanjikan yang tidak bisa
   // dipenuhi sistem — dan itu lebih buruk daripada tidak menjanjikan apa pun.
   //
-  // ── ATURAN BARU: 3 PROYEK DARI LOGIN + 2 DARI STAR ────────────────────────
-  // Versi lama tes ini memeriksa kata "metrik" di baris bonus star. Sekarang
-  // yang penting: ANGKANYA disebut, dan cocok dengan KUOTA_METRIK_GRATIS.
+  // ── KARTU MENYEBUT ANGKA AKHIRNYA, BUKAN MEKANISMENYA ─────────────────────
+  // Versi sebelumnya memisahkan "3 proyek dari login" dan "tambah 2 dari star",
+  // supaya pengguna tahu bahwa dua proyek terakhir perlu memberi star.
+  //
+  // Tapi cara itu terbaca seperti ATURAN MAIN, bukan seperti penawaran. Pembaca
+  // yang membandingkan paket tidak sedang mempelajari mekanisme — dia ingin
+  // tahu APA YANG DIA DAPAT.
+  //
+  // Sekarang kartunya menulis satu angka: TOTAL_METRIK_GRATIS.
+  // Rincian 3+2 tetap ada di kotak bonus dan FAQ.
   const teksFitur = gratis.fitur.map((f) => f.teks).join(' | ');
 
-  assert.match(teksFitur, /star/i, 'Gratis harus menyebut bonus star');
   assert.match(teksFitur, /\d+\s*proyek/i, 'Gratis harus menyebut jumlah proyeknya');
 
-  // Angkanya harus cocok dengan aturan sistem
-  assert.ok(teksFitur.includes(String(KUOTA_METRIK_GRATIS.login)),
-    `Gratis harus menyebut angka ${KUOTA_METRIK_GRATIS.login} (jatah login)`);
-  assert.ok(teksFitur.includes(String(KUOTA_METRIK_GRATIS.star)),
-    `Gratis harus menyebut angka ${KUOTA_METRIK_GRATIS.star} (bonus star)`);
+  // Angkanya harus TOTAL, bukan sebagian
+  assert.ok(teksFitur.includes(String(TOTAL_METRIK_GRATIS)),
+    `Gratis harus menyebut angka total ${TOTAL_METRIK_GRATIS}`);
+
+  // Dan TIDAK boleh menyebut mekanisme 3+2 — itu terbaca seperti aturan main
+  assert.doesNotMatch(teksFitur, /tambah 2 proyek|3 proyek terbuka/i,
+    'kartu tidak boleh menuliskan mekanisme 3+2');
 
   assert.doesNotMatch(teksFitur, /\d+\s*token akses per bulan/i,
     'Gratis TIDAK BOLEH menjanjikan token bulanan');
