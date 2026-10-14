@@ -237,6 +237,86 @@ export const principles = [
 ];
 
 /**
+ * Visi & Misi — ditampilkan di halaman utama, tepat sebelum Kontak.
+ *
+ * ── KENAPA DI HALAMAN UTAMA, BUKAN HALAMAN TERPISAH ─────────────────────────
+ * Halaman ini menjual jasa. Pengunjung yang membaca sampai bawah sudah melihat
+ * proyek dan layanan — yang tersisa di kepalanya bukan "apa lagi yang bisa
+ * dilakukan" tapi "boleh saya percaya orang ini". Visi & misi menjawab itu,
+ * lalu CTA di bawahnya mengubah keraguan jadi tindakan. Kalau ditaruh di
+ * halaman terpisah, tidak ada yang membacanya.
+ *
+ * ── KENAPA SEBELUM KONTAK, BUKAN SETELAH HERO ───────────────────────────────
+ * Di atas, pengunjung belum punya alasan untuk peduli. "Portofolio ini bukan
+ * galeri" baru bermakna SETELAH pembaca melihat proyeknya dan tahu ada yang
+ * bisa diperiksa. Urutannya: bukti dulu (Proyek), lalu janji (Visi & Misi),
+ * lalu ajakan (Kontak).
+ *
+ * ── KENAPA MENGGANTIKAN "CARA SAYA BEKERJA" ─────────────────────────────────
+ * Seksi itu berisi empat prinsip: "Saya ukur, bukan menebak", "Anda bisa
+ * memeriksa pekerjaan saya", "Saya terima koreksi", "Batas jelas, bukan janji".
+ * Dua di antaranya menjawab pertanyaan yang SAMA dengan misi di bawah (bisa
+ * diperiksa, ada batas) — menampilkan keduanya membuat halaman mengulang diri
+ * sendiri, dan pembaca merasa tidak ada informasi baru saat menggulir.
+ *
+ * Isi yang masih unik dari prinsip lama diserap ke sini, jadi tidak ada yang
+ * hilang, hanya tidak diulang.
+ *
+ * ── ATURAN ANGKANYA ─────────────────────────────────────────────────────────
+ * Hanya angka STABIL yang boleh masuk sini — lihat catatan di preflight.mjs.
+ * `angka` di setiap misi dirender sebagai elemen yang berjalan dari 0 saat
+ * masuk layar (assets/js/count-up.js).
+ *
+ * Nilai di `nilai` adalah angka mentah untuk animasi; `teks` adalah bentuk
+ * akhir yang sudah diformat dan dipakai kalau JavaScript mati.
+ */
+export const visiMisi = {
+  visi: 'Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.',
+
+  misi: [
+    {
+      judul: 'Sistem yang ditampilkan benar-benar berjalan',
+      teks: 'Bukan tangkapan layar. Tiga sistem yang bisa Anda jalankan sendiri, dijaga {tes} yang lulus sebelum apa pun dirilis.',
+      angka: [
+        { nilai: 3, teks: '3 sistem', label: 'sistem yang bisa dijalankan' },
+        { nilai: 1428, teks: '1.428 tes otomatis', label: 'tes otomatis' },
+      ],
+    },
+    {
+      judul: 'Setiap klaim punya sumber yang bisa dibuka',
+      teks: 'Saya menulis audit untuk pekerjaan sendiri, lalu memverifikasi ulang ke kode. Hasilnya: {temuan} saya batalkan karena tidak terbukti.',
+      angka: [
+        { nilai: 5, teks: '5 dari 8 temuan', label: 'temuan audit yang dibatalkan' },
+      ],
+    },
+    {
+      judul: 'Jalan di perangkat yang sudah Anda punya',
+      teks: 'MINA hidup di {memori} pada laptop {ram}. Sistem yang berat bukan tanda sistem yang serius.',
+      angka: [
+        { nilai: 25, teks: '~25 MB memori', label: 'jejak memori', prefix: '~', suffix: ' MB' },
+        { nilai: 2, teks: '2 GB RAM', label: 'RAM minimum', suffix: ' GB RAM' },
+      ],
+    },
+    {
+      judul: 'Batas disebut di depan, bukan saat bermasalah',
+      teks: 'Aset halaman dibatasi {anggaran}, dijaga skrip yang menolak rilis kalau lewat. Batas yang tidak bisa dilanggar lebih berguna daripada janji.',
+      angka: [
+        { nilai: 940, teks: '940 KB', label: 'anggaran aset', suffix: ' KB' },
+      ],
+    },
+  ],
+
+  // Ajakan di bawah misi. Satu label saja untuk intent "kontak" — lihat
+  // aturan NO DUPLICATE CTA INTENT di skill design-taste-frontend.
+  cta: {
+    label: 'Mari bicara',
+    href: '#89fk39',
+    pendamping: 'Lihat panduan pakai',
+    hrefPendamping: '/docs',
+  },
+};
+
+/**
  * Angka ringkas untuk bagian pembuka. Dihitung dari data di atas — bukan diketik manual.
  */
 export function stats() {

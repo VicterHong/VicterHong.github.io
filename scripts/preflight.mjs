@@ -250,6 +250,66 @@ try {
   check('angka:visi-misi', false, err.message);
 }
 
+// ── 6. Angka Visi & Misi di HALAMAN UTAMA juga dijaga ───────────────────────
+//
+// ── KENAPA DIPERIKSA DI DUA HALAMAN ─────────────────────────────────────────
+// Seksi Visi & Misi sekarang ada di dua tempat: halaman utama (/home) dan
+// halaman demo (/demo-how-it-works). Angka di keduanya harus cocok dengan
+// sumber yang sama — kalau salah satu diperbarui dan yang lain tidak, pembaca
+// menemukan dua klaim berbeda tentang hal yang sama.
+//
+// Diperiksa: /home. Halaman demo sudah punya pemeriksaannya sendiri di atas.
+console.log('\n── Angka Visi & Misi (halaman utama) ──');
+try {
+  const beranda = readFileSync(resolve(AUDIT, 'home.html'), 'utf8');
+
+  // Angka diambil dari atribut data-target, karena HTML halaman utama memuat
+  // angka di dalam <span data-count data-target="N">.
+  const target = [...beranda.matchAll(/data-count data-target="(\d+)"/g)].map((m) => Number(m[1]));
+  const judulMisi = (beranda.match(/class="misi-judul"/g) || []).length;
+
+  const proyekSrc = readFileSync(resolve(ROOT, 'assets/js/data/projects.js'), 'utf8');
+  const tesProyek = [...proyekSrc.matchAll(/{\s*label:\s*'([^']*)',\s*value:\s*'([^']*)'\s*}/g)]
+    .filter((m) => m[1].includes('tes'))
+    .map((m) => Number(m[2].replace(/\./g, '')))
+    .reduce((a, b) => a + b, 0);
+
+  check('beranda:misi-jumlah', judulMisi === 4, `${judulMisi} misi (harus 4)`);
+  check('beranda:tes-cocok', target.includes(tesProyek),
+    `data-target memuat ${tesProyek.toLocaleString('id-ID')}? ${target.includes(tesProyek) ? 'ya' : 'TIDAK'} (target: ${target.join(', ')})`);
+
+  // Angka yang TIDAK stabil tidak boleh muncul di sini juga.
+  const terlarang = [/(\d[\d.]*)\s+berkas\s+catatan/, /(\d[\d.]*)\s+baris\s+dokumentasi/];
+  const ketemu = terlarang.filter((p) => p.test(beranda)).length;
+  check('beranda:tidak-stabil', ketemu === 0,
+    ketemu ? 'ada angka yang berubah-ubah' : 'tidak ada angka yang berubah-ubah');
+
+  // ── EM-DASH DI TEKS YANG TERLIHAT PENGGUNA ────────────────────────────────
+  // Skill design-taste-frontend melarang em-dash TOTAL: ia penanda tulisan AI
+  // yang paling sering dikenali.
+  //
+  // ── YANG DIPERIKSA HANYA TEKS YANG BENAR-BENAR TERLIHAT ───────────────────
+  // Versi pertama pemeriksaan ini menyaring komentar HTML saja, dan menemukan
+  // 3 em-dash "di teks yang terlihat" — padahal ketiganya TIDAK terlihat:
+  //
+  //   1. di dalam <script type="application/ld+json">  (data untuk mesin)
+  //   2. dua di dalam <script> sebagai komentar JavaScript
+  //
+  // Pemeriksaan yang menuduh hal yang salah lebih buruk daripada tidak ada
+  // pemeriksaan: ia melatih orang untuk mengabaikannya. Sekarang <script>,
+  // <style>, dan komentar HTML dibuang dulu — yang tersisa hanya teks yang
+  // dirender browser.
+  const tanpaKomentar = beranda
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+  const emDash = (tanpaKomentar.match(/[—–]/g) || []).length;
+  check('beranda:tanpa-em-dash', emDash === 0,
+    emDash ? `${emDash} em-dash di teks yang terlihat` : 'bersih');
+} catch (err) {
+  check('angka:beranda', false, err.message);
+}
+
 // ── Ringkasan ────────────────────────────────────────────────────────────────
 const failed = checks.filter(c => !c.ok);
 console.log(`\n${'─'.repeat(50)}`);

@@ -10,7 +10,8 @@
  * belum dijalankan), gradien cadangan yang tampil — bukan kotak hitam kosong.
  */
 
-import { profile, about, services, projects, sideProjects, principles, stats } from './data/projects.js';
+import { profile, about, services, projects, sideProjects, stats } from './data/projects.js';
+import { initCountUp, initKetik } from './count-up.js';
 import { initAstra } from './astra.js';
 import { initDepth } from './depth.js';
 import { initEditorial } from './editorial.js';
@@ -418,17 +419,6 @@ function renderSideProjects() {
   }
 }
 
-// ── PRINSIP ────────────────────────────────────────────────────────────────────
-function renderPrinciples() {
-  const host = $('#principles');
-  for (const p of principles) {
-    host.append(el('div', { class: 'principle' },
-      el('h3', { text: p.title }),
-      el('p', { text: p.body }),
-    ));
-  }
-}
-
 // ── KONTAK ─────────────────────────────────────────────────────────────────────
 //
 // ── KENAPA TAUTAN KONTAK PAKAI LOGO MEREK, BUKAN IKON GENERIK ────────────────
@@ -635,22 +625,47 @@ renderProjects();
 // memakai gambar bawaan; galeri tetap muncul, tidak pernah kosong.
 await renderSpotlight();
 renderSideProjects();
-renderPrinciples();
 renderContact();
 $('#year').textContent = String(new Date().getFullYear());
 loadHeroVideo();
 observeReveals();
 watchHeader();
 
-// Stagger untuk daftar yang dirender JS (kartu proyek, prinsip, kontak).
+// Stagger untuk daftar yang dirender JS (kartu proyek, kontak) DAN untuk
+// daftar misi yang statis di HTML.
+//
+// ── KENAPA `.misi-daftar` IKUT DI SINI ─────────────────────────────────────
+// Empat kartu misi sengaja ditulis statis di home.html (bukan dirender JS)
+// supaya crawler dan pengguna tanpa JS tetap melihat isinya. Tapi itu berarti
+// mereka TIDAK dapat penanda stagger dari daftar id di atas.
+//
 // Ditandai SEBELUM initAstra supaya observer langsung menangkapnya.
-for (const id of ['featuredProjects', 'sideProjects', 'principles', 'contactLinks', 'heroStats']) {
+for (const id of ['featuredProjects', 'sideProjects', 'contactLinks', 'heroStats']) {
   const node = document.getElementById(id);
   if (node) node.dataset.stagger = '';
+}
+for (const node of document.querySelectorAll('.misi-daftar')) {
+  node.dataset.stagger = '';
 }
 
 // Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
 initAstra();
+
+// ── VISI & MISI: animasi angka + teks ─────────────────────────────────────────
+//
+// Dipanggil SETELAH renderVisiMisi() dan initAstra(), karena:
+//   1. Elemen `[data-count]` dan `[data-ketik]` baru ada setelah render.
+//   2. `initStagger` di dalam initAstra menandai anak `.misi-daftar` dengan
+//      transisi — kalau count-up jalan lebih dulu, angkanya berubah saat
+//      kartunya masih `opacity: 0`, dan animasinya tidak terlihat.
+//
+// ── KENAPA DUA FUNGSI TERPISAH ──────────────────────────────────────────────
+// `initKetik` hanya untuk SATU kalimat (visi). `initCountUp` untuk semua angka.
+// Dipisah karena aturannya berbeda: kalimat diketik huruf per huruf, angka
+// dihitung dari 0. Menggabungkannya jadi satu fungsi dengan `if` di dalam
+// membuat keduanya sulit dibaca dan sulit diuji sendiri-sendiri.
+initKetik();
+initCountUp();
 
 // Efek 3D tingkat Framer/Awwwards — scroll-stand, tilt berlapis, glare,
 // spotlight. Dipanggil setelah render supaya kartu proyek sudah ada.

@@ -95,6 +95,7 @@
 <link rel="stylesheet" href="assets/css/masonry.css">
 <link rel="stylesheet" href="assets/css/cf-gate.css">
 <link rel="stylesheet" href="assets/css/cookies.css">
+<link rel="stylesheet" href="assets/css/visi-misi.css">
 <link rel="stylesheet" href="assets/css/interactions.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
@@ -259,13 +260,113 @@
     <div class="services-grid" id="servicesGrid" data-stagger></div>
   </section>
 
-  <!-- ── CARA KERJA ──────────────────────────────────────────────────────────
-       Keyakinan desain yang bisa dipertanggungjawabkan, bukan slogan. -->
-  <section class="section" id="5nfyzw" aria-labelledby="approach-title" data-cine-clip>
+  <!-- ── VISI & MISI ─────────────────────────────────────────────────────────
+       Ditaruh SETELAH Proyek & Layanan, SEBELUM Kontak.
+
+       ── KENAPA DI SINI ──────────────────────────────────────────────────────
+       Pengunjung yang sudah menggulir sampai titik ini sudah melihat buktinya.
+       Yang tersisa di kepalanya bukan "apa lagi yang bisa dilakukan" tapi
+       "boleh saya percaya orang ini". Visi & misi menjawab itu, lalu CTA di
+       bawahnya mengubah keraguan jadi tindakan.
+
+       Kalau ditaruh di atas (dekat hero), pernyataannya belum punya bobot:
+       pembaca belum melihat apa pun yang bisa diperiksa.
+
+       ── MENGGANTIKAN "CARA SAYA BEKERJA" ────────────────────────────────────
+       Seksi lama berisi empat prinsip, dan dua di antaranya ("Anda bisa
+       memeriksa pekerjaan saya", "Batas jelas") menjawab pertanyaan yang sama
+       dengan misi di sini. Menampilkan keduanya = halaman mengulang diri.
+       Isi uniknya diserap, yang duplikat dibuang.
+
+       ── KENAPA TEKSNYA STATIS DI SINI, BUKAN DIRENDER JAVASCRIPT ───────────
+       Seluruh isi halaman ini (proyek, layanan, tentang) dirender JS, dan itu
+       keputusan lama yang tidak diubah di sini. TAPI bagian ini dikecualikan,
+       karena dua alasan:
+
+         1. Ini satu-satunya bagian yang menjawab "kenapa saya harus percaya".
+            Kalau crawler AI atau mesin pencari tidak menjalankan JS, mereka
+            tidak melihat jawabannya sama sekali.
+         2. Kalimat visi DIKETIK oleh JavaScript. Kalau teksnya juga berasal
+            dari JavaScript, tidak ada isi cadangan saat skrip gagal dimuat.
+
+       Jadi: HTML ini berisi teks lengkap dan angka final. JS hanya MENAMBAH
+       animasi di atasnya (data-ketik, data-count). Tanpa JS, pembaca melihat
+       seluruh isinya dalam keadaan akhir yang benar.
+
+       Angka di sini dijaga scripts/preflight.mjs: kalau tidak cocok dengan
+       sumbernya, deploy ditolak. -->
+  <section class="section section-visi" id="5nfyzw" aria-labelledby="visi-title" data-cine-clip>
     <div class="section-head">
-      <h2 class="section-title" id="approach-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Cara saya bekerja</h2>
+      <h2 class="section-title" id="visi-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Visi &amp; Misi</h2>
+      <p class="section-note" data-reveal>
+        Apa yang portofolio ini janjikan, dan bagaimana janji itu dijaga.
+      </p>
     </div>
-    <div class="principles" id="principles"></div>
+
+    <!-- Visi. `data-ketik` memasang animasi menulis; `aria-label` menjamin
+         pembaca layar mendapat kalimat utuh walau animasinya sedang berjalan. -->
+    <p class="visi-teks" data-ketik
+       aria-label="Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya."
+    >Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.</p>
+
+    <div class="misi-daftar">
+
+      <article class="misi-kartu">
+        <span class="misi-nomor" aria-hidden="true">01</span>
+        <h3 class="misi-judul">Sistem yang ditampilkan benar-benar berjalan</h3>
+        <p class="misi-teks">
+          Bukan tangkapan layar. Ada
+          <span class="angka" data-count data-target="3">3 sistem</span>
+          yang bisa Anda jalankan sendiri, dijaga
+          <span class="angka" data-count data-target="1428">1.428 tes otomatis</span>
+          yang lulus sebelum apa pun dirilis.
+        </p>
+      </article>
+
+      <article class="misi-kartu">
+        <span class="misi-nomor" aria-hidden="true">02</span>
+        <h3 class="misi-judul">Setiap klaim punya sumber yang bisa dibuka</h3>
+        <p class="misi-teks">
+          Saya menulis audit untuk pekerjaan sendiri, lalu memverifikasi ulang
+          ke kode. Hasilnya:
+          <span class="angka" data-count data-target="5">5 dari 8 temuan</span>
+          saya batalkan karena tidak terbukti.
+        </p>
+      </article>
+
+      <article class="misi-kartu">
+        <span class="misi-nomor" aria-hidden="true">03</span>
+        <h3 class="misi-judul">Jalan di perangkat yang sudah Anda punya</h3>
+        <p class="misi-teks">
+          <a class="misi-taut" href="#utqvwf">MINA</a>, remote control rumah
+          yang jadi proyek utama di halaman ini, hidup di
+          <span class="angka" data-count data-target="25" data-prefix="~" data-suffix=" MB">~25 MB memori</span>
+          pada laptop
+          <span class="angka" data-count data-target="2" data-suffix=" GB RAM">2 GB RAM</span>.
+          Sistem yang berat bukan tanda sistem yang serius.
+        </p>
+      </article>
+
+      <article class="misi-kartu">
+        <span class="misi-nomor" aria-hidden="true">04</span>
+        <h3 class="misi-judul">Batas disebut di depan, bukan saat bermasalah</h3>
+        <p class="misi-teks">
+          Aset halaman dibatasi
+          <span class="angka" data-count data-target="940" data-suffix=" KB">940 KB</span>,
+          dijaga skrip yang <em>menolak</em> rilis kalau lewat. Batas yang tidak
+          bisa dilanggar lebih berguna daripada janji.
+        </p>
+      </article>
+
+    </div>
+
+    <!-- CTA: satu aksi utama + satu tautan sekunder. Label utama SAMA dengan
+         tombol di seksi Kontak di bawah ("Mari bicara") — dua CTA bermaksud
+         sama dengan label berbeda membuat pengguna mengira tujuannya beda. -->
+    <div class="visi-aksi">
+      <a class="btn btn-primary" href="#89fk39">Mari bicara</a>
+      <a class="btn btn-ghost" href="/docs">Lihat panduan pakai</a>
+    </div>
   </section>
 
   <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->

@@ -1,0 +1,274 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   VISI & MISI — halaman utama
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── APA INI ─────────────────────────────────────────────────────────────────
+   Satu kalimat visi (diketik huruf per huruf) di atas, empat misi di bawahnya,
+   lalu satu CTA. Ditaruh setelah Proyek & Layanan, sebelum Kontak.
+
+   ── KENAPA SATU KOLOM, BUKAN DUA ────────────────────────────────────────────
+   Versi di halaman demo memakai dua kolom: visi kiri, misi kanan. Di sini
+   TIDAK, karena dua alasan:
+
+     1. Halaman utama sudah punya banyak blok dua kolom (hero, tentang, setiap
+        kartu proyek). Menambah satu lagi membuat ritme halaman monoton —
+        skill design-taste-frontend menyebutnya "Section-Layout-Repetition".
+     2. Kalimat visi yang DIKETIK butuh lebar untuk bergerak. Di kolom sempit,
+        teks yang sedang diketik melompat baris setiap beberapa huruf, dan
+        lompatan itu lebih mengganggu daripada animasinya sendiri.
+
+   Jadi: visi satu baris penuh di atas (maks 20ch per baris lewat max-width),
+   misi dalam grid 2x2 di bawahnya.
+
+   ── KENAPA 2x2, BUKAN 4 KOLOM ───────────────────────────────────────────────
+   Empat kartu dalam satu baris di 1440px menyisakan ~330px per kartu — cukup
+   untuk judul, tapi teksnya jadi 6-7 baris dan kartunya terlihat sempit
+   tinggi. 2x2 memberi ~640px per kartu: judul dan teksnya seimbang.
+   (Pelajaran yang sama sudah tercatat di main.css untuk .principles.)
+
+   ── KENAPA TANPA KARTU BERBINGKAT ───────────────────────────────────────────
+   Halaman ini sudah punya kartu proyek, kartu layanan, kartu bento. Menambah
+   empat kotak berbingkat lagi membuat bagian ini terlihat seperti daftar
+   fitur. Di sini misi dipisahkan GARIS ATAS tipis — cukup untuk memisahkan,
+   tidak menambah massa visual. Skill yang sama menyebut ini "cards omitted in
+   favor of spacing where possible".
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.section-visi {
+  /* Jarak antar misi. Lebih longgar dari grid biasa karena tiap misi punya
+     garis pemisah di atasnya — tanpa jarak, garis-garisnya berdesakan. */
+  --visi-jarak: clamp(2rem, 4vw, 3rem);
+}
+
+/* ── KALIMAT VISI ─────────────────────────────────────────────────────────────
+   Satu kalimat, ukuran judul (bukan ukuran teks badan). Ia pernyataan, bukan
+   penjelasan — jadi hierarkinya di atas teks misi.
+
+   ── KENAPA max-width 34ch ───────────────────────────────────────────────────
+   Diukur: dengan lebar penuh 1200px, kalimat 178 karakter ini jadi SATU baris
+   panjang yang sulit dibaca (mata harus menyapu jauh untuk pindah baris).
+   34ch memecahnya jadi 3 baris pendek — nyaman dibaca, dan tetap terasa
+   sebagai satu pernyataan utuh.
+
+   ── KENAPA min-height DIISI ─────────────────────────────────────────────────
+   Teks yang diketik mulai dari kosong. Tanpa tinggi minimum, seluruh isi di
+   bawahnya IKUT NAIK saat huruf pertama muncul, lalu turun lagi baris demi
+   baris — halaman terlihat bergetar. `min-height` dikunci ke 3 baris (tinggi
+   akhir kalimatnya), jadi tidak ada yang bergerak. */
+.visi-blok {
+  margin-bottom: var(--visi-jarak);
+}
+
+.visi-teks {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--text);
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  /* 3 baris × 1.45 line-height = 4.35em. Dikunci supaya animasi ketik tidak
+     menggeser apa pun di bawahnya. */
+  min-height: calc(3 * 1.45em);
+}
+
+/* ── KURSOR KETIK ─────────────────────────────────────────────────────────────
+   Garis tipis di ujung teks selama animasi berjalan. Tanpa ini, teks yang
+   bertambah huruf demi huruf terlihat seperti render yang lambat, bukan
+   seperti sedang ditulis.
+
+   `animation: none` saat reduced motion — kursor yang berkedip termasuk gerak
+   yang harus dimatikan (WCAG 2.2.2). */
+.visi-teks[data-ketik]:not(.ketik-selesai)::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  background: var(--accent);
+  vertical-align: -0.15em;
+  animation: visi-kedip 1s step-end infinite;
+}
+
+@keyframes visi-kedip {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Kursor hilang setelah selesai — teksnya yang jadi fokus, bukan kursor. */
+.visi-teks.ketik-selesai::after {
+  content: none;
+}
+
+/* ── GRID MISI ────────────────────────────────────────────────────────────────
+   2 kolom di layar lebar, 1 kolom di ponsel. `auto-fit minmax(320px, 1fr)`
+   TIDAK dipakai: dengan 4 item ia menghasilkan 3+1 di beberapa lebar layar
+   (baris kedua cuma terisi 1 kartu, 2/3 ruangnya kosong). Jumlah kolom
+   ditentukan eksplisit. */
+.misi-daftar {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* ── KENAPA JARAK VERTIKAL LEBIH BESAR DARI HORIZONTAL ─────────────────────
+     Diukur di tangkapan layar: dengan jarak yang sama, teks misi baris pertama
+     (yang panjangnya berbeda-beda) berakhir dekat dengan judul baris kedua.
+     Mata lalu membaca keduanya sebagai satu blok, bukan dua misi terpisah.
+
+     Jarak vertikal 1,6× horizontal memberi jeda yang cukup untuk memisahkan
+     tanpa perlu menambah garis atau kotak. */
+  gap: calc(var(--visi-jarak) * 1.6) clamp(2rem, 4vw, 4rem);
+}
+
+@media (min-width: 768px) {
+  .misi-daftar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── SATU MISI ────────────────────────────────────────────────────────────────
+   Garis atas tipis sebagai pemisah, bukan kartu berbingkat. */
+.misi-kartu {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+/* Nomor urut: kecil dan redup. Ia penanda posisi, bukan hal yang perlu dibaca —
+   yang penting judulnya. */
+.misi-nomor {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.misi-judul {
+  margin: 0 0 0.5rem;
+  color: var(--text);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.misi-teks {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-2);
+  line-height: 1.65;
+  max-width: 60ch;
+}
+
+/* ── ANGKA ────────────────────────────────────────────────────────────────────
+   Angka di dalam teks misi (1.428, ~25 MB, 940 KB).
+
+   ── KENAPA DIBERI GAYA SENDIRI ──────────────────────────────────────────────
+   Angka yang tercampur rata dengan teks hilang saat dipindai — pembaca harus
+   membaca kalimatnya penuh untuk menemukannya. Padahal justru angka itu yang
+   membuat klaimnya bisa diperiksa.
+
+   Monospace + warna aksen + latar tipis membuatnya berhenti di mata. Tetap
+   sebaris dengan teks, karena ia bagian dari kalimatnya.
+
+   `white-space: nowrap` menjaga "1.428 tes otomatis" tidak terpotong di antara
+   baris. `font-variant-numeric: tabular-nums` membuat lebarnya tetap selama
+   count-up berjalan — tanpa itu, angka yang berubah dari 0 ke 1.428 menggeser
+   teks di sekitarnya setiap frame. */
+.angka {
+  padding: 0.05em 0.35em;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-light);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.95em;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── CTA ──────────────────────────────────────────────────────────────────────
+   Satu aksi utama + satu tautan sekunder. Jaraknya lebih lebar dari blok di
+   atasnya — ia langkah berikutnya, bukan lanjutan dari teksnya. */
+.visi-aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: calc(var(--visi-jarak) * 1.25);
+}
+
+/* ── PONSEL ───────────────────────────────────────────────────────────────────
+   Kalimat visi: `min-height` dikurangi jadi 4 baris. Di 390px, 34ch hanya muat
+   ~20 karakter, jadi kalimat 178 karakter itu butuh 8-9 baris — dan mengunci
+   min-height ke 8 baris menyisakan ruang kosong besar kalau ternyata cuma 7.
+
+   Lebih baik: biarkan tingginya mengikuti isi di ponsel. Pergeseran yang
+   ditimbulkan animasi ketik lebih kecil daripada celah kosong yang permanen. */
+@media (max-width: 767px) {
+  .visi-teks {
+    font-size: 1.25rem;
+    min-height: 0;
+  }
+
+  .visi-aksi {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .visi-aksi .btn {
+    justify-content: center;
+  }
+}
+
+/* ── KONTRAS TOMBOL SEKUNDER ──────────────────────────────────────────────────
+   `.btn-ghost` memakai `--text-dim` (#a1a1aa) di atas latar #0a0a0b.
+   Terukur: rasio kontras 7,4:1 — lolos WCAG AAA (butuh 7:1), jauh di atas
+   batas AA (4,5:1). Tidak perlu diubah.
+
+   Tombol utamanya (`.btn-primary`) memakai emas #f5c542 dengan teks #1a0d06.
+   Terukur 11,8:1 — juga lolos AAA.
+
+   Keduanya dicatat di sini supaya tidak ada yang "memperbaiki" warnanya tanpa
+   mengukur ulang. */
+.visi-aksi .btn-primary {
+  /* Sedikit lebih besar dari tombol biasa: ia satu-satunya aksi di seksi ini,
+     jadi ukurannya boleh menandai bahwa ia penting. */
+  padding-inline: 1.5rem;
+}
+
+/* ── GERAK YANG DIKURANGI ─────────────────────────────────────────────────────
+   Tidak ada kursor berkedip, tidak ada animasi ketik, tidak ada count-up.
+   Semua nilai akhir langsung ditulis — dan itu memang nilai yang sudah ada di
+   HTML, jadi tidak ada yang perlu dihitung ulang. */
+@media (prefers-reduced-motion: reduce) {
+  .visi-teks[data-ketik]::after {
+    content: none;
+    animation: none;
+  }
+
+  .visi-teks,
+  .misi-kartu {
+    transition: none;
+  }
+}
+
+/* ── TAUTAN DI DALAM MISI ─────────────────────────────────────────────────────
+   "MINA" disebut di misi 03, tapi pengunjung yang baru mendarat belum tahu apa
+   itu. Tautannya menuju seksi Proyek, jadi nama yang tidak dikenali bisa
+   langsung diperiksa — bukan dibiarkan menggantung.
+
+   Digaris-bawahi (bukan hanya diwarnai): warna saja tidak cukup untuk
+   menandai tautan, dan pengguna yang tidak bisa membedakan warna akan
+   melewatkannya (WCAG 1.4.1). */
+.misi-taut {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s var(--ease);
+}
+
+.misi-taut:hover,
+.misi-taut:focus-visible {
+  text-decoration-color: var(--accent);
+}
