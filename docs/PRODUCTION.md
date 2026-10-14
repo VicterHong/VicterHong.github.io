@@ -129,6 +129,106 @@ supaya browser tidak memakai versi cache lama.
 
 ---
 
+## 5b. Rollback — mengembalikan deploy yang bermasalah
+
+Ditulis karena sebelumnya **tidak ada** prosedur ini. Tanpa rollback yang
+terdokumentasi, orang yang panik akan menebak — dan tebakan saat panik
+biasanya memperburuk keadaan.
+
+### Kapan rollback, kapan perbaiki di tempat
+
+| Keadaan | Tindakan |
+|---|---|
+| Halaman rusak, penyebabnya jelas, perbaikan < 5 menit | **Perbaiki di tempat** — rollback lalu deploy ulang lebih lama |
+| Halaman rusak, penyebabnya belum jelas | **Rollback dulu**, selidiki setelah situs hidup |
+| Backend error setelah restart | **Rollback backend**, lihat bagian bawah |
+| Database korup | **JANGAN rollback** — pulihkan dari backup (§4) |
+
+Prinsipnya: **situs hidup lebih penting daripada versi terbaru.** Rollback itu
+murah dan bisa diulang; pengunjung yang melihat halaman rusak tidak kembali.
+
+### Rollback frontend (Cloudflare Pages)
+
+```bash
+cd ~/portfolio-victer
+
+# 1. Lihat versi terakhir yang diketahui baik
+git tag --sort=-v:refname | head -5
+
+# 2. Kembalikan ke tag itu (--detach supaya main tidak tergeser)
+git checkout v2.6.0
+
+# 3. Deploy versi itu
+export CLOUDFLARE_API_TOKEN="$(grep '^CLOUDFLARE_API_TOKEN=' ~/.portfolio-token/service.env | cut -d= -f2-)"
+export CLOUDFLARE_ACCOUNT_ID="$(grep '^CLOUDFLARE_ACCOUNT_ID=' ~/.portfolio-token/service.env | cut -d= -f2-)"
+node scripts/build-css.mjs
+npx wrangler pages deploy dist --project-name=portfolio-victer --branch=main
+
+# 4. Verifikasi
+curl -s -o /dev/null -w '%{http_code}\n' https://portfolio-victer.pages.dev/
+```
+
+**Setelah pulih:** kembali ke `main` dan perbaiki dari sana.
+
+```bash
+git checkout main
+```
+
+### Rollback backend (VPS)
+
+Backend tidak punya versi tersimpan per-deploy — tapi git punya.
+
+```bash
+cd ~/portfolio-victer
+
+# 1. Lihat commit yang sedang berjalan
+git log --oneline -5
+
+# 2. Kembalikan berkas backend ke commit sebelumnya
+git checkout <commit-baik> -- backend/src/
+
+# 3. Restart
+sudo systemctl restart portfolio-token
+
+# 4. Verifikasi
+curl -s http://127.0.0.1:8788/api/health
+curl -s http://127.0.0.1:8788/api/ready | head -c 200
+```
+
+**Kembalikan perubahan git** setelah selesai menyelidiki:
+
+```bash
+git checkout main -- backend/src/
+```
+
+### Rollback database
+
+**Tidak ada rollback database.** SQLite tidak punya undo, dan memutar balik
+tulisan bisa menghapus data yang sah.
+
+Yang ada: **pulihkan dari backup** (§4). Itu berarti kehilangan perubahan
+sejak backup terakhir — karena itu backup harian jalan otomatis.
+
+```bash
+# Lihat backup yang ada
+ls -lt ~/.portfolio-token/backups/ | head -5
+
+# Pulihkan (HENTIKAN layanan dulu)
+sudo systemctl stop portfolio-token
+cp ~/.portfolio-token/backups/<berkas-terbaik>.db ~/.portfolio-token/tokens.db
+sudo systemctl start portfolio-token
+```
+
+### Kalau rollback juga gagal
+
+Urutan yang disarankan:
+
+1. **Cek apakah masalahnya di kita atau di luar** — `curl -s https://portfolio-victer.pages.dev/` dari jaringan lain. Kalau hanya jaringan Anda yang bermasalah, tidak ada yang perlu di-rollback.
+2. **Cek status Cloudflare** — gangguan Pages adalah satu-satunya kasus di mana menunggu lebih baik daripada bertindak.
+3. **Matikan yang bermasalah, bukan semuanya** — kalau hanya satu endpoint rusak, hentikan endpoint itu. Situs yang sebagian hidup lebih baik daripada mati total.
+
+---
+
 ## 6. Batas & catatan jujur
 
 | Hal | Kondisi sebenarnya |
