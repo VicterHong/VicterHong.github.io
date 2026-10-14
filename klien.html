@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proyek Saya | VIVASTIC</title>
+<meta name="description" content="Daftar proyek dan token akses Anda.">
+<!-- Halaman privat: tidak diindeks, dan tidak masuk sitemap. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="/assets/css/cf-gate.css">
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="/assets/css/klien.css">
+</head>
+<body class="klien-page">
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  AREA KLIEN — daftar proyek + token akses
+
+  ── KENAPA HALAMAN INI TIDAK MENAMPILKAN ISI DI HTML ─────────────────────────
+  Berbeda dari halaman publik (yang isinya statis supaya crawler AI bisa
+  membacanya), halaman ini menampilkan data MILIK PENGGUNA: paketnya, sisa
+  jatahnya, tokennya. Data itu tidak boleh ada di HTML yang dikirim sebelum
+  identitasnya diperiksa — dan memang hanya server yang tahu.
+
+  Jadi HTML ini adalah KERANGKA. Isinya diambil dari /api/klien/* setelah
+  halaman dimuat. Tanpa JavaScript, kerangkanya terlihat dan ada pesan yang
+  menjelaskan kenapa isinya tidak muncul — bukan halaman kosong.
+
+  ── KENAPA JUDULNYA "Proyek Saya", BUKAN "Area Klien" ────────────────────────
+  "Area klien" menjelaskan tempatnya. "Proyek Saya" menjelaskan isinya. Yang
+  kedua lebih berguna: pengguna yang membuka halaman ini ingin tahu apa yang
+  dia punya, bukan di mana dia berada.
+  ══════════════════════════════════════════════════════════════════════════════
+-->
+
+<div class="klien-wrap">
+
+  <header class="klien-head">
+    <p class="klien-halo" id="klienHalo">Memuat…</p>
+    <h1 class="klien-judul">Proyek Saya</h1>
+  </header>
+
+  <!-- Status paket: satu baris yang menjawab "saya paket apa, sisa berapa".
+       Ditaruh di atas karena ia menentukan apa yang bisa dilakukan di bawah. -->
+  <div class="klien-paket" id="klienPaket" aria-live="polite">
+    <span class="klien-paket-nama" id="klienPaketNama">…</span>
+    <p class="klien-paket-info" id="klienPaketInfo">Memuat status langganan…</p>
+  </div>
+
+  <!-- Tab utama: Proyek / Token. Bentuknya garis bawah, berbeda dari tab
+       tampilan (pil) — supaya bedanya terlihat sebelum diklik. -->
+  <nav class="klien-tab-utama" id="klienTabUtama" role="tablist" aria-label="Bagian halaman">
+    <button type="button" role="tab" id="tabProyek" aria-controls="panelProyek" aria-selected="true">Proyek</button>
+    <button type="button" role="tab" id="tabToken" aria-controls="panelToken" aria-selected="false">Token akses</button>
+  </nav>
+
+  <!-- ══ PANEL PROYEK ══════════════════════════════════════════════════════ -->
+  <section id="panelProyek" role="tabpanel" aria-labelledby="tabProyek" class="klien-panel">
+
+    <div class="klien-tab" id="klienTab" role="tablist" aria-label="Tampilan daftar">
+      <button type="button" role="tab" data-tampilan="list" aria-selected="true" aria-label="Tampilan daftar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+        </svg>
+        <span>Daftar</span>
+      </button>
+      <button type="button" role="tab" data-tampilan="card" aria-selected="false" aria-label="Tampilan kartu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+        <span>Kartu</span>
+      </button>
+      <button type="button" role="tab" data-tampilan="pack" aria-selected="false" aria-label="Tampilan tumpuk">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>
+        </svg>
+        <span>Tumpuk</span>
+      </button>
+    </div>
+
+    <!-- Kerangka loading: bentuknya menyerupai kartu, bukan spinner. -->
+    <ul class="klien-kerangka" id="klienKerangka" aria-hidden="true">
+      <li></li><li></li><li></li>
+    </ul>
+
+    <div id="klienGalat" hidden></div>
+
+    <!-- Tampilan "pack": kartu bertumpuk dengan rotasi, satu per satu. -->
+    <div id="klienPack" hidden></div>
+
+    <ul class="klien-daftar" id="klienDaftar" data-tampilan="list" hidden></ul>
+  </section>
+
+  <!-- ══ PANEL TOKEN ═══════════════════════════════════════════════════════ -->
+  <section id="panelToken" role="tabpanel" aria-labelledby="tabToken" class="klien-panel" hidden>
+
+    <div class="klien-token-head">
+      <p class="klien-token-sisa" id="klienTokenSisa">Memuat…</p>
+      <button type="button" class="klien-btn klien-btn--utama" id="klienBuatToken" disabled>
+        Buat token baru
+      </button>
+    </div>
+
+    <!-- Tempat token yang baru dibuat. Ditampilkan SEKALI — karena hanya
+         hash-nya yang tersimpan, token ini tidak bisa ditampilkan lagi. -->
+    <div class="klien-token-baru" id="klienTokenBaru" hidden></div>
+
+    <div id="klienTokenGalat" hidden></div>
+
+    <ul class="klien-token-daftar" id="klienTokenDaftar"></ul>
+
+    <p class="klien-kosong" id="klienTokenKosong" hidden>
+      Belum ada token. Token dipakai untuk mengakses kode sumber dan dokumentasi
+      teknis lewat API.
+    </p>
+  </section>
+
+</div>
+
+<!-- Gerbang verifikasi: halaman privat pun melewatinya. -->
+<script>
+  window.CF_GATE_CONFIG = {
+    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
+    verifyEndpoint: '/api/verify-turnstile'
+  };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="/assets/js/cf-gate-i18n.js"></script>
+<script src="/assets/js/cf-gate.js"></script>
+
+<script type="module" src="/assets/js/klien.js"></script>
+<script src="/assets/js/footer.js" defer></script>
+</body>
+</html>

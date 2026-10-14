@@ -1,0 +1,550 @@
+/**
+ * AREA KLIEN — daftar proyek + token akses.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA VANILLA, BUKAN REACT + MOTION
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Komponen asalnya (animated-collection, 21st.dev) memakai React, motion, dan
+ * Tailwind. Versi minified dari ketiganya = 363 KB (117 KB gzip) — untuk
+ * animasi yang di sini ditulis dalam ~150 baris CSS.
+ *
+ * Situs ini nol dependency, dan presedennya sudah ada: How It Works dan kartu
+ * zigzag Visi & Misi juga dari 21st.dev dan sudah di-port dengan cara sama.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * YANG DIPERTAHANKAN DARI SUMBER ASLINYA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ *   · Tiga tampilan: list, card, pack
+ *   · Susunan "pack": kartu bertumpuk dengan rotasi berlawanan arah
+ *   · Nomor urut di tiap item (#209 di sumber, di sini 01, 02, …)
+ *   · Lencana di tiap item
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA TAMPILAN "PACK" CUMA MENAMPILKAN SATU KARTU
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Di sumber aslinya, "pack" adalah tumpukan kartu yang saling menimpa dengan
+ * rotasi — cocok untuk galeri dua item. Di sini isinya proyek teknis yang
+ * tiap-tiapnya punya nama dan status akses yang perlu dibaca.
+ *
+ * Kalau ditumpuk seperti aslinya, kartu paling atas menutupi yang lain, dan
+ * pengguna tidak bisa membaca status proyek kedua. Jadi "pack" di sini
+ * menampilkan SATU kartu pada satu waktu dengan tombol sebelumnya/berikutnya
+ * — tumpukan yang bisa dibuka, bukan tumpukan yang menutupi.
+ */
+
+const $ = (sel, akar = document) => akar.querySelector(sel);
+
+const API = {
+  ringkasan: '/api/klien/ringkasan',
+  proyek: '/api/klien/proyek',
+  token: '/api/klien/token',
+  star: '/api/klien/star',
+};
+
+/** Ikon status — dari assets/js/icons.js, bukan pustaka ikon baru. */
+const IKON = {
+  terbuka: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+  terkunci: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  bintang: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z"/></svg>',
+};
+
+const LABEL_STATUS = {
+  terbuka: 'Terbuka',
+  'trial-terpakai': 'Terbuka (pratinjau)',
+  'terkunci-jatah-habis': 'Perlu langganan',
+  'terkunci-perlu-star': 'Perlu star',
+};
+
+/** Panggil API. Melempar dengan pesan yang bisa ditampilkan kalau gagal. */
+async function panggilApi(url, opsi = {}) {
+  // ── MENERUSKAN PARAMETER UJI ──────────────────────────────────────────────
+  // Server uji memakai `?mode=gratis|standar|profesional|enterprise` untuk
+  // meniru paket yang berbeda. Halaman perlu meneruskannya ke API, kalau
+  // tidak, semua mode menampilkan jawaban yang sama.
+  //
+  // Di produksi parameter ini TIDAK ADA di URL, jadi blok ini tidak
+  // melakukan apa-apa — dan server produksi mengabaikannya.
+  const mode = new URLSearchParams(location.search).get('mode');
+  const urlAkhir = mode ? `${url}${url.includes('?') ? '&' : '?'}mode=${encodeURIComponent(mode)}` : url;
+
+  const res = await fetch(urlAkhir, {
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    ...opsi,
+  });
+
+  let data = {};
+  try {
+    data = await res.json();
+  } catch {
+    // Server menjawab bukan-JSON (mis. halaman error HTML). Pesan di bawah
+    // yang dipakai, bukan error parse yang membingungkan.
+  }
+
+  if (res.status === 401) {
+    // Sesi habis. Kirim ke halaman masuk, dan simpan tujuan supaya pengguna
+    // kembali ke sini setelah masuk — bukan ke beranda.
+    const tujuan = encodeURIComponent(location.pathname);
+    location.href = `/sign-in?lanjut=${tujuan}`;
+    throw new Error('Sesi berakhir. Mengalihkan ke halaman masuk…');
+  }
+
+  if (!res.ok || data.ok === false) {
+    const pesan = data.pesan || data.error || `Permintaan gagal (${res.status}).`;
+    const err = new Error(pesan);
+    err.status = res.status;
+    throw err;
+  }
+
+  return data;
+}
+
+// ── FORMAT ───────────────────────────────────────────────────────────────────
+
+/**
+ * Nomor urut item, tiga digit. Mengikuti pola #209 / #808 di sumber aslinya.
+ *
+ * ── KENAPA TIGA DIGIT, BUKAN SATU ──────────────────────────────────────────
+ * "01" dan "1" sama-sama jelas, tapi nomor berpadding membuat lebarnya sama
+ * untuk semua item — jadi daftarnya rata saat dipindai. Angka yang lebarnya
+ * berbeda-beda membuat mata tersandung di setiap baris.
+ */
+const nomorItem = (i) => String(i + 1).padStart(3, '0');
+
+/** Inisial proyek untuk kotak gambar: "Spareparts Inventory" → "SI". */
+function inisial(nama) {
+  return String(nama || '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((k) => k[0].toUpperCase())
+    .join('');
+}
+
+// ── RENDER: KARTU PROYEK ─────────────────────────────────────────────────────
+
+/**
+ * Satu kartu proyek.
+ *
+ * ── KENAPA TIDAK MEMAKAI innerHTML DENGAN DATA DARI SERVER ─────────────────
+ * Nama dan ringkasan proyek datang dari server. Kalau disisipkan lewat
+ * innerHTML, karakter seperti `<` di dalamnya akan diurai sebagai HTML —
+ * dan itu jalan masuk XSS. Semua teks di sini dipasang dengan textContent;
+ * hanya markup yang SAYA tulis sendiri yang memakai innerHTML.
+ */
+function buatKartu(proyek, indeks) {
+  const li = document.createElement('li');
+  li.className = 'klien-kartu';
+
+  // Kotak gambar: inisial + nomor urut.
+  const gambar = document.createElement('div');
+  gambar.className = 'klien-gambar';
+  gambar.setAttribute('aria-hidden', 'true');
+  gambar.textContent = inisial(proyek.nama);
+
+  const nomor = document.createElement('span');
+  nomor.className = 'klien-nomor';
+  nomor.textContent = '#' + nomorItem(indeks);
+  gambar.append(nomor);
+  li.append(gambar);
+
+  const isi = document.createElement('div');
+  isi.className = 'klien-isi';
+
+  const nama = document.createElement('h3');
+  nama.className = 'klien-nama';
+  nama.textContent = proyek.nama;
+  isi.append(nama);
+
+  if (proyek.subtitle) {
+    const sub = document.createElement('p');
+    sub.className = 'klien-sub';
+    sub.textContent = proyek.subtitle;
+    isi.append(sub);
+  }
+
+  // Lencana status — warna DAN ikon, bukan hanya teks. Pengguna yang memindai
+  // cepat melihat warnanya, bukan membaca labelnya.
+  const status = document.createElement('span');
+  status.className = 'klien-status';
+  status.dataset.status = proyek.status;
+  status.innerHTML = proyek.status === 'terbuka' ? IKON.terbuka
+    : proyek.status === 'trial-terpakai' ? IKON.bintang
+      : IKON.terkunci;
+  const labelStatus = document.createElement('span');
+  labelStatus.textContent = LABEL_STATUS[proyek.status] || proyek.status;
+  status.append(labelStatus);
+  isi.append(status);
+
+  // Tombol: hanya muncul kalau ada yang bisa dilakukan.
+  const aksi = document.createElement('div');
+  aksi.className = 'klien-aksi';
+
+  const terbuka = proyek.status === 'terbuka' || proyek.status === 'trial-terpakai';
+
+  if (terbuka) {
+    const lihat = document.createElement('a');
+    lihat.className = 'klien-btn';
+    lihat.href = `/s/${proyek.slug}`;
+    lihat.textContent = 'Buka proyek';
+    aksi.append(lihat);
+  } else {
+    const kunci = document.createElement('span');
+    kunci.className = 'klien-btn';
+    kunci.style.cursor = 'default';
+    kunci.textContent = proyek.status === 'terkunci-perlu-star'
+      ? 'Beri star untuk membuka'
+      : 'Berlangganan untuk membuka';
+    aksi.append(kunci);
+  }
+
+  if (aksi.children.length) isi.append(aksi);
+  li.append(isi);
+
+  return li;
+}
+
+// ── RENDER: TAMPILAN PACK ────────────────────────────────────────────────────
+
+/**
+ * Tampilan "tumpuk": satu kartu pada satu waktu, dengan tumpukan di belakang.
+ *
+ * Kartu di belakang ditampilkan dengan rotasi dan skala yang berbeda, jadi
+ * terlihat seperti tumpukan — tapi tidak menutupi kartu depan.
+ */
+let indeksPack = 0;
+
+function renderPack(daftar, host) {
+  // ── BUG YANG DIPERBAIKI: KARTU LAMA TERTINGGAL ───────────────────────────
+  // `host.innerHTML = ''` mengosongkan wadah PACK, tapi kartu list ada di
+  // wadah BERBEDA (`#klienDaftar`). Saat berpindah ke pack, kartu list masih
+  // ada di DOM — dan pemeriksaan `document.querySelectorAll('.klien-kartu')`
+  // menghitung keduanya: 3 (list, tersembunyi) + 3 (pack) = 6.
+  //
+  // Yang salah bukan cuma angkanya: kartu list yang tersembunyi tetap
+  // membebani layout dan tetap dibaca pembaca layar.
+  //
+  // Sekarang wadah yang tidak aktif DIKOSONGKAN, bukan hanya disembunyikan.
+  host.innerHTML = '';
+  if (!daftar.length) return;
+
+  indeksPack = Math.max(0, Math.min(indeksPack, daftar.length - 1));
+
+  const panggung = document.createElement('div');
+  panggung.style.cssText = 'position:relative;min-height:260px;display:grid;place-items:center;padding:2rem 0;';
+
+  // Kartu belakang: dua berikutnya, dengan rotasi berlawanan arah.
+  for (let i = Math.min(daftar.length - 1, indeksPack + 2); i > indeksPack; i--) {
+    const belakang = buatKartu(daftar[i], i);
+    const jarak = i - indeksPack;
+    belakang.style.cssText = `
+      position:absolute;max-width:26rem;width:100%;
+      transform: rotate(${jarak % 2 === 0 ? 4 : -4}deg) scale(${1 - jarak * 0.04});
+      opacity:${0.45 - (jarak - 1) * 0.2};
+      pointer-events:none;z-index:${10 - jarak};
+    `;
+    panggung.append(belakang);
+  }
+
+  // Kartu depan.
+  const depan = buatKartu(daftar[indeksPack], indeksPack);
+  depan.style.cssText = 'position:relative;max-width:26rem;width:100%;z-index:20;';
+  panggung.append(depan);
+
+  host.append(panggung);
+
+  // Navigasi tumpukan.
+  if (daftar.length > 1) {
+    const nav = document.createElement('div');
+    nav.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:1rem;margin-top:1rem;';
+
+    const sebelum = document.createElement('button');
+    sebelum.type = 'button';
+    sebelum.className = 'klien-btn';
+    sebelum.textContent = 'Sebelumnya';
+    sebelum.disabled = indeksPack === 0;
+    sebelum.addEventListener('click', () => {
+      indeksPack -= 1;
+      renderPack(daftar, host);
+    });
+
+    const hitung = document.createElement('span');
+    hitung.className = 'klien-token-meta';
+    hitung.textContent = `${indeksPack + 1} dari ${daftar.length}`;
+
+    const sesudah = document.createElement('button');
+    sesudah.type = 'button';
+    sesudah.className = 'klien-btn';
+    sesudah.textContent = 'Berikutnya';
+    sesudah.disabled = indeksPack >= daftar.length - 1;
+    sesudah.addEventListener('click', () => {
+      indeksPack += 1;
+      renderPack(daftar, host);
+    });
+
+    nav.append(sebelum, hitung, sesudah);
+    host.append(nav);
+  }
+}
+
+// ── RENDER: TOKEN ────────────────────────────────────────────────────────────
+
+function renderToken(daftar, host, kosong) {
+  host.innerHTML = '';
+  kosong.hidden = daftar.length > 0;
+
+  for (const t of daftar) {
+    const li = document.createElement('li');
+    li.className = 'klien-token-item';
+
+    const kiri = document.createElement('div');
+
+    const label = document.createElement('p');
+    label.className = 'klien-token-label';
+    label.textContent = t.label || 'Tanpa label';
+    kiri.append(label);
+
+    const meta = document.createElement('p');
+    meta.className = 'klien-token-meta';
+    const tanggal = t.dibuatPada
+      ? new Date(t.dibuatPada).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '—';
+    meta.textContent = `${t.proyek} · ${t.paket} · ${tanggal}`;
+    kiri.append(meta);
+
+    li.append(kiri);
+
+    const status = document.createElement('span');
+    status.className = 'klien-status';
+    status.dataset.status = t.status === 'aktif' ? 'terbuka' : 'terkunci-jatah-habis';
+    status.innerHTML = t.status === 'aktif' ? IKON.terbuka : IKON.terkunci;
+    const statusTeks = document.createElement('span');
+    statusTeks.textContent = t.status;
+    status.append(statusTeks);
+    li.append(status);
+
+    host.append(li);
+  }
+}
+
+// ── STATUS PAKET ─────────────────────────────────────────────────────────────
+
+function renderPaket(ringkas) {
+  const nama = $('#klienPaketNama');
+  const info = $('#klienPaketInfo');
+  const halo = $('#klienHalo');
+
+  halo.textContent = ringkas.nama ? `Halo, ${ringkas.nama}.` : 'Selamat datang.';
+  nama.textContent = ringkas.paket;
+
+  const k = ringkas.kuota;
+
+  if (!ringkas.berbayar) {
+    // Pengguna gratis: yang penting bukan "sisa token 0", tapi APA yang bisa
+    // dilakukan untuk membukanya.
+    info.textContent = ringkas.trial
+      ? `Pratinjau gratis sudah dipakai untuk ${ringkas.trial.proyek}. Berlangganan untuk membuka semua proyek.`
+      : 'Berlangganan untuk membuka data metrik dan membuat token akses.';
+    return;
+  }
+
+  if (k.tanpaBatas) {
+    info.textContent = 'Token akses tanpa batas. Data metrik semua proyek terbuka.';
+    return;
+  }
+
+  const sisa = document.createElement('span');
+  info.textContent = '';
+  info.append('Sisa token bulan ini: ');
+  const kuat = document.createElement('strong');
+  kuat.textContent = `${k.sisa} dari ${k.total}`;
+  sisa.append(kuat);
+  info.append(sisa);
+  info.append(` · jatah baru dalam ${k.hariSampaiReset} hari`);
+}
+
+// ── ALUR UTAMA ───────────────────────────────────────────────────────────────
+
+let proyekCache = [];
+let tampilanAktif = 'list';
+
+function renderDaftar() {
+  const daftar = $('#klienDaftar');
+  const pack = $('#klienPack');
+
+  if (tampilanAktif === 'pack') {
+    daftar.hidden = true;
+    // Wadah list DIKOSONGKAN, bukan hanya disembunyikan. Kartu yang tetap ada
+    // di DOM ikut terhitung saat diuji, membebani layout, dan dibaca pembaca
+    // layar — padahal pengguna sedang melihat tampilan pack.
+    daftar.innerHTML = '';
+    pack.hidden = false;
+    renderPack(proyekCache, pack);
+    return;
+  }
+
+  pack.hidden = true;
+  // Kebalikannya: wadah pack dikosongkan saat pindah ke list/card.
+  pack.innerHTML = '';
+  daftar.hidden = false;
+  daftar.dataset.tampilan = tampilanAktif;
+  daftar.innerHTML = '';
+  proyekCache.forEach((p, i) => daftar.append(buatKartu(p, i)));
+}
+
+function pasangTab() {
+  // Tab tampilan.
+  for (const tombol of document.querySelectorAll('#klienTab button')) {
+    tombol.addEventListener('click', () => {
+      tampilanAktif = tombol.dataset.tampilan;
+      for (const t of document.querySelectorAll('#klienTab button')) {
+        t.setAttribute('aria-selected', String(t === tombol));
+      }
+      renderDaftar();
+    });
+  }
+
+  // Tab utama: Proyek / Token.
+  const tabProyek = $('#tabProyek');
+  const tabToken = $('#tabToken');
+  const panelProyek = $('#panelProyek');
+  const panelToken = $('#panelToken');
+
+  const pilih = (mana) => {
+    const diProyek = mana === 'proyek';
+    tabProyek.setAttribute('aria-selected', String(diProyek));
+    tabToken.setAttribute('aria-selected', String(!diProyek));
+    panelProyek.hidden = !diProyek;
+    panelToken.hidden = diProyek;
+  };
+
+  tabProyek.addEventListener('click', () => pilih('proyek'));
+  tabToken.addEventListener('click', () => {
+    pilih('token');
+    muatToken();
+  });
+}
+
+async function muatToken() {
+  const daftar = $('#klienTokenDaftar');
+  const kosong = $('#klienTokenKosong');
+  const sisa = $('#klienTokenSisa');
+  const galat = $('#klienTokenGalat');
+  const tombol = $('#klienBuatToken');
+
+  try {
+    const data = await panggilApi(API.token);
+    renderToken(data.token, daftar, kosong);
+
+    const k = data.kuota;
+    if (k.tanpaBatas) {
+      sisa.textContent = 'Token tanpa batas.';
+      tombol.disabled = false;
+    } else if (k.total === 0) {
+      sisa.textContent = 'Membuat token tersedia untuk paket berbayar.';
+      tombol.disabled = true;
+    } else {
+      sisa.innerHTML = '';
+      sisa.append('Sisa jatah bulan ini: ');
+      const kuat = document.createElement('strong');
+      kuat.textContent = `${k.sisa} dari ${k.total}`;
+      sisa.append(kuat);
+      tombol.disabled = !k.bolehBuat;
+    }
+    galat.hidden = true;
+  } catch (err) {
+    galat.hidden = false;
+    galat.className = 'klien-galat';
+    galat.textContent = err.message;
+  }
+}
+
+function pasangBuatToken() {
+  const tombol = $('#klienBuatToken');
+  const wadah = $('#klienTokenBaru');
+
+  tombol.addEventListener('click', async () => {
+    tombol.disabled = true;
+    tombol.textContent = 'Membuat…';
+
+    try {
+      const data = await panggilApi(API.token, { method: 'POST', body: '{}' });
+
+      // Tampilkan token SEKALI. Karena hanya hash-nya yang tersimpan, ini
+      // satu-satunya kesempatan pengguna menyalinnya.
+      wadah.hidden = false;
+      wadah.innerHTML = '';
+
+      const pesan = document.createElement('p');
+      pesan.textContent = 'Token dibuat. Salin sekarang — karena hanya hash-nya yang tersimpan, token ini tidak bisa ditampilkan lagi.';
+      wadah.append(pesan);
+
+      const nilai = document.createElement('code');
+      nilai.className = 'klien-token-nilai';
+      nilai.textContent = data.token;
+      wadah.append(nilai);
+
+      const aksi = document.createElement('div');
+      aksi.className = 'klien-aksi';
+
+      const salin = document.createElement('button');
+      salin.type = 'button';
+      salin.className = 'klien-btn klien-btn--utama';
+      salin.textContent = 'Salin token';
+      salin.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(data.token);
+          salin.textContent = 'Tersalin';
+          setTimeout(() => { salin.textContent = 'Salin token'; }, 2000);
+        } catch {
+          // Clipboard diblokir (bukan HTTPS, atau izin ditolak). Teksnya
+          // sudah bisa dipilih manual — beri tahu, jangan diam.
+          salin.textContent = 'Pilih manual';
+        }
+      });
+      aksi.append(salin);
+      wadah.append(aksi);
+
+      await muatToken();
+    } catch (err) {
+      const galat = $('#klienTokenGalat');
+      galat.hidden = false;
+      galat.className = 'klien-galat';
+      galat.textContent = err.message;
+    } finally {
+      tombol.textContent = 'Buat token baru';
+      tombol.disabled = false;
+    }
+  });
+}
+
+async function mulai() {
+  const kerangka = $('#klienKerangka');
+  const galat = $('#klienGalat');
+
+  try {
+    // Ringkasan dan proyek diambil bersamaan — keduanya tidak saling
+    // bergantung, jadi tidak ada alasan menunggu satu selesai dulu.
+    const [ringkas, proyek] = await Promise.all([
+      panggilApi(API.ringkasan),
+      panggilApi(API.proyek),
+    ]);
+
+    renderPaket(ringkas);
+    proyekCache = proyek.proyek || [];
+    renderDaftar();
+  } catch (err) {
+    galat.hidden = false;
+    galat.className = 'klien-galat';
+    galat.textContent = err.message;
+  } finally {
+    kerangka.hidden = true;
+  }
+}
+
+pasangTab();
+pasangBuatToken();
+mulai();
