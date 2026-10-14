@@ -318,7 +318,7 @@ export const visiMisi = {
       teks: 'Bukan tangkapan layar. Tiga sistem yang bisa Anda jalankan sendiri, dijaga {tes} yang lulus sebelum apa pun dirilis.',
       angka: [
         { nilai: 3, teks: '3 sistem', label: 'sistem yang bisa dijalankan' },
-        { nilai: 1428, teks: '1.428 tes otomatis', label: 'tes otomatis' },
+        { nilai: 1467, teks: '1.467 tes otomatis', label: 'tes otomatis' },
       ],
     },
     {

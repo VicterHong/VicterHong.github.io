@@ -1,16 +1,16 @@
 {
- "dibuat": "2026-10-14T15:50:56.317Z",
- "totalCommit": 440,
- "totalDicatat": 438,
+ "dibuat": "2026-10-14T16:01:38.741Z",
+ "totalCommit": 442,
+ "totalDicatat": 440,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-14",
  "rilis": [
   {
    "tanggal": "2026-10-14",
-   "jumlah": 35,
+   "jumlah": 37,
    "ringkasan": {
-    "fitur": 23,
-    "perbaikan": 8,
+    "fitur": 24,
+    "perbaikan": 9,
     "performa": 0,
     "dokumentasi": 1,
     "data": 0,
@@ -21,6 +21,11 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "1269523",
+       "teks": "Metrik terverifikasi, diagram arsitektur, sandbox demo",
+       "scope": "portofolio"
+      },
       {
        "hash": "a10ddbb",
        "teks": "Arsip latihan, badge CI nyata, kalkulator ROI",
@@ -142,6 +147,11 @@
      "kunci": "perbaikan",
      "label": "Perbaikan",
      "item": [
+      {
+       "hash": "78c3e90",
+       "teks": "Hapus 2 em-dash yang terlihat di bagian metrik & sandbox",
+       "scope": "beranda"
+      },
       {
        "hash": "7c71de9",
        "teks": "Panel detail selalu tampil & tombol Tutup tidak bekerja",

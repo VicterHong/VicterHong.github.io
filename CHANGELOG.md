@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 438 perubahan dari 440 commit (2026-10-01 → 2026-10-14).
+Total 440 perubahan dari 442 commit (2026-10-01 → 2026-10-14).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,6 +10,7 @@ Total 438 perubahan dari 440 commit (2026-10-01 → 2026-10-14).
 
 ### Fitur baru
 
+- **portofolio**: Metrik terverifikasi, diagram arsitektur, sandbox demo (`1269523`)
 - **portofolio**: Arsip latihan, badge CI nyata, kalkulator ROI (`a10ddbb`)
 - **sentinel**: Mode keamanan Pro — perketat sekali klik, bisa dikembalikan (`0b5a076`)
 - **sentinel**: Sambungkan gateway ke produksi — pintu masuk + worker (`643fe21`)
@@ -36,6 +37,7 @@ Total 438 perubahan dari 440 commit (2026-10-01 → 2026-10-14).
 
 ### Perbaikan
 
+- **beranda**: Hapus 2 em-dash yang terlihat di bagian metrik & sandbox (`78c3e90`)
 - **sentinel**: Panel detail selalu tampil & tombol Tutup tidak bekerja (`7c71de9`)
 - **panduan**: Tabel perbandingan salah baca satu kolom penuh (`0b45765`)
 - **harga**: Tinggi tombol tidak rata — dua bug, satu akar (`9ae6cc9`)
