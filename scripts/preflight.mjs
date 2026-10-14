@@ -143,6 +143,113 @@ try {
   check('home.html', false, err.message);
 }
 
+// ── 5. Angka di bagian Visi & Misi harus cocok dengan kenyataan ──────────────
+//
+// ── KENAPA PEMERIKSAAN INI ADA ───────────────────────────────────────────────
+// Saat pertama menulis Visi & Misi, EMPAT angka yang saya tulis salah:
+//
+//   diklaim        nyata    kenapa berubah
+//   ───────────    ──────   ───────────────────────────────────────────────
+//   1.864 tes      1.956    angka backend ikut berubah tiap ada tes baru
+//   29 berkas      30       PRD-nya sendiri menambah satu berkas
+//   7.886 baris    8.115    idem
+//   61 KB          47 KB    saya mengukur halaman lain, bukan halaman ini
+//
+// Yang penting bukan kesalahannya — angka memang berubah. Yang penting:
+// halaman ini menjanjikan "setiap angka bisa diperiksa", jadi angka yang tidak
+// bisa dijaga tidak boleh ada di sana.
+//
+// ── ATURAN YANG DIPAKAI ──────────────────────────────────────────────────────
+// Hanya angka yang STABIL yang ditulis di halaman:
+//
+//   ✓ dari projects.js     — 3 sistem, 1.428 tes (berubah hanya kalau repo berubah)
+//   ✓ sifat fisik          — ~25 MB memori, 2 GB RAM
+//   ✓ ANGGARAN, bukan pemakaian — 940 KB (anggarannya tetap; pemakaiannya naik-turun)
+//
+//   ✗ jumlah berkas dokumentasi  — naik tiap kali ada catatan baru
+//   ✗ jumlah baris dokumentasi   — idem
+//   ✗ ukuran halaman saat ini    — berubah tiap kali CSS disentuh
+//   ✗ jumlah tes backend         — naik tiap kali ada tes baru
+//
+// Angka yang tidak stabil diganti dengan pernyataan yang tetap benar
+// ("ada berkas yang bisa Anda periksa") alih-alih angka yang akan basi.
+//
+// Pemeriksaan di bawah menegakkan aturan itu: kalau ada yang menulis angka
+// tidak stabil ke halaman, atau angka stabil yang jadi tidak cocok, deploy
+// DITOLAK.
+console.log('\n── Angka Visi & Misi ──');
+try {
+  const visi = readFileSync(resolve(AUDIT, 'demo-how-it-works.html'), 'utf8');
+
+  const diklaim = {
+    sistem: (visi.match(/hiw-angka">(\d+) sistem/) || [])[1],
+    tes: (visi.match(/hiw-angka">([\d.]+) tes otomatis/) || [])[1],
+    memori: (visi.match(/hiw-angka">~(\d+) MB memori/) || [])[1],
+    ram: (visi.match(/hiw-angka">(\d+) GB RAM/) || [])[1],
+    anggaran: (visi.match(/hiw-angka">(\d+) KB</) || [])[1],
+    temuanDibatalkan: (visi.match(/hiw-angka">(\d+) dari (\d+) temuan/) || [])[1],
+    temuanTotal: (visi.match(/hiw-angka">(\d+) dari (\d+) temuan/) || [])[2],
+  };
+
+  // ── Angka nyata dari projects.js — satu sumber kebenaran ───────────────────
+  //
+  // ── KENAPA HANYA label YANG MENGANDUNG "tes" ───────────────────────────────
+  // Versi pertama pemeriksaan ini menjumlahkan SEMUA `value:` di projects.js —
+  // dan hasilnya 1.573, bukan 1.428. Selisihnya: nilai "berkas uji" (4 dan 141)
+  // ikut terjumlah, padahal itu jumlah berkas, bukan jumlah tes.
+  //
+  // Sekarang labelnya dibaca juga, dan hanya yang mengandung "tes" yang
+  // dijumlahkan — sama persis dengan cara `stats()` di projects.js menghitung.
+  const proyekSrc = readFileSync(resolve(ROOT, 'assets/js/data/projects.js'), 'utf8');
+  const jumlahProyek = (proyekSrc.match(/^\s{2}\{\n\s{4}slug:/gm) || []).length;
+  const tesProyek = [...proyekSrc.matchAll(/{\s*label:\s*'([^']*)',\s*value:\s*'([^']*)'\s*}/g)]
+    .filter((m) => m[1].includes('tes'))
+    .map((m) => Number(m[2].replace(/\./g, '')))
+    .reduce((a, b) => a + b, 0);
+
+  // ── Anggaran aset — dari SATU sumber, sama dengan yang dipakai audit ───────
+  const anggaranKb = Math.round(BUDGETS.totalBytes / 1024);
+
+  check('angka:sistem', Number(diklaim.sistem) === jumlahProyek,
+    `halaman bilang ${diklaim.sistem ?? '—'} · projects.js punya ${jumlahProyek}`);
+  check('angka:tes-proyek', Number(diklaim.tes?.replace(/\./g, '')) === tesProyek,
+    `halaman bilang ${diklaim.tes ?? '—'} · projects.js punya ${tesProyek.toLocaleString('id-ID')}`);
+  check('angka:anggaran-kb', Number(diklaim.anggaran) === anggaranKb,
+    `halaman bilang ${diklaim.anggaran ?? '—'} KB · anggaran nyata ${anggaranKb} KB`);
+  check('angka:memori-mina', Number(diklaim.memori) === 25 && Number(diklaim.ram) === 2,
+    `halaman bilang ~${diklaim.memori ?? '—'} MB di ${diklaim.ram ?? '—'} GB RAM`);
+
+  // ── Temuan audit yang dibatalkan: dibaca dari dokumennya sendiri ───────────
+  //
+  // Angka "5 dari 8" berasal dari docs/AUDIT-ENTERPRISE-KOREKSI.md. Kalau
+  // dokumennya berubah, halaman harus ikut berubah — kalau tidak, deploy
+  // ditolak. Dibaca dari dokumennya, bukan diketik ulang di sini, supaya
+  // tidak ada dua sumber yang bisa berbeda.
+  const auditSrc = readFileSync(resolve(ROOT, 'docs/AUDIT-ENTERPRISE-KOREKSI.md'), 'utf8');
+  const auditCocok = auditSrc.match(/(\d+)\s+dari\s+(\d+)\s+"temuan"/);
+  const auditDibatalkan = auditCocok ? Number(auditCocok[1]) : NaN;
+  const auditTotal = auditCocok ? Number(auditCocok[2]) : NaN;
+
+  check('angka:audit-dibatalkan',
+    Number(diklaim.temuanDibatalkan) === auditDibatalkan && Number(diklaim.temuanTotal) === auditTotal,
+    `halaman bilang ${diklaim.temuanDibatalkan ?? '—'} dari ${diklaim.temuanTotal ?? '—'} · dokumen audit bilang ${auditDibatalkan} dari ${auditTotal}`);
+
+  // ── Angka yang TIDAK boleh muncul: berubah tiap kali ada catatan baru ──────
+  //
+  // Kalau suatu saat seseorang menambahkan "30 berkas" atau "8.115 baris" ke
+  // halaman, pemeriksaan ini menangkapnya sebelum terkirim.
+  const terlarang = [
+    { pola: /(\d[\d.]*)\s+berkas\s+catatan/, label: 'jumlah berkas dokumentasi' },
+    { pola: /(\d[\d.]*)\s+baris/, label: 'jumlah baris dokumentasi' },
+    { pola: /hiw-angka">\d+\s*KB<\/span>\s*—\s*dibuka/, label: 'ukuran halaman saat ini' },
+  ];
+  const ditemukan = terlarang.filter((t) => t.pola.test(visi)).map((t) => t.label);
+  check('angka:tidak-stabil', ditemukan.length === 0,
+    ditemukan.length ? `ada angka yang berubah-ubah: ${ditemukan.join(', ')}` : 'tidak ada angka yang berubah-ubah');
+} catch (err) {
+  check('angka:visi-misi', false, err.message);
+}
+
 // ── Ringkasan ────────────────────────────────────────────────────────────────
 const failed = checks.filter(c => !c.ok);
 console.log(`\n${'─'.repeat(50)}`);

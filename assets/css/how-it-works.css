@@ -438,6 +438,40 @@ html:not(.js-ready) .hiw-item { opacity: 1; transform: none; }
   line-height: 1.6;
 }
 
+/* ── ANGKA BUKTI ──────────────────────────────────────────────────────────────
+   Angka di dalam teks misi (1.864 tes, 29 berkas, 919 dari 940 KB).
+
+   ── KENAPA DIBERI GAYA SENDIRI ──────────────────────────────────────────────
+   Angka yang tercampur rata dengan teks hilang saat dipindai — pembaca harus
+   membaca kalimatnya penuh untuk menemukannya. Padahal justru angka itu yang
+   membuat klaimnya bisa diperiksa.
+
+   Monospace + warna aksen + latar tipis membuatnya berhenti di mata. Tetap
+   sebaris dengan teks (bukan blok terpisah), karena ia bagian dari kalimatnya —
+   bukan keterangan di luar kalimat.
+
+   `white-space: nowrap` menjaga "919 dari 940 KB" tidak terpotong di antara
+   baris: angka yang pecah jadi dua baris lebih sulit dibaca daripada kalimat
+   yang membungkus. */
+.hiw-angka {
+  padding: 0.05em 0.35em;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-light);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.95em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* `em` di dalam misi (kata "menolak") — penekanan yang tidak menambah warna
+   baru; halaman ini sudah punya aksen emas untuk angka. */
+.hiw-misi-teks em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 500;
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    LAYAR SEMPIT
    ════════════════════════════════════════════════════════════════════════════
