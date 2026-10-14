@@ -356,6 +356,51 @@ export const config = {
   /** Alamat halaman setelah bayar berhasil / gagal. */
   checkoutSuksesUrl: pick('CHECKOUT_SUKSES_URL', 'https://portfolio-victer.pages.dev/pesanan'),
   checkoutBatalUrl: pick('CHECKOUT_BATAL_URL', 'https://portfolio-victer.pages.dev/pricing'),
+
+  /* ══ SENTINEL — GATEWAY WEBHOOK ═════════════════════════════════════════════
+   *
+   * ── KENAPA SATU SECRET PER SUMBER, BUKAN SATU UNTUK SEMUA ─────────────────
+   * Kalau semua sumber memakai secret yang sama, satu kebocoran membuka
+   * SEMUA sumber. Dengan secret terpisah, GitHub yang bocor tidak membuat
+   * penyerang bisa memalsukan webhook Stripe.
+   *
+   * ── KENAPA DIBIARKAN KOSONG, BUKAN WAJIB ──────────────────────────────────
+   * Sumber yang secret-nya kosong berarti NONAKTIF — endpoint masuknya
+   * menolak semua permintaan. Itu lebih aman daripada menerima tanpa
+   * verifikasi, dan lebih jelas daripada "aktif tapi tidak memeriksa apa pun".
+   *
+   * Jadi tidak ada yang perlu dikonfigurasi supaya situs tetap jalan: yang
+   * belum disetel hanya tidak bisa menerima webhook.
+   */
+  sentinelStripeSecret: pick('SENTINEL_STRIPE_SECRET', ''),
+  sentinelGithubSecret: pick('SENTINEL_GITHUB_SECRET', ''),
+  sentinelTelegramSecret: pick('SENTINEL_TELEGRAM_SECRET', ''),
+  sentinelHmacSecret: pick('SENTINEL_HMAC_SECRET', ''),
+
+  /**
+   * Ke mana webhook yang diterima diteruskan.
+   *
+   * ── KENAPA SATU TUJUAN GLOBAL DULU ────────────────────────────────────────
+   * Antrean menyimpan URL tujuan PER PESAN, jadi secara teknis tiap sumber
+   * bisa punya tujuan berbeda. Tapi konfigurasi per-sumber berarti lebih
+   * banyak yang harus dijaga tetap benar, dan belum ada kebutuhan nyatanya.
+   *
+   * Kosong = webhook diterima dan DICATAT, tapi tidak diteruskan ke mana pun.
+   * Itu berguna untuk memantau saja tanpa mengirim ke layanan lain.
+   */
+  sentinelTujuanUrl: pick('SENTINEL_TUJUAN_URL', ''),
+
+  /**
+   * Jeda antar putaran worker pengirim (ms).
+   *
+   * ── KENAPA 15 DETIK ───────────────────────────────────────────────────────
+   * Terlalu cepat berarti query database berulang tanpa ada yang baru.
+   * Terlalu lambat berarti webhook menumpuk dan pengiriman tertunda.
+   *
+   * 15 detik: cukup responsif untuk webhook (yang toleransinya detik sampai
+   * menit), cukup jarang untuk tidak membebani CPU.
+   */
+  sentinelIntervalMs: Number(pick('SENTINEL_INTERVAL_MS', '15000')),
   };
 
 /**

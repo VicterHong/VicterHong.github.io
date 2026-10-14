@@ -13,6 +13,10 @@ import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
 import { recordHeartbeat, cleanupHeartbeats, flushHeartbeats } from './sla.mjs';
 import { pruneAll } from './retention.mjs';
+// ── Worker Sentinel: pengirim webhook berkala ────────────────────────────────
+// Tanpa ini, pesan masuk antrean dan tidak pernah terkirim — backoff dan DLQ
+// tidak ada gunanya kalau tidak ada yang mencoba mengirim berulang kali.
+import { jalankanPutaran } from './sentinel/pengirim.mjs';
 
 // ── PENGHAPUSAN AKUN (model korporat) ───────────────────────────────────────
 //
@@ -413,6 +417,69 @@ function scheduleRetention() {
   }, delay).unref();
 }
 scheduleRetention();
+
+/* ══ WORKER SENTINEL — PENGIRIM WEBHOOK BERKALA ═════════════════════════════
+ *
+ * ── KENAPA INI ADA ─────────────────────────────────────────────────────────
+ * Tanpa worker, pesan masuk antrean dan TIDAK PERNAH terkirim. Antreannya
+ * penuh, inspector menampilkan tumpukan "menunggu", dan tidak ada yang
+ * bergerak — kecuali ada yang menekan "Kirim sekarang" secara manual.
+ *
+ * Itu membuat seluruh mekanisme backoff dan DLQ tidak ada gunanya: keduanya
+ * hanya bekerja kalau ADA yang mencoba mengirim berulang kali.
+ *
+ * ── KENAPA setTimeout BERANTAI, BUKAN setInterval ──────────────────────────
+ * `setInterval` menjadwalkan putaran berikutnya TANPA menunggu yang sekarang
+ * selesai. Kalau satu putaran lambat (banyak pesan, atau jaringan lambat),
+ * putaran berikutnya menumpuk di atasnya — dan itu berulang sampai server
+ * kehabisan sumber daya.
+ *
+ * Dengan `setTimeout` berantai, jeda dihitung SETELAH putaran selesai. Tidak
+ * mungkin ada dua putaran berjalan bersamaan.
+ *
+ * ── KENAPA DI-UNREF ────────────────────────────────────────────────────────
+ * Timer yang tidak di-unref menahan proses tetap hidup. Saat shutdown, itu
+ * berarti service tidak pernah benar-benar berhenti dan systemd harus
+ * membunuhnya paksa — dan SQLite tidak sempat menutup WAL dengan bersih.
+ */
+function scheduleSentinel() {
+  setTimeout(async () => {
+    try {
+      // Batas 10 per putaran: cukup untuk mengosongkan tumpukan kecil,
+      // tidak cukup untuk membuat satu putaran berjalan sampai timeout.
+      const ringkas = await jalankanPutaran({ batas: 10 });
+
+      // ── HANYA CATAT KALAU ADA KEGIATAN ────────────────────────────────────
+      // Putaran kosong terjadi setiap 15 detik. Mencatatnya berarti log
+      // terisi ribuan baris "0 terkirim" sehari, dan baris yang penting
+      // tenggelam di antaranya.
+      if (ringkas.terkirim || ringkas.gagal || ringkas.dilewati || ringkas.masukDlq) {
+        console.log(
+          `[sentinel] putaran: ${ringkas.terkirim} terkirim, ${ringkas.gagal} gagal`
+          + (ringkas.dilewati ? `, ${ringkas.dilewati} dilewati (sirkuit)` : '')
+          + (ringkas.masukDlq ? `, ${ringkas.masukDlq} masuk DLQ` : ''),
+        );
+      }
+    } catch (err) {
+      // Kegagalan satu putaran TIDAK boleh menghentikan worker. Kalau
+      // penjadwalan ulang dilewati, webhook berhenti terkirim selamanya
+      // dan tidak ada yang memberi tahu.
+      console.error('[sentinel] putaran gagal:', err?.message ?? err);
+    }
+    scheduleSentinel();
+  }, config.sentinelIntervalMs).unref();
+}
+
+// ── HANYA JALAN KALAU ADA YANG PERLU DIKIRIM ────────────────────────────────
+// Worker tanpa tujuan tidak ada gunanya: ia hanya membuka database setiap
+// 15 detik untuk menemukan antrean kosong. Kalau SENTINEL_TUJUAN_URL belum
+// disetel, pesan tetap DICATAT (berguna untuk memantau) tapi tidak dikirim.
+if (config.sentinelTujuanUrl) {
+  scheduleSentinel();
+  console.log(`[sentinel] worker aktif — tiap ${config.sentinelIntervalMs}ms → ${config.sentinelTujuanUrl}`);
+} else {
+  console.log('[sentinel] worker nonaktif (SENTINEL_TUJUAN_URL belum disetel) — webhook dicatat saja');
+}
 
 /**
  * Bind ke KEDUA alamat loopback (IPv4 + IPv6).

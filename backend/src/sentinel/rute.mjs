@@ -67,6 +67,8 @@ import {
   TIMEOUT_MS,
 } from './pengirim.mjs';
 import { PROVIDER, TOLERANSI_DETIK } from './tanda-tangan.mjs';
+import { terimaWebhook, daftarSumber } from './gerbang.mjs';
+import { readBody } from '../http-util.mjs';
 
 /* ── Penguncian ─────────────────────────────────────────────────────────── */
 
@@ -278,6 +280,20 @@ export function ruteSentinel() {
 
         const ringkas = await jalankanPutaran({ batas });
         return sendJson(res, 200, { ok: true, ...ringkas });
+      },
+    },
+
+    /* ── Daftar sumber: mana yang siap menerima webhook ─────────────────── */
+    {
+      method: 'GET',
+      pattern: '/api/sentinel/sumber',
+      handler: async (req, res) => {
+        return sendJson(res, 200, {
+          ok: true,
+          sumber: daftarSumber(),
+          tujuan: config.sentinelTujuanUrl || null,
+          intervalMs: config.sentinelIntervalMs,
+        });
       },
     },
   ];

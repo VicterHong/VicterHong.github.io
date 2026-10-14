@@ -143,6 +143,14 @@ import { ruteKlien } from './klien-routes.mjs';
 import { ruteSentinel } from './sentinel/rute.mjs';
 import { siapkanTabelAntrean } from './sentinel/antrean.mjs';
 import { siapkanTabelSirkuit } from './sentinel/sirkuit.mjs';
+// ── PINTU MASUK WEBHOOK ─────────────────────────────────────────────────────
+// Rute ini TIDAK dikunci admin: yang memanggilnya layanan luar (Stripe,
+// GitHub, Telegram), dan mereka tidak punya ADMIN_KEY kita.
+//
+// Pengganti kuncinya adalah TANDA TANGAN — dan verifikasinya wajib berhasil
+// sebelum apa pun disimpan. Tanpa secret yang benar, endpoint ini tidak bisa
+// dipakai sama sekali.
+import { terimaWebhook } from './sentinel/gerbang.mjs';
 import { providerSiap } from './oauth.mjs';
 import { siapkanTabelIdentitas, bersihkanStateOauth, bersihkanChallenge } from './auth-identities.mjs';
 
@@ -400,6 +408,21 @@ const ID_PARAMS = new Set(['id']);
 const PESAN_PARAMS = new Set(['pesanId']);
 
 /**
+ * Parameter nama sumber webhook Sentinel.
+ *
+ * ── KENAPA POLANYA KETAT ────────────────────────────────────────────────────
+ * Nilai ini dipakai untuk MEMILIH verifikator. Kalau isinya sembarangan,
+ * pencarian di daftar sumber gagal dan permintaannya ditolak — itu benar.
+ *
+ * Tapi ada alasan kedua: nilainya masuk ke LOG saat verifikasi gagal. Pola
+ * ketat memastikan yang bisa masuk log hanya huruf kecil dan angka, bukan
+ * karakter yang bisa memalsukan baris log atau menyisipkan kontrol terminal.
+ *
+ * Hanya huruf kecil, angka, dan garis bawah. Panjang maksimal 24.
+ */
+const SUMBER_PARAMS = new Set(['sumber']);
+
+/**
  * Parameter nama berkas avatar.
  *
  * ── KENAPA BUTUH POLA SENDIRI, BUKAN SLUG_RE ────────────────────────────────
@@ -479,6 +502,9 @@ const PAY_ID_RE = /^pay_[a-f0-9]{24}$/;
  */
 const PESAN_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
+/** Pola nama sumber webhook — huruf kecil, angka, garis bawah. */
+const SUMBER_RE = /^[a-z][a-z0-9_]{0,23}$/;
+
 /** Validasi nilai parameter sesuai tipenya. */
 function validParam(name, value) {
   if (SLUG_PARAMS.has(name)) return SLUG_RE.test(value);
@@ -486,6 +512,7 @@ function validParam(name, value) {
   // catatan PAY_ID_RE di atas.
   if (ID_PARAMS.has(name)) return TOKEN_ID_RE.test(value) || PAY_ID_RE.test(value);
   if (PESAN_PARAMS.has(name)) return PESAN_ID_RE.test(value);
+  if (SUMBER_PARAMS.has(name)) return SUMBER_RE.test(value);
   if (AVATAR_PARAMS.has(name)) return AVATAR_FILE_RE.test(value);
   // Parameter yang belum dikenal: tolak demi keamanan (default-deny).
   // Kalau nanti ada parameter baru, tambahkan ke salah satu himpunan di atas
@@ -4391,6 +4418,74 @@ export const routes = [
   // menyentuh berkas identitas yang sudah 1400+ baris.
   ...ruteKlien(),
   ...ruteSentinel(),
+
+  /* ══ PINTU MASUK WEBHOOK — PUBLIK, DIKUNCI TANDA TANGAN ═══════════════════
+   *
+   * ── KENAPA RUTE INI TERPISAH DARI ruteSentinel() ─────────────────────────
+   * `ruteSentinel()` membungkus SEMUA rutenya dengan kunciAdmin. Rute ini
+   * harus publik — yang memanggilnya layanan luar, dan mereka tidak punya
+   * ADMIN_KEY kita.
+   *
+   * Karena itu ia didefinisikan DI SINI, bukan di dalam ruteSentinel().
+   * Menambahkannya ke sana akan membuatnya butuh kunci admin, dan setiap
+   * webhook dari Stripe/GitHub akan ditolak 401.
+   *
+   * ── YANG MENGGANTIKAN KUNCI ADMIN: TANDA TANGAN ───────────────────────────
+   * Setiap permintaan diverifikasi tanda tangannya SEBELUM apa pun disimpan.
+   * Sumber yang secret-nya belum disetel berarti NONAKTIF dan menolak semua
+   * permintaan (dijawab 404, sama seperti URL yang tidak ada).
+   *
+   * ── KENAPA TIDAK ADA CORS ─────────────────────────────────────────────────
+   * Yang memanggil ini server, bukan browser. Header CORS tidak menambah
+   * keamanan apa pun di sini — dan `Access-Control-Allow-Origin: *` pada
+   * endpoint yang menerima webhook hanya memberi izin kepada halaman web
+   * mana pun untuk mencoba mengirim.
+   */
+  {
+    method: 'POST',
+    pattern: '/api/sentinel/masuk/:sumber',
+    handler: safe(async (req, res, params) => {
+      // ── BODY DIBACA MENTAH ────────────────────────────────────────────────
+      // Verifikasi tanda tangan butuh byte PERSIS seperti yang dikirim.
+      // Kalau body diurai lalu diserialisasi ulang, urutan kunci dan spasi
+      // bisa berubah — dan HMAC-nya tidak akan cocok lagi.
+      let bodyMentah;
+      try {
+        bodyMentah = await readBody(req);
+      } catch (err) {
+        return sendJson(res, err?.statusCode ?? 400, {
+          ok: false,
+          error: 'body_tidak_terbaca',
+        });
+      }
+
+      const hasil = terimaWebhook({
+        sumber: params.sumber,
+        bodyMentah,
+        headers: req.headers,
+      });
+
+      // ── LOG HANYA KEGAGALAN, DAN TANPA BODY ───────────────────────────────
+      // Body webhook memuat data pembayaran dan data pribadi. Menuliskannya
+      // ke log berarti ia tersimpan di tempat yang tidak terenkripsi dan
+      // terbaca siapa pun yang punya akses server.
+      //
+      // Kegagalan tetap dicatat — itu yang perlu diketahui operator.
+      if (!hasil.ok) {
+        console.warn(
+          `[sentinel] tolak ${params.sumber}: ${hasil.alasan} `
+          + `(dari ${req.headers['cf-connecting-ip'] ?? 'tidak diketahui'})`,
+        );
+      }
+
+      return sendJson(res, hasil.kode, {
+        ok: hasil.ok,
+        id: hasil.id,
+        duplikat: hasil.duplikat,
+        pesan: hasil.pesan,
+      });
+    }),
+  },
 ];
 
 /** Cari rute yang cocok untuk satu permintaan. */

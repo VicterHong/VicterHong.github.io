@@ -278,6 +278,81 @@ async function tutupPaksa(host) {
   }
 }
 
+/* ── Sumber webhook ─────────────────────────────────────────────────────── */
+
+/**
+ * Gambar kartu tiap sumber webhook.
+ *
+ * ── KENAPA URL MASUK DITAMPILKAN ────────────────────────────────────────────
+ * URL ini yang harus didaftarkan di dashboard penyedia (Stripe, GitHub).
+ * Tanpa ditampilkan di sini, operator harus menebak bentuknya — dan URL yang
+ * salah didaftarkan berarti webhook tidak pernah sampai, TANPA error apa pun
+ * di sisi kita.
+ *
+ * ── KENAPA HANYA SUMBER AKTIF YANG URL-NYA DISOROT ──────────────────────────
+ * Sumber nonaktif menolak semua permintaan. Menampilkan URL-nya seolah siap
+ * dipakai akan menyesatkan.
+ */
+function gambarSumber(daftar, tujuan) {
+  const wadah = $('#wadahSumber');
+  wadah.replaceChildren();
+
+  if (!daftar?.length) {
+    wadah.appendChild(el('p', 'sentinel-kosong', 'Tidak ada sumber terdaftar.'));
+    wadah.setAttribute('aria-busy', 'false');
+    return;
+  }
+
+  const baris = el('div', 'sentinel-sumber-baris');
+  const asal = window.location.origin;
+
+  for (const s of daftar) {
+    const kartu = el('div', `sentinel-sumber${s.aktif ? '' : ' sentinel-sumber--nonaktif'}`);
+
+    const kepala = el('div', 'sentinel-sumber-kepala');
+    kepala.appendChild(el('span', 'sentinel-sumber-nama', s.label));
+    kepala.appendChild(el(
+      'span',
+      `sentinel-lencana sentinel-lencana--${s.aktif ? 'dikirim' : 'dlq'}`,
+      s.aktif ? 'Aktif' : 'Nonaktif',
+    ));
+    kartu.appendChild(kepala);
+
+    if (s.aktif) {
+      const kode = el('code', 'sentinel-sumber-url');
+      kode.textContent = `${asal}/api/sentinel/masuk/${s.id}`;
+      kartu.appendChild(kode);
+
+      kartu.appendChild(el('p', 'sentinel-sumber-header', `Header: ${s.header}`));
+    } else {
+      kartu.appendChild(el(
+        'p',
+        'sentinel-sumber-header',
+        'Secret belum disetel — permintaan ditolak.',
+      ));
+    }
+
+    baris.appendChild(kartu);
+  }
+
+  wadah.appendChild(baris);
+
+  // ── TUJUAN DITAMPILKAN DI BAWAH ──────────────────────────────────────────
+  // Ke mana webhook diteruskan menentukan apakah antrean akan bergerak.
+  // Tanpa tujuan, pesan hanya dicatat dan tidak pernah terkirim.
+  if (tujuan) {
+    wadah.appendChild(el('p', 'sentinel-sumber-header', `Diteruskan ke: ${tujuan}`));
+  } else {
+    wadah.appendChild(el(
+      'p',
+      'sentinel-sumber-header',
+      'Tanpa tujuan (SENTINEL_TUJUAN_URL kosong) — webhook dicatat tapi tidak diteruskan.',
+    ));
+  }
+
+  wadah.setAttribute('aria-busy', 'false');
+}
+
 /* ── Antrean pesan ──────────────────────────────────────────────────────── */
 
 function lencanaStatus(status) {
@@ -491,6 +566,16 @@ async function muatSemua() {
     const jalur = '/api/sentinel/pesan' + (saringStatus ? `?status=${encodeURIComponent(saringStatus)}` : '');
     const daftar = await panggil(jalur);
     gambarPesan(daftar.pesan ?? []);
+
+    // ── SUMBER DIMUAT TERAKHIR ──────────────────────────────────────────────
+    // Ia bukan data yang berubah cepat, dan kegagalannya tidak boleh
+    // menggagalkan tampilan antrean yang lebih penting.
+    try {
+      const sumber = await panggil('/api/sentinel/sumber');
+      gambarSumber(sumber.sumber, sumber.tujuan);
+    } catch (err) {
+      $('#wadahSumber').replaceChildren(el('p', 'sentinel-galat', err.message));
+    }
   } catch (err) {
     // Kegagalan 401 sudah ditangani di `panggil` (kembali ke gerbang).
     // Sisanya ditampilkan di tempat datanya seharusnya muncul.
