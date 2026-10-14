@@ -152,6 +152,11 @@ import { siapkanTabelPengaturan } from './sentinel/mode.mjs';
 // sebelum apa pun disimpan. Tanpa secret yang benar, endpoint ini tidak bisa
 // dipakai sama sekali.
 import { terimaWebhook } from './sentinel/gerbang.mjs';
+// ── STATUS CI: data NYATA dari GitHub, bukan klaim ──────────────────────────
+// Halaman mengklaim "1.428 tes otomatis". Endpoint ini yang membuat klaim itu
+// bisa diperiksa: ia mengambil status workflow terakhir, lengkap dengan commit
+// yang diuji dan berapa lama build-nya.
+import { ambilStatusCI, ringkasCI } from './ci-status.mjs';
 import { providerSiap } from './oauth.mjs';
 import { siapkanTabelIdentitas, bersihkanStateOauth, bersihkanChallenge } from './auth-identities.mjs';
 
@@ -4420,6 +4425,44 @@ export const routes = [
   // menyentuh berkas identitas yang sudah 1400+ baris.
   ...ruteKlien(),
   ...ruteSentinel(),
+
+  /* ══ STATUS CI — PUBLIK ════════════════════════════════════════════════════
+   *
+   * ── KENAPA PUBLIK ─────────────────────────────────────────────────────────
+   * Ini justru data yang INGIN dilihat pengunjung: bukti bahwa tesnya benar-
+   * benar dijalankan. Menyembunyikannya di balik login membuatnya tidak
+   * berguna untuk tujuan itu.
+   *
+   * ── KENAPA AMAN DIPUBLIKASIKAN ────────────────────────────────────────────
+   * Isinya: status workflow, nomor run, potongan hash commit, dan judul commit.
+   * Semuanya SUDAH publik di GitHub — repo-nya terbuka, dan siapa pun bisa
+   * melihat Actions-nya lewat browser.
+   *
+   * Yang TIDAK ada di sini: token, rahasia, isi log, atau apa pun yang tidak
+   * sudah publik. Endpoint ini hanya memindahkan data publik ke halaman kita.
+   *
+   * ── KENAPA TIDAK MEMBEBANI GITHUB ─────────────────────────────────────────
+   * Hasilnya di-cache 5 menit di server (lihat ci-status.mjs). Seribu
+   * pengunjung sehari menghasilkan paling banyak 288 permintaan — jauh di
+   * bawah batas 60/jam.
+   */
+  {
+    method: 'GET',
+    pattern: '/api/ci/status',
+    handler: safe(async (req, res) => {
+      const status = await ambilStatusCI();
+
+      // ── SELALU 200, WALAUPUN GITHUB GAGAL ───────────────────────────────────
+      // Halaman yang menampilkan badge tidak boleh rusak hanya karena GitHub
+      // sedang tidak bisa dihubungi. Kegagalannya dibawa DI DALAM jawaban
+      // (`ok: false` + `pesan`), bukan lewat kode HTTP — supaya frontend bisa
+      // menampilkan keterangan yang jelas alih-alih badge kosong.
+      sendJson(res, 200, {
+        ...status,
+        ringkas: ringkasCI(),
+      });
+    }),
+  },
 
   /* ══ PINTU MASUK WEBHOOK — PUBLIK, DIKUNCI TANDA TANGAN ═══════════════════
    *

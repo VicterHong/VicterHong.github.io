@@ -1,0 +1,242 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   KALKULATOR ROI
+   ══════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA TATA LETAKNYA DUA KOLOM DI LAYAR LEBAR ────────────────────────────
+   Masukan di kiri, hasil di kanan. Pengunjung mengubah angka dan melihat
+   hasilnya berubah TANPA menggulir — dan itu yang membuatnya terasa seperti
+   alat, bukan formulir.
+
+   Di layar sempit, keduanya bertumpuk: masukan dulu, hasil di bawahnya.
+
+   ── KENAPA TIDAK ADA TOMBOL "HITUNG" ─────────────────────────────────────────
+   Hasilnya murah dihitung dan langsung terlihat. Tombol hanya menambah langkah
+   tanpa memberi apa pun.
+   ────────────────────────────────────────────────────────────────────────────── */
+
+.bagian-roi .bagian-teks {
+  max-width: 42rem;
+  margin-bottom: 1.75rem;
+}
+
+.roi-form {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (min-width: 52rem) {
+  .roi-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+/* ── Kolom masukan ──────────────────────────────────────────────────────── */
+
+.roi-field-grid {
+  display: grid;
+  gap: 1.125rem;
+}
+
+.roi-field {
+  display: block;
+}
+
+.roi-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.roi-input-baris {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.roi-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.625rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  /* ── MONO UNTUK ANGKANYA ───────────────────────────────────────────────
+     Angka di kolom ini dibandingkan dan diketik ulang. Font mono membuat
+     digitnya sama lebar, jadi angka yang berbeda tetap sejajar saat dipindai. */
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+  transition: border-color 0.2s var(--ease, ease);
+}
+
+.roi-input:hover {
+  border-color: var(--line);
+}
+
+.roi-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: var(--accent);
+}
+
+/* ── KENAPA SPINNER ANGKA DISEMBUNYIKAN ────────────────────────────────────
+   Panah naik/turun pada input angka hampir tidak berguna untuk nilai seperti
+   12500 atau 150000 — satu klik menambah 1. Ia juga memakan ruang di layar
+   sempit. Pengunjung mengetik angkanya langsung. */
+.roi-input::-webkit-outer-spin-button,
+.roi-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.roi-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.roi-satuan {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0 0.625rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.roi-bantuan {
+  margin: 0.4375rem 0 0;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+/* ── Kolom hasil ────────────────────────────────────────────────────────── */
+
+.roi-hasil {
+  position: sticky;
+  /* ── STICKY DI LAYAR LEBAR ─────────────────────────────────────────────
+     Saat pengunjung menggulir kolom masukan yang panjang, hasilnya tetap
+     terlihat. Tanpa ini, ia harus menggulir bolak-balik untuk melihat efek
+     setiap perubahan. */
+  top: 6rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 51.99rem) {
+  .roi-hasil {
+    position: static;
+  }
+}
+
+.roi-kosong {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+/* ── Hasil utama ────────────────────────────────────────────────────────── */
+
+.roi-utama {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.roi-utama-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.roi-utama-angka {
+  display: block;
+  color: var(--accent);
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* ── HASIL NEGATIF DIBERI WARNA BERBEDA ────────────────────────────────────
+   Bukan merah menyala — ini bukan kesalahan, hanya kesimpulan yang berbeda.
+   Tapi jelas berbeda dari hasil positif, supaya tidak terlewat. */
+.roi-utama-angka--rugi {
+  color: #fca5a5;
+}
+
+.roi-utama-tepat {
+  display: block;
+  margin-top: 0.375rem;
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+}
+
+/* ── Rincian ────────────────────────────────────────────────────────────── */
+
+.roi-rincian {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.roi-rincian-baris {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.roi-rincian-label {
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.roi-rincian-nilai {
+  margin: 0;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* ── Catatan ────────────────────────────────────────────────────────────── */
+
+.roi-catatan {
+  margin: 1.25rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+.roi-catatan--kecil {
+  color: var(--text-faint);
+  font-size: 0.75rem;
+}
+
+.roi-catatan--rugi {
+  padding: 0.875rem 1rem;
+  background: rgba(252, 165, 165, 0.06);
+  border: 1px solid rgba(252, 165, 165, 0.18);
+  border-radius: var(--radius-sm);
+  color: #fca5a5;
+}

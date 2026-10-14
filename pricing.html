@@ -49,6 +49,7 @@
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/logo.css">
 <link rel="stylesheet" href="assets/css/pricing.css">
+<link rel="stylesheet" href="assets/css/roi.css">
 
 <!--
   ── GERBANG VERIFIKASI ────────────────────────────────────────────────────
@@ -227,6 +228,32 @@
          Pengguna yang sudah membaca semua informasi biasanya punya satu-dua
          keraguan terakhir sebelum memutuskan. FAQ menjawabnya DI HALAMAN YANG
          SAMA — tanpa perlu menghubungi atau mencari di tempat lain. -->
+    <!-- ══ KALKULATOR ROI ══════════════════════════════════════════════════════
+         ── KENAPA DI SINI, SETELAH HARGA DAN SEBELUM FAQ ────────────────────────
+         Pengunjung sudah melihat angkanya dan tahu paket mana yang masuk akal.
+         Pertanyaan berikutnya pasti: "tapi apakah ini sepadan?"
+
+         FAQ menjawab keberatan. Kalkulator ini menjawab pertanyaan yang lebih
+         mendasar dengan cara yang lebih kuat — ia tidak menyuruh percaya, tapi
+         menghitung dari angka pengunjung sendiri.
+
+         ── KENAPA KALKULATORNYA TIDAK MENYEBUT HARGA PAKET ──────────────────────
+         Ia menghitung nilai yang DIHEMAT (waktu + langganan lama), bukan harga
+         yang dibayar. Mencampur keduanya berarti harus ada tabel harga di sini —
+         dan tabel harga sudah ada di atas, di tempat yang benar.
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="bagian bagian-roi" aria-labelledby="judulRoi">
+      <h2 class="bagian-judul" id="judulRoi">Hitung sendiri penghematannya</h2>
+      <p class="bagian-teks">
+        Saya tidak bisa bilang berapa yang akan Anda hemat — saya tidak punya
+        data tim Anda. Jadi saya buatkan alatnya: isi angka Anda sendiri, dan
+        hasilnya bisa diperiksa dengan kalkulator biasa.
+      </p>
+
+      <!-- Diisi oleh roi-calculator.js -->
+      <div id="kalkulatorRoi"></div>
+    </section>
+
     <section class="bagian" aria-labelledby="judulFaq">
       <h2 class="bagian-judul" id="judulFaq">Pertanyaan yang sering muncul</h2>
       <p class="bagian-sub" id="subFaq">Hal-hal yang biasanya ditanyakan sebelum memutuskan.</p>
@@ -427,6 +454,12 @@
 <!-- Data harga dari server, lalu gambarkan. `defer` supaya tidak
      memblokir parsing HTML — halaman tampil dulu, skrip menyusul. -->
 <script src="assets/js/pricing.js" defer></script>
+<!-- Kalkulator ROI: modul terpisah dari pricing.js. Ia tidak butuh data harga,
+     dan kegagalannya tidak boleh menghentikan halaman harga. -->
+<script type="module">
+  import { pasangKalkulator } from '/assets/js/roi-calculator.js';
+  pasangKalkulator('kalkulatorRoi');
+</script>
 
 <!-- Gerbang verifikasi (mode dinamis — cf-gate.js membangun overlay sendiri).
      cf-gate-i18n.js HARUS lebih dulu: cf-gate.js membacanya saat dijalankan. -->

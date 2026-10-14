@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arsip Latihan | VIVASTIC</title>
+<meta name="description" content="Proyek latihan dasar: perulangan, struktur data, dan aplikasi absensi. Dipisahkan dari proyek produksi supaya jelas mana yang dipakai sungguhan.">
+<meta name="author" content="VIVASTIC">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="canonical" href="https://portfolio-victer.pages.dev/arsip">
+
+<!-- ── TIDAK DIINDEKS ──────────────────────────────────────────────────────────
+     Halaman ini sengaja tidak muncul di hasil pencarian.
+
+     Alasannya bukan karena isinya buruk, tapi karena tujuannya berbeda:
+     halaman ini untuk yang SUDAH tertarik dan ingin melihat riwayat belajar.
+     Pengunjung yang mencari lewat mesin pencari sebaiknya mendarat di proyek
+     produksi dulu, bukan di latihan dasar.
+     ─────────────────────────────────────────────────────────────────────────── -->
+<meta name="robots" content="noindex, follow">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/logo.css">
+<link rel="stylesheet" href="assets/css/arsip.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">VIVASTIC</span>
+    </a>
+    <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
+      <a href="/home#s6ahns">Tentang</a>
+      <a href="/home#utqvwf">Proyek</a>
+      <a href="/home#cckxsk">Layanan</a>
+      <a href="/pricing">Harga</a>
+      <a href="/docs">Panduan</a>
+      <a href="/changelog">Changelog</a>
+      <a href="/home#89fk39">Kontak</a>
+    </nav>
+    <div class="nav-akun" id="navAkun">
+      <a class="nav-signin" href="/sign-in">Sign in</a>
+    </div>
+
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="siteNav">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M3 6h18M3 12h18M3 18h18"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
+
+<main id="konten-utama" class="arsip-page">
+  <div class="arsip-wrap">
+
+    <!-- ══ JUDUL ══════════════════════════════════════════════════════════════
+         Nada yang dipakai sengaja TIDAK defensif.
+
+         ── KENAPA TIDAK MENULIS "MAAF, MASIH SEDERHANA" ───────────────────────
+         Meminta maaf atas latihan membuat pembaca merasa ia sedang melihat
+         sesuatu yang tidak layak dilihat. Padahal latihan dasar itu bagian
+         wajar dari belajar — dan yang berpengalaman tahu itu.
+
+         Yang ditulis adalah APA yang dilatih, bukan permintaan maaf.
+         ─────────────────────────────────────────────────────────────────────── -->
+    <header class="arsip-kepala">
+      <p class="arsip-eyebrow">Arsip</p>
+      <h1 class="arsip-judul">Latihan dasar</h1>
+      <p class="arsip-teks">
+        Proyek di halaman ini dibuat untuk melatih dasar. Ketiganya bukan sistem
+        produksi — dan tidak saya tampilkan seolah-olah begitu.
+      </p>
+      <p class="arsip-teks arsip-teks--dim">
+        Dipisahkan dari halaman utama supaya yang mencari bukti kerja produksi
+        tidak perlu memilah sendiri. Kalau Anda ingin melihat sistem yang benar-
+        benar dipakai, ada di <a href="/home#utqvwf">halaman proyek</a>.
+      </p>
+    </header>
+
+    <!-- ══ DAFTAR PROYEK LATIHAN ══════════════════════════════════════════════
+         Diisi oleh arsip.js dari proyekLatihan di data/projects.js.
+
+         ── KENAPA DARI DATA, BUKAN DITULIS DI HTML ────────────────────────────
+         Nama dan tautan repo sudah ada di projects.js. Menulisnya ulang di
+         sini berarti ada dua tempat yang harus dijaga tetap sama — dan satu
+         yang terlewat sudah cukup untuk membuat tautannya mati.
+         ─────────────────────────────────────────────────────────────────────── -->
+    <div class="arsip-daftar" id="arsipDaftar" aria-label="Proyek latihan"></div>
+
+    <!-- ══ APA YANG DILATIH ═══════════════════════════════════════════════════
+         Bagian ini menjelaskan NILAI dari latihan itu, bukan memamerkan.
+
+         ── KENAPA PERLU ADA ───────────────────────────────────────────────────
+         Daftar proyek sederhana tanpa penjelasan terlihat seperti sampah.
+         Dengan penjelasan, terlihat sebagai riwayat belajar yang disengaja —
+         dan itu memang bedanya.
+         ─────────────────────────────────────────────────────────────────────── -->
+    <section class="arsip-catatan">
+      <h2 class="arsip-catatan-judul">Kenapa masih disimpan</h2>
+      <p class="arsip-teks">
+        Menghapusnya berarti menyembunyikan jejak belajar. Untuk yang menilai
+        kemampuan teknis, riwayat itu bernilai: ia menunjukkan dasarnya
+        benar-benar dikerjakan, bukan dilompati.
+      </p>
+      <ul class="arsip-poin">
+        <li>
+          <strong>jsloop</strong> — perulangan, kondisi, dan cara menulis kode
+          yang bisa dibaca orang lain. Ditulis dalam Bahasa Indonesia karena
+          saat itu belum banyak bahan berbahasa sendiri.
+        </li>
+        <li>
+          <strong>strktrdata</strong> — struktur data dasar: tumpukan, antrean,
+          dan pencarian. Pasangan dari jsloop.
+        </li>
+        <li>
+          <strong>Daftar Hadir</strong> — latihan pertama menyambungkan
+          antarmuka ke database awan. Dari sini saya belajar bahwa menyimpan
+          data ternyata lebih sulit daripada menampilkannya.
+        </li>
+      </ul>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>
+    &copy; <span id="year"></span> VIVASTIC. Seluruh hak cipta dilindungi.
+    <span class="mono" style="opacity:.5">&middot;</span>
+    <a href="/privasi">Privasi</a>
+    <span class="mono" style="opacity:.5">&middot;</span>
+    <a href="/syarat">Syarat</a>
+  </p>
+</footer>
+
+<script type="module" src="assets/js/arsip.js"></script>
+<script src="/assets/js/nav-akun.js" defer></script>
+<script type="module" src="assets/js/logo-mount.js"></script>
+<script src="/assets/js/footer.js" defer></script>
+
+</body>
+</html>

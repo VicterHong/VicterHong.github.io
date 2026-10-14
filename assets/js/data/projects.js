@@ -179,15 +179,53 @@ export const projects = [
 
 /**
  * Proyek pendukung — disebut singkat, tanpa halaman detail.
+ *
+ * Semuanya sudah melewati tahap latihan: Monitoring dan EFMS Fintech dipakai
+ * sungguhan. Proyek yang masih berupa latihan ada di `proyekLatihan`.
  */
 export const sideProjects = [
   { name: 'Monitoring', description: 'Pemantauan bandwidth yang mengalirkan statistik jaringan ke Firebase.', stack: ['Python'], repo: 'https://github.com/VicterHong/Monitoring' },
   // Repo privat — tanpa tautan. Kartu dirender sebagai <div>, bukan <a>,
   // supaya tidak ada tautan yang mendarat di 404 (lihat renderSideProjects).
   { name: 'EFMS Fintech', description: 'Sistem manajemen keuangan perusahaan. Kode privat.', stack: ['TypeScript'] },
-  { name: 'Daftar Hadir', description: 'Aplikasi absensi berbasis web dengan Firebase.', stack: ['HTML', 'Firebase'], repo: 'https://github.com/VicterHong/Daftar-Hadir' },
-  { name: 'jsloop', description: 'Contoh perulangan JavaScript, ditulis dalam Bahasa Indonesia.', stack: ['JavaScript'], repo: 'https://github.com/VicterHong/jsloop' },
-  { name: 'strktrdata', description: 'Contoh struktur data JavaScript, ditulis dalam Bahasa Indonesia.', stack: ['JavaScript'], repo: 'https://github.com/VicterHong/strktrdata' },
+];
+
+/**
+ * Proyek latihan — TIDAK ditampilkan di halaman utama.
+ *
+ * ── KENAPA DIPISAH DARI sideProjects ────────────────────────────────────────
+ * Halaman utama sekarang menampilkan tiga sistem kelas produksi (MINA,
+ * Spareparts, WhatsApp Assistant). Mencampur proyek latihan di sebelahnya
+ * membuat pengunjung harus memilah sendiri mana yang serius — dan yang
+ * pertama terlihat justru yang paling sederhana.
+ *
+ * ── KENAPA TIDAK DIHAPUS ────────────────────────────────────────────────────
+ * Menghapusnya berarti menyembunyikan jejak belajar. Untuk rekruter teknis,
+ * riwayat belajar itu bernilai — ia menunjukkan seseorang benar-benar
+ * mengerjakan dasarnya, bukan melompat langsung ke framework.
+ *
+ * Jadi: dipindah, bukan dihapus. Ada di halaman Arsip, dengan catatan jujur
+ * bahwa ini latihan — bukan sistem produksi.
+ */
+export const proyekLatihan = [
+  {
+    name: 'Daftar Hadir',
+    description: 'Aplikasi absensi berbasis web dengan Firebase. Latihan pertama menyambungkan frontend ke database awan.',
+    stack: ['HTML', 'Firebase'],
+    repo: 'https://github.com/VicterHong/Daftar-Hadir',
+  },
+  {
+    name: 'jsloop',
+    description: 'Contoh perulangan JavaScript, ditulis dalam Bahasa Indonesia. Dibuat untuk yang sedang belajar dasar.',
+    stack: ['JavaScript'],
+    repo: 'https://github.com/VicterHong/jsloop',
+  },
+  {
+    name: 'strktrdata',
+    description: 'Contoh struktur data JavaScript, ditulis dalam Bahasa Indonesia. Pasangan dari jsloop.',
+    stack: ['JavaScript'],
+    repo: 'https://github.com/VicterHong/strktrdata',
+  },
 ];
 
 /**
