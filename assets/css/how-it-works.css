@@ -1,35 +1,48 @@
 /* ════════════════════════════════════════════════════════════════════════════
-   HOW IT WORKS — kartu langkah ber-nomor dengan jalur penghubung
+   HOW IT WORKS — timeline zigzag dengan sumbu tengah + Visi & Misi
    ════════════════════════════════════════════════════════════════════════════
 
-   ── ASAL USUL ───────────────────────────────────────────────────────────────
-   Konversi dari komponen React/TSX (21st.dev, "How It Works" oleh chamaac) ke
-   vanilla JS + CSS untuk situs ini. Yang dibuang: React, motion/react,
-   Tailwind. Yang dipertahankan: gagasan visualnya — kartu ber-nomor, miring
-   bergantian, disambung jalur putus-putus, plus gerak scroll satu per satu.
+   ── POLA: "ALTERNATE TIMELINE" ──────────────────────────────────────────────
+   Bukan kurva melayang antar kartu, tapi tiga bagian yang bisa diukur:
 
-   ── KENAPA NOL DEPENDENSI ───────────────────────────────────────────────────
-   Situs ini sudah punya aturan tidak tertulis: `cinematic.js` menulis
-   "Nol dependency (PRIOR pakai GSAP; kita pakai rAF + IntersectionObserver)".
-   Menambah motion/react (±34 KB) untuk satu seksi berarti setiap pengunjung
-   membayar untuk animasi yang hanya dilihat sekali. Gerak yang sama bisa
-   dicapai dengan CSS transition + IntersectionObserver + satu rAF.
+     1. SUMBU     — satu garis vertikal di tengah, gradien pudar di ujungnya
+     2. MARKER    — lingkaran bernomor di sumbu, satu per langkah
+     3. KONEKTOR  — garis pendek horizontal dari kartu ke sumbu
 
-   ── PRINSIP (dari panduan desain) ───────────────────────────────────────────
+   ── KENAPA POLA INI, BUKAN KURVA ────────────────────────────────────────────
+   Versi pertama memakai satu kurva SVG yang menghubungkan kartu satu ke kartu
+   berikutnya. Dua masalah nyata:
+
+     1. Kartu dimiringkan 3°, dan `getBoundingClientRect()` mengembalikan kotak
+        PEMBATAS — 7,7px lebih besar dari tepi visualnya. Garisnya mulai di
+        luar kartu, jadi terlihat melayang dan tidak menyambung.
+     2. Kurva harus dihitung ulang setiap kali ukuran berubah, dan angkanya
+        bisa meleset tanpa ada yang sadar.
+
+   Sumbu + konektor tidak punya masalah itu: konektor menghubungkan dua titik
+   yang KEDUANYA milik elemen nyata (tepi kartu dan sumbu). Tidak ada geometri
+   yang bisa meleset.
+
+   Pola yang sama dipakai Ant Design (`mode="alternate"`), Dice UI, Frutjam,
+   dan WeWeb — sudah teruji di produk enterprise.
+
+   ── KENAPA MARKER DI SUMBU, BUKAN PIN DI KARTU ──────────────────────────────
+   Versi asli menaruh ikon pin di atas tiap kartu. Pin itu dekoratif — ia
+   tidak menandai posisi apa pun. Marker di sumbu menandai TITIK pada garis
+   waktu, dan nomor di dalamnya membuat urutan terbaca tanpa membaca teks.
+
+   ── PRINSIP ─────────────────────────────────────────────────────────────────
    1. Tidak ada scroll-jacking — halaman tidak pernah dikunci atau dipindah
-      paksa. Pemicu gerak adalah posisi elemen, bukan posisi scroll global.
-   2. Jarak reveal KECIL (14px) supaya terbaca sebagai fade, bukan slide.
-   3. `prefers-reduced-motion` dihormati: semua elemen langsung di keadaan
-      akhir, tanpa transisi.
-   4. Tanpa JavaScript, semua konten tetap terlihat (lihat jaring pengaman).
+   2. Jarak reveal kecil (14px) supaya terbaca sebagai fade, bukan slide
+   3. `prefers-reduced-motion` dihormati: semua langsung di keadaan akhir
+   4. Tanpa JavaScript, semua konten tetap terlihat
    ════════════════════════════════════════════════════════════════════════════ */
 
-/* ── Kerangka halaman demo ───────────────────────────────────────────────── */
-
 .hiw-page {
-  --hiw-card-w: 300px;
-  --hiw-gap: 2rem;
-  /* Satu sumber jarak reveal — dipakai CSS dan dibaca JS kalau perlu. */
+  --hiw-kartu-l: 300px;   /* lebar maksimum kartu */
+  --hiw-sumbu: 2px;       /* tebal sumbu */
+  --hiw-marker: 44px;     /* diameter marker */
+  --hiw-sela: 56px;       /* jarak kartu ke sumbu (panjang konektor) */
   --hiw-rise: 14px;
 
   background: var(--bg);
@@ -38,9 +51,11 @@
   padding: 4rem 1.5rem 6rem;
 }
 
+/* ── Kepala ───────────────────────────────────────────────────────────────── */
+
 .hiw-head {
   max-width: 40rem;
-  margin: 0 auto 3.5rem;
+  margin: 0 auto 4rem;
   text-align: center;
 }
 
@@ -72,71 +87,159 @@
   line-height: 1.6;
 }
 
-/* ── Panggung ─────────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════════
+   TIMELINE
+   ════════════════════════════════════════════════════════════════════════════ */
 
-.hiw-stage {
+.hiw-timeline {
   position: relative;
   max-width: 62rem;
   margin: 0 auto;
-}
-
-/* Jalur penghubung: hanya di layar lebar, karena di ponsel kartunya menumpuk
-   dan garis melengkung antar kartu justru menyesatkan. */
-.hiw-jalur {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-  overflow: visible;
-}
-
-.hiw-jalur path {
-  fill: none;
-  stroke: var(--line);
-  stroke-width: 2;
-  stroke-linecap: round;
-  /* Pola putus-putus yang sama dengan versi aslinya: 8 on, 6 off. */
-  stroke-dasharray: 8 6;
-}
-
-/* ── JALUR YANG TERGAMBAR ────────────────────────────────────────────────────
-   Lapisan aksen di atas jalur redup. Panjangnya diisi JS (`strokeDasharray` +
-   `strokeDashoffset`), dan transisi di bawah membuat tiap segmen tergambar
-   MENGALIR saat kartunya muncul — bukan melompat.
-
-   ── KENAPA TRANSISI DI SINI, BUKAN ANIMASI TERUS-MENERUS ────────────────────
-   Versi aslinya menganimasikan dashoffset tanpa henti (loop 3 detik). Gerak
-   yang tidak pernah berhenti menarik mata ke dirinya sendiri, bukan ke isinya.
-   Di sini garis bergerak HANYA saat ada kemajuan — scroll atau reveal kartu —
-   lalu diam. Geraknya membawa makna, bukan hiasan. */
-.hiw-jalur path.hiw-jalur-isi {
-  stroke: var(--accent);
-  stroke-dasharray: none;
-  transition: stroke-dashoffset 0.55s var(--ease);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hiw-jalur path.hiw-jalur-isi { transition: none; }
-}
-
-.hiw-daftar {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--hiw-gap);
-  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* ── Kartu ────────────────────────────────────────────────────────────────── */
+/* ── SUMBU ────────────────────────────────────────────────────────────────────
+   Satu garis vertikal di tengah. Gradien di ujung atas/bawah membuatnya
+   "muncul dari ketiadaan" — garis yang berhenti mendadak terlihat terpotong.
+
+   `z-index: 0` menaruhnya DI BELAKANG marker (z-index 2) dan konektor (1),
+   supaya sambungannya terlihat rapi tanpa celah. */
+.hiw-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--hiw-sumbu);
+  margin-left: calc(var(--hiw-sumbu) / -2);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--line) 6%,
+    var(--line) 94%,
+    transparent 100%
+  );
+  z-index: 0;
+}
+
+/* Sumbu yang sudah "dilalui" — diberi warna aksen. Tingginya diisi JS seiring
+   kartu muncul, jadi kemajuannya sinkron dengan reveal (bukan dengan posisi
+   scroll, yang bisa berbeda jauh saat halaman baru dibuka). */
+.hiw-sumbu-isi {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--hiw-sumbu);
+  height: 0;
+  margin-left: calc(var(--hiw-sumbu) / -2);
+  background: linear-gradient(to bottom, var(--accent-line), var(--accent));
+  z-index: 1;
+  transition: height 0.55s var(--ease);
+}
+
+/* ── SATU LANGKAH ─────────────────────────────────────────────────────────── */
+
+.hiw-langkah {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 0 var(--hiw-sela);
+  padding-bottom: 3.5rem;
+}
+
+/* Langkah terakhir tidak butuh jarak bawah — sumbu ikut berhenti di situ. */
+.hiw-langkah:last-child { padding-bottom: 0; }
+
+/* ── MARKER ───────────────────────────────────────────────────────────────────
+   Lingkaran bernomor di tengah, tepat di atas sumbu. `z-index: 2` menaruhnya
+   di depan sumbu sehingga angkanya selalu terbaca.
+
+   Latarnya `--bg` (bukan transparan) supaya sumbu di belakangnya TERTUTUP —
+   tanpa itu garisnya tembus menembus angka. */
+.hiw-marker {
+  position: relative;
+  z-index: 2;
+  grid-column: 2;
+  display: grid;
+  place-items: center;
+  width: var(--hiw-marker);
+  height: var(--hiw-marker);
+  margin-top: 0.5rem;
+  border: 2px solid var(--hiw-garis, var(--line));
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--hiw-teks, var(--text-dim));
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-2);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition:
+    border-color 0.4s var(--ease),
+    color 0.4s var(--ease),
+    box-shadow 0.4s var(--ease);
+}
+
+/* ── KONEKTOR ─────────────────────────────────────────────────────────────────
+   Garis pendek dari kartu ke sumbu. Karena ia menghubungkan dua elemen nyata
+   (tepi kartu dan sumbu), panjangnya selalu tepat — tidak ada geometri yang
+   bisa meleset saat ukuran berubah.
+
+   Warna mengikuti tema kartunya ("two-toned connectors" dari Frutjam): garis
+   dari kartu biru berwarna biru, jadi warnanya menyambung dengan kartunya.
+
+   Gradien memudar di ujung yang menempel sumbu — memberi kesan garis "masuk"
+   ke sumbu, bukan berhenti dengan ujung keras. */
+/* ── KONEKTOR ─────────────────────────────────────────────────────────────────
+   Elemen NYATA (`<span class="hiw-konektor">`), bukan `::before`.
+
+   ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
+   Versi pertama memakai `::before` pada `.hiw-langkah`. Tapi elemen itu
+   `display: grid` — dan pseudo-element pada elemen grid otomatis menjadi GRID
+   ITEM, bukan elemen berposisi absolut. Akibatnya `right: 50%` tidak menunjuk
+   ke sumbu, dan konektor di kartu KIRI (03, 05) tidak muncul sama sekali.
+
+   Elemen nyata dengan `position: absolute` tidak punya masalah itu. */
+.hiw-konektor {
+  position: absolute;
+  top: calc(var(--hiw-marker) / 2 + 0.5rem);
+  height: 2px;
+  width: var(--hiw-sela);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── WARNA KONEKTOR: SOLID, BUKAN GRADEN ─────────────────────────────────────
+   ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
+   Versi sebelumnya memakai gradien yang memudar di satu ujung. Arahnya
+   TERBALIK: untuk kartu kiri, `to left` membuat ujung KIRI (yang menempel
+   kartu) transparan dan ujung KANAN (yang menempel marker) penuh warna.
+
+   Hasilnya: garisnya terlihat "hilang" tepat di tepi kartu — persis yang
+   terlihat di tangkapan layar, padahal pengukuran menunjukkan jaraknya 0px.
+
+   Sekarang warnanya SOLID. Marker punya latar `--bg` yang menutupi ujung
+   garis di sisinya, jadi tidak perlu gradien untuk membuatnya rapi —
+   dan tidak ada arah yang bisa salah. */
+.hiw-langkah[data-sisi='kiri'] .hiw-konektor {
+  right: 50%;
+  margin-right: calc(var(--hiw-marker) / 2);
+  background: var(--hiw-garis, var(--line));
+}
+
+.hiw-langkah[data-sisi='kanan'] .hiw-konektor {
+  left: 50%;
+  margin-left: calc(var(--hiw-marker) / 2);
+  background: var(--hiw-garis, var(--line));
+}
+
+/* ── KARTU ────────────────────────────────────────────────────────────────── */
 
 .hiw-item {
-  /* Keadaan awal: turun sedikit + transparan. JS menambahkan `.is-muncul`
-     saat kartu masuk viewport. */
+  grid-column: 1;
+  /* Keadaan awal: turun sedikit + transparan. JS menambah `.is-muncul` di
+     sini DAN di `.hiw-langkah` (lihat tandaiMuncul() di how-it-works.js). */
   opacity: 0;
   transform: translateY(var(--hiw-rise));
   transition:
@@ -144,81 +247,50 @@
     transform 0.42s var(--ease) var(--hiw-tunda, 0ms);
 }
 
+/* Kartu di kanan pindah ke kolom 3. */
+.hiw-langkah[data-sisi='kanan'] .hiw-item { grid-column: 3; }
+
 .hiw-item.is-muncul {
   opacity: 1;
   transform: none;
 }
 
 /* Jaring pengaman: tanpa JavaScript, atau kalau observer gagal, kartu tidak
-   boleh tersembunyi selamanya. `html:not(.js-ready)` dipasang app.js/demo ini
-   saat init berhasil — pola yang sama dengan [data-reveal] di main.css. */
-html:not(.js-ready) .hiw-item,
-.hiw-item.is-paksa {
-  opacity: 1;
-  transform: none;
-}
+   boleh tersembunyi selamanya. `html:not(.js-ready)` dipasang skrip saat init
+   berhasil — pola yang sama dengan [data-reveal] di main.css. */
+html:not(.js-ready) .hiw-item { opacity: 1; transform: none; }
 
 .hiw-kartu {
   position: relative;
   width: 100%;
-  max-width: var(--hiw-card-w);
-  margin: 0 auto;
-  padding: 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 25px;
-  background: var(--bg-card);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
-  transition: transform 0.3s var(--ease), border-color 0.3s var(--ease);
+  max-width: var(--hiw-kartu-l);
+  padding: 1.5rem;
+  border: 1px solid var(--hiw-garis, var(--line));
+  border-radius: 18px;
+  background: var(--hiw-latar, var(--bg-card));
+  /* Tanpa bayangan berat: versi asli memakai `shadow-[0px_10px_20px_#D3D3D3]`
+     yang dirancang untuk latar putih. Di latar hampir hitam, bayangan gelap
+     tidak terlihat — yang bekerja adalah BORDER, bukan bayangan. */
+  transition: border-color 0.25s var(--ease), transform 0.25s var(--ease);
 }
+
+/* Kartu kiri rata kanan (menempel ke sumbu), kartu kanan rata kiri. */
+.hiw-langkah[data-sisi='kiri'] .hiw-kartu { margin-left: auto; }
 
 .hiw-kartu:hover,
 .hiw-kartu:focus-within {
-  border-color: var(--line);
-  transform: translateY(-3px);
+  border-color: var(--hiw-garis-tegas, var(--accent-line));
+  transform: translateY(-2px);
 }
 
-/* ── Pin ──────────────────────────────────────────────────────────────────── */
-
-.hiw-pin {
-  display: block;
-  width: 2rem;
-  height: 2rem;
-  margin: 0 auto 1.5rem;
-  /* Warna diisi per-tema lewat --hiw-teks. */
-  color: var(--hiw-teks, var(--accent));
-}
-
-/* ── Badan kartu ──────────────────────────────────────────────────────────── */
-
-.hiw-badan {
-  position: relative;
-  overflow: hidden;
-  padding: 1.5rem;
-  border: 1px solid var(--hiw-garis, var(--accent-line));
-  border-radius: 15px;
-  background: var(--hiw-latar, var(--accent-soft));
-}
-
-/* Nomor langkah. Versi aslinya memakai Comic Sans; di sini JetBrains Mono
-   supaya sejalan dengan bahasa visual situs (teknis, presisi) — dan angka
-   "01/02/03" memang terbaca lebih baik di huruf monospace. */
-.hiw-nomor {
-  display: block;
-  margin-bottom: 1.25rem;
-  color: var(--hiw-teks, var(--accent));
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 2.25rem;
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
+/* ── Isi kartu ───────────────────────────────────────────────────────────── */
 
 .hiw-judul {
-  margin: 0 0 0.625rem;
+  margin: 0 0 0.5rem;
   color: var(--text);
   font-size: var(--fs-4);
   font-weight: 600;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.01em;
 }
 
@@ -226,87 +298,207 @@ html:not(.js-ready) .hiw-item,
   margin: 0;
   color: var(--text-dim);
   font-size: var(--fs-2);
-  line-height: 1.55;
-  letter-spacing: -0.01em;
+  line-height: 1.6;
 }
 
-/* ── Tema warna ───────────────────────────────────────────────────────────────
-   Versi aslinya memakai orange/blue/purple terang untuk latar putih. Situs ini
+/* ── TEMA WARNA ───────────────────────────────────────────────────────────────
+   Versi asli memakai orange/blue/purple terang untuk latar putih. Situs ini
    berlatar hampir hitam dengan SATU aksen (emas) — jadi tiap tema di sini
-   adalah versi redup yang tetap menyatu: latar tipis, garis lebih tipis,
-   teks sebagai satu-satunya pembawa warna.
+   adalah versi redup: latar kartu tetap netral, dan warna dibawa oleh GARIS
+   serta marker. Dengan begitu tiga warna tidak membuat halaman terlihat
+   seperti pelangi.
 
-   `gold` adalah bawaan karena itu warna aksen situs. `biru` dan `ungu`
-   disediakan kalau nanti perlu membedakan kelompok langkah. */
-.hiw-item[data-tema='gold'] {
-  --hiw-latar: var(--accent-soft);
+   `gold` adalah bawaan karena itu warna aksen situs. */
+.hiw-langkah[data-tema='gold'] {
+  --hiw-latar: var(--bg-card);
   --hiw-garis: var(--accent-line);
+  --hiw-garis-tegas: var(--accent);
   --hiw-teks: var(--accent);
 }
 
-.hiw-item[data-tema='biru'] {
-  --hiw-latar: rgba(96, 165, 250, 0.1);
-  --hiw-garis: rgba(96, 165, 250, 0.3);
+.hiw-langkah[data-tema='biru'] {
+  --hiw-latar: var(--bg-card);
+  --hiw-garis: rgba(96, 165, 250, 0.32);
+  --hiw-garis-tegas: rgba(96, 165, 250, 0.75);
   --hiw-teks: #93c5fd;
 }
 
-.hiw-item[data-tema='ungu'] {
-  --hiw-latar: rgba(167, 139, 250, 0.1);
-  --hiw-garis: rgba(167, 139, 250, 0.3);
+.hiw-langkah[data-tema='ungu'] {
+  --hiw-latar: var(--bg-card);
+  --hiw-garis: rgba(167, 139, 250, 0.32);
+  --hiw-garis-tegas: rgba(167, 139, 250, 0.75);
   --hiw-teks: #c4b5fd;
 }
 
-/* ── Layar lebar: tata letak zigzag ───────────────────────────────────────────
-   Kartu bergantian kiri/kanan, sedikit miring, dan saling tumpang tindih
-   vertikal — supaya jalur penghubungnya punya ruang untuk melengkung.
-   `--hiw-tinggi` diisi JS: tinggi total panggung setelah kartu tersusun. */
-@media (min-width: 768px) {
-  .hiw-daftar {
-    display: block;
-    position: relative;
-    height: var(--hiw-tinggi, auto);
-  }
+/* ════════════════════════════════════════════════════════════════════════════
+   VISI & MISI
+   ════════════════════════════════════════════════════════════════════════════
 
-  /* ── POSISI HORIZONTAL: KIRI / KANAN BERGANTIAN ─────────────────────────────
-     ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
-     Versi pertama hanya mengatur `left: 50%` untuk SEMUA kartu — jadi semua
-     menumpuk di tengah dan `data-putar` hanya memiringkannya di tempat.
-     Hasilnya: tumpukan kartu miring, bukan jalur zigzag.
+   ── KENAPA DUA KOLOM, BUKAN SATU BLOK PANJANG ───────────────────────────────
+   Visi adalah SATU kalimat yang harus dibaca utuh; misi adalah DAFTAR yang
+   dipindai. Menyatukannya jadi satu blok paragraf membuat keduanya kehilangan
+   bentuk — visi tenggelam di antara poin, dan misi jadi sulit dipindai.
 
-     Sekarang kartu ganjil menempel ke kiri, genap ke kanan — dan jalur
-     penghubung punya ruang horizontal untuk melengkung di antaranya.
-     Angkanya dari versi aslinya (left-[15%] / right-[15%]). */
-  .hiw-item {
-    position: absolute;
-    width: var(--hiw-card-w);
-  }
+   Di layar lebar: visi di kiri, misi di kanan. Di ponsel: bertumpuk, visi dulu.
 
-  .hiw-item[data-putar='kanan'] { left: 8%; }
-  .hiw-item[data-putar='kiri'] { right: 8%; }
+   ── KENAPA TANPA KARTU-KARTU KECIL ──────────────────────────────────────────
+   Seksi ini sudah didahului timeline yang penuh kartu. Menambah kotak lagi
+   membuat halaman terasa penuh kotak. Di sini dipakai pemisah garis tipis —
+   cukup untuk memisahkan, tidak menambah massa visual. */
+.hiw-visi {
+  max-width: 62rem;
+  margin: 6rem auto 0;
+  padding-top: 4rem;
+  border-top: 1px solid var(--line);
+}
 
-  .hiw-kartu {
-    max-width: none;
-  }
+.hiw-visi-grid {
+  display: grid;
+  gap: 3rem;
+}
 
-  /* Kemiringan kecil (3-4 derajat). Lebih dari itu membuat teks sulit dibaca
-     dan di layar sentuh terasa seperti halaman yang rusak. */
-  .hiw-item[data-putar='kanan'] .hiw-kartu { transform: rotate(3deg); }
-  .hiw-item[data-putar='kiri'] .hiw-kartu { transform: rotate(-3deg); }
-
-  .hiw-item[data-putar='kanan'] .hiw-kartu:hover,
-  .hiw-item[data-putar='kanan'] .hiw-kartu:focus-within {
-    transform: rotate(3deg) translateY(-3px);
-  }
-
-  .hiw-item[data-putar='kiri'] .hiw-kartu:hover,
-  .hiw-item[data-putar='kiri'] .hiw-kartu:focus-within {
-    transform: rotate(-3deg) translateY(-3px);
+@media (min-width: 900px) {
+  .hiw-visi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
   }
 }
 
-/* ── Gerak yang dikurangi ────────────────────────────────────────────────────
-   Semua elemen langsung di keadaan akhir. Tidak ada transisi, tidak ada
-   jalur yang tergambar — informasinya tetap utuh, geraknya yang hilang. */
+.hiw-visi-label {
+  display: block;
+  margin: 0 0 1rem;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Kalimat visi: lebih besar dari teks badan — ia pernyataan, bukan penjelasan.
+   `text-wrap: balance` mencegah satu kata menggantung di baris terakhir. */
+.hiw-visi-teks {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-4);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.hiw-misi {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.hiw-misi-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.hiw-misi-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* Nomor misi kecil dan redup — ia penanda urutan, bukan hal yang perlu
+   dibaca. Yang penting judulnya. */
+.hiw-misi-nomor {
+  color: var(--accent);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1);
+  font-weight: 500;
+  line-height: 1.9;
+}
+
+.hiw-misi-judul {
+  margin: 0 0 0.3rem;
+  color: var(--text);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.hiw-misi-teks {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-2);
+  line-height: 1.6;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PONSEL
+   ════════════════════════════════════════════════════════════════════════════
+
+   ── KENAPA SUMBU PINDAH KE KIRI, BUKAN TETAP DI TENGAH ──────────────────────
+   Di layar sempit, kartu selebar ~280px tidak muat di separuh layar 375px
+   (187px). Kalau sumbu tetap di tengah, kartunya harus mengecil sampai teksnya
+   tidak nyaman dibaca.
+
+   Solusi yang dipakai semua timeline (Ant Design, Reintech): sumbu pindah ke
+   kiri, SEMUA kartu ke kanan sumbu. Urutannya tetap terbaca dari nomor marker,
+   dan kartunya dapat lebar penuh. */
+@media (max-width: 767px) {
+  .hiw-page {
+    --hiw-sela: 20px;
+    --hiw-marker: 38px;
+  }
+
+  .hiw-timeline::before,
+  .hiw-sumbu-isi {
+    left: calc(var(--hiw-marker) / 2);
+    margin-left: calc(var(--hiw-sumbu) / -2);
+  }
+
+  .hiw-langkah {
+    grid-template-columns: auto 1fr;
+    gap: 0 var(--hiw-sela);
+    padding-bottom: 2.5rem;
+  }
+
+  .hiw-marker { grid-column: 1; }
+
+  /* Semua kartu ke kolom 2, termasuk yang "kanan" di layar lebar. */
+  .hiw-item,
+  .hiw-langkah[data-sisi='kanan'] .hiw-item {
+    grid-column: 2;
+  }
+
+  .hiw-kartu,
+  .hiw-langkah[data-sisi='kiri'] .hiw-kartu {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  /* Konektor selalu ke kanan sumbu di ponsel — termasuk untuk langkah yang
+     di layar lebar ada di kiri. */
+  .hiw-konektor,
+  .hiw-langkah[data-sisi='kiri'] .hiw-konektor,
+  .hiw-langkah[data-sisi='kanan'] .hiw-konektor {
+    left: calc(var(--hiw-marker) + 2px);
+    right: auto;
+    margin-left: 0;
+    margin-right: 0;
+    width: var(--hiw-sela);
+    background: var(--hiw-garis, var(--line));
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GERAK YANG DIKURANGI
+   ════════════════════════════════════════════════════════════════════════════
+
+   Semua elemen langsung di keadaan akhir. Tidak ada transisi, tidak ada sumbu
+   yang bertambah tinggi — informasinya tetap utuh, geraknya yang hilang. */
 @media (prefers-reduced-motion: reduce) {
   .hiw-item {
     opacity: 1;
@@ -314,15 +506,14 @@ html:not(.js-ready) .hiw-item,
     transition: none;
   }
 
-  .hiw-kartu {
+  .hiw-kartu,
+  .hiw-marker,
+  .hiw-sumbu-isi {
     transition: none;
   }
 
-  .hiw-item[data-putar] .hiw-kartu {
-    transform: none;
-  }
-
-  .hiw-jalur path.hiw-jalur-isi {
-    stroke-dashoffset: 0;
+  .hiw-sumbu-isi {
+    /* Sumbu langsung penuh — tanpa animasi, "kemajuan" tidak berarti apa-apa. */
+    height: 100% !important;
   }
 }

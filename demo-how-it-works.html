@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>How It Works — demo komponen | VIVASTIC</title>
-<meta name="description" content="Demo komponen How It Works: kartu langkah ber-nomor dengan jalur penghubung dan reveal satu per satu saat scroll.">
+<title>How It Works + Visi &amp; Misi — demo | VIVASTIC</title>
+<meta name="description" content="Demo komponen: timeline zigzag dengan sumbu tengah, plus seksi Visi &amp; Misi.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0a0a0b">
 
@@ -27,21 +27,26 @@
 
 <!--
   ══════════════════════════════════════════════════════════════════════════════
-  HOW IT WORKS — kartu langkah ber-nomor, disambung jalur, muncul satu per satu
+  HOW IT WORKS — timeline zigzag dengan sumbu tengah
+
+  ── POLA ─────────────────────────────────────────────────────────────────────
+  Sumbu vertikal di tengah · marker bernomor di sumbu · konektor pendek dari
+  kartu ke sumbu. Pola yang sama dipakai Ant Design (`mode="alternate"`),
+  Dice UI, Frutjam, dan WeWeb — sudah teruji di produk enterprise.
 
   ── CARA PAKAI DI HALAMAN LAIN ───────────────────────────────────────────────
-  1. Salin blok <section data-hiw> di bawah ke halaman tujuan
-  2. Tambah/ubah <li class="hiw-item"> sesuai langkah yang dibutuhkan
-     (tidak ada angka yang perlu disesuaikan — posisi & jalur dihitung sendiri)
+  1. Salin blok <ol class="hiw-timeline" data-hiw> ke halaman tujuan
+  2. Tambah/ubah <li class="hiw-langkah"> sesuai langkah yang dibutuhkan
+     (sisi kiri/kanan ditentukan otomatis dari urutan — tidak ada yang diatur)
   3. Muat how-it-works.css + how-it-works.js di halaman itu
   4. Panggil initHowItWorks() — lihat <script> di bawah
 
   ── ATRIBUT PER LANGKAH ──────────────────────────────────────────────────────
-  data-tema="gold|biru|ungu"   warna kartu (gold = aksen situs, bawaan)
+  data-tema="gold|biru|ungu"   warna garis, marker, dan konektor
 
-  Nomor langkah ("01", "02", ...) ditulis di HTML, bukan dihitung JS — supaya
-  teksnya tetap ada kalau JavaScript dimatikan, dan supaya bisa diganti jadi
-  kata ("Langkah awal") tanpa menyentuh skrip.
+  Nomor langkah ditulis di HTML, bukan dihitung JS — supaya teksnya tetap ada
+  kalau JavaScript dimatikan, dan supaya bisa diganti jadi kata tanpa
+  menyentuh skrip.
   ══════════════════════════════════════════════════════════════════════════════
 -->
 
@@ -54,101 +59,168 @@
   </p>
 </header>
 
-<section data-hiw aria-labelledby="hiw-judul">
-  <h2 class="hiw-sr-only" id="hiw-judul" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;">
-    Langkah-langkah kerja
-  </h2>
+<!--
+  ── SATU <ol>, BUKAN TUMPUKAN <div> ───────────────────────────────────────────
+  Timeline adalah URUTAN — itu maknanya. <ol> memberi tahu pembaca layar
+  "daftar, 5 item" dan menomori tiap langkah, tanpa satu atribut ARIA pun.
 
-  <div class="hiw-stage">
-    <!--
-      Jalur penghubung. Kosong di HTML — isinya dibuat JS dari posisi kartu
-      yang sebenarnya, supaya tidak meleset saat jumlah/tinggi kartu berubah.
-      `aria-hidden` karena ini murni visual: pembaca layar sudah tahu urutannya
-      dari daftar bernomor di bawah.
-    -->
-    <svg class="hiw-jalur" aria-hidden="true" focusable="false"></svg>
+  Sumbu dan konektor digambar CSS (`::before`), marker ditandai `aria-hidden`
+  — pembaca layar tidak perlu mendengar "01" dua kali (sekali dari marker,
+  sekali dari konten).
+-->
+<ol class="hiw-timeline" data-hiw aria-label="Langkah-langkah kerja">
+  <!-- Sumbu yang sudah dilalui. Tingginya diisi JS. Murni visual. -->
+  <span class="hiw-sumbu-isi" aria-hidden="true"></span>
 
-    <ol class="hiw-daftar">
-      <li class="hiw-item" data-tema="gold">
-        <article class="hiw-kartu">
-          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
-          </svg>
-          <div class="hiw-badan">
-            <span class="hiw-nomor">01</span>
-            <h3 class="hiw-judul">Ceritakan kebutuhan</h3>
-            <p class="hiw-deskripsi">
-              Satu percakapan singkat: apa yang ingin dicapai, apa yang sudah ada,
-              dan batasannya. Tidak ada kewajiban setelahnya.
+  <li class="hiw-langkah" data-tema="gold">
+    <span class="hiw-konektor" aria-hidden="true"></span>
+    <span class="hiw-marker" aria-hidden="true">01</span>
+    <div class="hiw-item">
+      <article class="hiw-kartu">
+        <h2 class="hiw-judul">Ceritakan kebutuhan</h2>
+        <p class="hiw-deskripsi">
+          Satu percakapan singkat: apa yang ingin dicapai, apa yang sudah ada,
+          dan batasannya. Tidak ada kewajiban setelahnya.
+        </p>
+      </article>
+    </div>
+  </li>
+
+  <li class="hiw-langkah" data-tema="biru">
+    <span class="hiw-konektor" aria-hidden="true"></span>
+    <span class="hiw-marker" aria-hidden="true">02</span>
+    <div class="hiw-item">
+      <article class="hiw-kartu">
+        <h2 class="hiw-judul">Rencana &amp; estimasi</h2>
+        <p class="hiw-deskripsi">
+          Anda menerima rincian lingkup, tahapan, dan perkiraan waktu. Semua
+          angka terbuka — tidak ada biaya yang muncul di tengah jalan.
+        </p>
+      </article>
+    </div>
+  </li>
+
+  <li class="hiw-langkah" data-tema="ungu">
+    <span class="hiw-konektor" aria-hidden="true"></span>
+    <span class="hiw-marker" aria-hidden="true">03</span>
+    <div class="hiw-item">
+      <article class="hiw-kartu">
+        <h2 class="hiw-judul">Bangun bertahap</h2>
+        <p class="hiw-deskripsi">
+          Pekerjaan berjalan per tahap, dan setiap tahap bisa Anda lihat
+          hasilnya sebelum lanjut. Tidak ada kejutan di akhir.
+        </p>
+      </article>
+    </div>
+  </li>
+
+  <li class="hiw-langkah" data-tema="gold">
+    <span class="hiw-konektor" aria-hidden="true"></span>
+    <span class="hiw-marker" aria-hidden="true">04</span>
+    <div class="hiw-item">
+      <article class="hiw-kartu">
+        <h2 class="hiw-judul">Uji &amp; serahkan</h2>
+        <p class="hiw-deskripsi">
+          Hasilnya diuji terhadap kebutuhan awal, bukan sekadar "sudah jadi".
+          Anda menerima kode, dokumentasi, dan cara menjalankannya.
+        </p>
+      </article>
+    </div>
+  </li>
+
+  <li class="hiw-langkah" data-tema="biru">
+    <span class="hiw-konektor" aria-hidden="true"></span>
+    <span class="hiw-marker" aria-hidden="true">05</span>
+    <div class="hiw-item">
+      <article class="hiw-kartu">
+        <h2 class="hiw-judul">Dampingan setelahnya</h2>
+        <p class="hiw-deskripsi">
+          Pertanyaan setelah serah terima tetap dijawab. Kalau perlu
+          penyesuaian, itu percakapan terpisah — bukan tambahan diam-diam.
+        </p>
+      </article>
+    </div>
+  </li>
+</ol>
+
+<!--
+  ══════════════════════════════════════════════════════════════════════════════
+  VISI & MISI
+
+  ── KENAPA SETELAH TIMELINE ───────────────────────────────────────────────────
+  Timeline menjawab "bagaimana prosesnya". Visi & misi menjawab "kenapa ini
+  dikerjakan dan untuk siapa". Urutan itu yang masuk akal bagi pembaca: cara
+  kerja dulu (konkret), lalu alasan (abstrak). Kalau dibalik, pembaca diminta
+  mempercayai visi sebelum tahu apa yang sebenarnya dilakukan.
+
+  ── KENAPA DUA KOLOM ──────────────────────────────────────────────────────────
+  Visi satu kalimat yang harus dibaca utuh; misi daftar yang dipindai. Dua
+  bentuk berbeda butuh dua wadah berbeda — menyatukannya jadi satu blok
+  paragraf membuat keduanya kehilangan bentuknya.
+  ══════════════════════════════════════════════════════════════════════════════
+-->
+<section class="hiw-visi" aria-labelledby="visi-judul">
+  <div class="hiw-visi-grid">
+
+    <div>
+      <h2 class="hiw-visi-label" id="visi-judul">Visi</h2>
+      <p class="hiw-visi-teks">
+        Perangkat lunak yang baik tidak seharusnya menuntut perangkat baru
+        atau langganan bulanan — dan itulah yang saya bangun.
+      </p>
+    </div>
+
+    <div>
+      <h2 class="hiw-visi-label">Misi</h2>
+      <ul class="hiw-misi">
+        <li class="hiw-misi-item">
+          <span class="hiw-misi-nomor" aria-hidden="true">01</span>
+          <div>
+            <h3 class="hiw-misi-judul">Berjalan di perangkat yang sudah ada</h3>
+            <p class="hiw-misi-teks">
+              Sistem dirancang hemat sejak awal, bukan dioptimalkan belakangan.
+              Kalau tidak jalan di laptop 2 GB RAM, itu belum selesai.
             </p>
           </div>
-        </article>
-      </li>
+        </li>
 
-      <li class="hiw-item" data-tema="biru">
-        <article class="hiw-kartu">
-          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
-          </svg>
-          <div class="hiw-badan">
-            <span class="hiw-nomor">02</span>
-            <h3 class="hiw-judul">Rencana &amp; estimasi</h3>
-            <p class="hiw-deskripsi">
-              Anda menerima rincian lingkup, tahapan, dan perkiraan waktu. Semua
-              angka terbuka — tidak ada biaya yang muncul di tengah jalan.
+        <li class="hiw-misi-item">
+          <span class="hiw-misi-nomor" aria-hidden="true">02</span>
+          <div>
+            <h3 class="hiw-misi-judul">Data tetap di tempat Anda</h3>
+            <p class="hiw-misi-teks">
+              Self-hosted secara default. Tidak ada langganan wajib, tidak ada
+              cloud pihak ketiga yang harus dipercaya, tidak ada data yang
+              keluar tanpa Anda tahu.
             </p>
           </div>
-        </article>
-      </li>
+        </li>
 
-      <li class="hiw-item" data-tema="ungu">
-        <article class="hiw-kartu">
-          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
-          </svg>
-          <div class="hiw-badan">
-            <span class="hiw-nomor">03</span>
-            <h3 class="hiw-judul">Bangun bertahap</h3>
-            <p class="hiw-deskripsi">
-              Pekerjaan berjalan per tahap, dan setiap tahap bisa Anda lihat
-              hasilnya sebelum lanjut. Tidak ada kejutan di akhir.
+        <li class="hiw-misi-item">
+          <span class="hiw-misi-nomor" aria-hidden="true">03</span>
+          <div>
+            <h3 class="hiw-misi-judul">Setiap klaim bisa diperiksa</h3>
+            <p class="hiw-misi-teks">
+              Kalau saya menyebut angka — ukuran halaman, hasil uji, batas
+              sistem — ada kode atau laporan yang bisa Anda buka sendiri.
             </p>
           </div>
-        </article>
-      </li>
+        </li>
 
-      <li class="hiw-item" data-tema="gold">
-        <article class="hiw-kartu">
-          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
-          </svg>
-          <div class="hiw-badan">
-            <span class="hiw-nomor">04</span>
-            <h3 class="hiw-judul">Uji &amp; serahkan</h3>
-            <p class="hiw-deskripsi">
-              Hasilnya diuji terhadap kebutuhan awal, bukan sekadar "sudah jadi".
-              Anda menerima kode, dokumentasi, dan cara menjalankannya.
+        <li class="hiw-misi-item">
+          <span class="hiw-misi-nomor" aria-hidden="true">04</span>
+          <div>
+            <h3 class="hiw-misi-judul">Keamanan yang serius, bukan tempelan</h3>
+            <p class="hiw-misi-teks">
+              Verifikasi dua langkah, pembatasan percobaan, dan penanganan
+              rahasia dirancang bersama fiturnya — bukan ditambahkan setelah
+              ada masalah.
             </p>
           </div>
-        </article>
-      </li>
+        </li>
+      </ul>
+    </div>
 
-      <li class="hiw-item" data-tema="biru">
-        <article class="hiw-kartu">
-          <svg class="hiw-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-            <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/>
-          </svg>
-          <div class="hiw-badan">
-            <span class="hiw-nomor">05</span>
-            <h3 class="hiw-judul">Dampingan setelahnya</h3>
-            <p class="hiw-deskripsi">
-              Pertanyaan setelah serah terima tetap dijawab. Kalau perlu
-              penyesuaian, itu percakapan terpisah — bukan tambahan diam-diam.
-            </p>
-          </div>
-        </article>
-      </li>
-    </ol>
   </div>
 </section>
 
