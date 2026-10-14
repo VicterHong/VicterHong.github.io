@@ -48,6 +48,35 @@ import {
   setSudoUntil, sudoAktif, SUDO_MS,
 } from './sessions.mjs';
 import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
+// ── PENCATATAN PAKET GRATIS SAAT LOGIN ───────────────────────────────────────
+// Rute masuk lewat email+sandi ada DI BERKAS INI, bukan di auth-routes.mjs —
+// dan ia membuat sesinya sendiri dengan createSession(), tidak lewat
+// buatSesiUntuk(). Jadi pencatatan harus disambungkan di sini juga.
+import { catatPaketGratis, punyaLanggananBerbayar } from './paket-akun.mjs';
+
+/**
+ * Catat paket gratis untuk pengguna yang baru masuk — kalau memang tidak berbayar.
+ *
+ * ── KENAPA JADI FUNGSI, BUKAN DISALIN DUA KALI ──────────────────────────────
+ * Ada DUA rute yang membuat sesi untuk pengguna: /api/auth/masuk dan
+ * /api/auth/2fa. Keduanya harus mencatat, dan isi pencatatannya identik.
+ *
+ * Menyalin blok yang sama dua kali berarti satu perbaikan di masa depan harus
+ * dilakukan dua kali — dan yang kedua pasti terlupa. Sudah terjadi di proyek
+ * ini: panggilan aktivasi langganan hanya ditambahkan di satu jalur webhook.
+ *
+ * ── KENAPA TIDAK MELEMPAR ERROR ─────────────────────────────────────────────
+ * Ini dipanggil di jalur login. Kalau ia melempar, pengguna tidak bisa masuk —
+ * padahal yang gagal hanya pencatatan. Hak aksesnya tetap benar: paketPengguna()
+ * mengembalikan 'gratis' sebagai default tanpa perlu baris apa pun.
+ */
+function catatPaketGratisBilaPerlu(userId) {
+  try {
+    if (!punyaLanggananBerbayar(userId)) catatPaketGratis(userId);
+  } catch (err) {
+    console.error('[auth] gagal mencatat paket gratis:', err?.message ?? err);
+  }
+}
 import { enforceAbuseRules, revokeMessage } from './guard.mjs';
 import { makeFingerprint, recordFingerprint } from './fingerprint.mjs';
 import { recordAnalytics, getFunnel, recentAnalytics, uniqueVisitors } from './analytics.mjs';
@@ -2036,6 +2065,9 @@ export const routes = [
         httpOnly: true, secure: true, sameSite: 'Lax',
       });
 
+      // Catat paket gratis bila pengguna ini memang tidak berbayar.
+      catatPaketGratisBilaPerlu(user.id);
+
       recordEvent({
         projectSlug: tokenRow.project_slug, action: 'auth_masuk', outcome: 'ok',
         ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
@@ -2142,6 +2174,13 @@ export const routes = [
         maxAgeSeconds: config.sessionDurationHours * 3600,
         httpOnly: true, secure: true, sameSite: 'Lax',
       });
+
+      // ── JALUR INI MUDAH TERLUPA ────────────────────────────────────────────
+      // Pengguna ber-2FA tidak melewati /api/auth/masuk — dia melewati rute
+      // ini. Kalau pencatatan hanya disambungkan ke rute masuk, SEMUA pengguna
+      // ber-2FA tidak akan pernah tercatat, dan tidak ada yang menyadarinya
+      // sampai ada pertanyaan "kenapa daftar pengguna gratis kosong?".
+      catatPaketGratisBilaPerlu(user.id);
 
       recordEvent({ projectSlug: tokenRow.project_slug, action: 'auth_masuk_2fa', outcome: 'ok', ip: clientIp(req) });
 

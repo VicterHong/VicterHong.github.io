@@ -66,6 +66,11 @@ import { getDb, transaction } from './db.mjs';
 import { adaLanggananAktif, nonaktifkanAkun, cekKodePembatalan } from './purge-akun.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner, safe } from './http-util.mjs';
 import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
+// ── PENCATATAN PAKET GRATIS ──────────────────────────────────────────────────
+// Dipanggil di buatSesiUntuk() — titik yang dilalui SEMUA cara masuk
+// (sandi, passkey, SSO). Kalau ditaruh di masing-masing alur, salah satu
+// pasti terlewat saat ada cara masuk baru ditambahkan.
+import { catatPaketGratis, punyaLanggananBerbayar } from './paket-akun.mjs';
 // statusTotp: HANYA untuk membaca status 2FA di halaman akun. Alur
 // mengaktifkan 2FA tetap di halaman masuk — tidak diduplikasi di sini.
 //
@@ -342,6 +347,37 @@ function buatSesiUntuk(res, req, pengguna, { tujuan = '/', hints = {} } = {}) {
     maxAgeSeconds: config.sessionDurationHours * 3600,
     httpOnly: true, secure: true, sameSite: 'Lax',
   });
+
+  // ── CATAT PAKET GRATIS — TAPI HANYA KALAU MEMANG TIDAK BERBAYAR ────────────
+  //
+  // ── KENAPA DI SINI ────────────────────────────────────────────────────────
+  // Fungsi ini adalah SATU-SATUNYA jalur pembuatan sesi. Sandi, passkey, dan
+  // SSO semuanya lewat sini. Menaruhnya di masing-masing alur berarti salah
+  // satu akan terlewat begitu ada cara masuk baru.
+  //
+  // ── KENAPA DIPERIKSA DULU, BUKAN LANGSUNG DICATAT ────────────────────────
+  // Pengguna berbayar juga login. Kalau pencatatan tidak diperiksa, tabel
+  // paket_akun akan berisi baris 'gratis' untuk orang yang sedang membayar —
+  // dan catatan itu bukan cuma tidak berguna, tapi MENYESATKAN saat ada
+  // pertanyaan "siapa saja pengguna gratis".
+  //
+  // Pemeriksaan ini tidak membuat paket berbayar bergantung pada tabel
+  // paket_akun: paket berbayar tetap dibaca dari tabel langganan, dan tabel
+  // ini hanya diisi kalau memang tidak ada langganan berbayar yang aktif.
+  //
+  // ── KENAPA TIDAK MENGHENTIKAN LOGIN KALAU GAGAL ──────────────────────────
+  // catatPaketGratis() menangkap error-nya sendiri dan mengembalikan status.
+  // Kegagalan di sini hanya soal CATATAN — hak aksesnya tetap benar, karena
+  // paketPengguna() mengembalikan 'gratis' sebagai default tanpa perlu baris.
+  // Membiarkan login gagal karena pencatatan akan menukar masalah kecil
+  // dengan masalah besar.
+  try {
+    if (!punyaLanggananBerbayar(pengguna.id)) {
+      catatPaketGratis(pengguna.id);
+    }
+  } catch (err) {
+    console.error('[auth] gagal mencatat paket gratis:', err?.message ?? err);
+  }
 
   return { tokenRow, sesi, tujuan: tujuanAman(tujuan) };
 }

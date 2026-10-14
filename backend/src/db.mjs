@@ -688,6 +688,54 @@ function migrate(handle) {
     CREATE INDEX IF NOT EXISTS idx_langganan_user   ON langganan(user_id);
     CREATE INDEX IF NOT EXISTS idx_langganan_status ON langganan(status);
 
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- PAKET YANG SEDANG BERLAKU UNTUK SEBUAH AKUN
+    --
+    -- ── KENAPA TABEL TERPISAH, BUKAN BARIS DI TABEL LANGGANAN ────────────────
+    -- Godaannya: catat paket gratis sebagai baris di tabel langganan dengan
+    -- paket='gratis'. Itu MERUSAK dua hal sekaligus — dan kerusakannya sudah
+    -- dibuktikan sebelum tabel ini dibuat:
+    --
+    --   1. PERPANJANGAN MENANDAI BARIS GRATIS
+    --      langganan-aktivasi.mjs menjalankan:
+    --        UPDATE langganan SET status = 'diperpanjang'
+    --        WHERE user_id = ? AND status = 'aktif'
+    --      tanpa memandang paket. Baris gratis ikut tertandai "diperpanjang" —
+    --      riwayatnya jadi salah: "gratis diperpanjang".
+    --
+    --   2. PAKET YANG TERBACA BISA SALAH
+    --      paketPengguna() mengambil baris dengan mulai_at PALING BARU. Kalau
+    --      baris gratis dibuat setelah baris berbayar (misalnya pengguna login
+    --      ulang), pengguna BERBAYAR akan terbaca sebagai GRATIS. Akses yang
+    --      sudah dia bayar hilang.
+    --
+    -- Tabel langganan adalah catatan TRANSAKSI: ia punya payment_id,
+    -- periode, dan selesai_at. Paket gratis tidak punya satu pun dari ketiganya
+    -- — tidak ada yang dibayar, tidak ada periode, tidak ada yang berakhir.
+    -- Menaruhnya di sana berarti memaksakan makna yang tidak cocok.
+    --
+    -- ── KENAPA HANYA MENYIMPAN PAKET GRATIS ─────────────────────────────────
+    -- Paket berbayar SELALU dibaca dari tabel langganan, tidak pernah dari sini.
+    -- Dengan begitu tidak ada dua sumber yang bisa bertentangan: kalau
+    -- langganan berbayar habis, paketnya kembali gratis tanpa perlu ada yang
+    -- memperbarui tabel ini.
+    --
+    -- Tabel ini menjawab satu pertanyaan yang tidak bisa dijawab langganan:
+    -- "sejak kapan akun ini memakai paket gratis?" — dan itu tidak sama dengan
+    -- users.dibuat_at kalau pengguna pernah berlangganan lalu berhenti.
+    -- ══════════════════════════════════════════════════════════════════════════
+    CREATE TABLE IF NOT EXISTS paket_akun (
+      -- PRIMARY KEY di user_id: satu akun = satu paket berlaku.
+      -- Tabel ini menyimpan KEADAAN SEKARANG, bukan riwayat. Riwayat
+      -- transaksi tetap di tabel langganan.
+      user_id       TEXT PRIMARY KEY,
+      paket         TEXT NOT NULL DEFAULT 'gratis',
+      mulai_at      INTEGER NOT NULL,
+      diperbarui_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_paket_akun_paket ON paket_akun(paket);
+
     -- Pemakaian kuota token per pengguna PER BULAN.
     --
     -- Satu baris = satu bulan. Dibuat saat pertama kali token dibuat di bulan
