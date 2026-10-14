@@ -14,7 +14,7 @@
  */
 
 import { config, validateConfig } from './config.mjs';
-import { openDb } from './db.mjs';
+import { openDb, getDb } from './db.mjs';
 import { getToken, issueToken, listTokens, revokeToken } from './tokens.mjs';
 import { listLeads, recentEvents, updateLeadStatus } from './audit.mjs';
 import { getFunnel, uniqueVisitors } from './analytics.mjs';
@@ -378,15 +378,15 @@ async function main() {
       // Dalam kedua kasus itu, uangnya sudah masuk tapi aksesnya tidak bisa
       // dibuat otomatis. Tanpa perintah ini, satu-satunya jalan adalah
       // mengedit database langsung — dan itu rawan salah.
-      const aksi = arg('--aksi', 'lihat');
+      const aksi = String(args.aksi ?? 'lihat');
 
       if (aksi === 'lihat') {
-        const email = arg('--email');
+        const email = String(args.email ?? '').trim();
         if (!email) {
           console.error('  Butuh --email <email>');
           return 1;
         }
-        const pengguna = db.prepare('SELECT id, email, nama FROM users WHERE lower(email) = ?')
+        const pengguna = getDb().prepare('SELECT id, email, nama FROM users WHERE lower(email) = ?')
           .get(String(email).trim().toLowerCase());
 
         if (!pengguna) {
@@ -394,7 +394,7 @@ async function main() {
           return 1;
         }
 
-        const baris = db.prepare(`
+        const baris = getDb().prepare(`
           SELECT paket, periode, mulai_at, selesai_at, status, payment_id
           FROM langganan WHERE user_id = ? ORDER BY dibuat_at DESC
         `).all(pengguna.id);
@@ -412,9 +412,9 @@ async function main() {
       }
 
       if (aksi === 'aktifkan') {
-        const email = arg('--email');
-        const paket = arg('--paket');
-        const periode = arg('--periode', 'bulanan');
+        const email = String(args.email ?? '').trim();
+        const paket = String(args.paket ?? '').trim();
+        const periode = String(args.periode ?? 'bulanan');
 
         if (!email || !paket) {
           console.error('  Butuh --email <email> --paket <standar|profesional|enterprise> [--periode bulanan|tahunan]');
