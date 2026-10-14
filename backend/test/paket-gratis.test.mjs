@@ -132,17 +132,24 @@ test('fitur NEGATIF diulang di setiap paket yang masih memilikinya', () => {
   assert.deepEqual(punyaBatasanKode, ['Gratis', 'Standar'],
     'batasan kode sumber harus muncul di Gratis DAN Standar');
 
-  // ── CATATAN: POLA INI PERNAH SALAH ─────────────────────────────────────────
-  // Versi pertama memakai /pakai ulang/i — dan TIDAK cocok dengan teks yang
-  // sebenarnya, "Belum boleh memakai ulang kodenya".
+  // ── CATATAN: POLA INI PERNAH SALAH DUA KALI ───────────────────────────────
   //
-  // Sebabnya: kata berimbuhan. "memakai" = "me" + "pakai", jadi huruf awalnya
-  // berubah dari p menjadi m. Pencarian "pakai ulang" gagal karena di dalam
-  // "memakai ulang" tidak ada urutan huruf p-a-k-a-i.
+  // Kesalahan pertama: /pakai ulang/i TIDAK cocok dengan "Belum boleh memakai
+  // ulang kodenya". Kata berimbuhan: "memakai" = "me" + "pakai", jadi huruf
+  // awalnya berubah dari p menjadi m — di dalam "memakai ulang" tidak ada
+  // urutan huruf p-a-k-a-i.
   //
-  // Pola yang benar menyertakan imbuhannya: (?:me)?makai ulang.
+  // Kesalahan kedua: /(?:me)?makai ulang/i TIDAK cocok setelah teksnya diubah
+  // jadi "Hak pakai ulang kode belum termasuk" — bentuk tanpa awalan.
+  //
+  // ── PELAJARANNYA ───────────────────────────────────────────────────────────
+  // Mengikat tes pada SATU bentuk kata membuat tes itu rapuh terhadap
+  // penyuntingan teks biasa. Yang diuji di sini adalah ARTI ("fitur ini
+  // disebut sebagai batasan di paket-paket ini"), bukan ejaannya.
+  //
+  // Pola yang menangkap kedua bentuk: /pakai ulang|makai ulang/
   const punyaBatasanPakaiUlang = data.paket
-    .filter((p) => p.fitur.some((f) => !f.termasuk && /(?:me)?makai ulang/i.test(f.teks)))
+    .filter((p) => p.fitur.some((f) => !f.termasuk && /pakai ulang|makai ulang/i.test(f.teks)))
     .map((p) => p.nama);
   assert.deepEqual(punyaBatasanPakaiUlang, ['Gratis', 'Standar', 'Profesional'],
     'batasan pakai ulang harus muncul di Gratis, Standar, DAN Profesional');
@@ -275,9 +282,30 @@ test('kuota Enterprise yang null ditulis "tanpa batas", bukan "0"', () => {
   // null berarti tanpa batas. Kalau ditampilkan sebagai angka, halaman akan
   // menulis "0 token" — kebalikan dari artinya.
   assert.equal(KUOTA_DASAR.enterprise, null, 'prasyarat: enterprise harus null');
-  const f = data.paket.find((p) => p.id === 'enterprise').fitur.find((x) => /token akses/i.test(x.teks));
-  assert.equal(f.teks, 'Token akses tanpa batas');
+  const f = data.paket.find((p) => p.id === 'enterprise').fitur.find((x) => /token/i.test(x.teks));
+  assert.ok(f, 'Enterprise harus punya baris token');
+
+  // ── TES INI PERNAH TERIKAT PADA SATU KALIMAT ─────────────────────────────
+  // Versi pertama memeriksa f.teks === 'Token akses tanpa batas' persis. Setelah
+  // teksnya diperbaiki jadi 'Token tanpa batas, jadi seluruh proyek selalu
+  // terbuka' (karena menyebut MEKANISME saja tidak menjawab "lalu apa artinya
+  // buat saya?"), tesnya gagal meski halamannya BENAR.
+  //
+  // Yang benar-benar penting: ada kata "tanpa batas", dan TIDAK ada angka.
+  assert.match(f.teks, /tanpa batas/i, `harus menyebut "tanpa batas", sekarang "${f.teks}"`);
   assert.doesNotMatch(f.teks, /\d/, 'tidak boleh ada angka di baris kuota enterprise');
+});
+
+test('hanya SATU baris token di tiap paket', () => {
+  // Dua baris token dengan arti sama membuat pengunjung mengira itu dua fitur
+  // berbeda. Ini pernah terjadi: "Token akses tanpa batas" (dari fiturKuota)
+  // berdampingan dengan "Token tanpa batas, jadi seluruh proyek selalu
+  // terbuka" (ditulis manual di daftar fitur Enterprise).
+  for (const p of data.paket) {
+    const barisToken = p.fitur.filter((f) => /token/i.test(f.teks));
+    assert.ok(barisToken.length <= 1,
+      `${p.nama} punya ${barisToken.length} baris token: ${barisToken.map((f) => f.teks).join(' | ')}`);
+  }
 });
 
 test('paket Gratis TIDAK menampilkan baris kuota token', () => {

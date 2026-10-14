@@ -59,10 +59,20 @@ function fiturKuota(paketId) {
   const kuota = KUOTA_DASAR[paketId];
 
   // null berarti tanpa batas — bukan nol.
-  //   null → "Token akses tanpa batas"
+  //   null → sebut MEKANISME sekaligus HASILNYA
   //   0    → tidak ditampilkan sama sekali (paket Gratis tidak punya token)
+  //
+  // ── KENAPA MENYEBUT HASILNYA, BUKAN CUMA "TANPA BATAS" ─────────────────────
+  // "Token akses tanpa batas" benar, tapi tidak menjawab pertanyaan berikutnya
+  // yang muncul di kepala pembaca: "lalu apa artinya buat saya?". Menambahkan
+  // "jadi seluruh proyek selalu terbuka" menjawabnya di baris yang sama.
+  //
+  // ── KENAPA DITULIS DI SINI, BUKAN DI DAFTAR FITUR ENTERPRISE ───────────────
+  // Baris ini DIHASILKAN dari KUOTA_DASAR, jadi angkanya tidak bisa berbohong
+  // kalau kuota sistemnya berubah. Menuliskannya terpisah di daftar fitur
+  // Enterprise akan membuat dua tempat yang bisa berbeda.
   if (kuota === null) {
-    return { teks: 'Token akses tanpa batas', termasuk: true, tebal: true };
+    return { teks: 'Token tanpa batas, jadi seluruh proyek selalu terbuka', termasuk: true, tebal: true };
   }
   return {
     teks: `${kuota} token akses per bulan`,
@@ -169,7 +179,7 @@ export const PAKET = [
     // satu. Versi pertama saya ("Untuk melihat cara kerjanya sebelum
     // memutuskan") menjelaskan NIAT, bukan ORANG — dan itu tidak membantu
     // siapa pun memutuskan.
-    deskripsi: 'Untuk yang ingin menilai dulu sebelum berlangganan.',
+    deskripsi: 'Untuk yang ingin menilai kualitas sebelum berkomitmen.',
     // ── HARGA: NOL, DAN ITU ANGKA SUNGGUHAN ─────────────────────────────────
     // `hargaNormal: 0` — bukan null. Bedanya penting:
     //   null → frontend menampilkan `teksHarga` ("Sesuai kebutuhan")
@@ -201,21 +211,21 @@ export const PAKET = [
       // Alasannya: pengunjung yang tidak tahu batasnya akan menganggap ada
       // jebakan. Angka yang jelas membuat dia bisa menilai sendiri apakah
       // paket ini cukup — dan itu justru mempercepat keputusan.
-      { teks: 'Lihat semua proyek & ringkasannya', termasuk: true },
-      { teks: 'Dokumentasi publik', termasuk: true },
+      { teks: 'Akses daftar lengkap proyek beserta ringkasannya', termasuk: true },
+      { teks: 'Baca dokumentasi publik tanpa batas', termasuk: true },
       // Bonus star untuk paket gratis: PRATINJAU METRIK, bukan token.
       // Menuliskan "1 token" di sini akan bohong — sistem tidak memberi token
       // ke paket gratis (lihat catatan di langganan.mjs).
-      { teks: 'Beri star: buka data metrik 1 proyek, sekali', termasuk: true, tebal: true },
-      { teks: 'Belum bisa membuat token akses', termasuk: false },
-      { teks: 'Belum bisa membaca kode sumber', termasuk: false },
-      { teks: 'Belum boleh memakai ulang kodenya', termasuk: false },
+      { teks: 'Beri star, buka data metrik satu proyek penuh', termasuk: true, tebal: true },
+      { teks: 'Token akses belum termasuk', termasuk: false },
+      { teks: 'Kode sumber belum termasuk', termasuk: false },
+      { teks: 'Hak pakai ulang kode belum termasuk', termasuk: false },
     ],
   },
   {
     id: 'standar',
     nama: 'Standar',
-    deskripsi: 'Untuk yang ingin menilai kualitas kode dan data metrik sendiri.',
+    deskripsi: 'Untuk yang ingin menilai kode dan metrik dengan data sendiri.',
     // ── HARGA ────────────────────────────────────────────────────────────
       // `hargaNormal` — harga patokan, selalu ditampilkan dicoret.
       // `diskon`     — potongan per periode, dalam persen.
@@ -227,7 +237,7 @@ export const PAKET = [
       // memformat sendiri dan tidak ada kesalahan satuan.
       hargaNormal: 79000,
       diskon: { bulanan: 20, tahunan: 25 },
-    catatan: 'Bisa berhenti kapan saja',
+    catatan: 'Bisa berhenti kapan saja, tanpa penalti',
     unggulan: false,
     lencana: null,
     // ── GAYA TOMBOL: SERAGAM ─────────────────────────────────────────────
@@ -237,7 +247,7 @@ export const PAKET = [
     //
     // Yang membedakan kartu unggulan sekarang: lencana, warna tepi, dan
     // glow, bukan warna tombolnya.
-    cta: { teks: 'Mulai dari sini', gaya: 'seragam' },
+    cta: { teks: 'Mulai Standar', gaya: 'seragam' },
     urutan: 1,
     fitur: [
       // ── "Dokumentasi publik" DIHAPUS DARI SINI ───────────────────────────
@@ -251,13 +261,13 @@ export const PAKET = [
       //
       // Aturan yang dipakai: fitur yang sudah ada di paket bawah TIDAK diulang
       // di paket atas. Yang ditulis hanya yang BARU.
-      { teks: 'Pratinjau isi repo, struktur & daftar berkas', termasuk: true },
-      { teks: 'Lihat hasil uji & metrik semua proyek', termasuk: true },
+      { teks: 'Pratinjau isi repositori: struktur dan daftar berkas', termasuk: true },
+      { teks: 'Hasil uji dan metrik seluruh proyek', termasuk: true },
       // ── KUOTA TOKEN: 1 PER BULAN ──────────────────────────────────────────
       // Angka ini HARUS cocok dengan KUOTA_DASAR di langganan.mjs. Kalau
       // berbeda, halaman menjanjikan yang tidak bisa dipenuhi sistem.
       fiturKuota('standar'),
-      { teks: 'Dukungan lewat email', termasuk: true },
+      { teks: 'Dukungan email langsung dari pemilik proyek', termasuk: true },
       // ── POLA "EVERYTHING IN X, AND:" — NOTION & LINEAR ─────────────────────
       //
       // Notion menulis "Everything in Free, and:" di paket Plus. Linear menulis
@@ -269,51 +279,71 @@ export const PAKET = [
       // Tanpa baris ini, paket Standar terlihat seperti MENGGANTI paket
       // Gratis — padahal ia menambah.
       { teks: 'Mencakup seluruh fitur paket Gratis', termasuk: true },
-      { teks: 'Belum bisa membaca kode sumber', termasuk: false },
-      { teks: 'Belum boleh memakai ulang kodenya', termasuk: false },
+      { teks: 'Kode sumber belum termasuk', termasuk: false },
+      { teks: 'Hak pakai ulang kode belum termasuk', termasuk: false },
     ],
   },
   {
     id: 'profesional',
     nama: 'Profesional',
-    deskripsi: 'Untuk developer yang belajar dari implementasi nyata.',
+    deskripsi: 'Untuk developer yang belajar dari kode produksi nyata.',
     hargaNormal: 250000,
     diskon: { bulanan: 20, tahunan: 25 },
-    catatan: 'Bisa berhenti kapan saja',
+    catatan: 'Bisa berhenti kapan saja, tanpa penalti',
     unggulan: true,
     lencana: 'Paling sering dipilih',
-    cta: { teks: 'Mulai dari sini', gaya: 'seragam' },
+    cta: { teks: 'Mulai Profesional', gaya: 'seragam' },
     urutan: 2,
     fitur: [
-      { teks: 'Baca kode sumber penuh', termasuk: true, tebal: true },
+      { teks: 'Baca seluruh kode sumber, termasuk berkas internal', termasuk: true, tebal: true },
       fiturKuota('profesional'),
-      { teks: 'Diskusi teknis langsung', termasuk: true, tebal: true },
-      { teks: 'Dokumentasi arsitektur & keputusan desain', termasuk: true },
-      { teks: 'Balasan prioritas', termasuk: true },
+      // ── "TANPA PERANTARA" DIHAPUS ────────────────────────────────────────
+      // Frasa itu menyiratkan hal negatif tentang produk LAIN: seolah yang
+      // lain memakai perantara. Menjelekkan yang lain bukan cara menjual.
+      //
+      // Yang benar: sebut apa yang DIDAPAT, bukan apa yang tidak ada di
+      // tempat lain. "Dengan saya langsung" sudah cukup — dan itu fakta,
+      // karena pemiliknya memang satu orang.
+      { teks: 'Diskusi teknis langsung dengan saya, pemilik proyek', termasuk: true, tebal: true },
+      { teks: 'Dokumentasi arsitektur dan alasan di balik setiap keputusan', termasuk: true },
+      // ── "DIDAHULUKAN DARI ANTREAN" DIHAPUS ───────────────────────────────
+      // Frasa itu menyiratkan pengguna paket lain menunggu lebih lama. Itu
+      // menjual dengan cara menakut-nakuti, bukan dengan menjelaskan nilai.
+      //
+      // Yang benar: sebut urutannya sebagai urutan, tanpa membandingkan.
+      { teks: 'Balasan prioritas, selalu lebih dulu', termasuk: true },
       { teks: 'Mencakup seluruh fitur paket Standar', termasuk: true },
-      { teks: 'Belum boleh memakai ulang kodenya', termasuk: false },
+      { teks: 'Hak pakai ulang kode belum termasuk', termasuk: false },
     ],
   },
   {
     id: 'enterprise',
     nama: 'Enterprise',
-    deskripsi: 'Untuk tim yang membangun produk di atasnya.',
+    deskripsi: 'Untuk tim yang membangun produk di atas fondasi yang sudah terbukti.',
     // null = tidak ada angka. Frontend menampilkan `teksHarga`.
     hargaNormal: null,
     diskon: null,
     teksHarga: 'Sesuai kebutuhan',
-    catatan: 'Dibicarakan lewat percakapan singkat',
+    catatan: 'Satu percakapan singkat, tanpa kewajiban',
     unggulan: false,
     lencana: null,
     cta: { teks: 'Bicara dulu', gaya: 'seragam' },
     urutan: 3,
     fitur: [
-      { teks: 'Akses penuh repositori privat', termasuk: true, tebal: true },
+      { teks: 'Akses penuh repositori privat, termasuk riwayat', termasuk: true, tebal: true },
       fiturKuota('enterprise'),
-      { teks: 'Proyek tanpa batas', termasuk: true, tebal: true },
-      { teks: 'Boleh memakai ulang kodenya', termasuk: true, tebal: true },
-      { teks: 'Jaminan layanan (SLA)', termasuk: true },
-      { teks: 'Pendampingan langsung', termasuk: true },
+      // ── TIDAK ADA BARIS TOKEN DI SINI ────────────────────────────────────
+      // Baris kuota token dihasilkan oleh fiturKuota('enterprise') di atas.
+      //
+      // Versi sebelumnya punya baris kedua di sini, dan hasilnya dua baris
+      // yang artinya sama: "Token akses tanpa batas" dan "Token tanpa batas,
+      // jadi seluruh proyek selalu terbuka". Pengunjung membacanya sebagai dua
+      // fitur berbeda dan mulai bertanya apa bedanya.
+      //
+      // Satu baris per fitur. Kalau butuh diubah, ubah di fiturKuota().
+      { teks: 'Hak pakai ulang kode di produk Anda sendiri', termasuk: true, tebal: true },
+      { teks: 'Jaminan layanan yang disepakati bersama', termasuk: true },
+      { teks: 'Pendampingan integrasi sampai berjalan', termasuk: true },
       { teks: 'Mencakup seluruh fitur paket Profesional', termasuk: true },
     ],
   },
@@ -336,25 +366,25 @@ export const PAKET = [
  *   string        → teks (mis. "8 jam")
  */
 export const TABEL = [
-  { fitur: 'Dokumentasi publik', nilai: [true, true, true] },
-  { fitur: 'Lihat hasil uji & metrik', nilai: [true, true, true] },
-  { fitur: 'Dukungan lewat email', nilai: [true, true, true] },
-  { fitur: 'Pratinjau isi repo', nilai: [true, true, true] },
+  { fitur: 'Dokumentasi publik tanpa batas', nilai: [true, true, true] },
+  { fitur: 'Hasil uji dan metrik seluruh proyek', nilai: [true, true, true] },
+  { fitur: 'Dukungan email langsung', nilai: [true, true, true] },
+  { fitur: 'Pratinjau isi repositori', nilai: [true, true, true] },
   { fitur: 'Balasan prioritas', nilai: [false, true, true] },
 
   { bagian: 'Kode sumber' },
 
-  { fitur: 'Baca kode sumber penuh', nilai: [false, true, true] },
+  { fitur: 'Baca seluruh kode sumber', nilai: [false, true, true] },
   { fitur: 'Diskusi teknis langsung', nilai: [false, true, true] },
   { fitur: 'Dokumentasi arsitektur', nilai: [false, true, true] },
-  { fitur: 'Akses repositori privat', nilai: [false, false, true] },
+  { fitur: 'Akses repositori privat penuh', nilai: [false, false, true] },
 
   { bagian: 'Penggunaan' },
 
-  { fitur: 'Proyek tanpa batas', nilai: [false, false, true] },
-  { fitur: 'Boleh memakai ulang kodenya', nilai: [false, false, true] },
-  { fitur: 'Jaminan layanan (SLA)', nilai: [false, false, true] },
-  { fitur: 'Pendampingan langsung', nilai: [false, false, true] },
+  { fitur: 'Token tanpa batas, semua proyek terbuka', nilai: [false, false, true] },
+  { fitur: 'Hak pakai ulang kode', nilai: [false, false, true] },
+  { fitur: 'Jaminan layanan disepakati', nilai: [false, false, true] },
+  { fitur: 'Pendampingan integrasi', nilai: [false, false, true] },
 ];
 
 /**
@@ -384,11 +414,11 @@ export const FAQ = [
   // ══════════════════════════════════════════════════════════════════════════
   {
     tanya: 'Apa bedanya paket Gratis dan bonus dari memberi star?',
-    jawab: 'Paket Gratis adalah titik awalnya: lihat daftar proyek dan dokumentasi publik, tanpa membayar dan tanpa batas waktu. Bonus star adalah tambahan di atasnya — setelah memberi star, Anda bisa membuka data metrik satu proyek sekali. Kalau ingin membuka semua proyek dan membuat token akses, itu perlu paket berbayar. Ringkasnya: Gratis untuk melihat, star untuk mencoba satu proyek, berlangganan untuk memakai sepenuhnya.',
+    jawab: 'Keduanya jalan untuk mencoba, tapi di tingkat yang berbeda. Paket Gratis membuka daftar proyek dan dokumentasi publik, tanpa membayar dan tanpa batas waktu. Bonus star menambahkan akses data metrik satu proyek. Kalau ingin membuka semua proyek dan membuat token akses, di situ paket berbayar masuk. Ringkasnya: Gratis untuk melihat, star untuk menguji satu proyek, berlangganan untuk memakai sepenuhnya.',
   },
   {
     tanya: 'Apakah paket Gratis benar-benar gratis selamanya?',
-    jawab: 'Ya. Tidak ada batas waktu, tidak ada kartu kredit, dan tidak ada tagihan yang muncul kemudian. Paket Gratis bukan uji coba yang berakhir — ia paket yang bisa Anda pakai selama Anda mau. Anda hanya berpindah ke paket berbayar kalau memang butuh membuka kode sumber atau membuat token akses.',
+    jawab: 'Ya. Tidak ada batas waktu, tidak ada kartu kredit, dan tidak ada tagihan yang muncul kemudian. Paket Gratis bukan uji coba yang berakhir. Ia paket yang bisa Anda pakai selama Anda mau. Anda hanya berpindah ke paket berbayar kalau memang butuh membuka kode sumber atau membuat token akses.',
   },
   {
     tanya: 'Apa bedanya Profesional dan Enterprise?',
@@ -400,7 +430,7 @@ export const FAQ = [
   },
   {
     tanya: 'Bisakah saya berhenti kapan saja?',
-    jawab: 'Bisa. Paket Standar dan Profesional ditagih bulanan, dan Anda bisa berhenti kapan saja tanpa penalti. Untuk Enterprise, jangka waktunya dibicarakan saat menentukan kebutuhan, karena biasanya melibatkan komitmen dukungan.',
+    jawab: 'Bisa. Paket Standar dan Profesional ditagih bulanan, dan Anda bisa berhenti kapan saja tanpa penalti dan tanpa perlu memberi alasan. Tidak ada kontrak minimum. Akses tetap berjalan sampai akhir periode yang sudah Anda bayar, lalu berhenti sendiri. Untuk Enterprise, jangka waktunya dibicarakan saat menentukan kebutuhan karena biasanya melibatkan komitmen dukungan.',
   },
   {
     // ── FAQ INI DIPERBARUI, BUKAN DIHAPUS ────────────────────────────────────
@@ -413,11 +443,11 @@ export const FAQ = [
     // Pertanyaannya tetap dipertahankan karena masih ditanyakan — tapi
     // jawabannya diarahkan ke paket Gratis yang sekarang ada.
     tanya: 'Apakah ada uji coba gratis?',
-    jawab: 'Tidak ada uji coba berbatas waktu, karena paket Gratis tidak berakhir — Anda bisa memakainya selama yang Anda mau, tanpa kartu kredit. Kalau ingin mencoba lebih jauh sebelum berlangganan, beri star ke repositori dan Anda bisa membuka data metrik satu proyek. Untuk paket berbayar, ada garansi 7 hari: kalau ternyata tidak sesuai harapan, hubungi saya dan pembayaran bulan itu dikembalikan.',
+    jawab: 'Tidak ada uji coba berbatas waktu, karena paket Gratis tidak berakhir. Anda bisa memakainya selama yang Anda mau, tanpa kartu kredit. Kalau ingin mencoba lebih jauh sebelum berlangganan, beri star ke repositori dan Anda bisa membuka data metrik satu proyek. Untuk paket berbayar, ada garansi 7 hari: kalau ternyata tidak sesuai harapan, hubungi saya dan pembayaran bulan itu dikembalikan.',
   },
   {
     tanya: 'Kode yang saya lihat, apakah boleh saya pakai di proyek saya?',
-    jawab: 'Tergantung paketnya. Standar, hanya pratinjau (struktur & daftar berkas). Profesional, boleh dibaca dan dipelajari, tapi tidak boleh dipakai ulang di produk Anda. Enterprise, boleh dipakai ulang, tanpa batas proyek.',
+    jawab: 'Tergantung paketnya, dan bedanya jelas. Standar: hanya pratinjau, yaitu struktur dan daftar berkas. Profesional: seluruh kode bisa dibaca dan dipelajari, tapi tidak boleh dipakai ulang di produk Anda. Enterprise: kode boleh dipakai ulang di produk Anda sendiri, tanpa batas jumlah proyek. Kalau tujuan Anda belajar dan memahami, Profesional cukup. Kalau tujuan Anda memakai kodenya, Enterprise yang tepat.',
   },
   {
     tanya: 'Apa itu token akses, dan berapa yang saya dapat?',
@@ -425,11 +455,11 @@ export const FAQ = [
     // Token akses adalah fitur inti yang membedakan paket ini, tapi istilahnya
     // tidak muncul di halaman harga sama sekali. Pengunjung yang membaca
     // "token akses" tanpa penjelasan harus menebak apa yang dia beli.
-    jawab: 'Token akses adalah kode yang membuka data metrik dan kode sumber proyek. Standar memberi 1 token per bulan, Profesional 5 per bulan, Enterprise tanpa batas. Token dibuat sendiri di halaman Proyek Saya setelah masuk — jatah bulanan Anda terlihat di sana, dan jatah baru tersedia saat bulan berganti.',
+    jawab: 'Token akses adalah kode yang membuka data metrik dan kode sumber proyek. Standar memberi 1 token per bulan, Profesional 5 per bulan, Enterprise tanpa batas. Token dibuat sendiri di halaman Proyek Saya setelah masuk. Jatah bulanan Anda terlihat di sana, dan jatah baru tersedia saat bulan berganti.',
   },
   {
     tanya: 'Bagaimana cara mendapat bonus dari memberi star?',
-    jawab: 'Beri star di repo GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim bukti. Bonusnya sekali per akun: pengguna gratis dapat membuka data metrik satu proyek, sedangkan Standar dan Profesional dapat tambahan 1 token di bulan itu.',
+    jawab: 'Beri star di repositori GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim tangkapan layar atau bukti apa pun. Bonusnya berlaku sekali per akun: paket Gratis mendapat akses data metrik satu proyek, sedangkan Standar dan Profesional mendapat tambahan 1 token di bulan itu.',
   },
 ];
 
