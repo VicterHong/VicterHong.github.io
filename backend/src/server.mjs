@@ -27,6 +27,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ADMIN_HTML = join(__dirname, '..', 'public', 'admin.html');
 
+/** Halaman inspector Sentinel — hanya disajikan dari loopback. */
+const SENTINEL_HTML = join(__dirname, '..', 'public', 'sentinel.html');
+
+/** Direktori aset yang TIDAK ikut ter-deploy publik. */
+const PUBLIC_DIR = join(__dirname, '..', 'public');
+
 /** Apakah permintaan datang dari loopback TANPA melalui tunnel.
  *  cloudflared terhubung dari 127.0.0.1 juga, jadi alamat saja tidak cukup —
  *  request lewat tunnel selalu membawa header CF-Connecting-IP / CF-Ray. */
@@ -173,6 +179,78 @@ async function handleRequest(req, res) {
       return res.end(html);
     } catch {
       return sendJson(res, 500, { ok: false, error: 'admin_html_tidak_ada' });
+    }
+  }
+
+  // ══ SENTINEL INSPECTOR: HANYA DARI LOOPBACK ═══════════════════════════════
+  //
+  // ── KENAPA DIBATASI LOOPBACK, SAMA SEPERTI /admin ─────────────────────────
+  // Halaman ini memuat body webhook — data pembayaran, email pelanggan, ID
+  // pesanan — dan tombol yang bisa memicu pengiriman ke layanan luar.
+  //
+  // Aksesnya lewat SSH tunnel:
+  //   ssh -L 8789:127.0.0.1:8788 user@vps
+  //   lalu buka http://localhost:8789/sentinel
+  //
+  // ── KENAPA TIDAK DI dist/ ═════════════════════════════════════════════════
+  // dist/ adalah aset publik Cloudflare Pages. Apa pun yang ada di sana bisa
+  // diunduh siapa pun yang tahu URL-nya — dan kunci admin di halaman ini tidak
+  // mencegah halamannya sendiri terunduh.
+  if (pathname === '/sentinel' || pathname === '/sentinel/') {
+    if (!isLoopback(req)) {
+      return sendJson(res, 403, {
+        ok: false,
+        error: 'akses_ditolak',
+        message: 'Inspector hanya bisa dibuka dari server (SSH tunnel).',
+      });
+    }
+    try {
+      const html = readFileSync(SENTINEL_HTML, 'utf8');
+      res.writeHead(200, {
+        'content-type': 'text/html; charset=utf-8',
+        'content-length': Buffer.byteLength(html),
+        'cache-control': 'no-store',
+        'x-frame-options': 'DENY',
+        // ── CSP: HANYA SUMBER SENDIRI ────────────────────────────────────────
+        // `connect-src 'self'` membatasi fetch ke origin yang sama. Kalau ada
+        // payload yang berhasil menyuntikkan skrip, ia tidak bisa mengirim data
+        // ke server lain.
+        'content-security-policy': "default-src 'none'; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' https://api.fontshare.com https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; img-src 'self' data:",
+      });
+      return res.end(html);
+    } catch {
+      return sendJson(res, 500, { ok: false, error: 'sentinel_html_tidak_ada' });
+    }
+  }
+
+  // Aset inspector: CSS dan JS. Loopback saja, sama seperti halamannya.
+  if (pathname.startsWith('/sentinel-assets/')) {
+    if (!isLoopback(req)) {
+      return sendJson(res, 403, { ok: false, error: 'akses_ditolak' });
+    }
+
+    // ── DAFTAR PUTIH, BUKAN GABUNG PATH ═════════════════════════════════════
+    // `join(PUBLIC_DIR, pathname)` dengan pathname yang berisi `../` bisa
+    // membaca berkas mana pun di server. Daftar putih membuat itu tidak mungkin
+    // — hanya dua berkas ini yang bisa diambil.
+    const diizinkan = {
+      '/sentinel-assets/css/sentinel.css': ['text/css; charset=utf-8', 'assets/css/sentinel.css'],
+      '/sentinel-assets/js/sentinel.js': ['text/javascript; charset=utf-8', 'assets/js/sentinel.js'],
+    };
+
+    const entri = diizinkan[pathname];
+    if (!entri) return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan' });
+
+    try {
+      const isi = readFileSync(join(PUBLIC_DIR, entri[1]));
+      res.writeHead(200, {
+        'content-type': entri[0],
+        'content-length': isi.length,
+        'cache-control': 'no-store',
+      });
+      return res.end(isi);
+    } catch {
+      return sendJson(res, 500, { ok: false, error: 'aset_tidak_ada' });
     }
   }
 

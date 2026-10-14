@@ -137,6 +137,12 @@ import {
 import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
 import { ruteAuth } from './auth-routes.mjs';
 import { ruteKlien } from './klien-routes.mjs';
+// ── SENTINEL: inspector webhook ──────────────────────────────────────────────
+// Rutenya sudah DIKUNCI di dalam ruteSentinel() — semuanya lewat pembungkus
+// kunciAdmin, jadi tidak ada yang bisa terdaftar tanpa kunci.
+import { ruteSentinel } from './sentinel/rute.mjs';
+import { siapkanTabelAntrean } from './sentinel/antrean.mjs';
+import { siapkanTabelSirkuit } from './sentinel/sirkuit.mjs';
 import { providerSiap } from './oauth.mjs';
 import { siapkanTabelIdentitas, bersihkanStateOauth, bersihkanChallenge } from './auth-identities.mjs';
 
@@ -309,6 +315,13 @@ export function initRoutes() {
   // dan melempar "database belum dibuka".
   siapkanTabelPengguna();
 
+  // ── Siapkan tabel Sentinel ─────────────────────────────────────────────────
+  // Sama alasannya dengan tabel pengguna: dijalankan di sini, bukan saat import
+  // modul, supaya database sudah terbuka. Kalau di level modul, ia berjalan
+  // sebelum openDb() dan melempar "database belum dibuka".
+  siapkanTabelAntrean();
+  siapkanTabelSirkuit();
+
   // ══ MIGRASI ULANG SETELAH TABEL PENGGUNA DIBUAT ═══════════════════════════
   //
   // ── BUG YANG DIPERBAIKI ───────────────────────────────────────────────────
@@ -373,6 +386,20 @@ const SLUG_PARAMS = new Set(['slug', 'collection', 'name']);
 const ID_PARAMS = new Set(['id']);
 
 /**
+ * Parameter yang berisi ID pesan Sentinel (UUID).
+ *
+ * ── KENAPA HIMPUNAN TERPISAH ────────────────────────────────────────────────
+ * `validParam` bekerja default-deny: parameter yang tidak dikenal DITOLAK.
+ * Itu keputusan yang bagus — rute tidak bisa menerima bentuk ID yang tidak
+ * pernah dihasilkan sistemnya.
+ *
+ * Jadi parameter baru harus didaftarkan di sini, dan itulah yang terjadi saat
+ * rute inspector Sentinel ditambahkan: nama `pesanId` dipakai (bukan `id`)
+ * supaya tidak melebarkan dua rute yang sudah ada.
+ */
+const PESAN_PARAMS = new Set(['pesanId']);
+
+/**
  * Parameter nama berkas avatar.
  *
  * ── KENAPA BUTUH POLA SENDIRI, BUKAN SLUG_RE ────────────────────────────────
@@ -435,12 +462,30 @@ const TOKEN_ID_RE = /^tok_[a-f0-9]{16}$/;
  */
 const PAY_ID_RE = /^pay_[a-f0-9]{24}$/;
 
+/**
+ * Pola ID pesan Sentinel — UUID v4, sama dengan yang dibuat `randomUUID()`.
+ *
+ * ── KENAPA PARAMETER TERPISAH, BUKAN MENAMBAH KE `ID_PARAMS` ────────────────
+ * Godaannya: tambahkan pola UUID ke `ID_PARAMS`, karena `id` sudah menampung
+ * dua bentuk. Tapi itu melebarkan dua rute yang sudah ada (`/api/admin/token/:id`
+ * dan `/api/pesanan/:id`) supaya menerima UUID juga — padahal keduanya TIDAK
+ * PERNAH menerima UUID.
+ *
+ * Route yang menerima bentuk ID yang tidak pernah dihasilkannya berarti
+ * permukaan serangan yang bertambah tanpa manfaat.
+ *
+ * Parameter terpisah menjaga setiap rute hanya menerima bentuk yang benar-
+ * benar dihasilkan sistemnya sendiri.
+ */
+const PESAN_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 /** Validasi nilai parameter sesuai tipenya. */
 function validParam(name, value) {
   if (SLUG_PARAMS.has(name)) return SLUG_RE.test(value);
   // `id` dipakai dua rute dengan dua jenis ID (token & pembayaran) — lihat
   // catatan PAY_ID_RE di atas.
   if (ID_PARAMS.has(name)) return TOKEN_ID_RE.test(value) || PAY_ID_RE.test(value);
+  if (PESAN_PARAMS.has(name)) return PESAN_ID_RE.test(value);
   if (AVATAR_PARAMS.has(name)) return AVATAR_FILE_RE.test(value);
   // Parameter yang belum dikenal: tolak demi keamanan (default-deny).
   // Kalau nanti ada parameter baru, tambahkan ke salah satu himpunan di atas
@@ -4345,6 +4390,7 @@ export const routes = [
   // BOLEH KAMU LAKUKAN setelah masuk. Aturan langganan bisa berubah tanpa
   // menyentuh berkas identitas yang sudah 1400+ baris.
   ...ruteKlien(),
+  ...ruteSentinel(),
 ];
 
 /** Cari rute yang cocok untuk satu permintaan. */

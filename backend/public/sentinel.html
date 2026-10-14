@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentinel — Inspector Webhook</title>
+<meta name="description" content="Inspector antrean webhook: lihat payload, kirim ulang, pantau latensi.">
+
+<!-- ══ TIDAK DIINDEKS ══════════════════════════════════════════════════════════
+     Halaman ini memuat body webhook — data pembayaran, email pelanggan, ID
+     pesanan. Isinya tidak boleh muncul di hasil pencarian.
+     ─────────────────────────────────────────────────────────────────────────── -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a0a0b">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-180.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- ══ ASET INSPECTOR ═══════════════════════════════════════════════════════════
+     Dimuat dari /sentinel-assets/, BUKAN /assets/.
+
+     ── KENAPA DIPISAH ──────────────────────────────────────────────────────────
+     /assets/ adalah direktori publik yang di-cache CDN dan dipakai semua
+     halaman. Menaruh aset admin di sana berarti ia ikut ter-deploy dan bisa
+     diunduh siapa pun — padahal isinya hanya berguna untuk halaman ini.
+
+     Dengan jalur terpisah, aset inspector disajikan oleh server yang sama yang
+     menyajikan halamannya: dari loopback, tidak lewat CDN.
+     ─────────────────────────────────────────────────────────────────────────── -->
+<link rel="stylesheet" href="/assets/css/cf-gate.css">
+<link rel="stylesheet" href="/sentinel-assets/css/sentinel.css">
+</head>
+<body class="sentinel-page">
+
+<!-- ══ GERBANG KUNCI ═══════════════════════════════════════════════════════════
+     Inspector ini butuh ADMIN_KEY. Kuncinya disimpan di sessionStorage, bukan
+     localStorage:
+
+       sessionStorage hilang saat tab ditutup — kunci tidak tertinggal di
+       perangkat yang dipakai bersama.
+
+       localStorage akan menyimpan kunci itu sampai dihapus manual, dan di
+       komputer bersama berarti orang berikutnya membuka inspector tanpa perlu
+       tahu kuncinya.
+     ─────────────────────────────────────────────────────────────────────────── -->
+<div class="sentinel-gate" id="gerbang">
+  <form class="sentinel-gate-kotak" id="formGerbang">
+    <h1 class="sentinel-gate-judul">Sentinel</h1>
+    <p class="sentinel-gate-teks">
+      Inspector antrean webhook. Masukkan kunci admin untuk melanjutkan.
+    </p>
+
+    <label class="sentinel-label" for="kunci">Kunci admin</label>
+    <input class="sentinel-input" id="kunci" type="password" autocomplete="current-password"
+           placeholder="x-admin-key" required>
+
+    <p class="sentinel-gate-galat" id="gerbangGalat" role="alert" hidden></p>
+
+    <button class="sentinel-tombol sentinel-tombol--utama" type="submit" id="gerbangMasuk">
+      Buka inspector
+    </button>
+
+    <p class="sentinel-gate-catatan">
+      Kunci disimpan di tab ini saja, dan hilang saat tab ditutup.
+    </p>
+  </form>
+</div>
+
+<!-- ══ ISI INSPECTOR ══════════════════════════════════════════════════════════
+     Tersembunyi sampai kuncinya diterima.
+     ─────────────────────────────────────────────────────────────────────────── -->
+<main class="sentinel-wrap" id="isi" hidden>
+
+  <header class="sentinel-kepala">
+    <div>
+      <h1 class="sentinel-judul">Sentinel</h1>
+      <p class="sentinel-sub">Antrean webhook, sirkuit tujuan, dan latensi pengiriman.</p>
+    </div>
+    <div class="sentinel-kepala-aksi">
+      <button class="sentinel-tombol sentinel-tombol--kecil" type="button" id="muatUlang">
+        Muat ulang
+      </button>
+      <button class="sentinel-tombol sentinel-tombol--kecil" type="button" id="keluar">
+        Keluar
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Kartu ringkasan ──────────────────────────────────────────────────── -->
+  <section class="sentinel-kartu-baris" id="kartuRingkas" aria-busy="true">
+    <div class="sentinel-kartu">
+      <span class="sentinel-kartu-label">Menunggu</span>
+      <strong class="sentinel-kartu-angka" id="angkaMenunggu">—</strong>
+    </div>
+    <div class="sentinel-kartu">
+      <span class="sentinel-kartu-label">Terkirim</span>
+      <strong class="sentinel-kartu-angka sentinel-angka--hijau" id="angkaTerkirim">—</strong>
+    </div>
+    <div class="sentinel-kartu">
+      <span class="sentinel-kartu-label">DLQ</span>
+      <strong class="sentinel-kartu-angka sentinel-angka--merah" id="angkaDlq">—</strong>
+    </div>
+    <div class="sentinel-kartu">
+      <span class="sentinel-kartu-label">Latensi rata-rata</span>
+      <strong class="sentinel-kartu-angka" id="angkaLatensi">—</strong>
+      <span class="sentinel-kartu-kaki" id="sampelLatensi"></span>
+    </div>
+    <div class="sentinel-kartu">
+      <span class="sentinel-kartu-label">Sirkuit terbuka</span>
+      <strong class="sentinel-kartu-angka sentinel-angka--merah" id="angkaSirkuit">—</strong>
+    </div>
+  </section>
+
+  <!-- ── Sirkuit tujuan ───────────────────────────────────────────────────── -->
+  <section class="sentinel-bagian">
+    <div class="sentinel-bagian-kepala">
+      <h2 class="sentinel-bagian-judul">Sirkuit tujuan</h2>
+      <p class="sentinel-bagian-teks">
+        Endpoint yang gagal beruntun diputus sementara supaya pengiriman tidak
+        menunggu timeout berulang kali.
+      </p>
+    </div>
+    <div id="wadahSirkuit" aria-busy="true"></div>
+  </section>
+
+  <!-- ── Antrean ──────────────────────────────────────────────────────────── -->
+  <section class="sentinel-bagian">
+    <div class="sentinel-bagian-kepala">
+      <h2 class="sentinel-bagian-judul">Antrean pesan</h2>
+      <div class="sentinel-saring">
+        <label class="sentinel-label-kecil" for="saringStatus">Status</label>
+        <select class="sentinel-pilih" id="saringStatus">
+          <option value="">Semua</option>
+          <option value="menunggu">Menunggu</option>
+          <option value="dikirim">Terkirim</option>
+          <option value="dlq">DLQ</option>
+        </select>
+        <button class="sentinel-tombol sentinel-tombol--kecil" type="button" id="kirimSekarang">
+          Kirim sekarang
+        </button>
+      </div>
+    </div>
+    <div id="wadahPesan" aria-busy="true"></div>
+  </section>
+
+  <footer class="sentinel-kaki">
+    <p id="infoKonfigurasi"></p>
+  </footer>
+</main>
+
+<!-- ── Panel detail pesan ───────────────────────────────────────────────────── -->
+<div class="sentinel-panel" id="panelDetail" hidden>
+  <div class="sentinel-panel-latar" id="panelLatar"></div>
+  <div class="sentinel-panel-isi" role="dialog" aria-modal="true" aria-labelledby="panelJudul">
+    <header class="sentinel-panel-kepala">
+      <h2 class="sentinel-panel-judul" id="panelJudul">Detail pesan</h2>
+      <button class="sentinel-tombol sentinel-tombol--kecil" type="button" id="panelTutup">Tutup</button>
+    </header>
+    <div class="sentinel-panel-badan" id="panelBadan"></div>
+  </div>
+</div>
+
+<!-- ── Pemberitahuan ────────────────────────────────────────────────────────── -->
+<div class="sentinel-notif" id="notif" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="/sentinel-assets/js/sentinel.js"></script>
+</body>
+</html>
