@@ -365,26 +365,65 @@ export const PAKET = [
  *   false         → strip
  *   string        → teks (mis. "8 jam")
  */
+// ══════════════════════════════════════════════════════════════════════════════
+// TABEL PERBANDINGAN — SATU NILAI PER PAKET, BERURUTAN
+//
+// ── BUG BESAR YANG DIPERBAIKI ═════════════════════════════════════════════════
+// Setiap baris hanya punya TIGA nilai, padahal paketnya sudah EMPAT sejak
+// paket Gratis ditambahkan. Akibatnya seluruh tabel bergeser satu kolom:
+//
+//   yang dibaca pengunjung        seharusnya
+//   ─────────────────────────     ─────────────────────
+//   Gratis      ← data Standar    Gratis      ← data Gratis
+//   Standar     ← data Profesional Standar    ← data Standar
+//   Profesional ← data Enterprise  Profesional ← data Profesional
+//   Enterprise  ← KOSONG ("—")     Enterprise  ← data Enterprise
+//
+// Jadi kolom Enterprise tidak tercentang di SEMUA baris, bukan hanya beberapa.
+// Yang terlihat seperti "Enterprise kurang centang" sebenarnya tabel yang
+// salah baca satu kolom penuh.
+//
+// ── ATURAN YANG DIPAKAI SEKARANG ═════════════════════════════════════════════
+//   1. Setiap baris WAJIB punya 4 nilai, urut: Gratis, Standar, Profesional,
+//      Enterprise. Dijaga tes.
+//   2. Paket atas tidak pernah mengurangi paket bawah. Kalau Profesional
+//      centang, Enterprise juga centang. Dijaga tes.
+//   3. Kolom yang lebih rendah TIDAK dicentang untuk fitur yang memang belum
+//      termasuk — itu yang membuat tabelnya berguna.
+// ══════════════════════════════════════════════════════════════════════════════
 export const TABEL = [
-  { fitur: 'Dokumentasi publik tanpa batas', nilai: [true, true, true] },
-  { fitur: 'Hasil uji dan metrik seluruh proyek', nilai: [true, true, true] },
-  { fitur: 'Dukungan email langsung', nilai: [true, true, true] },
-  { fitur: 'Pratinjau isi repositori', nilai: [true, true, true] },
-  { fitur: 'Balasan prioritas', nilai: [false, true, true] },
+  // ── Urutan nilai: [Gratis, Standar, Profesional, Enterprise] ────────────────
+  // ── KENAPA GRATIS CUMA SATU YANG CENTANG DI SINI ───────────────────────────
+  // Fitur paket Gratis hanya tiga: daftar proyek, dokumentasi publik, dan
+  // pratinjau metrik SATU proyek lewat star.
+  //
+  // Baris "Hasil uji dan metrik SELURUH proyek" bukan milik Gratis — dia
+  // hanya dapat satu proyek, dan itu pun lewat bonus star. Mencentangnya di
+  // sini akan menjanjikan seluruh proyek.
+  //
+  // "Dukungan email" juga bukan milik Gratis: paket itu tidak punya jalur
+  // dukungan sama sekali.
+  { fitur: 'Dokumentasi publik tanpa batas', nilai: [true, true, true, true] },
+  { fitur: 'Hasil uji dan metrik seluruh proyek', nilai: [false, true, true, true] },
+  { fitur: 'Dukungan email langsung', nilai: [false, true, true, true] },
+  { fitur: 'Pratinjau isi repositori', nilai: [false, true, true, true] },
+  // Balasan prioritas hanya di Profesional dan Enterprise — Standar belum
+  // termasuk.
+  { fitur: 'Balasan prioritas', nilai: [false, false, true, true] },
 
   { bagian: 'Kode sumber' },
 
-  { fitur: 'Baca seluruh kode sumber', nilai: [false, true, true] },
-  { fitur: 'Diskusi teknis langsung', nilai: [false, true, true] },
-  { fitur: 'Dokumentasi arsitektur', nilai: [false, true, true] },
-  { fitur: 'Akses repositori privat penuh', nilai: [false, false, true] },
+  { fitur: 'Baca seluruh kode sumber', nilai: [false, false, true, true] },
+  { fitur: 'Diskusi teknis langsung', nilai: [false, false, true, true] },
+  { fitur: 'Dokumentasi arsitektur', nilai: [false, false, true, true] },
+  { fitur: 'Akses repositori privat penuh', nilai: [false, false, false, true] },
 
   { bagian: 'Penggunaan' },
 
-  { fitur: 'Token tanpa batas, semua proyek terbuka', nilai: [false, false, true] },
-  { fitur: 'Hak pakai ulang kode', nilai: [false, false, true] },
-  { fitur: 'Jaminan layanan disepakati', nilai: [false, false, true] },
-  { fitur: 'Pendampingan integrasi', nilai: [false, false, true] },
+  { fitur: 'Token tanpa batas, semua proyek terbuka', nilai: [false, false, false, true] },
+  { fitur: 'Hak pakai ulang kode', nilai: [false, false, false, true] },
+  { fitur: 'Jaminan layanan disepakati', nilai: [false, false, false, true] },
+  { fitur: 'Pendampingan integrasi', nilai: [false, false, false, true] },
 ];
 
 /**
