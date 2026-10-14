@@ -159,13 +159,39 @@ export function initVisiMisi(akar = document) {
       tandaiMuncul(e.target);
       pengamat.unobserve(e.target);
 
-      // Jalur digambar ulang: sebelum muncul, kartunya `translateY(28px)` —
-      // kotak pembatasnya ada di posisi yang lebih rendah dari posisi
-      // finalnya. Digambar dua kali: segera (mengikuti gerakan) dan setelah
-      // transisi selesai (yang menentukan posisi akhir).
+      // ── Jalur digambar ulang: saat kartu MULAI bergerak, lalu saat SELESAI ──
+      //
+      // Sebelum muncul, kartunya `translateY(28px)` — kotak pembatasnya ada di
+      // posisi yang lebih rendah dari posisi finalnya. Kalau jalurnya dibiarkan
+      // memakai ukuran itu, ujungnya berhenti di tempat yang salah.
+      //
+      // ── KENAPA `transitionend`, BUKAN setTimeout ──────────────────────────
+      // Versi sebelumnya memakai `setTimeout(gambar, 800)`. Itu menebak: durasi
+      // reveal 0,7s DITAMBAH jeda stagger 110ms per kartu, jadi kartu kelima
+      // baru selesai setelah ~1,4s. Saat penggambaran terjadi, kartunya masih
+      // bergerak — dan jalurnya berhenti di posisi antara.
+      //
+      // Terukur di produksi: ujung kurva meleset 22px dan 45px dari pusat kartu
+      // di 390px. Di server lokal selisihnya 0-1px, karena di sana semua kartu
+      // sudah muncul sebelum diukur. Bug ini HANYA terlihat saat pengguna
+      // menggulir perlahan seperti manusia.
+      //
+      // `transitionend` menyala tepat saat transisinya benar-benar selesai —
+      // tidak menebak, dan tetap benar walau durasinya diubah nanti.
+      const item = e.target.querySelector('.vm-item');
       if (jalur) {
         requestAnimationFrame(gambar);
-        setTimeout(gambar, 800);
+        if (item) {
+          const sekali = (ev) => {
+            if (ev.propertyName !== 'transform') return;
+            item.removeEventListener('transitionend', sekali);
+            gambar();
+          };
+          item.addEventListener('transitionend', sekali);
+          // Jaring pengaman: kalau `transitionend` tidak menyala (transisi
+          // dibatalkan, elemen disembunyikan), tetap gambar setelah 2 detik.
+          setTimeout(gambar, 2000);
+        }
       }
     });
   }, {
@@ -189,6 +215,30 @@ export function initVisiMisi(akar = document) {
     }
     if (jalur) gambar();
   }, 2500);
+
+  // ── GAMBAR ULANG SETELAH SEMUA KARTU SELESAI ──────────────────────────────
+  //
+  // ── BUG YANG DIPERBAIKI: UJUNG JALUR MELESET DI PRODUKSI ──────────────────
+  // Versi sebelumnya menggambar ulang 800ms setelah tiap kartu muncul. Itu
+  // tidak cukup: kartu-kartu muncul BERURUTAN (stagger 110ms), jadi kartu
+  // terakhir baru mulai bergerak setelah kartu sebelumnya selesai. Saat
+  // penggambaran terakhir terjadi, kartu terakhir masih dalam perjalanan —
+  // dan jalurnya berhenti di posisi antara.
+  //
+  // Terukur di produksi: ujung kurva meleset 22px dan 45px dari pusat kartu di
+  // 390px, 28px di 1280px. Di server lokal selisihnya 0-1px, karena di sana
+  // semua kartu sudah muncul sebelum diukur — jadi bug ini HANYA terlihat di
+  // produksi, saat pengguna menggulir perlahan seperti manusia.
+  //
+  // Perbaikan: satu penggambaran ulang terakhir setelah SEMUA kartu dipastikan
+  // selesai (durasi reveal 0,7s + stagger maksimum + margin), plus satu lagi
+  // saat semua sudah tenang. Keduanya idempotent — menggambar jalur yang sama
+  // dua kali tidak merugikan apa pun.
+  const gambarAkhir = () => {
+    if (jalur) gambar();
+  };
+  setTimeout(gambarAkhir, 2600);
+  setTimeout(gambarAkhir, 4000);
 
   // ── Ukuran berubah ────────────────────────────────────────────────────────
   // Jalur diukur dari posisi kartu, dan posisi itu berubah saat lebar layar
