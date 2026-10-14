@@ -749,6 +749,36 @@
   /* Target sentuh 44px minimum */
   min-height: 2.75rem;
   padding: 0.75rem 1.5rem;
+
+  /* ── LINE-HEIGHT DIPAKU — INI BUG LAMA YANG KETEMU ═════════════════════════
+     ── GEJALA ────────────────────────────────────────────────────────────────
+     Tombol paket Gratis dan Enterprise setinggi 49px, sementara tombol paket
+     Standar 44px — padahal ketiganya memakai kelas .tombol yang sama.
+
+     ── SEBABNYA: ELEMEN YANG BERBEDA MEWARISI LINE-HEIGHT YANG BERBEDA ───────
+       · Tombol Gratis dan Enterprise adalah <a> — mewarisi line-height 1,65
+         dari body, jadi 23,1px untuk font 14px.
+       · Tombol Standar dan Profesional adalah <button> — tidak mewarisi,
+         memakai line-height: normal bawaan browser, sekitar 16,8px.
+
+     Tinggi kotak = padding + line-height. Dengan padding sama, beda
+     line-height langsung jadi beda tinggi: 23,1 + 24 + 2 border = 49px,
+     sementara 16,8 + 24 + 2 = 42,8px — ditahan min-height 44px.
+
+     ── KENAPA INI PENTING ────────────────────────────────────────────────────
+     Baris tombol jadi tidak rata. Diukur: tiga tinggi berbeda dalam satu baris
+     kartu (44, 49, dan 62px untuk yang punya badge). Terlihat seperti salah
+     muat, bukan seperti pilihan desain.
+
+     ── KENAPA 1,2 ────────────────────────────────────────────────────────────
+     Angka yang membuat tinggi tombol PERSIS min-height 44px:
+       14px × 1,2 = 16,8px + 24px padding + 2px border = 42,8px
+     min-height 2,75rem (44px) yang menahannya. Dengan begitu tingginya
+     ditentukan min-height — satu angka yang sama untuk semua tombol.
+
+     Ditaruh di .tombol (bukan per-elemen) supaya <a> dan <button> tidak bisa
+     berbeda lagi. */
+  line-height: 1.2;
   border: 1px solid transparent;
   border-radius: 999px;
   font-family: inherit;
@@ -758,6 +788,26 @@
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease,
               transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── JANGAN MEMBUNGKUS, DI SEMUA TOMBOL PAKET ────────────────────────────────
+   ── BUG YANG DIPERBAIKI ────────────────────────────────────────────────────
+   Di 4 kolom (1200px ke atas) ruang isi tombol 140px, sementara "Mulai
+   Profesional" plus ikon panah butuh sekitar 145px. Kurang 5px — dan
+   tombolnya membungkus jadi TIGA baris, tingginya 60px sementara tombol lain
+   44px.
+
+   Terukur: 1024px (2 kolom) 44px, 1200px ke atas (4 kolom) 60px.
+
+   ── KENAPA nowrap, BUKAN LABEL YANG DIPENDEKKAN ────────────────────────────
+   "Mulai Profesional" dipilih supaya pembeli tahu paket mana yang dia pilih.
+   Memendekkannya menghilangkan informasi itu.
+
+   Tombolnya lebar penuh kartu, jadi nowrap tidak bisa membuatnya meluber ke
+   luar kartu — dan kalau labelnya benar-benar tidak muat, ia akan terlihat
+   saat diperiksa alih-alih tersembunyi sebagai tombol yang lebih tinggi. */
+.tombol {
+  white-space: nowrap;
 }
 
 /* ── Tombol: SATU gaya untuk ketiga kartu ────────────────────────────────────

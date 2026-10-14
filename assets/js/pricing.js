@@ -237,6 +237,27 @@ function tombolPaket(paket, periode, hrefKontak, paketAktif) {
   return b;
 }
 
+// ── SEMUA TOMBOL PAKET: JANGAN MEMBUNGKUS ─────────────────────────────────────
+//
+// ── BUG YANG DIPERBAIKI ──────────────────────────────────────────────────────
+// Di 4 kolom (1200px ke atas), ruang isi tombol 140px sementara "Mulai
+// Profesional" plus ikon panah butuh sekitar 145px. Kurang 5px, dan tombolnya
+// membungkus jadi TIGA baris — tingginya 60px sementara tombol lain 44px.
+//
+// Terukur: 1024px (2 kolom) tombolnya 44px; 1200px ke atas (4 kolom) jadi 60px.
+//
+// ── KENAPA TIDAK DIPERBAIKI DENGAN MEMENDEKKAN LABEL ─────────────────────────
+// Label "Mulai Profesional" sudah dipilih supaya pembeli tahu paket mana yang
+// dia pilih. Memendekkannya jadi "Pilih" menghilangkan informasi itu.
+//
+// ── KENAPA nowrap AMAN DI SINI ───────────────────────────────────────────────
+// Tombolnya lebar penuh kartu (width: 100%), jadi tidak ada risiko meluber ke
+// luar kartu — yang terjadi hanya teksnya mendekati tepi. Dan kalau labelnya
+// suatu saat benar-benar tidak muat, ia akan terlihat MELEBAR keluar tombol
+// saat diperiksa, bukan tersembunyi sebagai tombol yang lebih tinggi.
+//
+// Ini pengaman yang sama dengan yang dipakai tombol "Paket aktif". */
+
 /* ── Dialog pembayaran ──────────────────────────────────────────────────── */
 
 /**
