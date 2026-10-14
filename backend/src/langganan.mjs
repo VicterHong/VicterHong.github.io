@@ -53,18 +53,23 @@ export const KUOTA_DASAR = {
 export const BONUS_STAR = 1;
 
 /**
- * Berapa kali pengunjung gratis boleh membuka data metrik setelah memberi star.
+ * Berapa proyek yang boleh dibuka dengan trial, per akun.
  *
- * ── KENAPA 1, DAN PER PROYEK ───────────────────────────────────────────────
- * "Trial 1 kali" dimaksudkan supaya calon pembeli bisa menilai kualitas data
- * sebelum berlangganan. Kalau dibatasi 1× per AKUN (bukan per proyek), orang
- * yang ingin menilai tiga proyek harus memilih satu — dan itu mengurangi
- * peluang dia tertarik pada salah satunya.
+ * ── DIKONFIRMASI PEMILIK PROYEK: PER AKUN, BUKAN PER PROYEK ────────────────
+ * "Per akun — total 1× saja untuk semua proyek."
  *
- * Per proyek: dia bisa melihat kualitas data di setiap proyek SEKALI, lalu
- * memutuskan. Setelah itu proyek yang sama terkunci lagi.
+ * Jadi pengguna gratis memilih SATU proyek yang ingin dinilai, dan setelah
+ * itu jatahnya habis untuk semua proyek lain.
+ *
+ * ── KONSEKUENSI YANG PERLU DIKETAHUI ───────────────────────────────────────
+ * Kalau dia salah pilih, dia tidak bisa mencoba yang lain. Itu memang
+ * aturannya: trial ini untuk menilai KUALITAS data, bukan untuk menjelajahi
+ * seluruh koleksi.
+ *
+ * Karena itu halaman pemilihan proyek harus jelas menyebutkan bahwa jatahnya
+ * hanya satu — supaya tidak ada yang merasa tertipu setelah memilih.
  */
-export const TRIAL_METRIK_PER_PROYEK = 1;
+export const TRIAL_METRIK_PER_AKUN = 1;
 
 /**
  * Paket yang dikenal. Dipakai untuk memvalidasi masukan dari luar —
@@ -162,17 +167,34 @@ export function hitungKuota({ paket, terpakai = 0, bonusStar = false, sekarang =
  * PEMANGGIL harus mencatat pemakaiannya — kalau tidak, jatahnya tidak pernah
  * berkurang dan trialnya jadi tanpa batas.
  */
-export function bolehLihatMetrik({ paket, sudahPakaiTrial, sudahStar }) {
+export function bolehLihatMetrik({ paket, sudahPakaiTrial, sudahStar, proyekSama }) {
   const paketBersih = PAKET_SAH.has(paket) ? paket : 'gratis';
 
+  // 1. Langganan berbayar: selalu boleh, tidak menyentuh jatah trial.
   if (PAKET_BERBAYAR.has(paketBersih)) {
     return { boleh: true, alasan: 'langganan', pakaiTrial: false };
   }
 
+  // ── 2. JATAH TRIAL SUDAH DIPAKAI ─────────────────────────────────────────
+  //
+  // ── DIKONFIRMASI: PER AKUN, BUKAN PER PROYEK ───────────────────────────
+  // Jatahnya satu untuk SEMUA proyek. Jadi kalau sudah dipakai:
+  //
+  //   · proyek yang SAMA  → tetap boleh dibuka (dia sudah membayar jatahnya
+  //                         untuk proyek ini; me-refresh tidak boleh
+  //                         menghilangkan akses yang sudah dia dapat)
+  //   · proyek LAIN       → TIDAK boleh (jatahnya sudah habis)
+  //
+  // `proyekSama` dikirim pemanggil: dia yang tahu proyek mana yang dipakai
+  // saat trial dibuka.
   if (sudahPakaiTrial) {
-    return { boleh: true, alasan: 'trial-terpakai', pakaiTrial: false };
+    if (proyekSama) {
+      return { boleh: true, alasan: 'trial-terpakai', pakaiTrial: false };
+    }
+    return { boleh: false, alasan: 'trial-habis-proyek-lain', pakaiTrial: false };
   }
 
+  // 3. Belum pakai trial, sudah star: boleh SEKARANG, dan ini memakai jatahnya.
   if (sudahStar) {
     return { boleh: true, alasan: 'trial-baru', pakaiTrial: true };
   }
@@ -213,6 +235,8 @@ export function pesanTolak(alasan, konteks = {}) {
     }
     case 'bukan-langganan':
       return 'Membuat token akses tersedia untuk paket Standar, Profesional, dan Enterprise.';
+    case 'trial-habis-proyek-lain':
+      return 'Jatah melihat data metrik gratis sudah dipakai untuk proyek lain. Berlangganan untuk membuka semua proyek.';
     default:
       return 'Akses ditolak.';
   }

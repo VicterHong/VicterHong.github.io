@@ -652,7 +652,7 @@ function migrate(handle) {
   //
   // ── KENAPA TABEL TERPISAH, BUKAN KOLOM DI users ───────────────────────────
   // Paket langganan punya SIKLUS HIDUP: mulai, diperbarui, berakhir. Kalau
-  // disimpan sebagai kolom `tier` di `users`, riwayatnya hilang — dan kita
+  // disimpan sebagai kolom tier di tabel users, riwayatnya hilang — dan kita
   // tidak bisa menjawab "bulan lalu dia paket apa" saat ada sengketa tagihan.
   //
   // Tabel terpisah juga membuat kuota bisa dihitung PER BULAN tanpa
@@ -710,16 +710,25 @@ function migrate(handle) {
 
     -- Trial melihat data metrik untuk pengguna GRATIS.
     --
-    -- UNIQUE(user_id, project_slug) — sekali per proyek. Orang yang ingin
-    -- menilai tiga proyek bisa melihat ketiganya sekali, lalu memutuskan.
+    -- ── UNIQUE(user_id) — SEKALI SEUMUR AKUN, BUKAN PER PROYEK ──────────────
+    -- Dikonfirmasi pemilik proyek: "per akun, total 1× saja untuk semua
+    -- proyek". Jadi pengguna gratis memilih SATU proyek yang ingin dinilai,
+    -- dan setelah itu jatahnya habis.
+    --
+    -- Konsekuensi yang perlu diketahui: kalau dia salah pilih proyek, dia
+    -- tidak bisa mencoba yang lain. Itu memang aturannya — trial ini untuk
+    -- menilai KUALITAS data, bukan untuk menjelajahi semua proyek.
+    --
+    -- Kolom project_slug tetap dicatat supaya kita tahu proyek mana yang dipakai
+    -- untuk trial — berguna saat menjawab "kenapa dia tidak bisa buka yang
+    -- lain" dan untuk melihat proyek mana yang paling menarik minat.
     CREATE TABLE IF NOT EXISTS trial_metrik (
       id            TEXT PRIMARY KEY,
-      user_id       TEXT NOT NULL,
+      user_id       TEXT NOT NULL UNIQUE,
       project_slug  TEXT NOT NULL,
       dibuka_at     INTEGER NOT NULL,
       ip            TEXT NOT NULL DEFAULT '',
-      user_agent    TEXT NOT NULL DEFAULT '',
-      UNIQUE(user_id, project_slug)
+      user_agent    TEXT NOT NULL DEFAULT ''
     );
 
     CREATE INDEX IF NOT EXISTS idx_trial_user ON trial_metrik(user_id);

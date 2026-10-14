@@ -173,14 +173,46 @@ test('metrik: gratis + star boleh, dan MEMAKAI jatah trial', () => {
   assert.equal(r.pakaiTrial, true, 'pemanggil WAJIB mencatat pemakaiannya');
 });
 
-test('metrik: trial yang sudah dipakai tetap boleh dibuka ulang, tanpa memakai jatah lagi', () => {
-  // Setelah dibuka sekali, halaman itu tetap bisa dilihat — kalau tidak,
-  // pengguna yang me-refresh halaman akan kehilangan akses yang sudah dia
-  // dapat. Yang dibatasi adalah PEMBUKAAN PERTAMA, bukan kunjungan ulang.
-  const r = bolehLihatMetrik({ paket: 'gratis', sudahPakaiTrial: true, sudahStar: true });
-  assert.equal(r.boleh, true);
+// ── ATURAN PER AKUN — DIKONFIRMASI PEMILIK PROYEK ────────────────────────────
+//
+// "Per akun — total 1× saja untuk semua proyek."
+//
+// Jadi setelah trial dipakai di satu proyek, proyek LAIN terkunci. Yang tetap
+// boleh: membuka ulang proyek yang SAMA — kalau tidak, me-refresh halaman akan
+// menghilangkan akses yang sudah dia dapat.
+
+test('metrik: trial sudah dipakai — proyek yang SAMA tetap boleh dibuka', () => {
+  const r = bolehLihatMetrik({
+    paket: 'gratis', sudahPakaiTrial: true, sudahStar: true, proyekSama: true,
+  });
+  assert.equal(r.boleh, true, 'refresh tidak boleh menghilangkan akses');
   assert.equal(r.alasan, 'trial-terpakai');
-  assert.equal(r.pakaiTrial, false, 'jangan catat dua kali');
+  assert.equal(r.pakaiTrial, false, 'jangan catat pemakaian dua kali');
+});
+
+test('metrik: trial sudah dipakai — proyek LAIN terkunci', () => {
+  const r = bolehLihatMetrik({
+    paket: 'gratis', sudahPakaiTrial: true, sudahStar: true, proyekSama: false,
+  });
+  assert.equal(r.boleh, false, 'jatahnya satu untuk semua proyek');
+  assert.equal(r.alasan, 'trial-habis-proyek-lain');
+  assert.equal(r.pakaiTrial, false);
+});
+
+test('metrik: tanpa proyekSama, trial terpakai dianggap proyek lain (aman)', () => {
+  // Kalau pemanggil lupa mengirim `proyekSama`, jawabannya harus MENOLAK —
+  // bukan membuka. Lupa mengirim argumen tidak boleh berubah jadi akses gratis.
+  const r = bolehLihatMetrik({ paket: 'gratis', sudahPakaiTrial: true, sudahStar: true });
+  assert.equal(r.boleh, false, 'argumen yang hilang harus menolak, bukan membuka');
+});
+
+test('metrik: langganan berbayar tidak terpengaruh proyekSama', () => {
+  for (const paket of ['standar', 'profesional', 'enterprise']) {
+    const r = bolehLihatMetrik({
+      paket, sudahPakaiTrial: true, sudahStar: true, proyekSama: false,
+    });
+    assert.equal(r.boleh, true, `${paket} tidak boleh terkunci oleh jatah trial`);
+  }
 });
 
 test('metrik: paket palsu diperlakukan sebagai gratis', () => {
