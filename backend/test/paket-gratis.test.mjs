@@ -71,14 +71,14 @@ test('Gratis punya deskripsi "untuk siapa", bukan "apa isinya"', () => {
 test('Gratis menyatakan "selamanya" (pola GitHub)', () => {
   // GitHub menulis "$0 USD per month forever". Kata "forever" menjawab
   // kekhawatiran utama pada paket gratis: "sampai kapan?"
-  assert.match(gratis.catatan, /selamanya/i, 'catatan harus menyebut gratis selamanya');
+  assert.match(gratis.catatan, /selamanya/i, 'catatan harus menyebut free selamanya');
   assert.match(gratis.catatan, /tanpa kartu kredit/i, 'catatan harus menyebut tanpa kartu kredit');
 });
 
 test('CTA Gratis tidak menyebut harga', () => {
   // "Mulai gratis" — bukan "Berlangganan". Tombol paket gratis tidak boleh
   // berbunyi seperti tindakan berbayar.
-  assert.equal(gratis.cta.teks, 'Mulai gratis');
+  assert.equal(gratis.cta.teks, 'Mulai Free');
 });
 
 test('Gratis memberi JATAH PROYEK, BUKAN token', () => {
@@ -149,7 +149,7 @@ test('fitur NEGATIF diulang di setiap paket yang masih memilikinya', () => {
   const punyaBatasanKode = data.paket
     .filter((p) => p.fitur.some((f) => !f.termasuk && /kode sumber/i.test(f.teks)))
     .map((p) => p.nama);
-  assert.deepEqual(punyaBatasanKode, ['Gratis', 'Standar'],
+  assert.deepEqual(punyaBatasanKode, ['Free', 'Standar'],
     'batasan kode sumber harus muncul di Gratis DAN Standar');
 
   // ── CATATAN: POLA INI PERNAH SALAH DUA KALI ───────────────────────────────
@@ -171,7 +171,7 @@ test('fitur NEGATIF diulang di setiap paket yang masih memilikinya', () => {
   const punyaBatasanPakaiUlang = data.paket
     .filter((p) => p.fitur.some((f) => !f.termasuk && /pakai ulang|makai ulang/i.test(f.teks)))
     .map((p) => p.nama);
-  assert.deepEqual(punyaBatasanPakaiUlang, ['Gratis', 'Standar', 'Profesional'],
+  assert.deepEqual(punyaBatasanPakaiUlang, ['Free', 'Standar', 'Profesional'],
     'batasan pakai ulang harus muncul di Gratis, Standar, DAN Profesional');
 });
 
@@ -199,12 +199,18 @@ test('FAQ menjelaskan beda Gratis dan bonus star, di posisi pertama', () => {
   // to pick." Halaman ini punya DUA jalur gratis — paket Gratis dan bonus
   // star — jadi harus dijelaskan sebelum pengunjung bingung.
   assert.ok(data.faq.length > 0, 'FAQ tidak boleh kosong');
-  assert.match(data.faq[0].tanya, /Gratis/i, 'FAQ pertama harus soal paket Gratis');
+  assert.match(data.faq[0].tanya, /Free/i, 'FAQ pertama harus soal paket Gratis');
   assert.match(data.faq[0].jawab, /star/i, 'jawabannya harus menjelaskan bonus star');
 });
 
-test('FAQ menjawab "gratis selamanya?"', () => {
-  const ada = data.faq.some((f) => /gratis selamanya/i.test(f.tanya));
+test('FAQ menjawab "free selamanya?"', () => {
+  // ── KENAPA POLANYA LONGGAR ────────────────────────────────────────────────
+  // Pertanyaannya memakai kata sifat "gratis" (tidak berbiaya), bukan NAMA
+  // paket "Free". Keduanya berbeda: paketnya bernama Free, tapi sifatnya
+  // "gratis selamanya".
+  //
+  // Jadi tesnya mencari keduanya — yang penting pertanyaannya ADA.
+  const ada = data.faq.some((f) => /(free|gratis) selamanya/i.test(f.tanya));
   assert.ok(ada, 'harus ada FAQ yang menjawab kekhawatiran "sampai kapan gratis"');
 });
 
@@ -214,7 +220,7 @@ test('FAQ uji coba TIDAK lagi menyiratkan tidak ada cara mencoba gratis', () => 
   // menyesatkan.
   const f = data.faq.find((x) => /uji coba gratis/i.test(x.tanya));
   assert.ok(f, 'FAQ uji coba harus tetap ada (masih ditanyakan)');
-  assert.match(f.jawab, /paket Gratis/i, 'jawabannya harus menyebut paket Gratis');
+  assert.match(f.jawab, /paket (Free|Gratis)/i, 'jawabannya harus menyebut paket Free');
 });
 
 test('nomor urut paket unik dan berurutan dari 0', () => {

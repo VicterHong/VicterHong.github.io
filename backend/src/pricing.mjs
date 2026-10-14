@@ -162,21 +162,21 @@ export const PAKET = [
     // rekomendasi akan bertentangan dengan tujuannya sendiri — ia pintu
     // masuk, bukan tujuan.
     id: 'gratis',
-    // ── NAMA: "Gratis", BUKAN NAMA KREATIF ────────────────────────────────────
+    // ── NAMA: "Free", BUKAN "Gratis" ──────────────────────────────────────────
     //
-    // Referensi korporasi, dan mana yang dipakai:
-    //   Linear, Notion, GitHub, Supabase, Cloudflare → "Free"
-    //   Vercel → "Hobby"   ·   Figma → "Starter"
+    // Referensi korporasi: Linear, Notion, GitHub, Supabase, dan Cloudflare
+    // semuanya memakai kata INGGRIS "Free" — bahkan di halaman harga berbahasa
+    // Inggris. Vercel memakai "Hobby", Figma "Starter".
     //
-    // Yang paling banyak dipakai perusahaan besar adalah kata biasa: "Free".
-    // Alasannya bukan kurang kreatif — nama kreatif memaksa pengunjung
-    // MEMPELAJARI artinya. "Gratis" langsung dipahami, dan di halaman harga
-    // kejelasan mengalahkan kepintaran.
+    // ── KENAPA "Free", BUKAN "Gratis" ─────────────────────────────────────────
+    // "Free" adalah istilah yang sudah dikenal di dunia software: pembaca yang
+    // terbiasa melihat halaman harga produk asing langsung tahu artinya tanpa
+    // perlu menerjemahkan. Ia juga lebih pendek, jadi label kolom di tabel
+    // perbandingan tidak perlu ruang ekstra.
     //
-    // Vercel memakai "Hobby" karena paket itu melarang penggunaan komersial —
-    // namanya harus menyampaikan batas itu. Di sini tidak ada batas seperti
-    // itu, jadi tidak ada alasan menyimpang dari kata biasa.
-    nama: 'Gratis',
+    // Nama paket lain (Standar, Profesional, Enterprise) tetap bahasa Indonesia
+    // — "Enterprise" memang sudah dipakai apa adanya.
+    nama: 'Free',
 
     // ── DESKRIPSI: "UNTUK SIAPA", BUKAN "APA ISINYA" ──────────────────────────
     //
@@ -208,10 +208,10 @@ export const PAKET = [
     // Tiga hal yang dijawab sekaligus: tidak ada kartu kredit (tidak akan
     // ditagih diam-diam), tidak ada batas waktu (tidak akan berhenti), dan
     // tidak ada kejutan.
-    catatan: 'Gratis selamanya, tanpa kartu kredit',
+    catatan: 'Free selamanya, tanpa kartu kredit',
     unggulan: false,
     lencana: null,
-    cta: { teks: 'Mulai gratis', gaya: 'seragam' },
+    cta: { teks: 'Mulai Free', gaya: 'seragam' },
     urutan: 0,
     fitur: [
       // ── LIMIT DITULIS EKSPLISIT — POLA SUPABASE ────────────────────────────
@@ -310,7 +310,7 @@ export const PAKET = [
       //
       // Tanpa baris ini, paket Standar terlihat seperti MENGGANTI paket
       // Gratis — padahal ia menambah.
-      { teks: 'Mencakup seluruh fitur paket Gratis', termasuk: true },
+      { teks: 'Mencakup seluruh fitur paket Free', termasuk: true },
       { teks: 'Kode sumber belum termasuk', termasuk: false },
       { teks: 'Hak pakai ulang kode belum termasuk', termasuk: false },
     ],
@@ -532,12 +532,12 @@ export const FAQ = [
   // pilihan ini SEBELUM dia memikirkan Enterprise.
   // ══════════════════════════════════════════════════════════════════════════
   {
-    tanya: 'Apa bedanya paket Gratis dan bonus dari memberi star?',
-    jawab: 'Paket Gratis membuka lima proyek penuh, termasuk data metriknya. Tiga proyek pertama langsung tersedia begitu Anda masuk. Dua sisanya terbuka setelah Anda memberi star ke repositori. Setelah lima proyek terpakai, tidak ada jalan gratis lagi. Di situ paket berbayar masuk: seluruh proyek, selama berlangganan.',
+    tanya: 'Apa bedanya paket Free dan bonus dari memberi star?',
+    jawab: 'Paket Free membuka lima proyek penuh, termasuk data metriknya. Tiga proyek pertama langsung tersedia begitu Anda masuk. Dua sisanya terbuka setelah Anda memberi star ke repositori. Setelah lima proyek terpakai, tidak ada jalan Free lagi. Di situ paket berbayar masuk: seluruh proyek, selama berlangganan.',
   },
   {
-    tanya: 'Apakah paket Gratis benar-benar gratis selamanya?',
-    jawab: 'Ya. Tidak ada batas waktu, tidak ada kartu kredit, dan tidak ada tagihan yang muncul kemudian. Paket Gratis bukan uji coba yang berakhir. Ia paket yang bisa Anda pakai selama Anda mau. Anda hanya berpindah ke paket berbayar kalau memang butuh membuka kode sumber atau membuat token akses.',
+    tanya: 'Apakah paket Free benar-benar gratis selamanya?',
+    jawab: 'Ya. Tidak ada batas waktu, tidak ada kartu kredit, dan tidak ada tagihan yang muncul kemudian. Paket Free bukan uji coba yang berakhir. Ia paket yang bisa Anda pakai selama Anda mau. Anda hanya berpindah ke paket berbayar kalau memang butuh membuka kode sumber atau membuat token akses.',
   },
   {
     tanya: 'Apa bedanya Profesional dan Enterprise?',
@@ -562,7 +562,7 @@ export const FAQ = [
     // Pertanyaannya tetap dipertahankan karena masih ditanyakan — tapi
     // jawabannya diarahkan ke paket Gratis yang sekarang ada.
     tanya: 'Apakah ada uji coba gratis?',
-    jawab: 'Tidak ada uji coba berbatas waktu, karena paket Gratis tidak berakhir. Anda bisa memakainya selama yang Anda mau, tanpa kartu kredit. Paket Gratis membuka lima proyek penuh: tiga langsung setelah masuk, dua lagi setelah memberi star. Untuk paket berbayar, ada garansi 7 hari: kalau ternyata tidak sesuai harapan, hubungi saya dan pembayaran bulan itu dikembalikan.',
+    jawab: 'Tidak ada uji coba berbatas waktu, karena paket Free tidak berakhir. Anda bisa memakainya selama yang Anda mau, tanpa kartu kredit. Paket Free membuka lima proyek penuh: tiga langsung setelah masuk, dua lagi setelah memberi star. Untuk paket berbayar, ada garansi 7 hari: kalau ternyata tidak sesuai harapan, hubungi saya dan pembayaran bulan itu dikembalikan.',
   },
   {
     tanya: 'Kode yang saya lihat, apakah boleh saya pakai di proyek saya?',
@@ -578,7 +578,7 @@ export const FAQ = [
   },
   {
     tanya: 'Bagaimana cara mendapat bonus dari memberi star?',
-    jawab: 'Beri star di repositori GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim tangkapan layar atau bukti apa pun. Untuk paket Gratis, bonusnya melengkapi akses menjadi lima proyek penuh, dan itu berlaku sekali per akun. Paket Standar dan Profesional sudah membuka seluruh proyek, jadi bonusnya 1 token akses tambahan di bulan itu.',
+    jawab: 'Beri star di repositori GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim tangkapan layar atau bukti apa pun. Untuk paket Free, bonusnya melengkapi akses menjadi lima proyek penuh, dan itu berlaku sekali per akun. Paket Standar dan Profesional sudah membuka seluruh proyek, jadi bonusnya 1 token akses tambahan di bulan itu.',
   },
 ];
 
@@ -717,7 +717,7 @@ export function buildPricing() {
       // Hasil per paket DIHITUNG dari KUOTA_DASAR + BONUS_STAR — bukan diketik.
       // Kalau bonusnya diubah jadi 2, keempat baris ini ikut berubah sendiri.
       hasil: [
-        { paket: 'Gratis', dapat: hasilBonusStar('gratis') },
+        { paket: 'Free', dapat: hasilBonusStar('gratis') },
         { paket: 'Standar', dapat: hasilBonusStar('standar') },
         { paket: 'Profesional', dapat: hasilBonusStar('profesional') },
         { paket: 'Enterprise', dapat: hasilBonusStar('enterprise') },

@@ -273,8 +273,8 @@ test('teks bonus star menyebut HASIL AKHIRNYA, bukan mekanismenya', () => {
       if (/star/i.test(f.teks)) teksGratis.push(f.teks);
     }
   }
-  const bonusGratis = data.bonusStar.hasil.find((h) => h.paket === 'Gratis');
-  assert.ok(bonusGratis, 'harus ada baris bonus untuk paket Gratis');
+  const bonusGratis = data.bonusStar.hasil.find((h) => h.paket === 'Free' || h.paket === 'Gratis');
+  assert.ok(bonusGratis, 'harus ada baris bonus untuk paket Free');
   teksGratis.push(bonusGratis.dapat);
 
   // ── MINIMAL SATU, BUKAN DUA ───────────────────────────────────────────────

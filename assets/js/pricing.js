@@ -194,7 +194,18 @@ function tombolPaket(paket, periode, hrefKontak, paketAktif) {
     //
     // Artinya sama jelasnya, dan justru lebih tegas: "aktif" menyatakan
     // keadaan, "sedang digunakan" menyatakan proses.
-    b.append(titik, 'Paket aktif');
+    // ── LABEL: "Sedang digunakan" ─────────────────────────────────────────────
+    // Versi sebelumnya "Paket aktif". Diganti karena "Sedang digunakan"
+    // menyatakan KEADAAN YANG BERLANGSUNG, bukan sekadar status.
+    //
+    // ── KENAPA TIDAK "Paket aktif" LAGI ───────────────────────────────────────
+    // "Aktif" bisa berarti "tersedia" atau "menyala" — pembaca harus menebak.
+    // "Sedang digunakan" tidak punya arti lain: paket ini yang sedang Anda
+    // pakai sekarang.
+    //
+    // Panjangnya 128px, dan ruang isi tombol 140px — masih muat satu baris.
+    // Dijaga `white-space: nowrap` di CSS sebagai pengaman.
+    b.append(titik, 'Sedang digunakan');
 
     const wadah = el('span', 'tombol-aktif-wadah');
     wadah.append(b, alasan);
@@ -220,7 +231,7 @@ function tombolPaket(paket, periode, hrefKontak, paketAktif) {
     const tujuan = `/sign-up?lanjut=${encodeURIComponent('/pricing')}`;
     const a = el('a', `tombol tombol--${paket.cta?.gaya ?? 'seragam'}`);
     a.href = tujuan;
-    a.append(paket.cta?.teks ?? 'Mulai gratis', ' ', panahKeluar());
+    a.append(paket.cta?.teks ?? 'Mulai Free', ' ', panahKeluar());
     return a;
   }
 
@@ -672,16 +683,21 @@ function formatHarga(paket, periode) {
   // dan itu menimbulkan pertanyaan yang tidak perlu: "setelah sebulan,
   // bayar berapa?"
   //
-  // "Gratis" tanpa satuan menjawab pertanyaan itu sebelum ditanyakan:
-  // tidak ada periode, tidak ada tagihan.
+  // "Free" tanpa satuan menjawab pertanyaan itu sebelum ditanyakan: tidak ada
+  // periode, tidak ada tagihan.
+  //
+  // ── KENAPA "Free", BUKAN "Gratis" ─────────────────────────────────────────
+  // Nama paketnya "Free", jadi harga besarnya harus sama — kalau tidak, satu
+  // kartu menampilkan dua kata berbeda untuk hal yang sama, dan pembaca
+  // bertanya-tanya apakah keduanya hal yang berbeda.
   //
   // ── KENAPA TANPA CORETAN DAN TANPA DISKON ─────────────────────────────────
   // Tidak ada harga normal untuk dicoret, dan "Hemat 0%" bukan informasi.
-  // Yang ditampilkan justru catatannya: "Tanpa kartu kredit, tanpa batas
-  // waktu" — itu yang menjawab keraguan pada paket gratis.
+  // Yang ditampilkan justru catatannya: "Free selamanya, tanpa kartu kredit" —
+  // itu yang menjawab keraguan pada paket gratis.
   if (angka === 0) {
     return {
-      angka: 'Gratis',
+      angka: 'Free',
       teks: true,      // tidak pakai format angka — sama seperti Enterprise
       satuan: null,
       coret: null,

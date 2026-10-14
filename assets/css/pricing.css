@@ -1791,26 +1791,73 @@
 }
 
 .tombol--aktif {
-  /* Mati secara fungsi, tapi tidak terlihat "rusak" */
-  cursor: default;
-  opacity: 1;
+  /* ══════════════════════════════════════════════════════════════════════════
+     EFEK TOMBOL DINONAKTIFKAN
+     ══════════════════════════════════════════════════════════════════════════
 
-  background: rgba(255, 255, 255, 0.04);
+     ── POLA KORPORASI YANG DIPAKAI ───────────────────────────────────────────
+     Referensi yang saya temukan, dan apa yang mereka lakukan:
+
+       · Sitka Design System — "Current plan indicator: disable the CTA on the
+         user's active tier. Never let them re-purchase what they already have."
+       · Autumn (pricing table) — label tombol jadi "Current Plan", tombolnya
+         disabled.
+       · Gaia UI — "Current plan shows special badge and disabled state",
+         dan "Free plans always use dark gray button".
+       · PR di open-design — "the current plan and every lower personal tier
+         are gray and cannot be clicked".
+
+     Tiga hal yang disepakati semuanya:
+       1. Labelnya menyatakan KEADAAN ("Current plan"), bukan aksi
+       2. Tombolnya TIDAK BISA ditekan
+       3. Warnanya ABU-ABU, bukan warna aksen
+
+     ── KENAPA ABU-ABU, BUKAN WARNA AKSEN ─────────────────────────────────────
+     Aksen di halaman ini berarti "ini yang harus ditekan". Tombol yang tidak
+     bisa ditekan tidak boleh terlihat paling menarik — kalau ia memakai aksen,
+     pengunjung akan mencobanya lebih dulu, gagal, lalu bingung.
+
+     ── KENAPA TIDAK PAKAI `opacity` ──────────────────────────────────────────
+     Godaannya: set `opacity: 0.55` seperti Tailwind (`disabled:opacity-50`).
+     Itu yang saya coba pertama — dan DIUKUR, hasilnya gagal:
+
+       opacity 0.55 → kontras 2,92:1  ✗ (butuh 4,5:1 untuk WCAG AA)
+       opacity 0.80 → kontras 4,50:1  ✓ tapi terlalu terang, tidak terlihat mati
+
+     Masalahnya: `opacity` meredupkan SELURUH elemen sekaligus — teks dan latar
+     bersama-sama. Teks yang seharusnya tetap terbaca ikut pudar.
+
+     ── YANG BENAR: WARNA LANGSUNG, BUKAN OPACITY ─────────────────────────────
+     Yang membuat tombol terbaca "dinonaktifkan" bukan transparansinya, tapi
+     KONTRAS YANG RENDAH antara teks dan latar. Itu bisa dicapai dengan memilih
+     warna teks yang lebih redup — tanpa mengorbankan keterbacaan.
+
+       #a1a1aa (--pr-text-dim) di atas latar tombol → kontras 6,03:1 ✓
+
+     Hasilnya: tombolnya terbaca mati, DAN teksnya tetap bisa dibaca. Dua-duanya
+     tercapai, tanpa trade-off.
+
+     ── KENAPA WARNA TEKS REDUP, BUKAN PUTIH DIKURANGI OPACITY ────────────────
+     Tombol yang bisa ditekan memakai teks putih (#f4f4f6). Menurunkannya jadi
+     abu-abu (#a1a1aa) adalah cara paling langsung menyatakan "ini tidak aktif"
+     — sama seperti teks redup di seluruh situs ini yang menandai informasi
+     sekunder. */
+  cursor: not-allowed;
+
+  background: rgba(255, 255, 255, 0.06);
   border-color: var(--pr-line);
-  /* ── WARNA TEKS: LEBIH TERANG DARI TEKS REDUP BIASA ────────────────────────
-     Diukur: #a1a1aa di atas latar efektif tombol (#1f1f23) menghasilkan
-     6,41:1 — lolos WCAG AA (4,5:1) tapi belum AAA (7:1).
-
-     #c4c4cc menaikkannya ke sekitar 8,9:1 — lolos AAA. Tetap jelas lebih
-     redup dari tombol aktif (yang putih #f4f4f6), jadi hierarkinya tidak
-     rusak: yang bisa ditekan tetap paling menonjol. */
-  color: #c4c4cc;
+  color: var(--pr-text-dim);
 
   /* ── TIDAK ADA EFEK HOVER ──────────────────────────────────────────────────
      Tombol yang tidak bisa ditekan tidak boleh bereaksi saat kursor lewat.
      Reaksi hover adalah janji bahwa sesuatu akan terjadi — dan di sini tidak
-     ada yang terjadi. */
-  pointer-events: none;
+     ada yang terjadi.
+
+     `pointer-events: none` TIDAK dipakai di sini karena kursor `not-allowed`
+     justru sinyal yang berguna: ia memberi tahu SEBELUM diklik bahwa tombolnya
+     tidak bisa ditekan. Dengan `pointer-events: none`, kursor tidak berubah
+     dan pengunjung baru tahu setelah mencoba. */
+  pointer-events: auto;
 
   /* ── display: flex — SAMA PERSIS DENGAN TOMBOL PAKET LAIN ──────────────────
      ── BUG YANG DIPERBAIKI (DUA KALI) ───────────────────────────────────────
@@ -1876,7 +1923,17 @@
   height: 6px;
   margin-right: 0.5rem;
   border-radius: 50%;
+  /* ── TITIK IKUT MEREDUP, TAPI TIDAK HILANG ─────────────────────────────────
+     Titik emas penuh di sebelah teks abu-abu justru menarik perhatian ke tombol
+     yang tidak bisa ditekan — kebalikan dari yang diinginkan.
+
+     Tapi menghilangkannya juga salah: titik itu yang membedakan tombol ini dari
+     tombol rusak. Jadi warnanya diturunkan, bukan dihapus.
+
+     `opacity` dipakai DI SINI saja (bukan di seluruh tombol) — titiknya elemen
+     dekoratif, jadi tidak ada teks yang ikut terpudar. */
   background: var(--pr-accent);
+  opacity: 0.5;
 
   /* ── KENAPA BERDENYUT ──────────────────────────────────────────────────────
      Titik diam di sebelah tulisan abu-abu terbaca seperti dekorasi. Denyut
