@@ -1860,18 +1860,17 @@
   pointer-events: auto;
 
   /* ── display: flex — SAMA PERSIS DENGAN TOMBOL PAKET LAIN ──────────────────
-     ── BUG YANG DIPERBAIKI (DUA KALI) ───────────────────────────────────────
-     Versi pertama: titik ::before dengan display: inline-block. Titik 6px itu
-     menambah tinggi LINE BOX, dan tombolnya jadi 62px sementara tombol lain
-     44px.
+     Tinggi tombol ini pernah salah tiga kali, dan ketiganya berakar pada
+     titik penanda yang sekarang sudah dihapus:
 
-     Versi kedua: display: inline-flex. MASIH 62px — karena inline-flex ikut
-     baseline teks induknya (span wadah dengan font-size 16px dan line-height
-     26,4px), dan tinggi baris itu ikut terhitung.
+       1. Titik ::before inline-block → menambah tinggi LINE BOX, jadi 62px
+       2. display: inline-flex      → masih 62px, ikut baseline teks wadah
+       3. display: flex + titik anak → masih 62px, dua flex item berbagai lebar
+                                       dan teksnya terdesak membungkus
 
-     Yang benar: display: flex, sama persis dengan tombol paket lain. Dengan
-     begitu tingginya tidak mungkin berbeda, karena aturan tata letaknya
-     identik. Titiknya jadi elemen anak, bukan ::before. */
+     Setelah titiknya dihapus, tombolnya hanya berisi satu flex item (teks) —
+     sama seperti tombol paket lain. Tingginya sekarang tidak mungkin berbeda,
+     karena aturan tata letaknya identik. */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1898,62 +1897,7 @@
   display: none;
 }
 
-/* ── TITIK PENANDA KEADAAN ───────────────────────────────────────────────────
-   Memberi tanda bahwa ini bukan tombol yang gagal dimuat, melainkan keadaan
-   yang disengaja. Tanpa penanda, tombol abu-abu terbaca seperti error.
-
-   Elemen anak, bukan ::before — lihat catatan di .tombol--aktif. */
-/* ── TITIK SEBAGAI FLEX ITEM BIASA ───────────────────────────────────────────
-   ── RANGKAIAN BUG YANG DIPERBAIKI (EMPAT KALI) ──────────────────────────────
-   Versi 1: ::before inline-block → tombol 62px, teks membungkus 3 baris.
-   Versi 2: display: inline-flex → masih 62px (ikut baseline wadah).
-   Versi 3: display: flex + titik anak → masih 62px, teks tetap membungkus.
-   Versi 4: titik position: absolute + padding dikurangi → teks membungkus.
-
-   Akar masalahnya bukan CSS-nya, tapi PANJANG TEKSNYA: "Sedang digunakan"
-   butuh 128px sementara lebar isi tombol hanya 140px. Sisa 12px tidak cukup
-   untuk titik plus jaraknya, jadi titiknya harus keluar dari alur — dan
-   itulah yang membuat tampilannya tidak seimbang.
-
-   Setelah labelnya dipendekkan jadi "Paket aktif" (sekitar 80px), titiknya
-   bisa kembali jadi flex item biasa, dan keduanya di tengah bersama. */
-.tombol-aktif-titik {
-  flex-shrink: 0;
-  width: 6px;
-  height: 6px;
-  margin-right: 0.5rem;
-  border-radius: 50%;
-  /* ── TITIK IKUT MEREDUP, TAPI TIDAK HILANG ─────────────────────────────────
-     Titik emas penuh di sebelah teks abu-abu justru menarik perhatian ke tombol
-     yang tidak bisa ditekan — kebalikan dari yang diinginkan.
-
-     Tapi menghilangkannya juga salah: titik itu yang membedakan tombol ini dari
-     tombol rusak. Jadi warnanya diturunkan, bukan dihapus.
-
-     `opacity` dipakai DI SINI saja (bukan di seluruh tombol) — titiknya elemen
-     dekoratif, jadi tidak ada teks yang ikut terpudar. */
-  background: var(--pr-accent);
-  opacity: 0.5;
-
-  /* ── KENAPA BERDENYUT ──────────────────────────────────────────────────────
-     Titik diam di sebelah tulisan abu-abu terbaca seperti dekorasi. Denyut
-     lambat membuatnya terbaca sebagai KEADAAN yang sedang berlangsung — sama
-     seperti indikator "sedang aktif" di panel admin.
-
-     Dihormati prefers-reduced-motion: pengguna yang mematikannya melihat
-     titik yang diam, dan artinya tetap tersampaikan lewat tulisan. */
-  animation: denyut-aktif 2.4s ease-in-out infinite;
-}
-
-@keyframes denyut-aktif {
-  0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.45; transform: scale(0.85); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tombol-aktif-titik {
-    animation: none;
-  }
 }
 
 /* ── DI LAYAR SANGAT SEMPIT ──────────────────────────────────────────────────

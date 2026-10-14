@@ -168,44 +168,30 @@ function tombolPaket(paket, periode, hrefKontak, paketAktif) {
     alasan.id = `alasan-paket-${paket.id}`;
     b.setAttribute('aria-describedby', alasan.id);
 
-    // ── TITIK PENANDA SEBAGAI ELEMEN ANAK, BUKAN ::before ────────────────────
-    // ── BUG YANG DIPERBAIKI ──────────────────────────────────────────────────
-    // Versi pertama memakai ::before dengan display: inline-block. Titik 6px
-    // itu menambah tinggi LINE BOX tombol, dan karena tombol normal memakai
-    // `display: flex` sedangkan versi itu `inline-flex`, keduanya tidak
-    // sejajar: tombol mati jadi 62px sementara tombol lain 44px. Terukur.
+    // ── TANPA TITIK PENANDA ──────────────────────────────────────────────────
     //
-    // Sebagai elemen anak, titiknya jadi flex item — ikut di tengah secara
-    // vertikal tanpa menambah tinggi apa pun. display: flex-nya sama persis
-    // dengan tombol paket lain, jadi tingginya pasti sama.
-    const titik = el('span', 'tombol-aktif-titik');
-    titik.setAttribute('aria-hidden', 'true');
-
-    // ── LABEL DIPENDEKKAN: "Paket aktif", BUKAN "Sedang digunakan" ────────────
-    // ── KENAPA ────────────────────────────────────────────────────────────────
-    // "Sedang digunakan" butuh 128px. Lebar isi tombol di desktop hanya 140px
-    // (lebar kartu 188px dikurangi padding 24px kiri-kanan). Sisa 12px itu
-    // tidak cukup untuk titik penanda (6px) plus jaraknya (8px) — jadi
-    // titiknya harus diposisikan absolut, dan hasilnya terlihat tidak
-    // seimbang: teks di tengah, titik menggantung di kiri.
+    // ── KENAPA TITIKNYA DIHAPUS ──────────────────────────────────────────────
+    // Versi sebelumnya menambahkan titik emas kecil di kiri label. Alasannya
+    // masuk akal waktu itu: titik membedakan tombol "dinonaktifkan" dari tombol
+    // yang gagal dimuat.
     //
-    // "Paket aktif" butuh sekitar 80px. Dengan titik sebagai flex item biasa,
-    // keduanya bisa di tengah BERSAMA — tidak ada yang menggantung.
+    // Tapi setelah tombolnya berwarna abu-abu dengan label "Sedang digunakan",
+    // titik itu tidak lagi menambah apa pun — labelnya sudah menyatakan
+    // keadaannya dengan jelas. Yang tersisa hanya satu elemen berwarna di
+    // sebelah teks abu-abu, dan itu menarik perhatian ke tombol yang justru
+    // tidak bisa ditekan.
     //
-    // Artinya sama jelasnya, dan justru lebih tegas: "aktif" menyatakan
-    // keadaan, "sedang digunakan" menyatakan proses.
-    // ── LABEL: "Sedang digunakan" ─────────────────────────────────────────────
-    // Versi sebelumnya "Paket aktif". Diganti karena "Sedang digunakan"
-    // menyatakan KEADAAN YANG BERLANGSUNG, bukan sekadar status.
+    // ── EFEK SAMPING YANG MENGUNTUNGKAN ──────────────────────────────────────
+    // Menghapus titiknya juga menyederhanakan tata letak: tombolnya sekarang
+    // hanya berisi satu flex item (teks), sama seperti tombol paket lain. Itu
+    // menghilangkan seluruh kelas bug yang pernah terjadi di sini:
     //
-    // ── KENAPA TIDAK "Paket aktif" LAGI ───────────────────────────────────────
-    // "Aktif" bisa berarti "tersedia" atau "menyala" — pembaca harus menebak.
-    // "Sedang digunakan" tidak punya arti lain: paket ini yang sedang Anda
-    // pakai sekarang.
+    //   · titik yang menambah tinggi baris (tombol jadi 62px, bukan 44px)
+    //   · teks yang terdesak membungkus jadi tiga baris
+    //   · titik yang harus diposisikan absolut karena ruangnya tidak cukup
     //
-    // Panjangnya 128px, dan ruang isi tombol 140px — masih muat satu baris.
-    // Dijaga `white-space: nowrap` di CSS sebagai pengaman.
-    b.append(titik, 'Sedang digunakan');
+    // Satu elemen lebih sedikit, satu kelas bug hilang seluruhnya.
+    b.append('Sedang digunakan');
 
     const wadah = el('span', 'tombol-aktif-wadah');
     wadah.append(b, alasan);
