@@ -187,27 +187,47 @@ export function initHowItWorks(akar = document) {
 
     masuk.forEach((e, i) => {
       // Jeda bertingkat: langkah yang masuk bersamaan tetap muncul berurutan,
-      // 90ms satu sama lain. Langkah yang masuk sendiriian (scroll lambat)
+      // 110ms satu sama lain. Langkah yang masuk sendiriian (scroll lambat)
       // tidak menunggu — `i` = 0 saat hanya satu yang masuk.
-      e.target.style.setProperty('--hiw-tunda', `${i * 90}ms`);
+      //
+      // 110ms dipilih dari anjuran skill (0,03-0,1 detik per item untuk daftar
+      // pendek): cukup untuk melihat urutannya, tidak sampai terasa lambat.
+      e.target.style.setProperty('--hiw-tunda', `${i * 110}ms`);
       tandaiMuncul(e.target);
       pengamat.unobserve(e.target);
     });
 
-    // Sumbu menyusul setelah transisi kartu selesai, supaya garisnya terlihat
+    // Sumbu menyusul setelah transisi kartu berjalan, supaya garisnya terlihat
     // "menyambung" ke marker yang baru muncul — bukan mendahuluinya.
+    //
+    // 260ms ≈ sepertiga durasi reveal (0,7 detik). Kalau menunggu transisi
+    // selesai penuh, sumbu terasa lambat; kalau langsung, ia mendahului
+    // kartunya. Sepertiga durasi membuat keduanya terbaca sebagai satu gerakan.
     clearTimeout(timerSumbu);
-    timerSumbu = setTimeout(() => naikkanSumbu(timeline, sumbuIsi, kini), 220);
+    timerSumbu = setTimeout(() => naikkanSumbu(timeline, sumbuIsi, kini), 260);
   }, {
     // ── KENAPA rootMargin NEGATIF, BUKAN POSITIF ─────────────────────────────
-    // `0px 0px -18%` MEMPERSEMPIT area pemicu, sehingga langkah harus benar-
-    // benar masuk ~18% ke dalam layar sebelum muncul. Dengan rootMargin
-    // positif, langkah yang masih di bawah layar sudah dianggap masuk — dan
-    // beberapa terpicu sekaligus sehingga urutannya hilang.
+    // Nilai negatif MEMPERSEMPIT area pemicu, sehingga langkah harus masuk
+    // sedikit ke dalam layar sebelum muncul. Dengan rootMargin positif,
+    // langkah yang masih di bawah layar sudah dianggap masuk — dan beberapa
+    // terpicu sekaligus sehingga urutannya hilang.
     //
     // Batas atas tetap 0 supaya langkah yang sudah lewat tidak pernah "belum
     // muncul" — langkah pertama harus terlihat tanpa menunggu scroll.
-    rootMargin: '0px 0px -18% 0px',
+    //
+    // ── BUG YANG DIPERBAIKI: FADE TIDAK TERLIHAT ────────────────────────────
+    // Versi sebelumnya memakai -18%. Kartu baru mulai memudar setelah 18%
+    // masuk ke dalam layar — sudah cukup jauh dari tepi bawah. Ditambah durasi
+    // 0,42 detik yang pendek, animasinya selesai SEBELUM mata sempat sampai
+    // ke kartu itu saat menggulir. Pemilik proyek melaporkan "ga fade
+    // animation sama sekali" — dan itu benar: animasinya ada, tapi habis
+    // sebelum terlihat.
+    //
+    // Sekarang -8%: kartu mulai memudar begitu tepinya masuk ~8% ke dalam
+    // layar (setara `start: 'top 92%'` di ScrollTrigger). Dipadukan dengan
+    // durasi 0,7 detik dan angkat 28px, geraknya cukup lama dan cukup jauh
+    // untuk benar-benar terlihat.
+    rootMargin: '0px 0px -8% 0px',
     threshold: 0.01,
   });
 
