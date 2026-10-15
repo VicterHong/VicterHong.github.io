@@ -168,7 +168,6 @@ export const projects = [
     metrics: [
       { label: 'tes otomatis', value: '1236' },
       { label: 'berkas uji', value: '144' },
-      { label: 'RAM saat jalan', value: '80 MB' },
     ],
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
