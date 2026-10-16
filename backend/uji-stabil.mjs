@@ -40,13 +40,25 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync, readdirSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// Readiness check memakai HTTPS self-signed; Node fetch menolak sertifikat uji
+// kecuali ini disetel. Hanya berlaku untuk proses skrip uji ini.
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const ITERASI = Number(process.argv[2] ?? 5);
 const PORT = 48000 + Math.floor(Math.random() * 2000);
 const BE_PORT = PORT + 1;
 const BASE = `https://127.0.0.1:${PORT}`;
 const DIR = mkdtempSync(join(tmpdir(), 'stab-'));
 
-// ── Bersihkan server uji lama ────────────────────────────────────────────────
+// ── Bersihkan server uji lama — HANYA proses uji, produksi TIDAK disentuh ────
+//
+// KEJADIAN NYATA (16 Okt): versi lama membunuh SEMUA `node src/server.mjs`,
+// termasuk layanan produksi portfolio-token.service — systemd harus me-restart
+// (NRestarts=1). Dua penjaga sekarang:
+//   1. LEWATI proses apa pun yang berjalan di bawah systemd (cgroup *.service):
+//      produksi selalu di sana, server uji tidak pernah.
+//   2. Hanya bunuh proses yang jelas milik uji: server uji selalu memakai DB di
+//      /tmp/stab-*/u.db, dan server uji HTTPS selalu memakai SITEKEY_UJI.
 let dibersihkan = 0;
 for (const e of readdirSync('/proc')) {
   if (!/^\d+$/.test(e)) continue;
@@ -54,10 +66,18 @@ for (const e of readdirSync('/proc')) {
   if (pid === process.pid || pid === process.ppid) continue;
   try {
     const c = readFileSync(`/proc/${e}/cmdline`, 'utf8').replace(/\0/g, ' ').trim();
-    if (/^(\S*\/)?node\s+src\/server\.mjs\s*$/.test(c) || /^(\S*\/)?node\s+serve-uji/.test(c)) {
-      process.kill(pid, 'SIGKILL');
-      dibersihkan++;
-    }
+    const kandidat = /^(\S*\/)?node\s+src\/server\.mjs\s*$/.test(c) || /^(\S*\/)?node\s+serve-uji/.test(c);
+    if (!kandidat) continue;
+    // Penjaga 1: proses systemd = produksi — jangan pernah disentuh.
+    let cgroup = '';
+    try { cgroup = readFileSync(`/proc/${e}/cgroup`, 'utf8'); } catch {}
+    if (/\.service/.test(cgroup)) continue;
+    // Penjaga 2: hanya proses uji (DB di /tmp atau sitekey uji).
+    let envRaw = '';
+    try { envRaw = readFileSync(`/proc/${e}/environ`, 'utf8'); } catch {}
+    if (!/DB_PATH=\/tmp\//.test(envRaw) && !/SITEKEY_UJI=/.test(envRaw)) continue;
+    process.kill(pid, 'SIGKILL');
+    dibersihkan++;
   } catch {}
 }
 await new Promise((r) => setTimeout(r, 600));
@@ -107,6 +127,12 @@ const fe = spawn('node', ['serve-uji-https.mjs', String(PORT), '/home/ubuntu/por
     // domain produksi — token tidak akan pernah sah di 127.0.0.1.
     env: { ...process.env, SITEKEY_UJI: '1x00000000000000000000AA' },
   });
+
+// Jangan tinggalkan server uji menggantung saat skrip berhenti (termasuk exit(1)).
+process.on('exit', () => {
+  try { be.kill('SIGKILL'); } catch {}
+  try { fe.kill('SIGKILL'); } catch {}
+});
 
 // ── Tunggu siap ──────────────────────────────────────────────────────────────
 let siap = false;

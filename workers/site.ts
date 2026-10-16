@@ -168,7 +168,44 @@ export interface Env {
 }
 
 const PAGES_URL = "https://portfolio-victer.pages.dev";
-const BACKEND_URL = "https://translation-davidson-searches-prescription.trycloudflare.com";
+
+// ── ALAMAT BACKEND: JANGAN DI-HARDCODE ────────────────────────────────────────
+//
+// KEJADIAN NYATA (16 Okt 2026): alamat di bawah dulu hardcoded ke quick tunnel
+// yang sudah MATI. Semua /api/* (gate Turnstile, token, media) menjawab 530
+// "Origin DNS error" — pengunjung TIDAK BISA melewati gate karena verifikasi
+// Turnstile selalu gagal. Cloudflare Worker tetap hidup, jadi tidak ada alarm.
+//
+// Quick tunnel berganti URL setiap restart. Sumber kebenarannya SATU: berkas
+// backend-url.json di situs (diperbarui otomatis oleh portfolio-tunnel.service).
+// Env var BACKEND_URL dipakai lebih dulu supaya operator bisa menunjuk backend
+// lain tanpa deploy (mis. staging).
+const URL_FILE_RAW = "https://raw.githubusercontent.com/VicterHong/VicterHong.github.io/main/backend-url.json";
+
+function bacaApiBase(d) {
+  return d && typeof d.api_base === "string" ? d.api_base.replace(/\/$/, "") : null;
+}
+
+function resolveBackendUrl(request, env) {
+  // 1. Override operator (env var) — menang mutlak.
+  const fromEnv = env && typeof env.BACKEND_URL === "string" ? env.BACKEND_URL.trim() : "";
+  if (fromEnv) return Promise.resolve(fromEnv.replace(/\/$/, ""));
+  // 2. GitHub raw — SELALU commit terbaru dari tunnel.sh, tidak menunggu deploy.
+  //    Inilah sumber yang membuat URL quick tunnel yang berganti-ganti tetap terpakai.
+  return fetch(URL_FILE_RAW, { cf: { cacheTtl: 60 } })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => bacaApiBase(d))
+    .catch(() => null)
+    // 3. Cadangan terakhir: berkas di origin situs (bisa lebih tua dari repo).
+    .then((base) => {
+      if (base) return base;
+      const url = new URL("/backend-url.json", new URL(request.url).origin);
+      return fetch(url, { cf: { cacheTtl: 60 } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => bacaApiBase(d))
+        .catch(() => null);
+    });
+}
 
 const SECURITY_HEADERS = {
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
@@ -388,7 +425,17 @@ export default {
       //
       // 'manual' membuat 302 diteruskan APA ADANYA ke browser — browser
       // yang mengikutinya, dan itu memang yang diinginkan.
-      return fetch(`${BACKEND_URL}${pathname}${url.search}`, {
+      const backend = await resolveBackendUrl(request, env);
+      if (!backend) {
+        // Alamat backend tidak bisa dibaca. Lebih baik 502 yang JELAS daripada
+        // fetch ke alamat basi yang menghasilkan 530 "Origin DNS error" tanpa
+        // petunjuk apa pun bagi operator.
+        return new Response(
+          JSON.stringify({ ok: false, error: "backend_tidak_terbaca", pesan: "Alamat layanan token tidak tersedia." }),
+          { status: 502, headers: { "Content-Type": "application/json", ...SECURITY_HEADERS } },
+        );
+      }
+      return fetch(`${backend}${pathname}${url.search}`, {
         method: request.method,
         headers,
         body: request.body,
