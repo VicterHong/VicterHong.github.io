@@ -638,6 +638,11 @@ function migrate(handle) {
   }
 
   const addColumn = (table, column, definition) => {
+    // Defense-in-depth: `table` dan `column` harus identifier sederhana.
+    // Pemanggil selalu string literal dari `migrate()`, tapi validasi ini
+    // mencegah injection kalau suatu saat dipanggil dengan input dinamis.
+    if (!/^[a-z_]+$/.test(table)) throw new Error(`[BUG] nama tabel tidak valid: ${table}`);
+    if (!/^[a-z_]+$/.test(column)) throw new Error(`[BUG] nama kolom tidak valid: ${column}`);
     try {
       const cols = handle.prepare(`PRAGMA table_info(${table})`).all();
       if (cols.some((c) => c.name === column)) return false;

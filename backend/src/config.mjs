@@ -424,9 +424,12 @@ export function validateConfig() {
   // validateWarnings() dan pemeriksaan EMAIL_FROM di bawah.
   warnings.length = 0;
   if (!config.secret || config.secret.length < 24) {
+    // SERVICE_SECRET adalah pondasi semua tanda tangan (session, gate, HMAC).
+    // Tanpa ini, server TIDAK BOLEH jalan — bukan sekadar peringatan.
     problems.push('SERVICE_SECRET wajib diisi (minimal 24 karakter) di ' + ENV_FILE);
   }
   if (!config.adminKey || config.adminKey.length < 24) {
+    // ADMIN_KEY melindungi semua endpoint admin. Sama kritisnya.
     problems.push('ADMIN_KEY wajib diisi (minimal 24 karakter) di ' + ENV_FILE);
   }
 

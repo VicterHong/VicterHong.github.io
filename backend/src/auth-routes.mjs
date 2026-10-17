@@ -2403,8 +2403,15 @@ function ruteSso() {
         const nilai = [];
         for (const k of KUNCI) {
           if (!(k in body)) continue;
+          const col = kolom[k];
+          // Defense-in-depth: pastikan nama kolom benar-benar ada di whitelist.
+          // `kolom` adalah peta internal, bukan input user — tapi validasi ini
+          // mencegah injection kalau peta diperluas di masa depan tanpa hati-hati.
+          if (!col || !/^[a-z_]+$/.test(col)) {
+            throw new Error(`[BUG] kolom tidak valid: ${col}`);
+          }
           // `!!` menormalkan apa pun jadi boolean, lalu disimpan sebagai 0/1.
-          set.push(`${kolom[k]} = ?`);
+          set.push(`${col} = ?`);
           nilai.push(body[k] ? 1 : 0);
         }
 
