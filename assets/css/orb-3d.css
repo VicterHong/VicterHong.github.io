@@ -1,0 +1,242 @@
+/**
+ * 3D Interactive Canvas & Neural Orb Styles
+ * Aksen emas (#f5c542) selaras dengan tema VIVASTIC.
+ * Nol dependensi eksternal, performa 60 FPS.
+ */
+
+/* ── 3D Viewport di dalam Terminal Hero ────────────────────────────────────── */
+.terminal-orb-wrap {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  background: radial-gradient(circle at 50% 50%, rgba(245, 197, 66, 0.06), transparent 70%);
+  border-bottom: 1px solid var(--line-soft);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.terminal-orb-wrap:active {
+  cursor: grabbing;
+}
+
+.hero-orb-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.orb-telemetry {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.55rem;
+  background: rgba(13, 13, 16, 0.75);
+  border: 1px solid rgba(245, 197, 66, 0.2);
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+
+.orb-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f5c542;
+  box-shadow: 0 0 8px #f5c542;
+  animation: orbDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes orbDotPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+.orb-hint {
+  position: absolute;
+  bottom: 0.6rem;
+  left: 0.8rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ── Bagian Laboratorium 3D Interaktif (Mobile & Desktop) ───────────────────── */
+.lab3d-card {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(13, 13, 16, 0.72);
+  backdrop-filter: blur(16px);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  overflow: hidden;
+  margin-top: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.lab3d-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+  border-bottom: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.lab3d-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lab3d-title {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-1);
+  color: var(--text);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.lab3d-badge {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(245, 197, 66, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+}
+
+.lab3d-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lab3d-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--text-faint);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lab3d-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.lab3d-btn.is-active {
+  background: rgba(245, 197, 66, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.lab3d-canvas-stage {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  background: radial-gradient(circle at 50% 50%, rgba(245, 197, 66, 0.05), transparent 65%);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.lab3d-canvas-stage:active {
+  cursor: grabbing;
+}
+
+.lab3d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.lab3d-hud-overlay {
+  position: absolute;
+  bottom: 0.9rem;
+  left: 1.2rem;
+  right: 1.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.lab3d-hud-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lab3d-hud-stat strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* Tiga kartu pilar creative engineering di bawah canvas */
+.lab3d-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line-soft);
+  border-top: 1px solid var(--line-soft);
+}
+
+@media (max-width: 768px) {
+  .lab3d-pillars {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lab3d-pillar {
+  padding: 1.2rem 1.4rem;
+  background: rgba(13, 13, 16, 0.6);
+}
+
+.lab3d-pillar-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
+}
+
+.lab3d-pillar-title {
+  font-size: var(--fs-1);
+  color: var(--text);
+  font-weight: 700;
+  margin-bottom: 0.45rem;
+}
+
+.lab3d-pillar-desc {
+  font-size: var(--fs-1);
+  color: var(--text-faint);
+  line-height: 1.55;
+  margin: 0;
+}

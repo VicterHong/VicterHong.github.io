@@ -38,6 +38,7 @@ export const about = {
   skills: [
     { group: 'Bahasa', items: ['Python', 'JavaScript', 'TypeScript', 'SQL'] },
     { group: 'Backend', items: ['FastAPI', 'Node.js', 'PostgreSQL', 'SQLite'] },
+    { group: 'Creative 3D', items: ['Three.js', 'GSAP', 'Lenis Scroll', 'Strix Pentest'] },
     { group: 'Infrastruktur', items: ['Docker', 'systemd', 'Linux', 'Cloudflare'] },
     { group: 'Integrasi', items: ['Telegram', 'Discord', 'WhatsApp', 'n8n'] },
   ],
@@ -70,6 +71,16 @@ export const services = [
     title: 'Audit & perbaikan',
     body: 'Meninjau sistem yang sudah berjalan: menemukan titik lemah keamanan, pemborosan sumber daya, dan bagian yang rapuh.',
     icon: 'shield',
+  },
+  {
+    title: '3D Web & Creative Motion',
+    body: 'Antarmuka web interaktif dengan Three.js, WebGL shader, animasi fisika 3D, dan smooth velocity scroll (Lenis) yang tetap enteng di perangkat hemat daya.',
+    icon: 'layers',
+  },
+  {
+    title: 'Audit Keamanan AI & Pentest',
+    body: 'Pengujian penetrasi dinamis multi-agent AI (standar Strix) untuk membongkar celah keamanan aplikasi vibe-coded dan membersihkan jejak watermark data sebelum rilis.',
+    icon: 'code',
   },
 ];
 

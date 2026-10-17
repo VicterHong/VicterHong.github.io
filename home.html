@@ -100,6 +100,7 @@
 <link rel="stylesheet" href="assets/css/cookies.css">
 <link rel="stylesheet" href="assets/css/visi-misi.css">
 <link rel="stylesheet" href="assets/css/interactions.css">
+<link rel="stylesheet" href="assets/css/orb-3d.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
   // kedipan konten sebelum overlay verifikasi muncul (pola Cloudflare).
@@ -192,6 +193,14 @@
           <span class="terminal-dot"></span>
           <span class="terminal-dot"></span>
           <span class="terminal-title">mina@home:~</span>
+        </div>
+        <div class="terminal-orb-wrap" id="heroOrbWrap">
+          <canvas id="heroOrbCanvas" class="hero-orb-canvas" width="460" height="190" aria-label="Simulasi 3D Neural Mesh"></canvas>
+          <div class="orb-telemetry">
+            <span class="orb-pulse-dot" aria-hidden="true"></span>
+            <span class="orb-telemetry-text">NEURAL 3D CORE &middot; DRAG TO ROTATE</span>
+          </div>
+          <div class="orb-hint">&bull; 320 NODES 3D MESH</div>
         </div>
         <div class="terminal-body">
           <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina status</span></p>
@@ -318,6 +327,21 @@
         </p>
       </div>
       <div id="sandboxHost"></div>
+    </section>
+
+    <!-- ══ 3D LAB & CREATIVE MOTION ═══════════════════════════════════════════
+         Eksperimen grafis 3D interaktif yang diadopsi dari teknik web modern:
+         Fibonacci sphere, momentum physics, dan autonomous security.
+         ══════════════════════════════════════════════════════════════════════ -->
+    <section class="section-lab3d" id="lab3d" aria-labelledby="judulLab3d">
+      <div class="metrik-kepala-bagian">
+        <h2 class="metrik-judul-bagian" id="judulLab3d">Eksperimen 3D &amp; Creative Motion</h2>
+        <p class="metrik-teks-bagian">
+          Grafis 3D interaktif, fisika momentum, dan estetika antarmuka modern yang
+          dibuat murni dengan WebGL/Canvas matematika tanpa dependensi eksternal.
+        </p>
+      </div>
+      <div id="lab3dHost"></div>
     </section>
 
     <!-- Carousel spotlight: gambaran cepat seluruh koleksi. Ditaruh SEBELUM
@@ -601,6 +625,10 @@
 
   import { pasangSandbox } from '/assets/js/sandbox-view.js';
   pasangSandbox('sandboxHost');
+
+  import { initHeroOrb, pasangLab3d } from '/assets/js/orb-3d.js';
+  initHeroOrb();
+  pasangLab3d('lab3dHost');
 </script>
 
 <!-- Gerbang verifikasi: setiap halaman memeriksa clearance (30 menit).
