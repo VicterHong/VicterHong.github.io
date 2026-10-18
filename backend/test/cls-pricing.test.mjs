@@ -67,9 +67,14 @@ for (const w of [1366, 900, 360]) {
     } catch {}
   });
 
-  await ctx.route('**/api/pricing*', (r) =>
-    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(buildPricing()) }),
-  );
+  await ctx.route('**/api/pricing*', async (r) => {
+    // ── TIRU JALUR NYATA: skeleton dulu, kartu kemudian ─────────────────────
+    // Produksi menampilkan 3 kartu skeleton sebelum data tiba. Kalau tes ini
+    // menjawab seketika, jalur skeleton tidak pernah diuji — dan justru di
+    // situlah CLS 0.2376 berasal (skeleton 336px → kartu 862px).
+    await new Promise((ok) => setTimeout(ok, 700));
+    await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(buildPricing()) });
+  });
   await ctx.route('**/api/checkout/konteks*', (r) =>
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, masuk: false }) }),
   );

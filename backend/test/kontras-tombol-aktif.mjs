@@ -157,6 +157,13 @@ try {
       }),
     );
 
+    // Isolasi pengukuran kontras dari gate jaringan. Hanya berlaku pada
+    // context browser uji lokal; perlindungan produksi tidak diubah.
+    await ctx.route('**/api/gate/check*', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, bersih: true }),
+    }));
     const p = await ctx.newPage();
     await p.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
