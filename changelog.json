@@ -1,20 +1,20 @@
 {
- "dibuat": "2026-10-18T05:40:13.848Z",
- "totalCommit": 478,
- "totalDicatat": 465,
+ "dibuat": "2026-10-18T05:54:22.888Z",
+ "totalCommit": 480,
+ "totalDicatat": 467,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-18",
  "rilis": [
   {
    "tanggal": "2026-10-18",
-   "jumlah": 14,
+   "jumlah": 16,
    "ringkasan": {
     "fitur": 3,
     "perbaikan": 2,
     "performa": 0,
-    "dokumentasi": 6,
+    "dokumentasi": 7,
     "data": 0,
-    "pemeliharaan": 3
+    "pemeliharaan": 4
    },
    "kategori": [
     {
@@ -59,6 +59,11 @@
      "label": "Dokumentasi",
      "item": [
       {
+       "hash": "c79fe49",
+       "teks": "Regenerasi setelah gating akses",
+       "scope": "changelog"
+      },
+      {
        "hash": "ba85427",
        "teks": "Regenerasi setelah seksi eksperimen owner-only",
        "scope": "changelog"
@@ -94,6 +99,11 @@
      "kunci": "pemeliharaan",
      "label": "Pemeliharaan",
      "item": [
+      {
+       "hash": "ccb8e27",
+       "teks": "Satu pintu masuk, bukan tiga belas",
+       "scope": "akses"
+      },
       {
        "hash": "f44fe94",
        "teks": "Bola partikel jadi struktur netral, emas hanya highlight",

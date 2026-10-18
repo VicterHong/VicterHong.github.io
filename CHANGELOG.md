@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 465 perubahan dari 478 commit (2026-10-01 → 2026-10-18).
+Total 467 perubahan dari 480 commit (2026-10-01 → 2026-10-18).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -21,6 +21,7 @@ Total 465 perubahan dari 478 commit (2026-10-01 → 2026-10-18).
 
 ### Dokumentasi
 
+- **changelog**: Regenerasi setelah gating akses (`c79fe49`)
 - **changelog**: Regenerasi setelah seksi eksperimen owner-only (`ba85427`)
 - **changelog**: Regenerasi setelah pass bola 3d (`9d12934`)
 - **changelog**: Regenerasi setelah pass aksen (`debd5a8`)
@@ -30,6 +31,7 @@ Total 465 perubahan dari 478 commit (2026-10-01 → 2026-10-18).
 
 ### Pemeliharaan
 
+- **akses**: Satu pintu masuk, bukan tiga belas (`ccb8e27`)
 - **3d**: Bola partikel jadi struktur netral, emas hanya highlight (`f44fe94`)
 - **design**: Budget aksen emas & hierarki hero (`b8e2fb0`)
 - **design**: Skala tipografi & radius, leading hero, fallback token (`e4dca19`)
