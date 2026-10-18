@@ -356,9 +356,25 @@ function minifyHtml(isi) {
     .replace(/\n\s+/g, '\n')
     .trim();
 
-  // Kembalikan blok yang dilindungi, persis seperti aslinya.
+  // Kembalikan blok yang dilindungi — tapi khusus <script>, strip komentar
+  // JS terlebih dahulu. Komentar rinci (// ── KENAPA ...) berguna di sumber,
+  // tapi di produksi hanya membuang byte dan mengekspos logika internal.
   for (const [kunci, asli] of simpan) {
-    hasil = hasil.split(kunci).join(asli);
+    let nilai = asli;
+    if (kunci.includes('\x00LINDUNG')) {
+      // Hanya blok <script> yang punya komentar JS (// atau /* */).
+      if (/^<script\b/i.test(nilai)) {
+        nilai = nilai
+          // Hapus komentar satu baris (// ...) tapi BUKAN URL (// di dalam string)
+          .replace(/(^|[^:'"])\/\/(?![a-zA-Z0-9]+\/)[^\n\r]*/g, (m, pre) => pre)
+          // Hapus komentar blok /* ... */
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          // Bersihkan baris baru/spasi yang tersisa
+          .replace(/\n\s*\n/g, '\n')
+          .replace(/[ \t]{2,}/g, ' ');
+      }
+    }
+    hasil = hasil.split(kunci).join(nilai);
   }
   return hasil;
 }
