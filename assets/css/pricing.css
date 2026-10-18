@@ -145,8 +145,20 @@
   margin-bottom: var(--pr-6);
 }
 
-.periode-wadah:empty {
-  display: none;
+/* ── KENAPA WADAH KOSONG TETAP MEMAKAN RUANG ─────────────────────────────────
+   Dulu `:empty { display: none }`. Niatnya baik — jangan tampilkan wadah
+   kosong. Tapi efeknya: wadah 0px saat skeleton, lalu ~86px saat toggle masuk,
+   dan SELURUH grid harga di bawahnya bergeser turun.
+
+   Terukur: `#wadahKartu` bergerak 325px → 300px → 386px selama pemuatan.
+   Itu LayoutShift 0.0334 pada CLS /pricing — sisa terakhir setelah skeleton
+   kartu dan FAQ diperbaiki.
+
+   Sekarang wadah kosong memesan tinggi yang sama dengan isinya, jadi saat
+   toggle muncul tidak ada ruang yang berubah. `min-height` diambil dari tinggi
+   toggle yang sudah dirender (86px, termasuk padding dan border). */
+.periode-wadah {
+  min-height: 86px;
 }
 
 .periode-toggle {
@@ -1296,7 +1308,21 @@
 .sk-w-30 { width: 30%; }
 
 /* Kartu skeleton memakai kerangka yang sama dengan kartu asli, jadi
-   peralihannya tidak menggeser apa pun. */
+   peralihannya tidak menggeser apa pun.
+
+   ── KENAPA ADA min-height DI SINI ───────────────────────────────────────────
+   Komentar di atas dulu tidak benar. Terukur di produksi: skeleton hanya
+   setinggi 336px, sedangkan kartu asli 862px. Saat skeleton diganti kartu,
+   grid melompat dari 336px ke 862px — itulah LayoutShift 0.2376 yang membuat
+   CLS /pricing gagal (anggaran 0.1).
+
+   `#wadahKartu:empty { min-height }` tidak menolong di sini: grid berhenti
+   kosong begitu skeleton masuk, jadi cadangan itu sudah dilepas tepat sebelum
+   lompatan terjadi.
+
+   Angka di bawah diukur dari kartu asli pada tiap breakpoint, sehingga skeleton
+   dan kartu menempati ruang yang sama dan penggantiannya tidak terlihat
+   sebagai pergeseran. */
 .sk-kartu {
   display: flex;
   flex-direction: column;
@@ -1305,6 +1331,15 @@
   border: 1px solid var(--pr-line);
   border-radius: 1.5rem;
   background: var(--pr-card);
+  min-height: 657px;
+}
+
+@media (min-width: 56rem) {
+  .sk-kartu { min-height: 652px; }
+}
+
+@media (min-width: 75rem) {
+  .sk-kartu { min-height: 862px; }
 }
 
 .sk-baris {

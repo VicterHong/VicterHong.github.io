@@ -1131,7 +1131,17 @@ function skeletonFaq() {
   const list = el('div', 'faq-list');
   list.setAttribute('aria-hidden', 'true');
 
-  for (let i = 0; i < 5; i++) {
+  // ── KENAPA JUMLAHNYA 9, BUKAN 5 ──────────────────────────────────────────
+  // Dulu 5. Data FAQ sebenarnya berisi 9 pertanyaan. Akibatnya saat FAQ asli
+  // masuk, daftarnya bertambah empat baris dan seluruh isi di bawahnya
+  // bergeser — terukur: `#wadahFaq` bergerak 1758px → 2336px → 2894px, dan
+  // itu menyumbang LayoutShift pada CLS /pricing.
+  //
+  // Jumlah skeleton harus mengikuti isi yang akan menggantikannya. Kalau nanti
+  // FAQ bertambah lagi, angkanya ikut di sini.
+  const JUMLAH_FAQ = Number(list.dataset.jumlah) || 9;
+
+  for (let i = 0; i < JUMLAH_FAQ; i++) {
     const item = el('div', 'sk-faq');
     const a = el('div', `skeleton sk-teks ${i % 2 ? 'sk-w-60' : 'sk-w-75'}`);
     const b = el('div', 'skeleton sk-ikon');
@@ -1147,13 +1157,34 @@ function tampilkanSkeleton(root) {
   const faq = root.querySelector('#wadahFaq');
   const toggle = root.querySelector('#wadahPeriode');
 
-  // Toggle periode disembunyikan selama memuat — pilihan periode belum
-  // bermakna sebelum harga tiba, dan menampilkannya kosong terlihat rusak.
-  if (toggle) toggle.replaceChildren();
+  // ── KENAPA TOGGLE TIDAK DIKOSONGKAN LAGI ──────────────────────────────────
+  // Dulu `toggle.replaceChildren()` dipanggil di sini dengan alasan "pilihan
+  // periode belum bermakna sebelum harga tiba". Akibatnya tinggi toggle 0px
+  // saat skeleton, lalu menjadi ~86px saat data masuk — dan seluruh grid di
+  // bawahnya bergeser turun.
+  //
+  // Terukur: `#wadahKartu` bergerak 325px → 300px → 386px selama pemuatan.
+  // Itu LayoutShift 0.0334 yang tersisa setelah skeleton kartu dan FAQ
+  // diperbaiki.
+  //
+  // Sekarang toggle dibiarkan pada tempatnya (HTML sudah menyediakan wadah
+  // kosong dengan tinggi tetap lewat CSS), sehingga tidak ada ruang yang
+  // berubah saat isinya datang.
+  void toggle;
 
   if (grid) {
     grid.className = 'harga-grid';
-    grid.replaceChildren(skeletonKartu(), skeletonKartu(), skeletonKartu());
+    // ── KENAPA JUMLAH SKELETON HARUS SAMA DENGAN JUMLAH PAKET ────────────────
+    // Dulu selalu 3, karena paketnya tiga. Sekarang empat (Gratis, Standar,
+    // Profesional, Enterprise) — dan skeleton yang kurang satu membuat grid
+    // melompat tinggi saat kartu keempat masuk.
+    //
+    // Terukur: di 360px skeleton 1640px lalu kartu 2628px — selisih 988px.
+    // Itu LayoutShift yang membuat CLS /pricing gagal meski skeletonnya sudah
+    // diberi min-height. Jumlah yang benar menghilangkan penyebabnya, bukan
+    // menambal gejalanya.
+    const jumlah = Number(root.dataset.jumlahPaket) || 4;
+    grid.replaceChildren(...Array.from({ length: jumlah }, () => skeletonKartu()));
   }
   if (faq) faq.replaceChildren(skeletonFaq());
 }
