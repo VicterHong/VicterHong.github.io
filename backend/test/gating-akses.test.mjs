@@ -69,18 +69,49 @@ test('metrik proyek memakai bolehLihatAngka, bukan sekadar login', () => {
   assert.match(src, /const lihatAngka = bolehLihatAngka\(akses, p\.slug\)/, 'dihitung per slug');
 });
 
-// ── 4. Detail teknis mengarah ke sign-in untuk anonim ───────────────────────
-test('anonim diarahkan ke sign-in, bukan langsung ke /s/', () => {
+// ── 4. Detail teknis: anonim TIDAK diberi tombol ────────────────────────────
+test('anonim melihat penanda terkunci, bukan tombol menuju sign-in', () => {
   const src = appJs();
-  assert.match(src, /\/sign-in\?lanjut=\$\{balik\}/, 'harus menyertakan tujuan kembali');
-  assert.match(src, /Masuk untuk detail teknis/, 'teks tombol harus menjelaskan');
-  // Pastikan URL /s/ TIDAK dirender untuk anonim: harus di dalam cabang sudahMasuk.
-  const i = src.indexOf('if (p.gated && p.access_codes?.length)');
-  const blok = src.slice(i, i + 900);
-  assert.match(blok, /if \(sudahMasuk\) \{/, 'cabang sudahMasuk harus ada');
+  // Aturan: satu halaman hanya boleh punya SATU pintu masuk tambahan selain
+  // header. Versi pertama memasang tombol "Masuk untuk detail teknis" di
+  // setiap kartu → 13 tautan masuk/daftar di satu halaman.
+  assert.match(src, /project-link-terkunci/, 'anonim harus melihat penanda terkunci');
+  assert.match(src, /text: 'Detail teknis terkunci'/, 'teks penanda harus jelas');
+
+  // Pastikan tidak ada lagi tautan sign-in yang dibuat dari kartu proyek.
+  const iKartu = src.indexOf('if (p.gated && p.access_codes?.length)');
+  const blokKartu = src.slice(iKartu, iKartu + 900);
+  assert.equal(
+    /sign-in\?lanjut=/.test(blokKartu),
+    false,
+    'kartu proyek tidak boleh membuat tautan sign-in sendiri',
+  );
 });
 
-// ── 5. Metrik/diagram/sandbox tidak dimuat untuk anonim ─────────────────────
+// ── 5. Hanya SATU panel ajakan bertombol ────────────────────────────────────
+test('panel ajakan dipasang sekali, seksi berikutnya hanya baris ringkas', () => {
+  const src = appJs();
+  assert.match(src, /let panelSudahDipasang = false/, 'harus ada penanda panel terpasang');
+  assert.match(src, /gerbang-akses-ringkas/, 'seksi berikutnya memakai baris ringkas');
+  assert.match(src, /panelSudahDipasang = true/, 'penanda harus diset setelah panel dipasang');
+});
+
+// ── 6. Footer tidak memuat Masuk/Daftar ─────────────────────────────────────
+test('footer tidak menambah pintu masuk kedua', () => {
+  const footer = readFileSync(resolve(ROOT, 'assets/js/footer.js'), 'utf8');
+  assert.equal(
+    /teks: 'Masuk'/.test(footer),
+    false,
+    'footer tidak boleh punya tautan Masuk — header sudah punya',
+  );
+  assert.equal(
+    /teks: 'Daftar'/.test(footer),
+    false,
+    'footer tidak boleh punya tautan Daftar',
+  );
+});
+
+// ── 7. Metrik/diagram/sandbox tidak dimuat untuk anonim ─────────────────────
 test('home.html hanya memuat modul metrik setelah akses.masuk', () => {
   const html = homeHtml();
   assert.match(html, /import \{ ambilAkses \} from '\/assets\/js\/akses\.js'/, 'harus membaca status akses');
@@ -89,7 +120,7 @@ test('home.html hanya memuat modul metrik setelah akses.masuk', () => {
   assert.match(html, /if \(akses\?\.masuk\) \{[\s\S]{0,500}pasangSandbox/, 'pasangSandbox di dalam gerbang');
 });
 
-// ── 6. Panel ajakan terpasang ───────────────────────────────────────────────
+// ── 8. Panel ajakan terpasang ───────────────────────────────────────────────
 test('pasangGerbangAkses menutup seksi & memasang panel ajakan', () => {
   const src = appJs();
   assert.match(src, /function pasangGerbangAkses\(akses\)/, 'fungsi harus ada');

@@ -116,17 +116,21 @@ export function bolehLihatDemo(akses) {
 /**
  * Label ajakan yang tepat untuk keadaan pengguna.
  * Mengembalikan null kalau tidak perlu ajakan (sudah bisa lihat semua).
+ *
+ * ── SATU TINDAKAN PER PANEL, BUKAN DUA ─────────────────────────────────────
+ * Setiap keadaan hanya punya SATU tombol. "Masuk" dan "Buat akun" berdampingan
+ * berarti pengunjung harus memilih di antara dua hal yang belum bisa ia
+ * bedakan — dan halaman sign-in sendiri sudah menawarkan pendaftaran.
+ * Satu tombol = satu keputusan.
  */
 export function ajakanUntuk(akses) {
   if (!akses) return null;
   if (!akses.masuk) {
     return {
-      judul: 'Masuk untuk melihat data lengkap',
-      teks: 'Angka terverifikasi, demo interaktif, dan diagram arsitektur tersedia setelah Anda masuk. Akun Free langsung mendapat akses ke 3 proyek.',
+      judul: 'Data lengkap tersedia untuk akun terdaftar',
+      teks: 'Angka terverifikasi, demo interaktif, dan diagram arsitektur terbuka setelah masuk. Akun Free langsung mendapat akses ke 3 proyek.',
       aksi: 'Masuk',
       href: '/sign-in',
-      aksiSekunder: 'Buat akun',
-      hrefSekunder: '/sign-up',
     };
   }
   if (akses.berbayar) return null;
@@ -142,10 +146,8 @@ export function ajakanUntuk(akses) {
     return {
       judul: 'Jatah Free sudah terpakai',
       teks: `Beri star di GitHub untuk membuka ${akses.bonusStarTersedia} proyek lagi, atau berlangganan untuk akses tanpa batas.`,
-      aksi: 'Tingkatkan paket',
+      aksi: 'Lihat paket',
       href: '/pricing',
-      aksiSekunder: 'Beri star di GitHub',
-      hrefSekunder: 'https://github.com/VicterHong',
     };
   }
   return {
@@ -153,7 +155,5 @@ export function ajakanUntuk(akses) {
     teks: 'Berlangganan untuk membuka seluruh proyek tanpa batas, atau minta akses langsung lewat halaman kontak.',
     aksi: 'Lihat paket',
     href: '/pricing',
-    aksiSekunder: 'Hubungi saya',
-    hrefSekunder: '#89fk39',
   };
 }

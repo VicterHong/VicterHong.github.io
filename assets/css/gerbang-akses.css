@@ -105,6 +105,29 @@
   gap: 0.7rem;
 }
 
+/* ── Baris ringkas di seksi terkunci KEDUA dan seterusnya ───────────────────
+   Panel lengkap hanya muncul sekali. Seksi berikutnya cukup satu baris yang
+   menunjuk ke panel itu — tanpa tombol. Tiga panel bertombol di satu halaman
+   adalah pola yang membuat halaman terasa dibuat mesin. */
+.gerbang-akses-ringkas {
+  margin: 1.25rem 0 0;
+  font-size: var(--fs-2);
+  color: var(--text-faint);
+  line-height: 1.6;
+}
+
+.gerbang-akses-ringkas a {
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s var(--ease);
+}
+
+.gerbang-akses-ringkas a:hover,
+.gerbang-akses-ringkas a:focus-visible {
+  color: var(--accent);
+}
+
 @media (max-width: 640px) {
   .gerbang-akses {
     padding: 1.25rem 1.15rem;
@@ -118,10 +141,13 @@
   }
 }
 
-/* ── Tombol "Masuk untuk detail teknis" ─────────────────────────────────────
-   Tetap memakai gaya CTA solid supaya terlihat sebagai jalur utama, bukan
-   sebagai tombol nonaktif. Yang berubah hanya teksnya. */
-.project-link-detail--masuk {
-  /* Tidak ada perubahan visual — kelas ini ada supaya bisa ditarget tes dan
-     supaya nanti mudah dibedakan kalau perlu. */
+/* ── "Detail teknis terkunci" — teks, bukan tombol ─────────────────────────
+   Pengunjung anonim tidak perlu tombol di sini: header sudah punya "Sign in"
+   dan panel ajakan di seksi metrik menjelaskan caranya. Yang dibutuhkan hanya
+   penanda bahwa detailnya ada tapi belum terbuka. */
+.project-link-terkunci {
+  color: var(--text-faint);
+  cursor: default;
 }
+
+.project-link-terkunci::after { content: none; }

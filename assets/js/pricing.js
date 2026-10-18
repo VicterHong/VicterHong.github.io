@@ -430,6 +430,9 @@ async function periksaKonteks(d, paket, periode) {
       const lanjut = `/pricing?paket=${encodeURIComponent(paket.id)}&periode=${encodeURIComponent(periode)}`;
       tautan.href = `/sign-in?lanjut=${encodeURIComponent(lanjut)}`;
     }
+    // `#bayarKeDaftar` sudah dihapus dari markup: dialog hanya punya satu
+    // tombol. Blok di bawah dibiarkan (dengan penjagaan null) supaya tidak
+    // melempar kalau markup lama masih ter-cache di salah satu halaman.
     const daftar = d.querySelector('#bayarKeDaftar');
     if (daftar) {
       const lanjut = `/pricing?paket=${encodeURIComponent(paket.id)}&periode=${encodeURIComponent(periode)}`;

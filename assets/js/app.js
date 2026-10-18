@@ -324,11 +324,17 @@ function renderProjects(akses) {
           text: 'Detail teknis',
         }));
       } else {
-        const balik = encodeURIComponent(`/s/${p.access_codes[0]}/`);
-        links.append(el('a', {
-          class: 'project-link project-link-detail project-link-detail--masuk',
-          href: `/sign-in?lanjut=${balik}`,
-          text: 'Masuk untuk detail teknis',
+        // ── ANONIM: TIDAK ADA TOMBOL DI SINI ─────────────────────────────
+        // Versi pertama memasang tombol "Masuk untuk detail teknis" di setiap
+        // kartu — dua tombol tambahan yang menuju halaman yang sama dengan
+        // header. Diukur: satu halaman jadi punya 13 tautan masuk/daftar.
+        //
+        // Sekarang kartu hanya menyebut bahwa detailnya terkunci; satu panel
+        // ajakan di seksi metrik yang memberi jalan masuknya. Satu pintu.
+        links.append(el('span', {
+          class: 'project-link project-link-terkunci',
+          text: 'Detail teknis terkunci',
+          'aria-label': 'Detail teknis tersedia setelah masuk',
         }));
       }
     }
@@ -622,30 +628,34 @@ function loadHeroVideo() {
 // ── MUNCUL SAAT DIGULIR ────────────────────────────────────────────────────────
 // ── GERBANG AKSES ──────────────────────────────────────────────────────────────
 /**
- * Pasang panel ajakan di seksi yang butuh login, dan sembunyikan seksi yang
- * sepenuhnya bergantung pada data berbayar.
+ * Pasang panel ajakan SEKALI di halaman, bukan di setiap seksi.
  *
- * ── KENAPA PANEL AJAKAN, BUKAN SEKADAR MENYEMBUNYIKAN ────────────────────────
- * Seksi yang hilang tanpa penjelasan membuat halaman terasa rusak. Yang
- * diinginkan pengunjung bukan "tidak ada apa-apa", tapi "ada sesuatu di sini,
- * dan ini caranya". Panel ini menjawab keduanya: menyebut apa yang tersedia
- * dan memberi satu tindakan yang jelas.
+ * ── MASALAH YANG DIPERBAIKI (DIUKUR) ────────────────────────────────────────
+ * Versi pertama memasang panel di tiga seksi (metrik, diagram, sandbox).
+ * Hasilnya diukur di browser: 13 tautan masuk/daftar di satu halaman — 2 di
+ * header/hero, 2 di kartu proyek, 6 dari tiga panel, 2 di footer. Header
+ * sudah punya "Sign in" yang selalu terlihat, jadi 13 pintu ke alur yang
+ * sama bukan penawaran, tapi kebisingan.
  *
- * ── KENAPA SEKSI TETAP ADA (TIDAK DIHAPUS) UNTUK ANONIM ─────────────────────
- * Menghapus seluruh seksi metrik & demo berarti pengunjung tidak pernah tahu
- * ada data yang bisa diperiksa — dan itu justru kehilangan daya tarik
- * portofolio ini. Yang ditampilkan: judul seksi + panel ajakan. Isinya tidak.
+ * Sekarang: SATU panel, di seksi pertama yang terkunci (metrik). Seksi
+ * terkunci berikutnya cukup diberi satu baris keterangan yang menunjuk ke
+ * panel itu — pembaca sudah tahu caranya setelah melihat yang pertama.
+ *
+ * ── KENAPA TETAP ADA PANEL, BUKAN HANYA MENYEMBUNYIKAN ──────────────────────
+ * Seksi yang hilang tanpa penjelasan membuat halaman terasa rusak. Panel
+ * menjawab "ada apa" dan "bagaimana caranya" dalam satu tempat.
  */
 function pasangGerbangAkses(akses) {
   const ajakan = ajakanUntuk(akses);
   const sudahMasuk = Boolean(akses?.masuk);
 
-  // 1. Metrik & diagram & sandbox: hanya untuk yang sudah masuk.
   const peta = [
     { host: '#metrikHost', induk: '.metrik-bagian' },
     { host: '#diagramHost', induk: '.diagram-bagian' },
     { host: '#sandboxHost', induk: '.sandbox-bagian' },
   ];
+
+  let panelSudahDipasang = false;
 
   for (const { host, induk } of peta) {
     const elHost = $(host);
@@ -656,28 +666,36 @@ function pasangGerbangAkses(akses) {
       continue;
     }
 
-    // Kosongkan isi (kalau ada yang sempat dirender) lalu ganti dengan ajakan.
     elHost.replaceChildren();
     elHost.hidden = true;
 
     const seksi = elHost.closest(induk);
-    if (seksi && !seksi.querySelector('.gerbang-akses')) {
-      seksi.append(buatPanelGerbang(ajakan));
+    if (!seksi) continue;
+
+    if (!panelSudahDipasang) {
+      // Panel lengkap — sekali saja.
+      if (!seksi.querySelector('.gerbang-akses')) {
+        seksi.append(buatPanelGerbang(ajakan));
+      }
+      panelSudahDipasang = true;
+    } else {
+      // Seksi berikutnya: satu baris, tanpa tombol. Menunjuk ke atas.
+      if (!seksi.querySelector('.gerbang-akses-ringkas')) {
+        seksi.append(el('p', { class: 'gerbang-akses-ringkas' },
+          el('a', { href: '#metrikHost', text: 'Data ini tersedia setelah masuk' }),
+          document.createTextNode(' — lihat penjelasan di bagian sebelumnya.'),
+        ));
+      }
     }
   }
 
-  // 2. Angka ringkas di hero: beri keterangan kenapa tersamar.
+  // Angka ringkas di hero: keterangan singkat TANPA tautan tambahan.
+  // Header sudah punya "Sign in"; menambah dua tautan di sini akan
+  // mengembalikan masalah yang baru saja dihilangkan.
   const statsHost = $('#heroStats');
   if (statsHost && !sudahMasuk && !statsHost.dataset.gerbangTerpasang) {
     statsHost.dataset.gerbangTerpasang = '1';
-    const catatan = el('p', { class: 'hero-stats-catatan' });
-    catatan.append(
-      document.createTextNode('Angka tersedia setelah '),
-      el('a', { href: '/sign-in', text: 'masuk' }),
-      document.createTextNode(' atau '),
-      el('a', { href: '/sign-up', text: 'membuat akun' }),
-      document.createTextNode('.'),
-    );
+    const catatan = el('p', { class: 'hero-stats-catatan', text: 'Angka tersedia untuk akun yang sudah masuk.' });
     statsHost.after(catatan);
   }
 }
@@ -690,14 +708,14 @@ function buatPanelGerbang(ajakan) {
   panel.append(el('p', { class: 'gerbang-akses-judul', text: ajakan.judul }));
   panel.append(el('p', { class: 'gerbang-akses-teks', text: ajakan.teks }));
 
-  const aksi = el('div', { class: 'gerbang-akses-aksi' });
+  // Satu tombol saja. Kalau `ajakan.aksi` null (mis. pengguna masih punya
+  // jatah), panel tetap tampil sebagai keterangan tanpa tindakan — itu benar:
+  // tidak ada yang perlu diklik untuk membuka proyek, cukup pilih kartunya.
   if (ajakan.aksi && ajakan.href) {
+    const aksi = el('div', { class: 'gerbang-akses-aksi' });
     aksi.append(el('a', { class: 'btn btn-primary', href: ajakan.href, text: ajakan.aksi }));
+    panel.append(aksi);
   }
-  if (ajakan.aksiSekunder && ajakan.hrefSekunder) {
-    aksi.append(el('a', { class: 'btn btn-ghost', href: ajakan.hrefSekunder, text: ajakan.aksiSekunder }));
-  }
-  if (aksi.childElementCount) panel.append(aksi);
 
   return panel;
 }

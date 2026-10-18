@@ -86,8 +86,16 @@
         tautan: [
           { teks: 'Panduan', href: '/docs' },
           { teks: 'Kontak', href: '/home#89fk39' },
-          { teks: 'Masuk', href: '/sign-in' },
-          { teks: 'Daftar', href: '/sign-up' },
+          // ── MASUK / DAFTAR TIDAK DI SINI ──────────────────────────────────
+          // Header sudah punya "Sign in" yang selalu terlihat, di setiap
+          // halaman. Menambah "Masuk" + "Daftar" di footer berarti satu
+          // halaman punya tiga pintu ke alur yang sama — pola yang membuat
+          // halaman terasa dibuat mesin, bukan dirancang.
+          //
+          // Yang menggantikan: Changelog, tautan yang memang belum ada di
+          // footer dan berguna bagi pengunjung yang membaca sampai bawah.
+          { teks: 'Changelog', href: '/changelog' },
+          { teks: 'Arsip', href: '/arsip' },
         ],
       },
     ],
