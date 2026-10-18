@@ -25,9 +25,25 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const AKAR = join(__dirname, '..', '..');
 
-const { alurProyek, JENIS_LANGKAH } = await import(
-  join(AKAR, 'assets', 'js', 'data', 'alur.js')
-);
+// ── SUMBER KONTEN PRIVAT, BUKAN ASET PUBLIK ─────────────────────────────────
+// Dulu tes ini mengimpor `assets/js/data/alur.js`. Isinya kini dipindahkan ke
+// direktori konten privat supaya diagram teknis tidak ikut ke repo publik.
+// Tes tetap memeriksa konten yang SAMA, dari sumber sebenarnya.
+const evidence = await import('../src/evidence.mjs');
+// Fungsi, bukan objek — dipanggil sekali di sini supaya seluruh tes di bawah
+// memakai bentuk data yang sama seperti kode produksi.
+const alurProyek = evidence.alurProyek();
+const JENIS_LANGKAH = evidence.jenisLangkah();
+
+// Checkout CI tidak punya konten privat. Lewati tes berbasis konten dengan
+// alasan tertulis, bukan gagal karena berkas yang memang tidak boleh ada.
+const adaKonten = Object.keys(alurProyek).length > 0;
+const butuhKonten = adaKonten ? {} : { skip: 'konten privat tidak tersedia di checkout ini' };
+if (!adaKonten) {
+  // Terlihat di log CI: kalau ini muncul di mesin pengembang, berarti
+  // CONTENT_DIR sedang dialihkan tes lain, bukan kontennya yang hilang.
+  console.log(`[diagram] konten alur kosong (contentDir=${config.contentDir})`);
+}
 
 const jsDiagram = readFileSync(join(AKAR, 'assets', 'js', 'diagram-view.js'), 'utf8');
 const cssDiagram = readFileSync(join(AKAR, 'assets', 'css', 'diagram.css'), 'utf8');
@@ -35,7 +51,7 @@ const html = readFileSync(join(AKAR, 'home.html'), 'utf8');
 
 /* ══ 1. SETIAP LANGKAH LENGKAP ═════════════════════════════════════════════ */
 
-test('setiap langkah punya label, ringkas, dan detail', () => {
+test('setiap langkah punya label, ringkas, dan detail', butuhKonten, () => {
   // ── KENAPA INI PENTING ────────────────────────────────────────────────────
   // Langkah tanpa `detail` akan menampilkan kotak yang bisa diklik tapi kosong
   // saat dibuka. Itu lebih buruk daripada tidak bisa diklik.
@@ -57,7 +73,7 @@ test('setiap langkah punya label, ringkas, dan detail', () => {
 
 /* ══ 2. JENIS LANGKAH DIKENAL ══════════════════════════════════════════════ */
 
-test('setiap langkah punya jenis yang dikenal', () => {
+test('setiap langkah punya jenis yang dikenal', butuhKonten, () => {
   for (const [slug, alur] of Object.entries(alurProyek)) {
     for (const l of alur.langkah) {
       assert.ok(
@@ -79,7 +95,7 @@ test('setiap jenis langkah punya gaya CSS', () => {
 
 /* ══ 3. SETIAP ALUR PUNYA LANGKAH KEAMANAN ═════════════════════════════════ */
 
-test('SETIAP alur punya minimal satu langkah keamanan', () => {
+test('SETIAP alur punya minimal satu langkah keamanan', butuhKonten, () => {
   // ── KENAPA DIJAGA KETAT ───────────────────────────────────────────────────
   // Halaman ini mengklaim sistemnya aman. Diagram yang tidak menunjukkan
   // lapisan keamanannya membuat klaim itu tidak punya dukungan visual — dan
@@ -90,7 +106,7 @@ test('SETIAP alur punya minimal satu langkah keamanan', () => {
   }
 });
 
-test('alur Sentinel menunjukkan verifikasi SEBELUM penyimpanan', () => {
+test('alur Sentinel menunjukkan verifikasi SEBELUM penyimpanan', butuhKonten, () => {
   // ── KENAPA URUTANNYA DIUJI ────────────────────────────────────────────────
   // Ini klaim keamanan yang paling penting di seluruh proyek: payload palsu
   // ditolak SEBELUM tersimpan. Kalau diagramnya menampilkan urutan sebaliknya,
@@ -109,7 +125,7 @@ test('alur Sentinel menunjukkan verifikasi SEBELUM penyimpanan', () => {
 
 /* ══ 4. TIDAK ADA ID DUPLIKAT ══════════════════════════════════════════════ */
 
-test('tidak ada id langkah yang duplikat dalam satu alur', () => {
+test('tidak ada id langkah yang duplikat dalam satu alur', butuhKonten, () => {
   for (const [slug, alur] of Object.entries(alurProyek)) {
     const id = alur.langkah.map((l) => l.id);
     const unik = new Set(id);
@@ -124,7 +140,7 @@ test('tidak ada id langkah yang duplikat dalam satu alur', () => {
 
 /* ══ 5. SETIAP ALUR PUNYA JUDUL DAN RINGKASAN ══════════════════════════════ */
 
-test('setiap alur punya judul dan ringkasan', () => {
+test('setiap alur punya judul dan ringkasan', butuhKonten, () => {
   for (const [slug, alur] of Object.entries(alurProyek)) {
     assert.ok(alur.judul && alur.judul.length > 5, `${slug}: judul terlalu pendek`);
     assert.ok(

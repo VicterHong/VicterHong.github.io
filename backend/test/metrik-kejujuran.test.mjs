@@ -26,13 +26,19 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const AKAR = join(__dirname, '..', '..');
 
-const { metrikProyek, catatanMetrik } = await import(
-  join(AKAR, 'assets', 'js', 'data', 'metrik.js')
-);
+// ── SUMBER KONTEN PRIVAT, BUKAN ASET PUBLIK ─────────────────────────────────
+// `assets/js/data/metrik.js` kini kosong: angkanya dipindahkan ke direktori
+// konten privat agar tidak bisa dibaca dari repo publik tanpa login.
+const evidence = await import('../src/evidence.mjs');
+const metrikProyek = evidence.metrikProyek();
+const catatanMetrik = evidence.catatanMetrik();
+
+const adaKonten = Object.keys(metrikProyek).length > 0;
+const butuhKonten = adaKonten ? {} : { skip: 'konten privat tidak tersedia di checkout ini' };
 
 /* ══ 1. SETIAP METRIK PUNYA SUMBER ═════════════════════════════════════════ */
 
-test('SETIAP metrik punya sumber cara memeriksanya', () => {
+test('SETIAP metrik punya sumber cara memeriksanya', butuhKonten, () => {
   // ── KENAPA INI TES PALING PENTING DI BERKAS INI ───────────────────────────
   // Angka tanpa cara memeriksa sama saja dengan klaim. Seluruh alasan bagian
   // ini ada adalah supaya pengunjung bisa membuktikan sendiri — dan satu
@@ -47,7 +53,7 @@ test('SETIAP metrik punya sumber cara memeriksanya', () => {
   }
 });
 
-test('setiap metrik punya label dan nilai', () => {
+test('setiap metrik punya label dan nilai', butuhKonten, () => {
   for (const [slug, data] of Object.entries(metrikProyek)) {
     for (const m of data.metrik) {
       assert.ok(m.label, `${slug}: ada metrik tanpa label`);
@@ -58,7 +64,7 @@ test('setiap metrik punya label dan nilai', () => {
 
 /* ══ 2. JENIS METRIK JUJUR ═════════════════════════════════════════════════ */
 
-test('setiap metrik punya jenis yang sah', () => {
+test('setiap metrik punya jenis yang sah', butuhKonten, () => {
   const sah = new Set(['terukur', 'klaim-repo']);
 
   for (const [slug, data] of Object.entries(metrikProyek)) {
@@ -71,7 +77,7 @@ test('setiap metrik punya jenis yang sah', () => {
   }
 });
 
-test('metrik "terukur" punya sumber berupa perintah atau lokasi', () => {
+test('metrik "terukur" punya sumber berupa perintah atau lokasi', butuhKonten, () => {
   // ── KENAPA DIBEDAKAN DARI "klaim-repo" ────────────────────────────────────
   // "saya ukur" berarti saya menjalankan perintahnya sendiri. Sumbernya harus
   // berupa perintah yang bisa dijalankan ulang, atau lokasi yang bisa dibuka —
@@ -101,7 +107,7 @@ test('metrik "terukur" punya sumber berupa perintah atau lokasi', () => {
 
 /* ══ 3. TIDAK ADA KLAIM DAMPAK BISNIS ══════════════════════════════════════ */
 
-test('TIDAK ADA metrik dampak bisnis yang tidak bisa dibuktikan', () => {
+test('TIDAK ADA metrik dampak bisnis yang tidak bisa dibuktikan', butuhKonten, () => {
   // ── KENAPA INI DIJAGA KETAT ───────────────────────────────────────────────
   // "Menghemat 12 jam per minggu" mengandaikan kita tahu berapa jam yang dipakai
   // SEBELUM sistemnya — dan kita tidak tahu: tidak ada klien, tidak ada
@@ -136,7 +142,7 @@ test('TIDAK ADA metrik dampak bisnis yang tidak bisa dibuktikan', () => {
 
 /* ══ 4. CATATAN KEJUJURAN ADA ══════════════════════════════════════════════ */
 
-test('catatan kejujuran ada dan menyebut yang TIDAK ada', () => {
+test('catatan kejujuran ada dan menyebut yang TIDAK ada', butuhKonten, () => {
   // ── KENAPA CATATAN INI WAJIB ──────────────────────────────────────────────
   // Daftar angka tanpa keterangan terlihat seperti pameran. Yang membuatnya
   // berguna adalah penjelasan APA yang TIDAK ada di sana — dan itu yang jarang

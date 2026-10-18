@@ -31,9 +31,10 @@ import { tokenProblem, issueToken } from './tokens.mjs';
 import { cariPengguna } from './users.mjs';
 import { config } from './config.mjs';
 import { projectDetails } from './project-details.mjs';
-import { metrikProyek, catatanMetrik } from '../../assets/js/data/metrik.js';
-import { alurProyek, JENIS_LANGKAH } from '../../assets/js/data/alur.js';
-import { contohParts, contohMovements } from '../../assets/js/data/sandbox.js';
+import {
+  metrikProyek, catatanMetrik, alurProyek, jenisLangkah,
+  sandboxData,
+} from './evidence.mjs';
 
 /**
  * Nama cookie sesi. Sama dengan yang dipakai auth-routes.mjs.
@@ -455,10 +456,11 @@ export function ruteKlien() {
         const owner = config.ownerEmails.includes(pengguna.email.trim().toLowerCase());
         const allowed = new Set(access.berbayar || owner ? listProjects().map(p => p.slug) : access.proyek);
         const filter = source => Object.fromEntries(Object.entries(source).filter(([slug]) => allowed.has(slug)));
+        const sandbox = sandboxData();
         return sendJson(res, 200, { ok: true,
-          metrikProyek: filter(metrikProyek), alurProyek: filter(alurProyek),
-          catatanMetrik, jenisLangkah: JENIS_LANGKAH,
-          sandbox: allowed.has('spareparts') ? { parts: contohParts, movements: contohMovements } : null,
+          metrikProyek: filter(metrikProyek()), alurProyek: filter(alurProyek()),
+          catatanMetrik: catatanMetrik(), jenisLangkah: jenisLangkah(),
+          sandbox: allowed.has('spareparts') ? { parts: sandbox.parts, movements: sandbox.movements } : null,
         });
       }),
     },

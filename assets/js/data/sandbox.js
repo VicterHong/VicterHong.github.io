@@ -49,28 +49,10 @@
  *
  * Semua angka dan nama di sini dibuat untuk demo.
  */
-export const contohParts = [
-  { kode: 'BRG-1001', nama: 'Bearing 6204', kategori: 'Bearing', stok: 24, min: 10, harga: 45_000, satuan: 'pcs' },
-  { kode: 'BRG-1002', nama: 'Bearing 6305', kategori: 'Bearing', stok: 6, min: 10, harga: 78_000, satuan: 'pcs' },
-  { kode: 'VLT-2001', nama: 'V-Belt A-42', kategori: 'Belt', stok: 15, min: 8, harga: 62_000, satuan: 'pcs' },
-  { kode: 'VLT-2002', nama: 'V-Belt B-55', kategori: 'Belt', stok: 3, min: 8, harga: 95_000, satuan: 'pcs' },
-  { kode: 'OLI-3001', nama: 'Oli Mesin SAE 40', kategori: 'Pelumas', stok: 42, min: 12, harga: 55_000, satuan: 'liter' },
-  { kode: 'OLI-3002', nama: 'Grease Lithium EP2', kategori: 'Pelumas', stok: 9, min: 6, harga: 120_000, satuan: 'kg' },
-  { kode: 'FLT-4001', nama: 'Filter Udara', kategori: 'Filter', stok: 18, min: 5, harga: 135_000, satuan: 'pcs' },
-  { kode: 'FLT-4002', nama: 'Filter Oli', kategori: 'Filter', stok: 4, min: 6, harga: 88_000, satuan: 'pcs' },
-  { kode: 'SLN-5001', nama: 'Seal Kit Hidrolik', kategori: 'Seal', stok: 11, min: 4, harga: 210_000, satuan: 'set' },
-  { kode: 'SLN-5002', nama: 'O-Ring 50mm', kategori: 'Seal', stok: 65, min: 20, harga: 12_000, satuan: 'pcs' },
-];
+export const contohParts = [];
 
 /** Pergerakan stok contoh — riwayat yang menjelaskan keadaan sekarang. */
-export const contohMovements = [
-  { tanggal: '2026-10-14', kode: 'BRG-1001', jenis: 'masuk', jumlah: 20, oleh: 'Andi', catatan: 'Pembelian rutin' },
-  { tanggal: '2026-10-14', kode: 'VLT-2002', jenis: 'keluar', jumlah: 5, oleh: 'Budi', catatan: 'Perawatan mesin #3' },
-  { tanggal: '2026-10-13', kode: 'OLI-3001', jenis: 'keluar', jumlah: 8, oleh: 'Andi', catatan: 'Servis berkala' },
-  { tanggal: '2026-10-13', kode: 'FLT-4002', jenis: 'keluar', jumlah: 6, oleh: 'Budi', catatan: 'Ganti filter' },
-  { tanggal: '2026-10-12', kode: 'SLN-5001', jenis: 'masuk', jumlah: 4, oleh: 'Andi', catatan: 'Stok cadangan' },
-  { tanggal: '2026-10-12', kode: 'BRG-1002', jenis: 'keluar', jumlah: 4, oleh: 'Cahyo', catatan: 'Perbaikan conveyor' },
-];
+export const contohMovements = [];
 
 /* ══ PERHITUNGAN DEMO ══════════════════════════════════════════════════════ */
 
