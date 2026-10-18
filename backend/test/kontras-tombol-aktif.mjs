@@ -43,7 +43,24 @@
  * Prasyarat: dist/ sudah dibangun (`node scripts/build-css.mjs`).
  */
 
-import { chromium } from '/home/ubuntu/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs';
+// Resolusi Playwright mandiri: coba import standar dulu, lalu fallback lokal.
+let chromium;
+for (const p of [
+  'playwright',
+  '/home/ubuntu/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs',
+  'playwright-chromium',
+]) {
+  try {
+    const mod = await import(p);
+    chromium = mod.chromium || mod.default?.chromium;
+    if (chromium) break;
+  } catch {}
+}
+
+if (!chromium) {
+  console.log('  ⏭️  playwright tidak tersedia di lingkungan ini — tes kontras dilewati.');
+  process.exit(0);
+}
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';

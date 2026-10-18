@@ -11,6 +11,7 @@
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs && node test/alur-jatah-metrik.mjs && node test/gratis-otomatis-e2e.mjs",
     "test:kontras": "node test/kontras-tombol-aktif.mjs",
+    "test:cls": "node test/cls-pricing.mjs",
     "test:backup-drill": "node scripts/backup-restore-drill.mjs",
     "check": "node --check src/server.mjs && node --check src/db.mjs && node --check src/tokens.mjs && node --check src/guard.mjs && node --check src/audit.mjs && node --check src/content.mjs && node --check src/config.mjs && node --check src/routes.mjs && node --check src/http-util.mjs && node --check src/admin-cli.mjs && node --check src/avatar.mjs && node --check src/media.mjs && node --check src/paket-akun.mjs && node --check src/pricing.mjs && node --check src/langganan.mjs && node --check src/akses-proyek.mjs",
     "admin": "node src/admin-cli.mjs",
