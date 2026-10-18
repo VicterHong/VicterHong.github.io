@@ -26,17 +26,22 @@ const STATE_DIR = join(homedir(), '.portfolio-token');
 const STATE_FILE = join(STATE_DIR, 'uptime-state.json');
 const LOG_FILE = join(STATE_DIR, 'uptime.log');
 
-// Alamat backend dibaca dari backend-url.json di repo — berkas itu diperbarui
-// otomatis oleh skrip tunnel setiap kali URL quick tunnel berubah. Hardcode
-// alamat tunnel akan membuat monitor ini berbohong setelah tunnel restart.
+// Alamat backend dipasok eksplisit atau dibaca dari backend-url.json.
+// Jangan fallback ke tunnel lama: monitor yang memeriksa origin mati memberi
+// sinyal palsu dan menyamarkan gangguan backend yang sebenarnya.
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-let backendBase = 'https://translation-davidson-searches-prescription.trycloudflare.com';
+let configuredBackend = process.env.BACKEND_URL?.trim() || '';
 try {
   const data = JSON.parse(readFileSync(join(REPO, 'backend-url.json'), 'utf8'));
-  if (typeof data?.api_base === 'string' && data.api_base.startsWith('http')) {
-    backendBase = data.api_base.replace(/\/$/, '');
+  configuredBackend ||= typeof data?.api_base === 'string' ? data.api_base.trim() : '';
+} catch { /* URL tidak terkonfigurasi: readiness akan gagal dengan pesan jelas */ }
+let backendBase = '';
+try {
+  const candidate = new URL(configuredBackend);
+  if (candidate.protocol === 'https:') {
+    backendBase = candidate.origin;
   }
-} catch { /* pakai fallback */ }
+} catch { /* URL tidak sah: readiness akan gagal dengan pesan jelas */ }
 
 const TARGETS = [
   {
@@ -56,7 +61,7 @@ const TARGETS = [
     // "proses hidup". Kalau database terkunci, pengunjung tidak bisa
     // dilayani walau prosesnya hidup — itu yang ingin kita ketahui.
     name: 'backend',
-    url: `${backendBase}/api/ready`,
+    url: backendBase ? `${backendBase}/api/ready` : null,
     expect: (body) => {
       try {
         const d = JSON.parse(body);
@@ -87,6 +92,7 @@ function log(line) {
 }
 
 async function check(target) {
+  if (!target.url) return { up: false, detail: 'BACKEND_URL/backend-url.json tidak tersedia atau bukan HTTPS', ms: 0 };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 12_000);
   const started = Date.now();
