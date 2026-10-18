@@ -1816,6 +1816,18 @@ export const routes = [
       const country = clientCountry(req);
       const deviceFp = String(body.device_fp ?? '').slice(0, 200);
 
+      // Gerbang status untuk jalur token: token yang identitasnya sudah
+      // dinonaktifkan tidak boleh menghasilkan sesi baru. Tanpa ini, token
+      // lama menjadi pintu belakang yang melewati status akun.
+      const pemilikToken = cariPengguna(identity);
+      if (pemilikToken && pemilikToken.status !== 'aktif') {
+        return sendJson(res, 403, {
+          ok: false,
+          error: pemilikToken.status === 'menunggu_hapus' ? 'menunggu_hapus' : 'akun_nonaktif',
+          message: 'Akun ini tidak aktif. Login diblokir.',
+        });
+      }
+
       // Geo dari header Cloudflare — hanya tersedia saat request berlangsung.
       const geo = clientGeo(req);
       // Deteksi perangkat dari klien — Client Hints + sinyal layar. Ini yang
@@ -2062,47 +2074,6 @@ export const routes = [
         });
       }
 
-      if (user.status !== 'aktif') {
-        // ── AKUN DALAM MASA TENGGANG — TAWARKAN PEMBATALAN ────────────────────
-        //
-        // ── KENAPA TIDAK SEKADAR MENOLAK ──────────────────────────────────────
-        //
-        // Versi pertama menolak SEMUA status non-aktif dengan "Hubungi admin."
-        // Untuk akun yang menunggu hapus, itu JALAN BUNTU: pengguna tidak
-        // bisa masuk, tidak bisa membatalkan, dan tidak tahu harus apa.
-        //
-        // Masa tenggang 30 hari hanya berguna kalau ada jalan pulang. Tanpa
-        // pembatalan, ia cuma memperlambat penghapusan.
-        //
-        // ── KENAPA SANDINYA TETAP DIPERIKSA DULU ──────────────────────────────
-        //
-        // Kode di atas sudah memverifikasi sandi sebelum mencapai baris ini.
-        // Jadi yang bisa membatalkan hanyalah orang yang tahu sandinya —
-        // bukan siapa pun yang menebak alamat emailnya.
-        if (user.status === 'menunggu_hapus') {
-          const HARI = 24 * 60 * 60 * 1000;
-          const batasMs = Number(user.dihapus_pada || 0) + 30 * HARI;
-          const sisaMs = batasMs - Date.now();
-          const sisaHari = sisaMs <= 0 ? 0 : Math.ceil(sisaMs / HARI);
-
-          return sendJson(res, 403, {
-            ok: false,
-            error: 'menunggu_hapus',
-            message: sisaHari > 0
-              ? `Akun ini dijadwalkan terhapus dalam ${sisaHari} hari. Anda bisa membatalkannya.`
-              : 'Akun ini sedang dalam proses penghapusan.',
-            menunggu_hapus: true,
-            sisa_hari: sisaHari,
-            bisa_dibatalkan: sisaHari > 0,
-          });
-        }
-
-        return sendJson(res, 403, {
-          ok: false, error: 'akun_nonaktif',
-          message: 'Akun ini tidak aktif. Hubungi admin.',
-        });
-      }
-
       // ── Terkunci karena terlalu banyak kegagalan? ──────────────────────────
       const sisa = sisaKunci(user.id);
       if (sisa > 0) {
@@ -2130,6 +2101,41 @@ export const routes = [
 
       // ── Berhasil ───────────────────────────────────────────────────────────
       catatMasukBerhasil(user.id);
+
+      // ── GERBANG STATUS: SETELAH SANDI TERBUKTI, SEBELUM SESI DIBUAT ────────
+      //
+      // Ditempatkan DI SINI, bukan sebelum verifikasi sandi, karena dua alasan:
+      //
+      //   1. Keamanan — kalau status diperiksa lebih dulu, siapa pun yang tahu
+      //      sebuah alamat email bisa mengetahui apakah akun itu dinonaktifkan
+      //      tanpa perlu tahu sandinya (user enumeration).
+      //   2. Alur pemulihan — panel "batalkan penghapusan" hanya boleh muncul
+      //      untuk orang yang benar-benar pemilik akun, dan itu dibuktikan
+      //      oleh sandi.
+      if (user.status !== 'aktif') {
+        if (user.status === 'menunggu_hapus') {
+          const HARI = 24 * 60 * 60 * 1000;
+          const batasMs = Number(user.dihapus_pada || 0) + 30 * HARI;
+          const sisaMs = batasMs - Date.now();
+          const sisaHari = sisaMs <= 0 ? 0 : Math.ceil(sisaMs / HARI);
+
+          return sendJson(res, 403, {
+            ok: false,
+            error: 'menunggu_hapus',
+            message: sisaHari > 0
+              ? `Akun ini dijadwalkan terhapus dalam ${sisaHari} hari. Anda bisa membatalkannya.`
+              : 'Akun ini sedang dalam proses penghapusan.',
+            menunggu_hapus: true,
+            sisa_hari: sisaHari,
+            bisa_dibatalkan: sisaHari > 0,
+          });
+        }
+
+        return sendJson(res, 403, {
+          ok: false, error: 'akun_nonaktif',
+          message: 'Akun ini tidak aktif. Hubungi admin.',
+        });
+      }
 
       // ── Gerbang 2FA ────────────────────────────────────────────────────────
       // Sama seperti alur token: kalau identitas ini punya 2FA aktif, JANGAN
@@ -2260,6 +2266,42 @@ export const routes = [
       }
 
       catatMasukBerhasil(user.id);
+
+      // ── GERBANG STATUS: RUTE INI JUGA MEMBUAT SESI ─────────────────────────
+      //
+      // Pengguna ber-2FA TIDAK melewati /api/auth/masuk — mereka melewati rute
+      // ini. Tanpa pemeriksaan di sini, akun yang sudah dinonaktifkan tetap
+      // mendapat sesi + cookie hanya karena punya authenticator, lalu langsung
+      // dialihkan ke beranda TANPA satu pun peringatan.
+      //
+      // Diperiksa SETELAH sandi dan kode 2FA terbukti benar, supaya pesan
+      // status tidak membocorkan keadaan akun kepada orang yang tidak tahu
+      // kredensialnya.
+      if (user.status !== 'aktif') {
+        recordEvent({
+          action: 'auth_masuk_2fa', outcome: user.status || 'nonaktif',
+          ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        });
+        if (user.status === 'menunggu_hapus') {
+          const HARI = 24 * 60 * 60 * 1000;
+          const sisaMs = Number(user.dihapus_pada || 0) + 30 * HARI - Date.now();
+          const sisaHari = sisaMs <= 0 ? 0 : Math.ceil(sisaMs / HARI);
+          return sendJson(res, 403, {
+            ok: false, error: 'menunggu_hapus',
+            message: sisaHari > 0
+              ? `Akun ini dijadwalkan terhapus dalam ${sisaHari} hari. Anda bisa membatalkannya.`
+              : 'Akun ini sedang dalam proses penghapusan.',
+            menunggu_hapus: true,
+            sisa_hari: sisaHari,
+            bisa_dibatalkan: sisaHari > 0,
+          });
+        }
+        return sendJson(res, 403, {
+          ok: false, error: 'akun_nonaktif',
+          message: 'Akun ini tidak aktif. Hubungi admin.',
+        });
+      }
+
       const tokenRow = getDb().prepare('SELECT * FROM tokens WHERE id = ?').get(user.token_id);
       if (!tokenRow) return sendJson(res, 500, { ok: false, error: 'identitas_hilang', message: 'Identitas akun tidak ditemukan.' });
 

@@ -919,6 +919,32 @@
       });
 
       if (!hasil.ok) {
+        const kodeGalat = hasil.isi?.error;
+
+        // ── STATUS AKUN: KEMBALI KE PANEL MASUK, BUKAN TETAP DI TOTP ────────
+        //
+        // Kalau akun dinonaktifkan, tidak ada gunanya pengguna mengulang kode
+        // 2FA — kodenya akan selalu benar dan penolakannya selalu sama.
+        // Menahan mereka di panel TOTP membuat mereka mengetik ulang kode
+        // yang berubah setiap 30 detik tanpa hasil.
+        if (kodeGalat === 'akun_nonaktif' || kodeGalat === 'menunggu_hapus') {
+          const emailUntukPulih = emailMasuk;
+          sandiMasuk = '';
+          emailMasuk = '';
+
+          // Masa tenggang: tawarkan pembatalan, bukan sekadar pesan buntu.
+          if (kodeGalat === 'menunggu_hapus' && typeof window.__bukaPulih === 'function') {
+            window.__bukaPulih(emailUntukPulih, hasil.isi?.sisa_hari);
+            getar(kartu);
+            return;
+          }
+
+          pindahPanel('masuk');
+          pesan(msgMasuk, pesanGalat(hasil, 'Akun ini tidak aktif.'), 'galat');
+          getar(kartu);
+          return;
+        }
+
         pesan(msgTotp, pesanGalat(hasil, 'Kode tidak valid.'), 'galat');
         getar(kartu);
         document.querySelectorAll('.auth-otp-cell').forEach((s) => {
@@ -2269,6 +2295,10 @@
       'Akun tidak bisa dibuat saat ini. Coba lagi sebentar lagi.',
     akun_tidak_ditemukan:
       'Akun belum terdaftar. Daftar dulu dengan penyedia ini atau gunakan email dan sandi.',
+    akun_nonaktif:
+      'Akun Anda dinonaktifkan sementara. Login diblokir. Hubungi dukungan untuk meninjau status akun.',
+    akun_menunggu_hapus:
+      'Akun Anda sedang menunggu penghapusan. Login diblokir. Hubungi dukungan untuk meminta pembatalan.',
     ditolak_pengguna:
       '',   // pengguna sendiri yang membatalkan — tidak perlu pesan galat
     terlalu_banyak:

@@ -291,6 +291,20 @@ function tujuanAman(nilai) {
  * sama seperti pendaftaran mandiri — bukan jalur istimewa.
  */
 function buatSesiUntuk(res, req, pengguna, { tujuan = '/', hints = {} } = {}) {
+  // ── GERBANG STATUS: SATU TEMPAT UNTUK SEMUA CARA MASUK ────────────────────
+  //
+  // Fungsi ini adalah chokepoint yang dilalui SEMUA jalur login — sandi,
+  // OAuth, SSO perusahaan, dan passkey. Memeriksa status di masing-masing
+  // handler berarti setiap jalur baru bisa lupa memeriksanya (dan itulah
+  // yang terjadi: OAuth sempat memberi sesi ke akun nonaktif).
+  //
+  // Gagal-tertutup: status apa pun selain 'aktif' tidak mendapat sesi.
+  // Pemanggil WAJIB memeriksa nilai kembalian `null` sebelum mengalihkan
+  // pengguna, dan menampilkan pesan status yang sesuai.
+  if (pengguna?.status !== 'aktif') {
+    return null;
+  }
+
   let tokenRow = getDb()
     .prepare('SELECT * FROM tokens WHERE id = ?')
     .get(pengguna.token_id);
@@ -409,6 +423,12 @@ export function alurOauthDariState(provider, providerState) {
   return '';
 }
 
+export function galatStatusOauth(pengguna) {
+  if (pengguna?.status === 'aktif') return '';
+  if (pengguna?.status === 'menunggu_hapus') return 'akun_menunggu_hapus';
+  return 'akun_nonaktif';
+}
+
 export async function temukanAtauBuatPengguna({ identitas, provider, req, allowCreate = false }) {
   // ── 1. Identitas ini sudah pernah dipakai masuk? ───────────────────────────
   const sudahAda = cariIdentitas(provider, identitas.providerUserId);
@@ -438,6 +458,13 @@ export async function temukanAtauBuatPengguna({ identitas, provider, req, allowC
   if (email && identitas.emailTerverifikasi) {
     const pengguna = cariPengguna(email);
     if (pengguna) {
+      // Jangan sambungkan provider baru ke akun yang dinonaktifkan. Callback
+      // tetap mengenali pemiliknya dan akan menampilkan peringatan, tetapi
+      // keadaan auth_identities tidak berubah selama akun terkunci.
+      if (pengguna.status !== 'aktif') {
+        return { pengguna, dibuat: false, disambungkan: false };
+      }
+
       sambungkanIdentitas({
         userId: pengguna.id,
         jenis: 'oauth', provider,
@@ -665,8 +692,24 @@ function ruteCallback(provider) {
       return gagalKe(res, '/sign-up', 'akun_gagal');
     }
 
+    // Akun nonaktif tidak boleh mendapat sesi baru, termasuk lewat OAuth.
+    // Callback provider adalah jalur berbeda dari POST /api/auth/masuk, jadi
+    // status harus dicek lagi sebelum cookie sesi dibuat.
+    const galatStatus = galatStatusOauth(hasil.pengguna);
+    if (galatStatus) {
+      recordEvent({
+        projectSlug: '', action: 'auth_oauth_masuk', outcome: galatStatus,
+        ip: clientIp(req),
+        userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+        detail: provider,
+      });
+      return gagalKe(res, '/sign-in', galatStatus);
+    }
+
     // ── Sesi + cookie ───────────────────────────────────────────────────────
-    const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: clientHints(req) });
+    const sesi = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: clientHints(req) });
+    if (!sesi) return gagalKe(res, '/sign-in', galatStatusOauth(hasil.pengguna));
+    const { tujuan } = sesi;
 
     recordEvent({
       projectSlug: '', action: 'auth_oauth_masuk',
@@ -985,7 +1028,15 @@ const rutePasskeyMasukSelesai = {
 
     tandaiDipakai(idn.id, hasil.signCountBaru);
 
-    const { tujuan } = buatSesiUntuk(res, req, pengguna, { tujuan: '/', hints: clientHints(req) });
+    const sesi = buatSesiUntuk(res, req, pengguna, { tujuan: '/', hints: clientHints(req) });
+    if (!sesi) {
+      return sendJson(res, 403, {
+        ok: false,
+        error: galatStatusOauth(pengguna),
+        message: 'Akun ini tidak aktif. Login diblokir.',
+      });
+    }
+    const { tujuan } = sesi;
 
     recordEvent({
       projectSlug: '', action: 'auth_passkey_masuk', outcome: 'ok',
@@ -1799,8 +1850,21 @@ function ruteSso() {
 
         if (!hasil.pengguna) return gagalKe(res, '/sign-in', 'akun_tidak_ditemukan');
 
+        const galatStatus = galatStatusOauth(hasil.pengguna);
+        if (galatStatus) {
+          recordEvent({
+            projectSlug: '', action: 'auth_sso_masuk', outcome: galatStatus,
+            ip: clientIp(req),
+            userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
+            detail: String(config.ssoLabel || 'oidc').slice(0, 60),
+          });
+          return gagalKe(res, '/sign-in', galatStatus);
+        }
+
         // ── Sesi + cookie ────────────────────────────────────────────────────
-        const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: clientHints(req) });
+        const sesi = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: clientHints(req) });
+        if (!sesi) return gagalKe(res, '/sign-in', galatStatusOauth(hasil.pengguna));
+        const { tujuan } = sesi;
 
         recordEvent({
           projectSlug: '', action: 'auth_sso_masuk',
