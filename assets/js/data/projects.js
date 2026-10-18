@@ -12,10 +12,10 @@ export const profile = {
   name: 'Victer',
   handle: 'VicterHong',
   role: 'Automation & self-hosted tools developer',
-  tagline: 'Sistem yang tepat. Kendali di tangan Anda.',
+  tagline: 'Saya membangun alat otomasi yang membuat perangkat lama berguna kembali.',
   bio: [
-    'Saya Victer, pengembang otomasi, aplikasi operasional, dan sistem self-hosted.',
-    'Saya menghubungkan kebutuhan operasional dengan perangkat lunak yang jelas alurnya, bisa diuji, dan dapat dikelola sendiri.',
+    'Saya membuat perangkat lunak yang berjalan di tempat Anda sendiri, tanpa langganan, tanpa cloud wajib, dan tetap hidup di laptop 2 GB RAM.',
+    'Fokus saya: sistem yang hemat sumber daya, keamanan yang serius (bukan tempelan), dan alat yang benar-benar dipakai sehari-hari.',
   ],
   location: 'Indonesia',
   links: {
@@ -31,14 +31,14 @@ export const profile = {
  */
 export const about = {
   paragraphs: [
-    'Perangkat lunak seharusnya mengikuti cara Anda bekerja, bukan sebaliknya.',
-    'Saya Victer Hong, lulusan Teknik Komputer dengan pengalaman di inventaris dan logistik suku cadang. Pengalaman operasional itu menjadi dasar saya membangun aplikasi stok, otomasi, dan integrasi pesan.',
-    'Saya menangani alur dari pemetaan kebutuhan hingga implementasi dan dokumentasi. Lingkup, batas sistem, serta bukti pengujian dibicarakan sejak awal.',
+    'Saya Victer, pengembang yang fokus pada alat otomasi dan sistem self-hosted. Saya percaya perangkat lunak yang baik tidak harus menuntut perangkat baru atau langganan bulanan.',
+    'Selama beberapa tahun terakhir saya membangun sistem yang berjalan di perangkat sederhana: remote control yang hidup di laptop 2 GB RAM, bot keluarga dengan kontrol anti-ban berlapis, dan sistem inventaris yang menggantikan pencatatan manual.',
+    'Pendekatan saya sederhana: hemat sumber daya sejak desain, keamanan yang serius bukan tempelan, dan setiap klaim saya siap tunjukkan buktinya saat diminta.',
   ],
   skills: [
     { group: 'Bahasa', items: ['Python', 'JavaScript', 'TypeScript', 'SQL'] },
     { group: 'Backend', items: ['FastAPI', 'Node.js', 'PostgreSQL', 'SQLite'] },
-    { group: 'Web interaktif', items: ['Canvas 2D', 'CSS 3D', 'JavaScript', 'Responsive UI'] },
+    { group: 'Creative 3D', items: ['Three.js', 'GSAP', 'Lenis Scroll', 'Strix Pentest'] },
     { group: 'Infrastruktur', items: ['Docker', 'systemd', 'Linux', 'Cloudflare'] },
     { group: 'Integrasi', items: ['Telegram', 'Discord', 'WhatsApp', 'n8n'] },
   ],
@@ -73,13 +73,13 @@ export const services = [
     icon: 'shield',
   },
   {
-    title: 'Web interaktif & visual 3D',
-    body: 'Visual produk dan model 3D interaktif untuk web. Dengan kontrol keyboard, versi statis, dan gerak yang mengikuti preferensi pengunjung.',
+    title: '3D Web & Creative Motion',
+    body: 'Antarmuka web interaktif dengan Three.js, WebGL shader, animasi fisika 3D, dan smooth velocity scroll (Lenis) yang tetap enteng di perangkat hemat daya.',
     icon: 'layers',
   },
   {
-    title: 'Implementasi & dokumentasi',
-    body: 'Penyiapan layanan, panduan pengoperasian, dan catatan perubahan agar sistem bisa diteruskan dan dipelihara dengan konteks yang jelas.',
+    title: 'Audit Keamanan AI & Pentest',
+    body: 'Pengujian penetrasi dinamis multi-agent AI (standar Strix) untuk membongkar celah keamanan aplikasi vibe-coded dan membersihkan jejak watermark data sebelum rilis.',
     icon: 'code',
   },
 ];
@@ -105,7 +105,7 @@ export const projects = [
     summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun, shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
     problem: 'Perangkat lama sering dianggap sampah karena tidak sanggup menjalankan alat modern. Padahal dengan desain yang hemat, ia masih bisa jadi server pribadi yang berguna.',
     highlights: [], // populated only from an entitled API response
-    metrics: [], // Evidence is hydrated only by the entitled API.
+    metrics: [],
     stack: ['Python', 'HMAC-SHA256', 'stdlib only', 'Telegram', 'Discord'],
     repo: 'https://github.com/VicterHong/mina-remote-control',
     accent: 'amina',
@@ -141,7 +141,7 @@ export const projects = [
     summary: 'Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Bisa mendengar pesan suara, mencari berita sendiri, dan membaca isi tautan yang dibagikan.',
     problem: 'Bot grup biasanya berisik dan rawan diblokir. Yang ini dirancang untuk diam sampai dipanggil, dan tahan lama.',
     highlights: [],
-    metrics: [], // Evidence is hydrated only by the entitled API.
+    metrics: [],
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
     accent: 'wa',
@@ -290,7 +290,6 @@ export const visiMisi = {
       teks: 'Bukan tangkapan layar. Tiga sistem yang bisa Anda jalankan sendiri, dijaga {tes} yang lulus sebelum apa pun dirilis.',
       angka: [
         { nilai: 3, teks: '3 sistem', label: 'sistem yang bisa dijalankan' },
-
       ],
     },
     {

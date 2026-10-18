@@ -107,17 +107,10 @@ function renderAbout() {
   const skillsHost = $('#aboutSkills');
   if (!skillsHost) return;
 
-  if (document.body.classList.contains('studio-page')) {
-    const panel = el('dl', { class: 'studio-skill-panel', 'aria-label': 'Teknologi yang digunakan' });
-    for (const group of about.skills) {
-      panel.append(el('div', {}, el('dt', { text: group.group }), el('dd', { text: group.items.join(' / ') })));
-    }
-    skillsHost.append(panel);
-  } else {
-    const panel = createTiltPanel(techGroups, techLogos, createTechCard);
-    skillsHost.append(panel);
-    initTechPulse(skillsHost);
-  }
+  const panel = createTiltPanel(techGroups, techLogos, createTechCard);
+  skillsHost.append(panel);
+
+  initTechPulse(skillsHost);
 }
 
 /** Pulse saat logo diklik — jalan di semua perangkat, termasuk sentuh. */
@@ -214,13 +207,6 @@ function renderProjectArt(p, lihatAngka = false) {
     top.append(el('p', { class: 'project-art__label', text: p.artLabel ?? 'Proyek' }));
   }
   art.append(top);
-
-  if (document.body.classList.contains('studio-page')) {
-    const kind = p.slug === 'spareparts' ? 'inventory' : p.slug === 'whatsapp-bot' ? 'network' : 'core';
-    const object = el('div', { class: `studio-art-object studio-art-object--${kind}`, 'aria-hidden': 'true' });
-    for (let i = 0; i < (kind === 'inventory' ? 6 : 3); i++) object.append(el('i'));
-    art.append(object);
-  }
 
   // Baris bawah: stack sebagai chip
   const stack = el('div', { class: 'project-art__stack project-art__detail' });
@@ -860,9 +846,6 @@ for (const node of document.querySelectorAll('.misi-daftar')) {
   node.dataset.stagger = '';
 }
 
-// A single scene carries the studio motion. Keep legacy decorative engines
-// for other pages without running stacked tilt/grain/parallax loops here.
-if (!document.body.classList.contains('studio-page')) {
 // Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
 initAstra();
 
@@ -938,7 +921,6 @@ initAllVideoPlayers();
 // Masonry portfolio layout — staggered grid (FASE 3). Dipanggil
 // setelah content rendered supaya items sudah ada.
 initMasonry();
-}
 
 // Core Web Vitals — ukur performa nyata dari pengunjung (Framer Performance).
 // Ringan: hanya 5 metrik, dikirim sekali per halaman via sendBeacon.
@@ -1030,7 +1012,7 @@ initRipple();
 
 // Efek sinematik (teknik PRIOR, vanilla) — clip reveal, parallax, text stagger,
 // scroll-scrub video, hero fade. Semua hormati prefers-reduced-motion.
-if (!document.body.classList.contains('studio-page')) initCinematic();
+initCinematic();
 
 // Tandai section aktif di navigasi saat menggulir (audit desain P1-6).
 // Pakai IntersectionObserver, BUKAN listener scroll — proyek ini punya satu

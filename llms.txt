@@ -1,11 +1,11 @@
 # Victer
 
-> Sistem yang tepat. Kendali di tangan Anda.
+> Saya membangun alat otomasi yang membuat perangkat lama berguna kembali.
 
 ## Ringkasan
 
-Saya Victer, pengembang otomasi, aplikasi operasional, dan sistem self-hosted.
-Saya menghubungkan kebutuhan operasional dengan perangkat lunak yang jelas alurnya, bisa diuji, dan dapat dikelola sendiri.
+Saya membuat perangkat lunak yang berjalan di tempat Anda sendiri, tanpa langganan, tanpa cloud wajib, dan tetap hidup di laptop 2 GB RAM.
+Fokus saya: sistem yang hemat sumber daya, keamanan yang serius (bukan tempelan), dan alat yang benar-benar dipakai sehari-hari.
 
 Fokus: perangkat lunak self-hosted, hemat sumber daya, keamanan serius.
 Lokasi: Indonesia.
@@ -24,8 +24,8 @@ Lokasi: Indonesia.
 - **Bot & integrasi**: Bot Telegram, Discord, atau WhatsApp yang terhubung ke sistem Anda. Reaktif, tidak berisik, dengan kontrol anti-ban berlapis.
 - **Sistem self-hosted**: Aplikasi yang berjalan di server atau perangkat Anda sendiri, tanpa langganan, tanpa ketergantungan cloud yang wajib.
 - **Audit & perbaikan**: Meninjau sistem yang sudah berjalan: menemukan titik lemah keamanan, pemborosan sumber daya, dan bagian yang rapuh.
-- **Web interaktif & visual 3D**: Visual produk dan model 3D interaktif untuk web. Dengan kontrol keyboard, versi statis, dan gerak yang mengikuti preferensi pengunjung.
-- **Implementasi & dokumentasi**: Penyiapan layanan, panduan pengoperasian, dan catatan perubahan agar sistem bisa diteruskan dan dipelihara dengan konteks yang jelas.
+- **3D Web & Creative Motion**: Antarmuka web interaktif dengan Three.js, WebGL shader, animasi fisika 3D, dan smooth velocity scroll (Lenis) yang tetap enteng di perangkat hemat daya.
+- **Audit Keamanan AI & Pentest**: Pengujian penetrasi dinamis multi-agent AI (standar Strix) untuk membongkar celah keamanan aplikasi vibe-coded dan membersihkan jejak watermark data sebelum rilis.
 
 ## Halaman penting
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIVASTIC | Automation &amp; Self-hosted Tools</title>
-<meta name="description" content="Portofolio Victer Hong: otomasi alur kerja, aplikasi operasional, sistem self-hosted, dan visual 3D interaktif. Lingkup jelas, hasil yang bisa diperiksa.">
+<meta name="description" content="Perangkat lunak self-hosted yang berjalan di mesin Anda sendiri. MINA, Spareparts Inventory, dan alat otomasi lain tanpa langganan bulanan.">
 <meta name="author" content="VIVASTIC">
 <meta name="theme-color" content="#0a0a0b">
 <link rel="canonical" href="https://portfolio-victer.pages.dev/home">
@@ -114,7 +114,6 @@
 <link rel="stylesheet" href="assets/css/orb-3d.css">
 <link rel="stylesheet" href="assets/css/gerbang-akses.css">
 <link rel="stylesheet" href="assets/css/skip-link.css">
-<link rel="stylesheet" href="assets/css/studio.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
   // kedipan konten sebelum overlay verifikasi muncul (pola Cloudflare).
@@ -129,11 +128,21 @@
   } catch (e) { /* mode privasi ketat: tampilkan halaman apa adanya */ }
 </script>
 </head>
-<body class="studio-page">
+<body>
 <a class="skip-link" href="#zs6xae">Lompat ke konten</a>
 
-<!-- Static atmosphere: the interactive solid model is the only hero motion. -->
-<div class="studio-atmosphere" aria-hidden="true"></div>
+<!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
+     Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
+<div class="hero-backdrop" aria-hidden="true">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg">
+    <!-- Sumber diisi oleh app.js kalau berkasnya ada. MP4 untuk kompatibilitas, WebM untuk ukuran kecil. -->
+    <!-- Desktop: scroll-scrub. Mobile: autoplay loop (lihat cinematic.js). -->
+    <!-- Poster: frame terang — supaya background tidak terlihat polos saat
+         autoplay diblokir browser (mode hemat baterai/data). -->
+  </video>
+  <div class="hero-fallback"></div>
+  <div class="hero-grain"></div>
+</div>
 
 <header class="site-header">
   <div class="site-header-inner">
@@ -142,10 +151,13 @@
       <span class="brand-text">VIVASTIC</span>
     </a>
     <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
-      <a href="#utqvwf">Proyek</a>
-      <a href="#cckxsk">Kapabilitas</a>
       <a href="#s6ahns">Tentang</a>
+      <a href="#utqvwf">Proyek</a>
+      <a href="#cckxsk">Layanan</a>
+      <a href="/pricing">Harga</a>
+      <a href="#5nfyzw">Proses</a>
       <a href="/docs">Dokumentasi</a>
+      <a href="/changelog">Changelog</a>
       <a href="#89fk39">Kontak</a>
     </nav>
     <!-- Grup akun — TERPISAH dari nav. -->
@@ -165,43 +177,66 @@
 
 <main id="zs6xae" tabindex="-1">
 
-  <!-- Public concept model: original geometry, no private topology or invented telemetry. -->
-  <section class="hero studio-hero" aria-labelledby="hero-title">
+  <!-- ── PEMBUKA ─────────────────────────────────────────────────────────────
+       Dua kolom: kiri menjelaskan, kanan MEMBUKTIKAN. Terminal window berisi
+       output nyata MINA — pola hero yang dipakai Framer/Vercel/Linear:
+       jangan cuma bilang "saya bangun alat", tunjukkan alatnya bekerja. -->
+  <section class="hero" aria-labelledby="hero-title">
     <div class="hero-copy">
-      <p class="hero-kicker"><span class="studio-rule" aria-hidden="true"></span> Independent engineering · Indonesia</p>
-      <h1 class="hero-title" id="hero-title">Sistem yang tepat.<br><span class="accent">Kendali milik Anda.</span></h1>
-      <p class="hero-lede">Saya Victer. Saya merancang otomasi, aplikasi operasional, dan pengalaman web interaktif. Dari alur kerja sehari-hari hingga sistem yang bisa Anda kelola sendiri.</p>
+      <p class="hero-kicker">Automation &amp; self-hosted tools</p>
+      <h1 class="hero-title" id="hero-title" data-cine-words>
+        Perangkat lunak yang berjalan di <span class="accent">mesin Anda sendiri</span>, bukan di cloud orang lain.
+      </h1>
+      <p class="hero-lede">
+        Tanpa langganan, tanpa tagihan bulanan, tanpa data yang keluar dari jaringan Anda.
+        Aplikasi inventaris, asisten pesan, dan alat otomasi yang tetap hidup di laptop
+        2&nbsp;GB RAM.
+      </p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="#utqvwf">Jelajahi proyek <span aria-hidden="true">↗</span></a>
-        <a class="studio-text-link" href="#89fk39">Diskusikan kebutuhan <span aria-hidden="true">↗</span></a>
+        <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
+        <a class="btn btn-ghost" href="https://github.com/VicterHong" target="_blank" rel="noopener">GitHub</a>
       </div>
-      <div class="studio-hero-signature"><span>VIVASTIC / Victer Hong</span><span>Software &amp; systems engineering</span></div>
+
+      <!-- Angka ringkas. Dihitung dari data proyek, bukan diketik manual. -->
+      <dl class="hero-stats" id="heroStats"></dl>
     </div>
-    <figure class="studio-model" data-studio-model aria-labelledby="studio-model-title">
-      <div class="studio-model-head"><span class="studio-model-index">Design study / 01</span><span class="studio-model-badge">Interactive 3D</span></div>
-      <div class="studio-model-viewport">
-        <img class="studio-model-poster" src="/assets/studio-core.svg" width="640" height="520" alt="Model konseptual modul komputasi berlapis dengan penutup logam emas.">
-        <canvas id="heroOrbCanvas" class="studio-model-canvas" width="640" height="520" tabindex="0" role="img" aria-label="Model 3D konseptual. Gunakan tombol panah untuk memutar, Home untuk mengatur ulang." aria-describedby="studio-model-help"></canvas>
-        <span class="studio-model-axis" aria-hidden="true">Y<br>└── X</span>
-        <span class="studio-model-note">Original procedural model<br>Bukan data sistem produksi</span>
+
+    <div class="hero-visual" aria-hidden="true" data-melayang>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">mina@home:~</span>
+        </div>
+        <div class="terminal-orb-wrap" id="heroOrbWrap">
+          <canvas id="heroOrbCanvas" class="hero-orb-canvas" width="460" height="190" aria-label="Simulasi 3D Neural Mesh"></canvas>
+          <div class="orb-telemetry">
+            <span class="orb-pulse-dot" aria-hidden="true"></span>
+            <span class="orb-telemetry-text">NEURAL 3D CORE &middot; DRAG TO ROTATE</span>
+          </div>
+          <div class="orb-hint">&bull; 320 NODES 3D MESH</div>
+        </div>
+        <div class="terminal-body">
+          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina status</span></p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Proses aktif &middot; 24&nbsp;MB RAM</p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Telegram, Discord terhubung</p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Berjalan sejak 47 hari lalu</p>
+          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina run backup</span></p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="12"></span> Selesai dalam 1,8&nbsp;detik</p>
+          <p class="tline tdim">Log lengkap dan cara menjalankannya ada di dokumentasi.</p>
+          <p class="tline tcaret"><span class="tprompt">$</span> <span class="caret"></span></p>
+        </div>
       </div>
-      <figcaption class="studio-model-caption"><div><span class="studio-caption-label">Form follows function</span><h2 id="studio-model-title" data-model-name>Control core</h2></div><button class="studio-reset" type="button" data-model-reset aria-label="Atur ulang sudut model">↺</button></figcaption>
-      <div class="studio-model-controls" role="group" aria-label="Pilih model konseptual">
-        <button type="button" data-model-kind="core" aria-pressed="true">01 Core</button>
-        <button type="button" data-model-kind="inventory" aria-pressed="false">02 Inventory</button>
-        <button type="button" data-model-kind="network" aria-pressed="false">03 Network</button>
-      </div>
-      <div class="studio-model-bottom"><p id="studio-model-help">Seret untuk memutar · Panah untuk keyboard</p><button type="button" data-model-pause aria-pressed="false">Jeda animasi</button></div>
-    </figure>
+    </div>
   </section>
-  <div class="studio-disciplines" aria-label="Bidang keahlian"><span>Automation</span><span>Self-hosted systems</span><span>Operational software</span><span>Interactive web</span></div>
 
   <!-- ── TENTANG ─────────────────────────────────────────────────────────────
        Pembaca perlu tahu ini siapa SEBELUM melihat proyek. Urutan standar
        portofolio: perkenalan → layanan → bukti kerja → cara kerja → kontak. -->
   <section class="section" id="s6ahns" aria-labelledby="about-title" data-cine-clip>
     <div class="section-head">
-      <div><span class="studio-label">01 / Tentang</span><h2 class="section-title" id="about-title">Teknis yang berpijak<br>pada kebutuhan nyata.</h2></div>
+      <h2 class="section-title" id="about-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Tentang</h2>
     </div>
     <div class="about-layout">
       <div class="about-body" id="aboutBody"></div>
@@ -218,8 +253,10 @@
        seragam yang membuat semuanya terlihat sama penting. -->
   <section class="section" id="utqvwf" aria-labelledby="work-title">
     <div class="section-head">
-      <div><span class="studio-label">02 / Selected work</span><h2 class="section-title" id="work-title">Dari kebutuhan,<br>menjadi sistem.</h2></div>
-      <p class="section-note">Pilihan proyek otomasi, inventaris, dan integrasi pesan. Baca konteksnya di sini; bukti teknis dan detail akses tersedia melalui akun.</p>
+      <h2 class="section-title" id="work-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Proyek</h2>
+      <p class="section-note" data-reveal>
+        Angka di bawah berasal dari hasil uji terakhir. Kode sumbernya privat, saya tunjukkan saat diminta.
+      </p>
     </div>
 
     <div id="featuredProjects" class="projects-bento"></div>
@@ -324,7 +361,7 @@
     <!-- Carousel spotlight: gambaran cepat seluruh koleksi. Ditaruh SEBELUM
          kartu bento — carousel untuk menjelajah, bento untuk membaca detail.
          Diisi oleh renderSpotlight() di app.js. -->
-    <!-- Media gallery remains available in the earlier design; avoid a duplicate project carousel here. -->
+    <div id="spotlightHost"></div>
 
     <div class="side-projects" id="sideProjects" role="region" aria-label="Proyek pendukung"></div>
 
@@ -585,11 +622,6 @@
 </footer>
 
 <script type="module" src="assets/js/app.js"></script>
-<script type="module">
-  // Independent from account/API loading: the model is public, synthetic design.
-  import { initStudio3D } from '/assets/js/studio-3d.js';
-  initStudio3D();
-</script>
 <!-- Badge CI: mengambil status pipeline dari /api/ci/status. Dimuat sebagai
      modul terpisah supaya kegagalannya tidak menghentikan app.js — badge yang
      tidak bisa dimuat tidak boleh membuat seluruh halaman kosong. -->
@@ -621,9 +653,34 @@
     pasangSandbox('sandboxHost');
   }
 
-  // The public concept model has its own independent loader. The existing
-  // owner-only lab still uses its original renderer and authorization flow.
-  import { pasangLab3d } from '/assets/js/orb-3d.js';
+  import { initHeroOrb, pasangLab3d } from '/assets/js/orb-3d.js';
+
+  // ── KENAPA ORB DITUNDA SAMPAI BROWSER SENGGANG ─────────────────────────────
+  // `initHeroOrb()` membangun 240 titik 3D + garis penghubung di canvas.
+  // Itu pekerjaan berat yang, kalau dijalankan saat halaman dimuat, menahan
+  // paint pertama.
+  //
+  // Terukur di produksi (profiler Chromium): `K @ orb-3d.min.js` memakan
+  // 114ms + `Q @ orb-3d.min.js` 20ms — total blocking JS 435ms, dan
+  // first-contentful-paint baru tercapai di 1660-1748ms padahal first-paint
+  // sudah 552-560ms.
+  //
+  // Orb ini dekoratif: ia tidak menyampaikan informasi yang dibutuhkan untuk
+  // membaca halaman. Menundanya sampai browser senggang membuat teks hero
+  // tampil lebih dulu tanpa mengorbankan animasinya — orb tetap muncul, hanya
+  // tidak lagi menahan konten.
+  //
+  // `requestIdleCallback` dengan batas waktu: kalau browser tidak pernah
+  // senggang (halaman berat), orb tetap dipasang setelah 2 detik. Tidak ada
+  // kondisi di mana orb hilang sama sekali.
+  const pasangOrb = () => {
+    try { initHeroOrb(); } catch { /* dekoratif: gagal tidak boleh merusak halaman */ }
+  };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(pasangOrb, { timeout: 2000 });
+  } else {
+    setTimeout(pasangOrb, 200);
+  }
 
   // ── EKSPERIMEN 3D: HANYA UNTUK OWNER ──────────────────────────────────────
   // Markup seksi TIDAK ada di HTML ini (lihat #eksperimenHost). Server yang
