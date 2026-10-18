@@ -1,20 +1,20 @@
 {
- "dibuat": "2026-10-18T03:34:00.571Z",
- "totalCommit": 471,
- "totalDicatat": 458,
+ "dibuat": "2026-10-18T03:55:11.683Z",
+ "totalCommit": 473,
+ "totalDicatat": 460,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-18",
  "rilis": [
   {
    "tanggal": "2026-10-18",
-   "jumlah": 7,
+   "jumlah": 9,
    "ringkasan": {
     "fitur": 1,
     "perbaikan": 1,
     "performa": 0,
-    "dokumentasi": 3,
+    "dokumentasi": 4,
     "data": 0,
-    "pemeliharaan": 2
+    "pemeliharaan": 3
    },
    "kategori": [
     {
@@ -44,6 +44,11 @@
      "label": "Dokumentasi",
      "item": [
       {
+       "hash": "debd5a8",
+       "teks": "Regenerasi setelah pass aksen",
+       "scope": "changelog"
+      },
+      {
        "hash": "4fa388b",
        "teks": "Regenerasi setelah pass desain",
        "scope": "changelog"
@@ -64,6 +69,11 @@
      "kunci": "pemeliharaan",
      "label": "Pemeliharaan",
      "item": [
+      {
+       "hash": "f44fe94",
+       "teks": "Bola partikel jadi struktur netral, emas hanya highlight",
+       "scope": "3d"
+      },
       {
        "hash": "b8e2fb0",
        "teks": "Budget aksen emas & hierarki hero",
