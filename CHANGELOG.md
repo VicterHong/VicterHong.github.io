@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 463 perubahan dari 476 commit (2026-10-01 → 2026-10-18).
+Total 465 perubahan dari 478 commit (2026-10-01 → 2026-10-18).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,6 +10,7 @@ Total 463 perubahan dari 476 commit (2026-10-01 → 2026-10-18).
 
 ### Fitur baru
 
+- **akses**: Metrik, demo, dan highlight jadi benefit akun (`0a3f872`)
 - **eksperimen**: Seksi 3D hanya untuk owner, dikirim server-side (`6a53409`)
 - **aeo**: Layanan masuk llms.txt + OfferCatalog JSON-LD (`e70156a`)
 
@@ -20,6 +21,7 @@ Total 463 perubahan dari 476 commit (2026-10-01 → 2026-10-18).
 
 ### Dokumentasi
 
+- **changelog**: Regenerasi setelah seksi eksperimen owner-only (`ba85427`)
 - **changelog**: Regenerasi setelah pass bola 3d (`9d12934`)
 - **changelog**: Regenerasi setelah pass aksen (`debd5a8`)
 - **changelog**: Regenerasi setelah pass desain (`4fa388b`)

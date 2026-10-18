@@ -1,18 +1,18 @@
 {
- "dibuat": "2026-10-18T04:33:24.958Z",
- "totalCommit": 476,
- "totalDicatat": 463,
+ "dibuat": "2026-10-18T05:40:13.848Z",
+ "totalCommit": 478,
+ "totalDicatat": 465,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-18",
  "rilis": [
   {
    "tanggal": "2026-10-18",
-   "jumlah": 12,
+   "jumlah": 14,
    "ringkasan": {
-    "fitur": 2,
+    "fitur": 3,
     "perbaikan": 2,
     "performa": 0,
-    "dokumentasi": 5,
+    "dokumentasi": 6,
     "data": 0,
     "pemeliharaan": 3
    },
@@ -21,6 +21,11 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "0a3f872",
+       "teks": "Metrik, demo, dan highlight jadi benefit akun",
+       "scope": "akses"
+      },
       {
        "hash": "6a53409",
        "teks": "Seksi 3D hanya untuk owner, dikirim server-side",
@@ -53,6 +58,11 @@
      "kunci": "dokumentasi",
      "label": "Dokumentasi",
      "item": [
+      {
+       "hash": "ba85427",
+       "teks": "Regenerasi setelah seksi eksperimen owner-only",
+       "scope": "changelog"
+      },
       {
        "hash": "9d12934",
        "teks": "Regenerasi setelah pass bola 3d",
