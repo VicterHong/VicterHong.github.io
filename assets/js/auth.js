@@ -1753,9 +1753,10 @@
             // state dan mengembalikan pengguna ke sana setelah callback —
             // jadi alur pembelian tidak putus di tengah.
             const lanjut = tujuanLanjut();
-            window.location.href = lanjut
-              ? `${p.url}?lanjut=${encodeURIComponent(lanjut)}`
-              : p.url;
+            const tujuanAuth = new URL(p.url, location.origin);
+            tujuanAuth.searchParams.set('flow', sel.startsWith('#btnDaftar') ? 'signup' : 'signin');
+            if (lanjut) tujuanAuth.searchParams.set('lanjut', lanjut);
+            window.location.href = tujuanAuth.pathname + tujuanAuth.search;
           });
         } else {
           // Belum dikonfigurasi → sembunyikan sepenuhnya.
@@ -2267,7 +2268,7 @@
     akun_gagal:
       'Akun tidak bisa dibuat saat ini. Coba lagi sebentar lagi.',
     akun_tidak_ditemukan:
-      'Akun tidak ditemukan. Daftar dulu, atau gunakan cara lain.',
+      'Akun belum terdaftar. Daftar dulu dengan penyedia ini atau gunakan email dan sandi.',
     ditolak_pengguna:
       '',   // pengguna sendiri yang membatalkan — tidak perlu pesan galat
     terlalu_banyak:
@@ -2292,7 +2293,8 @@
     // (ditolak_pengguna) dan kode tak dikenal sama-sama dilewati — tapi
     // URL-nya TETAP dibersihkan di bawah.
     const teks = PESAN_GALAT_OAUTH[kode];
-    if (teks) pesan(msgMasuk, teks, 'galat');
+    const areaPesan = msgMasuk || msgDaftar;
+    if (teks) pesan(areaPesan, teks, 'galat');
 
     // ── KENAPA URL SELALU DIBERSIHKAN ──
     // Tanpa ini, memuat ulang halaman menampilkan galat yang sama selamanya,

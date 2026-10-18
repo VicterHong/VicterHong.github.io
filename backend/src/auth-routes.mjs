@@ -403,7 +403,13 @@ function buatSesiUntuk(res, req, pengguna, { tujuan = '/', hints = {} } = {}) {
  *
  * Mengembalikan { pengguna, dibuat: bool, disambungkan: bool }.
  */
-async function temukanAtauBuatPengguna({ identitas, provider, req }) {
+export function alurOauthDariState(provider, providerState) {
+  if (providerState === `${provider}:signup`) return 'signup';
+  if (providerState === provider) return 'signin';
+  return '';
+}
+
+export async function temukanAtauBuatPengguna({ identitas, provider, req, allowCreate = false }) {
   // ── 1. Identitas ini sudah pernah dipakai masuk? ───────────────────────────
   const sudahAda = cariIdentitas(provider, identitas.providerUserId);
   if (sudahAda) {
@@ -446,6 +452,13 @@ async function temukanAtauBuatPengguna({ identitas, provider, req }) {
       });
       return { pengguna, dibuat: false, disambungkan: true };
     }
+  }
+
+  // Identitas OAuth baru yang belum punya akun hanya boleh dibuat dari
+  // alur pendaftaran. Tombol di halaman Sign in tidak boleh diam-diam
+  // membuat akun baru; arahkan pengguna ke Sign up.
+  if (!allowCreate) {
+    return { pengguna: null, dibuat: false, disambungkan: false };
   }
 
   // ── 3. Email terverifikasi tapi BELUM terdaftar? Buat akun. ────────────────
@@ -556,13 +569,17 @@ function ruteMulai(provider) {
       bersihkanStateOauth();
 
       const state = acak(32);
+      const flow = url?.searchParams?.get('flow') === 'signup' ? 'signup' : 'signin';
       const kembaliKe = tujuanAman(url?.searchParams?.get('lanjut') ?? '/');
 
       const { url: urlAuth, codeVerifier } = urlOtorisasi({
         provider, config, redirectUri: redirectUri(provider), state,
       });
 
-      simpanStateOauth({ state, provider, codeVerifier, kembaliKe });
+      // Simpan intent di state server-side yang sekali pakai; jangan percaya
+      // parameter flow yang dikirim kembali browser saat callback.
+      const providerState = flow === 'signup' ? `${provider}:signup` : provider;
+      simpanStateOauth({ state, provider: providerState, codeVerifier, kembaliKe });
 
       res.writeHead(302, { Location: urlAuth });
       res.end();
@@ -595,7 +612,9 @@ function ruteCallback(provider) {
     // ── State: ada, belum kedaluwarsa, dan dihapus sekarang ─────────────────
     const stateRow = pakaiStateOauth(state);
     if (!stateRow) return gagalKe(res, '/sign-in', 'state_tidak_sah');
-    if (stateRow.provider !== provider) return gagalKe(res, '/sign-in', 'provider_tidak_cocok');
+
+    const flow = alurOauthDariState(provider, stateRow.provider);
+    if (!flow) return gagalKe(res, '/sign-in', 'provider_tidak_cocok');
 
     const kembaliKe = tujuanAman(stateRow.kembali_ke);
 
@@ -631,13 +650,20 @@ function ruteCallback(provider) {
     // ── Temukan / buat pengguna ─────────────────────────────────────────────
     let hasil;
     try {
-      hasil = await temukanAtauBuatPengguna({ identitas, provider, req });
+      hasil = await temukanAtauBuatPengguna({
+        identitas, provider, req, allowCreate: flow === 'signup',
+      });
     } catch (err) {
       console.error(`[auth] pengguna ${provider} gagal:`, err.message);
       return gagalKe(res, '/sign-in', 'akun_gagal');
     }
 
-    if (!hasil.pengguna) return gagalKe(res, '/sign-in', 'akun_tidak_ditemukan');
+    if (!hasil.pengguna) {
+      if (flow === 'signin') {
+        return gagalKe(res, '/sign-up', 'akun_tidak_ditemukan');
+      }
+      return gagalKe(res, '/sign-up', 'akun_gagal');
+    }
 
     // ── Sesi + cookie ───────────────────────────────────────────────────────
     const { tujuan } = buatSesiUntuk(res, req, hasil.pengguna, { tujuan: kembaliKe, hints: clientHints(req) });

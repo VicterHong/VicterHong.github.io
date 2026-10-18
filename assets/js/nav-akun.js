@@ -156,31 +156,12 @@
     menu.hidden = true;
     menu.setAttribute('role', 'menu');
 
-    // Kepala menu: email lengkap + baris badge. Nama di tombol mungkin
-    // terpotong; email memberi konfirmasi pasti profil mana yang sedang aktif.
-    //
-    // ── KENAPA BADGE ADA DI DALAM KEPALA, BUKAN DI BAWAHNYA ────────────────
-    // Badge paket dan sisa masa berlaku menerangkan AKUN, bukan navigasi. Di
-    // bawah pemisah ia duduk di antara item menu dan ikut terbaca sebagai
-    // salah satu tujuan — padahal ia tidak bisa diklik. Di dalam kepala ia
-    // menempel pada identitas yang diterangkannya: email, lalu keadaannya.
     const kepala = document.createElement('div');
     kepala.className = 'nav-akun-kepala';
-
     const kepalaEmail = document.createElement('div');
     kepalaEmail.className = 'nav-akun-email';
     kepalaEmail.textContent = email;
     kepala.appendChild(kepalaEmail);
-
-    // Baris badge: item NON-klik (bukan tautan) — ia menampilkan keadaan,
-    // bukan mengajak ke mana pun. Membuatnya bisa diklik berarti pengguna
-    // menebak-nebak apa yang terjadi.
-    const barisBadge = document.createElement('div');
-    barisBadge.className = 'nav-akun-badge-baris';
-    barisBadge.id = 'navAkunBadge';
-    barisBadge.hidden = true;
-    kepala.appendChild(barisBadge);
-
     menu.appendChild(kepala);
 
     // ── IKON MENU ──────────────────────────────────────────────────────────
@@ -209,7 +190,7 @@
      * bentuk yang lain — dan itu jenis kelalaian yang tidak terlihat sampai
      * keduanya berdampingan.
      */
-    function buatItem({ teks, ikon, badge, badgeKelas = '' }) {
+    function buatItem({ teks, ikon }) {
       const el = document.createElement('span');
       el.className = 'nav-akun-isi';
 
@@ -223,13 +204,6 @@
       label.textContent = teks;
 
       el.append(kiri, label);
-
-      if (badge) {
-        const b = document.createElement('span');
-        b.className = 'nav-akun-badge' + (badgeKelas ? ' ' + badgeKelas : '');
-        b.textContent = badge;
-        el.appendChild(b);
-      }
       return el;
     }
 
@@ -247,69 +221,6 @@
       { teks: 'Profil saya', href: '/keamanan', ikon: 'orang' },
       { teks: 'Cara masuk', href: '/keamanan#panelMasuk', ikon: 'perisai' },
     ];
-
-    // ── BADGE DARI DATA NYATA ──────────────────────────────────────────────
-    //
-    // ── KENAPA TIDAK MENIRU "PRO" DAN "Gemini 2.0 Flash" ───────────────────
-    // Contoh aslinya menampilkan paket langganan dan nama model AI. Keduanya
-    // TIDAK ADA di backend ini — menampilkannya berarti mengarang data di
-    // menu yang muncul di SETIAP halaman. Kalau angkanya salah, pengguna
-    // salah paham tentang masa berlaku aksesnya.
-    //
-    // Yang ADA dan berguna: paket token dan tanggal kedaluwarsanya. Keduanya
-    // diambil dari /api/auth/token-saya — endpoint yang sudah dipakai tab
-    // "Token akses". Dimuat SETELAH menu dibuka pertama kali, supaya halaman
-    // tidak menunggu permintaan yang sebagian besar kunjungan tidak butuh.
-    let badgeSudahDimuat = false;
-
-    async function muatBadge() {
-      if (badgeSudahDimuat) return;
-      badgeSudahDimuat = true;
-
-      let t = null;
-      try {
-        const r = await fetch('/api/auth/token-saya', { credentials: 'same-origin' });
-        if (r.ok) t = (await r.json())?.token || null;
-      } catch { /* gagal → menu tetap tampil tanpa badge */ }
-
-      if (!t) return;
-
-      const tempat = document.querySelector('#navAkunBadge');
-      if (!tempat) return;
-
-      // Paket: apa adanya dari backend (mis. "standard", "pro").
-      // Ditampilkan hanya kalau terisi — label kosong lebih buruk daripada
-      // tidak ada label.
-      const paket = String(t.tier || '').trim();
-
-      // Kedaluwarsa: hanya kalau tanggalnya ADA dan masih berlaku.
-      // Token yang sudah lewat tidak ditampilkan sebagai badge hijau.
-      let sisa = '';
-      if (t.kedaluwarsa_pada) {
-        const hari = Math.ceil((t.kedaluwarsa_pada - Date.now()) / 86400000);
-        if (hari > 0) sisa = hari > 30 ? `${Math.round(hari / 30)} bln` : `${hari} hr`;
-      }
-
-      tempat.innerHTML = '';
-      if (paket) {
-        const b = document.createElement('span');
-        b.className = 'nav-akun-badge is-paket';
-        b.textContent = paket;
-        tempat.appendChild(b);
-      }
-      if (sisa) {
-        const b = document.createElement('span');
-        b.className = 'nav-akun-badge is-sisa';
-        b.textContent = sisa;
-        b.title = 'Sisa masa berlaku token';
-        tempat.appendChild(b);
-      }
-
-      // Tidak ada data → sembunyikan barisnya. Baris kosong dengan tinggi
-      // tetap akan terlihat sebagai celah aneh di antara item menu.
-      if (tempat.children.length) tempat.hidden = false;
-      else tempat.remove();
-    }
 
     for (const x of item) {
       const a = document.createElement('a');
@@ -377,15 +288,6 @@
       const akanBuka = menu.hidden;
       menu.hidden = !akanBuka;
       tombol.setAttribute('aria-expanded', akanBuka ? 'true' : 'false');
-
-      // ── BADGE DIMUAT SAAT MENU DIBUKA, BUKAN SAAT HALAMAN DIMUAT ──────────
-      // Ini satu permintaan jaringan tambahan, dan sebagian besar kunjungan
-      // tidak pernah membuka menu akun. Memuatnya di awal berarti setiap
-      // pengunjung membayar untuk sesuatu yang jarang dipakai.
-      //
-      // Setelah dimuat sekali, hasilnya disimpan — membuka-tutup menu tidak
-      // memicu permintaan baru.
-      if (akanBuka) muatBadge();
     });
 
     // Klik di luar menutup menu. `stopPropagation` di tombol mencegah
