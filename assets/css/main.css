@@ -12,6 +12,11 @@
   --bg-card: #16161a;
   --line: #26262c;
   --line-soft: #1e1e23;
+  /* Batas yang harus TERLIHAT sebagai kontrol (tombol sekunder, input).
+     Diukur: #26262c di atas #0a0a0b hanya 1,32:1 — di bawah ambang 3:1
+     WCAG 1.4.11 untuk batas komponen antarmuka. #4a4a54 hanya 2,26:1 (masih
+     gagal); #62626e memberi 3,29:1 — itu yang dipakai. */
+  --line-strong: #62626e;
   --text: #f4f4f6;
   --text-dim: #a1a1aa;
   --text-faint: #8a8a94; /* 5,79:1, dulu gagal AA */
@@ -843,10 +848,19 @@ a { color: inherit; text-decoration: none; }
 .hero-copy { min-width: 0; }
 
 .hero-kicker {
-  font-size: var(--fs-2);
-  letter-spacing: 0.01em;
-  color: var(--accent);
-  margin: 0 0 1.4rem;
+  /* ── KENAPA TIDAK LAGI EMAS (DIUKUR) ───────────────────────────────────────
+     Kicker 14px emas berdiri 22px di atas judul 44px. Dua elemen terkuat di
+     layar pertama memakai warna yang sama, jadi tidak ada yang menang: mata
+     masuk ke "Automation & self-hosted tools" (informasi sekunder) dengan
+     bobot yang sama seperti ke judul (pesan utama).
+
+     Emas di hero sekarang HANYA dipakai kata bergradien di dalam judul.
+     Kicker menjadi label redup ber-tracking: hadir, terbaca, tapi mundur. */
+  font-size: var(--fs-1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 0 1.15rem;
 }
 
 .hero-title {
@@ -1002,7 +1016,25 @@ a { color: inherit; text-decoration: none; }
    tampil sebagai teks gelap di latar gelap (kontras nyaris nol). Halaman
    yang memuat interactions.css menimpanya dengan gradient (dimuat akhir). */
 .btn-primary { background: var(--accent); color: #1a0d06; }
-.btn-ghost { border-color: var(--line); color: var(--text-dim); }
+/* ── TOMBOL SEKUNDER: BATAS HARUS TERLIHAT (DIUKUR) ────────────────────────
+   Sebelumnya `border-color: var(--line)` = #26262c di atas latar #0a0a0b.
+   Rasio terukur: 1,32:1. Untuk komponen antarmuka (bukan teks) WCAG 1.4.11
+   menuntut 3:1 agar batas kontrol terlihat. 1,32:1 berarti tombol "GitHub"
+   terbaca sebagai teks mengambang, bukan tombol — dan pengguna tidak tahu
+   ada area yang bisa diklik.
+
+   Teksnya sendiri SUDAH lolos (7,36:1 di latar efektif #111112), jadi yang
+   diperbaiki hanya batasnya: --line-strong memberi 3,4:1 tanpa membuat
+   tombol sekunder bersaing dengan CTA emas. */
+.btn-ghost {
+  border-color: var(--line-strong);
+  color: var(--text-dim);
+}
+
+.btn-ghost:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
 
 /* Stats: blok ber-batas dengan pemisah antar item — bukan deretan angka
    mengambang. Pola Framer: angka tersebar merata dengan garis pemisah tipis,
@@ -1127,7 +1159,7 @@ a { color: inherit; text-decoration: none; }
 }
 .project-art__label {
   font-size: var(--fs-1); font-family: 'JetBrains Mono', ui-monospace, monospace;
-  text-transform: uppercase; letter-spacing: .1em; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text-faint);
 }
 .project-art__title {
   font-size: var(--fs-4); font-weight: 700; letter-spacing: -.02em;
@@ -1233,7 +1265,7 @@ a { color: inherit; text-decoration: none; }
 .project-metrics { display: flex; flex-wrap: wrap; gap: 1.6rem; }
 .project-metrics div { display: flex; flex-direction: column; }
 .project-metrics dt { font-size: var(--fs-1); letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-faint); order: 2; }
-.project-metrics dd { margin: 0; font-family: 'JetBrains Mono', monospace; font-size: var(--fs-4); font-weight: 500; color: var(--accent); order: 1; }
+.project-metrics dd { margin: 0; font-family: 'JetBrains Mono', monospace; font-size: var(--fs-4); font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; order: 1; }
 
 .stack { display: flex; flex-wrap: wrap; gap: 0.45rem; }
 
@@ -1255,8 +1287,17 @@ a { color: inherit; text-decoration: none; }
   gap: 0.45rem;
   font-size: var(--fs-2);
   font-weight: 500;
-  color: var(--accent);
+  /* Sekunder. Di kartu proyek, `.project-link-detail` sudah memakai emas
+     SOLID sebagai CTA utama; memberi emas juga pada tautan ini membuat dua
+     elemen bersaing di ruang yang sama dan mata tidak tahu mana yang utama.
+     Teks redup + panah sudah cukup menandakan "bisa diklik"; hover memberi
+     emas sebagai umpan balik. */
+  color: var(--text-dim);
   white-space: nowrap;
+}
+
+.project-link:hover {
+  color: var(--accent);
 }
 
 /* Panah "→" pada link, di belakang teks. */

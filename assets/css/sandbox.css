@@ -213,9 +213,14 @@
   background: rgba(247, 215, 122, 0.045);
 }
 
+/* Stok menipis = PERINGATAN, bukan merek.
+   Sebelumnya memakai #f7d77a (emas terang) — warna yang sama dengan aksen
+   merek, sehingga "stok menipis" tidak terbaca sebagai hal yang perlu
+   ditindak, dan emas kehilangan maknanya sebagai penanda. Sekarang memakai
+   token status peringatan; emas kembali hanya menandai merek + satu CTA. */
 .sandbox-stok--menipis {
-  color: #f7d77a;
-  font-weight: 500;
+  color: #fbbf24; /* amber-400 — cukup beda dari emas merek #f5c542 */
+  font-weight: 600;
 }
 
 .sandbox-mono {

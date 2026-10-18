@@ -283,7 +283,10 @@ html:not(.js-ready) .vm-item { opacity: 1; transform: none; }
 .vm-label {
   display: block;
   margin-bottom: 0.75rem;
-  color: var(--accent);
+  /* Label penomoran, bukan penanda merek. Emas di sini hanya menambah
+     hitungan aksen tanpa memberi informasi; kapital + tracking sudah cukup
+     membedakannya dari teks isi. */
+  color: var(--text-faint);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: var(--fs-1);
   font-weight: 500;

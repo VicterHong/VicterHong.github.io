@@ -104,11 +104,22 @@
 }
 
 .metrik-nilai {
-  color: var(--accent);
+  /* ── KENAPA BUKAN EMAS (DIUKUR) ────────────────────────────────────────────
+     Sebelumnya `color: var(--accent)`. Diukur di halaman utama: 21 dari 57
+     teks berwarna aksen berasal dari seksi ini — 17 angka + 4 tautan repo.
+     Ketika sepertiga halaman berwarna emas, emas berhenti menjadi aksen dan
+     berubah menjadi warna teks biasa; tidak ada lagi yang "menonjol".
+
+     Angka di sini adalah DATA, bukan ajakan bertindak. Yang berhak memakai
+     emas adalah: kata bergradien di judul, satu CTA utama, dan satu tautan
+     aktif. Angka memakai warna teks penuh + mono + tabular-nums — hierarki
+     dibangun dari bentuk dan ukuran, bukan dari warna. */
+  color: var(--text);
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--fs-3);
   font-weight: 500;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .metrik-label {
@@ -164,7 +175,10 @@
 .metrik-repo {
   align-self: flex-start;
   margin-top: auto;
-  color: var(--accent);
+  /* Tautan sekunder — bukan CTA. Emas di sini bersaing dengan CTA utama di
+     hero; dibaca sebagai teks + garis bawah sudah cukup jelas bahwa ia bisa
+     diklik. Hover tetap memberi emas sebagai umpan balik. */
+  color: var(--text-dim);
   font-size: var(--fs-1);
   font-weight: 600;
   text-decoration: underline;
