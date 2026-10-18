@@ -658,7 +658,10 @@
       if (host && data?.ok && data.konten) {
         host.innerHTML = data.konten;
         host.hidden = false;
-        pasangLab3d('lab3dHost');
+        // Wadah render dicari dari markup yang BARU disuntik, bukan nama
+        // tetap: id-nya bagian dari konten server, bukan kontrak di sini.
+        const kanvas = host.querySelector('[id^="lab3d"]');
+        if (kanvas) pasangLab3d(kanvas.id);
       }
     }
   } catch { /* diam: bukan konten wajib */ }
