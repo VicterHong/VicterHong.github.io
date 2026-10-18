@@ -1,20 +1,20 @@
 {
- "dibuat": "2026-10-18T02:22:06.044Z",
- "totalCommit": 467,
- "totalDicatat": 454,
+ "dibuat": "2026-10-18T03:10:14.492Z",
+ "totalCommit": 469,
+ "totalDicatat": 456,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-18",
  "rilis": [
   {
    "tanggal": "2026-10-18",
-   "jumlah": 3,
+   "jumlah": 5,
    "ringkasan": {
     "fitur": 1,
     "perbaikan": 1,
     "performa": 0,
-    "dokumentasi": 1,
+    "dokumentasi": 2,
     "data": 0,
-    "pemeliharaan": 0
+    "pemeliharaan": 1
    },
    "kategori": [
     {
@@ -44,9 +44,25 @@
      "label": "Dokumentasi",
      "item": [
       {
+       "hash": "ba3481a",
+       "teks": "Regenerasi setelah perbaikan aksesibilitas",
+       "scope": "changelog"
+      },
+      {
        "hash": "3bd98f2",
        "teks": "Regenerasi catatan rilis termasuk upgrade 3D motion",
        "scope": "changelog"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "e4dca19",
+       "teks": "Skala tipografi & radius, leading hero, fallback token",
+       "scope": "design"
       }
      ]
     }
