@@ -5,14 +5,14 @@
     <link>https://portfolio-victer.pages.dev/changelog</link>
     <description>Semua perubahan penting pada layanan VIVASTIC, dikelompokkan per tanggal — fitur baru, perbaikan, dan performa.</description>
     <language>id</language>
-    <lastBuildDate>Sun, 18 Oct 2026 02:22:06 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 18 Oct 2026 10:02:18 GMT</lastBuildDate>
     <atom:link href="https://portfolio-victer.pages.dev/feed.xml" rel="self" type="application/rss+xml"/>
     <item>
-      <title>18 Oktober 2026 — 3 perubahan</title>
+      <title>18 Oktober 2026 — 16 perubahan</title>
       <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-18</link>
       <guid isPermaLink="false">changelog-2026-10-18</guid>
       <pubDate>Sun, 18 Oct 2026 00:00:00 +0700</pubDate>
-      <description>Fitur baru: Layanan masuk llms.txt + OfferCatalog JSON-LD · Perbaikan: Audit Web Interface Guidelines — skip link, fokus keyboard, kontras, tema · Dokumentasi: Regenerasi catatan rilis termasuk upgrade 3D motion</description>
+      <description>Fitur baru: Metrik, demo, dan highlight jadi benefit akun; Seksi 3D hanya untuk owner, dikirim server-side · Perbaikan: Jangan sebut id lab3d di JS publik; Audit Web Interface Guidelines — skip link, fokus keyboard, kontras, tema · Dokumentasi: Regenerasi setelah gating akses; Regenerasi setelah seksi eksperimen owner-only · Pemeliharaan: Satu pintu masuk, bukan tiga belas; Bola partikel jadi struktur netral, emas hanya highlight</description>
     </item>
     <item>
       <title>17 Oktober 2026 — 2 perubahan</title>
