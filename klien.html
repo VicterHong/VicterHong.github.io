@@ -58,15 +58,16 @@
     <p class="klien-paket-info" id="klienPaketInfo">Memuat status langganan…</p>
   </div>
 
-  <!-- Tab utama: Proyek / Token. Bentuknya garis bawah, berbeda dari tab
-       tampilan (pil) — supaya bedanya terlihat sebelum diklik. -->
-  <nav class="klien-tab-utama" id="klienTabUtama" role="tablist" aria-label="Bagian halaman">
-    <button type="button" role="tab" id="tabProyek" aria-controls="panelProyek" aria-selected="true">Proyek</button>
-    <button type="button" role="tab" id="tabToken" aria-controls="panelToken" aria-selected="false">Token akses</button>
-  </nav>
+  <!-- ── TAB TOKEN AKSES DIHAPUS ──────────────────────────────────────────
+       Token akses adalah kredensial INTEGRASI (untuk skrip/API), bukan
+       identitas akun. Menampilkannya di halaman pengguna membuat pemilik
+       akun melihat metadata — paket, cakupan proyek, masa berlaku — yang
+       bukan urusannya, dan memberi kesan token itu milik pribadi akun.
+
+       Halaman ini sekarang hanya berisi daftar proyek. -->
 
   <!-- ══ PANEL PROYEK ══════════════════════════════════════════════════════ -->
-  <section id="panelProyek" role="tabpanel" aria-labelledby="tabProyek" class="klien-panel">
+  <section id="panelProyek" class="klien-panel">
 
     <div class="klien-tab" id="klienTab" role="tablist" aria-label="Tampilan daftar">
       <button type="button" role="tab" data-tampilan="list" aria-selected="true" aria-label="Tampilan daftar">
@@ -103,29 +104,9 @@
     <ul class="klien-daftar" id="klienDaftar" data-tampilan="list" hidden></ul>
   </section>
 
-  <!-- ══ PANEL TOKEN ═══════════════════════════════════════════════════════ -->
-  <section id="panelToken" role="tabpanel" aria-labelledby="tabToken" class="klien-panel" hidden>
-
-    <div class="klien-token-head">
-      <p class="klien-token-sisa" id="klienTokenSisa">Memuat…</p>
-      <button type="button" class="klien-btn klien-btn--utama" id="klienBuatToken" disabled>
-        Buat token baru
-      </button>
-    </div>
-
-    <!-- Tempat token yang baru dibuat. Ditampilkan SEKALI — karena hanya
-         hash-nya yang tersimpan, token ini tidak bisa ditampilkan lagi. -->
-    <div class="klien-token-baru" id="klienTokenBaru" hidden></div>
-
-    <div id="klienTokenGalat" hidden></div>
-
-    <ul class="klien-token-daftar" id="klienTokenDaftar"></ul>
-
-    <p class="klien-kosong" id="klienTokenKosong" hidden>
-      Belum ada token. Token dipakai untuk mengakses kode sumber dan dokumentasi
-      teknis lewat API.
-    </p>
-  </section>
+  <!-- ── PANEL TOKEN DIHAPUS ──────────────────────────────────────────────
+       Lihat catatan di atas. Metadata token tidak lagi punya permukaan di
+       halaman pengguna. -->
 
 </div>
 

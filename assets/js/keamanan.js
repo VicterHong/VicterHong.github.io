@@ -964,63 +964,19 @@
     }
   }
 
-  // ── TOKEN AKSES ────────────────────────────────────────────────────────────
-  daftarPemuat('panelToken', async () => {
-    const res = await fetch('/api/auth/token-saya', { credentials: 'same-origin' });
-    if (!res.ok) return;
-    const d = await res.json().catch(() => ({}));
-    const t = d.token;
-
-    const daftar = $('#kamTokenDaftar');
-    const kosong = $('#kamTokenKosong');
-    if (!daftar) return;
-
-    if (!t) {
-      daftar.hidden = true;
-      if (kosong) kosong.hidden = false;
-      return;
-    }
-
-    daftar.hidden = false;
-    if (kosong) kosong.hidden = true;
-
-    const LENCANA = { aktif: 'is-sukses', dicabut: 'is-gagal', kedaluwarsa: 'is-gagal' };
-
-    const baris = [
-      ['Paket', t.tier || '—'],
-      ['Proyek', t.proyek || '—'],
-      ['Cakupan', (t.scopes || []).join(', ') || '—'],
-      ['Terbit', waktuRingkas(t.terbit_pada)],
-      ['Kedaluwarsa', t.kedaluwarsa_pada ? waktuRingkas(t.kedaluwarsa_pada) : 'Tidak ada'],
-    ];
-
-    daftar.innerHTML = '';
-    for (const [k, v] of baris) {
-      const div = document.createElement('div');
-      div.className = 'kam-baris';
-      const dt = document.createElement('dt');
-      dt.textContent = k;
-      const dd = document.createElement('dd');
-      dd.textContent = v;
-      div.appendChild(dt);
-      div.appendChild(dd);
-      daftar.appendChild(div);
-    }
-
-    // Status sebagai baris terakhir, dengan lencana — bukan teks polos.
-    const div = document.createElement('div');
-    div.className = 'kam-baris';
-    const dt = document.createElement('dt');
-    dt.textContent = 'Status';
-    const dd = document.createElement('dd');
-    const l = document.createElement('span');
-    l.className = 'kam-lencana ' + (LENCANA[t.status] || '');
-    l.textContent = t.status || '—';
-    dd.appendChild(l);
-    div.appendChild(dt);
-    div.appendChild(dd);
-    daftar.appendChild(div);
-  });
+  // ── TOKEN AKSES: DIHAPUS DARI UI ───────────────────────────────────────────
+  //
+  // Panel ini dulu menampilkan metadata token (paket, proyek, cakupan,
+  // terbit, kedaluwarsa, status) dengan memanggil /api/auth/token-saya.
+  //
+  // ── KENAPA DIHAPUS ─────────────────────────────────────────────────────────
+  // Token akses adalah kredensial INTEGRASI untuk skrip/API — bukan identitas
+  // akun. Menampilkannya di halaman profil membuat pemegang akun melihat
+  // metadata yang bukan urusannya, dan memberi kesan bahwa token itu "milik"
+  // akun tersebut padahal ia diterbitkan layanan untuk keperluan akses.
+  //
+  // Endpoint /api/auth/token-saya tetap ada (dipakai admin & integrasi) dan
+  // tetap menolak permintaan tanpa sesi. Yang dihapus hanya permukaan UI-nya.
 
   // ── AKTIVITAS ──────────────────────────────────────────────────────────────
   daftarPemuat('panelAktivitas', async () => {

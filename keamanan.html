@@ -181,16 +181,18 @@
               <span>Sesi aktif</span>
             </button>
 
-            <!-- Metadata token. Nilainya disimpan sebagai hash — server
-                 sendiri tidak bisa membacanya lagi. -->
-            <button class="kam-sisi-item" type="button" role="tab"
-                    id="tabToken" aria-selected="false" aria-controls="panelToken"
-                    data-panel="panelToken">
-              <span class="kam-sisi-ikon" aria-hidden="true">
-                <svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true" focusable="false"><path d="M216.57,39.43A80,80,0,0,0,83.91,120.78L28.69,176A15.86,15.86,0,0,0,24,187.31V216a16,16,0,0,0,16,16H72a8,8,0,0,0,8-8V208H96a8,8,0,0,0,8-8V184h16a8,8,0,0,0,5.66-2.34l9.56-9.57A79.73,79.73,0,0,0,160,176h.1A80,80,0,0,0,216.57,39.43ZM224,98.1c-1.09,34.09-29.75,61.86-63.89,61.9H160a63.7,63.7,0,0,1-23.65-4.51,8,8,0,0,0-8.84,1.68L116.69,168H96a8,8,0,0,0-8,8v16H72a8,8,0,0,0-8,8v16H40V187.31l58.83-58.82a8,8,0,0,0,1.68-8.84A63.72,63.72,0,0,1,96,95.92c0-34.14,27.81-62.8,61.9-63.89A64,64,0,0,1,224,98.1ZM192,76a12,12,0,1,1-12-12A12,12,0,0,1,192,76Z"/></svg>
-              </span>
-              <span>Token akses</span>
-            </button>
+            <!-- ── TAB TOKEN AKSES DIHAPUS ─────────────────────────────────
+                 Token akses adalah kredensial INTEGRASI (untuk skrip/API),
+                 bukan identitas akun. Menampilkannya di halaman profil
+                 membuat pemilik akun melihat metadata yang bukan miliknya:
+                 paket, cakupan proyek, dan masa berlaku adalah urusan
+                 layanan, bukan sesuatu yang perlu — atau boleh — diketahui
+                 pemegang akun biasa.
+
+                 Menghapus tab ini juga menutup satu-satunya tempat di UI
+                 yang memanggil /api/auth/token-saya. Endpoint itu tetap ada
+                 untuk admin dan integrasi, tapi tidak lagi punya permukaan
+                 di halaman pengguna. -->
 
             <!-- Cara pengguna membuktikan kecurigaannya sendiri. GitHub
                  menyebutnya "Security log", Google "Recent security activity". -->
@@ -691,21 +693,9 @@
               <p class="auth-msg" id="kamPesanSesi" role="status" aria-live="polite"></p>
             </section>
 
-            <!-- Metadata token saja — nilainya tidak bisa ditampilkan. -->
-            <section class="kam-blok kam-panel-isi" id="panelToken"
-                     role="tabpanel" aria-labelledby="tabToken" hidden>
-              <p class="kam-keterangan">
-                Token yang memberi akses ke proyek Anda. Nilainya hanya
-                ditampilkan sekali saat diterbitkan. Setelah itu tidak bisa
-                dilihat lagi, termasuk oleh kami.
-              </p>
-              <dl class="kam-daftar kam-reveal" id="kamTokenDaftar"></dl>
-              <div class="kam-kosong" id="kamTokenKosong" hidden>
-                <p class="kam-kosong-judul">Belum ada token</p>
-                <p class="kam-kosong-teks">Token diterbitkan setelah pembelian terkonfirmasi.</p>
-              </div>
-              <p class="auth-msg" id="kamPesanToken" role="status" aria-live="polite"></p>
-            </section>
+            <!-- ── PANEL TOKEN AKSES DIHAPUS ───────────────────────────────
+                 Lihat catatan di atas (tab Token akses). Metadata token
+                 bukan informasi milik pemegang akun. -->
 
             <!-- Hanya menampilkan aktivitas milik pengguna yang login. -->
             <section class="kam-blok kam-panel-isi" id="panelAktivitas"

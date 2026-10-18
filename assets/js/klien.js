@@ -40,7 +40,9 @@ const $ = (sel, akar = document) => akar.querySelector(sel);
 const API = {
   ringkasan: '/api/klien/ringkasan',
   proyek: '/api/klien/proyek',
-  token: '/api/klien/token',
+  // `token: '/api/klien/token'` DIHAPUS: halaman ini tidak lagi menampilkan
+  // atau membuat token akses. Endpoint-nya tetap ada di backend untuk admin
+  // dan integrasi, tapi tidak dipanggil dari UI pengguna.
   star: '/api/klien/star',
 };
 
@@ -360,46 +362,6 @@ function renderPack(daftar, host) {
   }
 }
 
-// ── RENDER: TOKEN ────────────────────────────────────────────────────────────
-
-function renderToken(daftar, host, kosong) {
-  host.innerHTML = '';
-  kosong.hidden = daftar.length > 0;
-
-  for (const t of daftar) {
-    const li = document.createElement('li');
-    li.className = 'klien-token-item';
-
-    const kiri = document.createElement('div');
-
-    const label = document.createElement('p');
-    label.className = 'klien-token-label';
-    label.textContent = t.label || 'Tanpa label';
-    kiri.append(label);
-
-    const meta = document.createElement('p');
-    meta.className = 'klien-token-meta';
-    const tanggal = t.dibuatPada
-      ? new Date(t.dibuatPada).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-      : '—';
-    meta.textContent = `${t.proyek} · ${t.paket} · ${tanggal}`;
-    kiri.append(meta);
-
-    li.append(kiri);
-
-    const status = document.createElement('span');
-    status.className = 'klien-status';
-    status.dataset.status = t.status === 'aktif' ? 'terbuka' : 'terkunci-jatah-habis';
-    status.innerHTML = t.status === 'aktif' ? IKON.terbuka : IKON.terkunci;
-    const statusTeks = document.createElement('span');
-    statusTeks.textContent = t.status;
-    status.append(statusTeks);
-    li.append(status);
-
-    host.append(li);
-  }
-}
-
 // ── STATUS PAKET ─────────────────────────────────────────────────────────────
 
 function renderPaket(ringkas) {
@@ -496,121 +458,18 @@ function pasangTab() {
     });
   }
 
-  // Tab utama: Proyek / Token.
-  const tabProyek = $('#tabProyek');
-  const tabToken = $('#tabToken');
+  // ── TAB UTAMA: PROYEK / TOKEN → TOKEN DIHAPUS ─────────────────────────────
+  //
+  // Halaman ini dulu punya dua tab: Proyek dan Token akses. Tab Token
+  // menampilkan paket, cakupan, masa berlaku, dan tombol "Buat token baru".
+  //
+  // Token akses adalah kredensial INTEGRASI untuk skrip/API — bukan identitas
+  // akun. Pemilik akun tidak perlu melihat metadata itu, dan menampilkannya
+  // membuat token terkesan milik pribadi akun tersebut.
+  //
+  // Sekarang halaman hanya berisi daftar proyek; panel proyek selalu terlihat.
   const panelProyek = $('#panelProyek');
-  const panelToken = $('#panelToken');
-
-  const pilih = (mana) => {
-    const diProyek = mana === 'proyek';
-    tabProyek.setAttribute('aria-selected', String(diProyek));
-    tabToken.setAttribute('aria-selected', String(!diProyek));
-    panelProyek.hidden = !diProyek;
-    panelToken.hidden = diProyek;
-  };
-
-  tabProyek.addEventListener('click', () => pilih('proyek'));
-  tabToken.addEventListener('click', () => {
-    pilih('token');
-    muatToken();
-  });
-}
-
-async function muatToken() {
-  const daftar = $('#klienTokenDaftar');
-  const kosong = $('#klienTokenKosong');
-  const sisa = $('#klienTokenSisa');
-  const galat = $('#klienTokenGalat');
-  const tombol = $('#klienBuatToken');
-
-  try {
-    const data = await panggilApi(API.token);
-    renderToken(data.token, daftar, kosong);
-
-    const k = data.kuota;
-    if (k.tanpaBatas) {
-      sisa.textContent = 'Token tanpa batas.';
-      tombol.disabled = false;
-    } else if (k.total === 0) {
-      sisa.textContent = 'Membuat token tersedia untuk paket berbayar.';
-      tombol.disabled = true;
-    } else {
-      sisa.innerHTML = '';
-      sisa.append('Sisa jatah bulan ini: ');
-      const kuat = document.createElement('strong');
-      kuat.textContent = `${k.sisa} dari ${k.total}`;
-      sisa.append(kuat);
-      tombol.disabled = !k.bolehBuat;
-    }
-    galat.hidden = true;
-  } catch (err) {
-    galat.hidden = false;
-    galat.className = 'klien-galat';
-    galat.textContent = err.message;
-  }
-}
-
-function pasangBuatToken() {
-  const tombol = $('#klienBuatToken');
-  const wadah = $('#klienTokenBaru');
-  let requestKey = null;
-
-  tombol.addEventListener('click', async () => {
-    tombol.disabled = true;
-    tombol.textContent = 'Membuat…';
-
-    try {
-      requestKey ||= crypto.randomUUID();
-      const data = await panggilApi(API.token, { method: 'POST', body: JSON.stringify({ idempotencyKey: requestKey }) });
-      requestKey = null;
-
-      // Tampilkan token SEKALI. Karena hanya hash-nya yang tersimpan, ini
-      // satu-satunya kesempatan pengguna menyalinnya.
-      wadah.hidden = false;
-      wadah.innerHTML = '';
-
-      const pesan = document.createElement('p');
-      pesan.textContent = 'Token dibuat. Salin sekarang — karena hanya hash-nya yang tersimpan, token ini tidak bisa ditampilkan lagi.';
-      wadah.append(pesan);
-
-      const nilai = document.createElement('code');
-      nilai.className = 'klien-token-nilai';
-      nilai.textContent = data.token;
-      wadah.append(nilai);
-
-      const aksi = document.createElement('div');
-      aksi.className = 'klien-aksi';
-
-      const salin = document.createElement('button');
-      salin.type = 'button';
-      salin.className = 'klien-btn klien-btn--utama';
-      salin.textContent = 'Salin token';
-      salin.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(data.token);
-          salin.textContent = 'Tersalin';
-          setTimeout(() => { salin.textContent = 'Salin token'; }, 2000);
-        } catch {
-          // Clipboard diblokir (bukan HTTPS, atau izin ditolak). Teksnya
-          // sudah bisa dipilih manual — beri tahu, jangan diam.
-          salin.textContent = 'Pilih manual';
-        }
-      });
-      aksi.append(salin);
-      wadah.append(aksi);
-
-      await muatToken();
-    } catch (err) {
-      const galat = $('#klienTokenGalat');
-      galat.hidden = false;
-      galat.className = 'klien-galat';
-      galat.textContent = err.message;
-    } finally {
-      tombol.textContent = 'Buat token baru';
-      tombol.disabled = false;
-    }
-  });
+  if (panelProyek) panelProyek.hidden = false;
 }
 
 async function mulai() {
@@ -638,5 +497,4 @@ async function mulai() {
 }
 
 pasangTab();
-pasangBuatToken();
 mulai();
