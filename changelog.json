@@ -1,19 +1,91 @@
 {
- "dibuat": "2026-10-14T19:41:28.958Z",
- "totalCommit": 452,
- "totalDicatat": 446,
+ "dibuat": "2026-10-18T01:42:20.583Z",
+ "totalCommit": 464,
+ "totalDicatat": 451,
  "hariPertama": "2026-10-01",
- "hariTerakhir": "2026-10-14",
+ "hariTerakhir": "2026-10-17",
  "rilis": [
   {
+   "tanggal": "2026-10-17",
+   "jumlah": 2,
+   "ringkasan": {
+    "fitur": 1,
+    "perbaikan": 0,
+    "performa": 0,
+    "dokumentasi": 0,
+    "data": 0,
+    "pemeliharaan": 1
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "5219362",
+       "teks": "Add interactive 3D neural mesh and creative engineering stack",
+       "scope": "3d-motion"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "be2414d",
+       "teks": "Penguatan defense-in-depth SQL dan validasi kunci",
+       "scope": "backend"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "tanggal": "2026-10-16",
+   "jumlah": 2,
+   "ringkasan": {
+    "fitur": 0,
+    "perbaikan": 1,
+    "performa": 0,
+    "dokumentasi": 0,
+    "data": 0,
+    "pemeliharaan": 1
+   },
+   "kategori": [
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "3dc259c",
+       "teks": "Worker baca alamat backend dinamis — /api/* pulih dari 530",
+       "scope": "api"
+      }
+     ]
+    },
+    {
+     "kunci": "pemeliharaan",
+     "label": "Pemeliharaan",
+     "item": [
+      {
+       "hash": "5aab54d",
+       "teks": "Perbarui alamat layanan token",
+       "scope": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
    "tanggal": "2026-10-14",
-   "jumlah": 43,
+   "jumlah": 44,
    "ringkasan": {
     "fitur": 25,
     "perbaikan": 12,
     "performa": 0,
     "dokumentasi": 2,
-    "data": 1,
+    "data": 2,
     "pemeliharaan": 3
    },
    "kategori": [
@@ -234,6 +306,11 @@
      "kunci": "data",
      "label": "Data",
      "item": [
+      {
+       "hash": "d5361a1",
+       "teks": "Catat header keamanan + perbaikan module changelog",
+       "scope": "changelog"
+      },
       {
        "hash": "6d84731",
        "teks": "Catat 4 perbaikan audit (angka, bocor config, rollback, module)",

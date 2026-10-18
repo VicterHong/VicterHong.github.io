@@ -2,9 +2,29 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 446 perubahan dari 452 commit (2026-10-01 → 2026-10-14).
+Total 451 perubahan dari 464 commit (2026-10-01 → 2026-10-17).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
+
+## 2026-10-17
+
+### Fitur baru
+
+- **3d-motion**: Add interactive 3D neural mesh and creative engineering stack (`5219362`)
+
+### Pemeliharaan
+
+- **backend**: Penguatan defense-in-depth SQL dan validasi kunci (`be2414d`)
+
+## 2026-10-16
+
+### Perbaikan
+
+- **api**: Worker baca alamat backend dinamis — /api/* pulih dari 530 (`3dc259c`)
+
+### Pemeliharaan
+
+- Perbarui alamat layanan token (`5aab54d`)
 
 ## 2026-10-14
 
@@ -58,6 +78,7 @@ Total 446 perubahan dari 452 commit (2026-10-01 → 2026-10-14).
 
 ### Data
 
+- **changelog**: Catat header keamanan + perbaikan module changelog (`d5361a1`)
 - **changelog**: Catat 4 perbaikan audit (angka, bocor config, rollback, module) (`6d84731`)
 
 ### Pemeliharaan
