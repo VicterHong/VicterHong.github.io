@@ -342,20 +342,20 @@
       <div id="sandboxHost"></div>
     </section>
 
-    <!-- ══ 3D LAB & CREATIVE MOTION ═══════════════════════════════════════════
-         Eksperimen grafis 3D interaktif yang diadopsi dari teknik web modern:
-         Fibonacci sphere, momentum physics, dan autonomous security.
+    <!-- ══ EKSPERIMEN 3D — KHUSUS OWNER ═══════════════════════════════════════
+         Isi seksi ini TIDAK ada di HTML ini dan TIDAK dikirim ke pengunjung
+         biasa. Markup-nya hidup di backend (KONTEN_EKSPERIMEN,
+         backend/src/auth-routes.mjs) dan baru dikirim lewat GET /api/eksperimen
+         setelah server memverifikasi sesi + email owner.
+
+         KENAPA BUKAN disembunyikan CSS: `display:none` tetap mengirim markup
+         ke setiap pengunjung — cukup dibuka dengan View Source atau curl.
+         Kalau yang dilindungi isinya, isinya tidak boleh ada di respons publik.
+
+         Wadah kosong ini tidak membocorkan apa pun: tanpa balasan server,
+         tidak ada yang dirender dan tidak ada tinggi yang tersisa.
          ══════════════════════════════════════════════════════════════════════ -->
-    <section class="section-lab3d" id="lab3d" aria-labelledby="judulLab3d">
-      <div class="metrik-kepala-bagian">
-        <h2 class="metrik-judul-bagian" id="judulLab3d">Eksperimen 3D &amp; Creative Motion</h2>
-        <p class="metrik-teks-bagian">
-          Grafis 3D interaktif, fisika momentum, dan estetika antarmuka modern yang
-          dibuat murni dengan WebGL/Canvas matematika tanpa dependensi eksternal.
-        </p>
-      </div>
-      <div id="lab3dHost"></div>
-    </section>
+    <div id="eksperimenHost" hidden></div>
 
     <!-- Carousel spotlight: gambaran cepat seluruh koleksi. Ditaruh SEBELUM
          kartu bento — carousel untuk menjelajah, bento untuk membaca detail.
@@ -641,7 +641,27 @@
 
   import { initHeroOrb, pasangLab3d } from '/assets/js/orb-3d.js';
   initHeroOrb();
-  pasangLab3d('lab3dHost');
+
+  // ── EKSPERIMEN 3D: HANYA UNTUK OWNER ──────────────────────────────────────
+  // Markup seksi TIDAK ada di HTML ini (lihat #eksperimenHost). Server yang
+  // memutuskan: 401/403 → tidak ada yang dirender, dan pengunjung biasa tidak
+  // pernah tahu seksi ini ada. Gagal jaringan juga gagal-diam — eksperimen
+  // bukan konten yang boleh merusak halaman kalau backend sedang mati.
+  try {
+    const res = await fetch('/api/eksperimen', {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const host = document.getElementById('eksperimenHost');
+      if (host && data?.ok && data.konten) {
+        host.innerHTML = data.konten;
+        host.hidden = false;
+        pasangLab3d('lab3dHost');
+      }
+    }
+  } catch { /* diam: bukan konten wajib */ }
 </script>
 
 <!-- Gerbang verifikasi: setiap halaman memeriksa clearance (30 menit).

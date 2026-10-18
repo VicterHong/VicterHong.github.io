@@ -69,6 +69,33 @@ export const config = {
   salesEmail: pick('SALES_EMAIL', ''),
 
   /**
+   * ── OWNER / ADMIN ─────────────────────────────────────────────────────────
+   * Email akun yang boleh melihat konten eksperimen (seksi 3D di beranda).
+   *
+   * KENAPA DAFTAR TERPISAH, BUKAN `role` DI TABEL USERS
+   *   Tabel `users` tidak punya kolom peran, dan menambahkannya berarti
+   *   migrasi + endpoint pengelolaan peran yang belum dibutuhkan. Untuk satu
+   *   akun pemilik, daftar di env lebih kecil permukaannya: tidak ada jalur
+   *   untuk menaikkan peran lewat API, dan tidak ada kolom yang bisa salah
+   *   di-set oleh kode lain.
+   *
+   * KENAPA FALLBACK KE SALES_EMAIL
+   *   Di produksi saat ini hanya SALES_EMAIL yang terisi, dan itu alamat
+   *   pemilik. OWNER_EMAIL didahulukan supaya peran bisa dipisah nanti tanpa
+   *   mengubah kode; kalau kosong, SALES_EMAIL dipakai agar fitur tidak mati
+   *   diam-diam pada konfigurasi yang sudah berjalan.
+   *
+   * Dibaca sebagai daftar dipisah koma, dibandingkan huruf kecil semua.
+   */
+  ownerEmails: (() => {
+    const mentah = pick('OWNER_EMAIL', '') || pick('SALES_EMAIL', '');
+    return String(mentah)
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+  })(),
+
+  /**
    * ── PENGIRIMAN EMAIL (RESEND) ────────────────────────────────────────────
    *
    * Dipakai untuk tautan reset sandi. Kalau `resendApiKey` kosong, modul

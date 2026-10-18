@@ -1450,6 +1450,86 @@ function penggunaDariToken(tokenRow) {
   return cariPengguna(tokenRow.issued_to);
 }
 
+/**
+ * Markup seksi eksperimen 3D.
+ *
+ * ── KENAPA DI SINI, BUKAN DI home.html ──────────────────────────────────────
+ * Seksi ini hanya untuk owner. Markup yang ada di HTML publik akan terkirim
+ * ke SEMUA pengunjung dan bisa dibaca dengan View Source, walaupun
+ * disembunyikan dengan CSS. Satu-satunya cara agar isinya benar-benar tidak
+ * terlihat publik adalah tidak mengirimkannya sejak awal — jadi ia hidup di
+ * server dan baru dikirim setelah owner terverifikasi.
+ *
+ * ── KENAPA STRING, BUKAN BERKAS TERPISAH ────────────────────────────────────
+ * Berkas .html di folder publik ikut tersalin ke dist/ oleh build dan bisa
+ * diakses langsung lewat URL. String di modul server tidak pernah menjadi
+ * berkas statis.
+ */
+const KONTEN_EKSPERIMEN = `
+<section class="section-lab3d" id="lab3d" aria-labelledby="judulLab3d">
+  <div class="metrik-kepala-bagian">
+    <h2 class="metrik-judul-bagian" id="judulLab3d">Eksperimen 3D &amp; Creative Motion</h2>
+    <p class="metrik-teks-bagian">
+      Grafis 3D interaktif, fisika momentum, dan estetika antarmuka modern yang
+      dibuat murni dengan WebGL/Canvas matematika tanpa dependensi eksternal.
+      Hanya terlihat oleh pemilik akun.
+    </p>
+  </div>
+  <div id="lab3dHost"></div>
+</section>
+`;
+
+/**
+ * Apakah pengguna ini pemilik/admin?
+ *
+ * Dibandingkan dengan daftar email di env (lihat config.ownerEmails), bukan
+ * dengan kolom peran di database — tabel `users` tidak punya kolom itu, dan
+ * menambahkannya berarti jalur API untuk menaikkan peran yang belum perlu.
+ *
+ * Huruf kecil semua: email tidak case-sensitive di praktik, dan
+ * perbandingan yang case-sensitive akan menolak pemilik yang mendaftar
+ * dengan huruf besar.
+ */
+function penggunaAdalahOwner(pengguna) {
+  if (!pengguna?.email) return false;
+  const daftar = config.ownerEmails || [];
+  if (!daftar.length) return false; // gagal-tertutup: tanpa daftar, tidak ada yang owner
+  return daftar.includes(String(pengguna.email).trim().toLowerCase());
+}
+
+/**
+ * GET /api/eksperimen — konten eksperimen 3D, HANYA untuk owner.
+ *
+ * ── KENAPA DI SERVER, BUKAN DISEMBUNYIKAN DI CSS ────────────────────────────
+ * Menyembunyikan seksi dengan `display:none` atau menghapusnya lewat JS
+ * setelah halaman dimuat TIDAK membatasi apa pun: HTML-nya tetap terkirim ke
+ * setiap pengunjung dan bisa dibaca dengan View Source atau `curl`. Kalau
+ * yang dilindungi memang isi konten, kontennya tidak boleh ada di respons
+ * publik sejak awal. Karena itu markup lab3d dipindahkan ke sini dan baru
+ * dikirim setelah sesi + email owner diverifikasi.
+ *
+ * Balasan 401 (belum masuk) dan 403 (masuk, bukan owner) DIBEDAKAN supaya
+ * frontend bisa memilih perilaku: 401 → jangan tampilkan apa pun (pengunjung
+ * biasa tidak perlu tahu ada sesuatu), 403 → sama, tapi bisa dicatat.
+ */
+const ruteEksperimen = {
+  method: 'GET',
+  pattern: '/api/eksperimen',
+  handler: async (req, res) => {
+    const tokenRow = sesiDariRequest(req);
+    if (!tokenRow) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+    const pengguna = penggunaDariToken(tokenRow);
+    if (!pengguna) return sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+
+    if (!penggunaAdalahOwner(pengguna)) {
+      return sendJson(res, 403, { ok: false, error: 'bukan_owner' });
+    }
+
+    return sendJson(res, 200, { ok: true, konten: KONTEN_EKSPERIMEN });
+  },
+};
+
 // ── Ekspor ────────────────────────────────────────────────────────────────────
 
 export function ruteAuth() {
@@ -1479,6 +1559,7 @@ export function ruteAuth() {
     rutePerbaruiProfil,
     ruteDaftarIdentitas,
     ruteHapusIdentitas,
+    ruteEksperimen,
   ];
 
   // Bungkus SETIAP rute dengan safe() — lihat komentar di atas.
