@@ -52,6 +52,21 @@ export async function onRequest(context) {
   const url = new URL(context.request.url);
   const { pathname } = url;
 
+  // ── BLOKIR TOTAL: demo-anthropic tidak boleh diakses publik di edge ────────
+  // Wajib dibalas 404 langsung dengan no-store agar cache edge terhapus seketika
+  if (/^\/demo-anthropic(\/|\.html)?$/i.test(pathname)) {
+    return new Response('Not Found', {
+      status: 404,
+      statusText: 'Not Found',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'CDN-Cache-Control': 'no-store',
+        'Cloudflare-CDN-Cache-Control': 'no-store',
+      },
+    });
+  }
+
   // Bukan jalur yang perlu diproxy → biarkan Pages melayani berkas statisnya.
   // Mengembalikan context.next() penting: tanpa itu, SEMUA permintaan
   // (termasuk HTML, CSS, gambar lokal) akan kita tangani dan situs rusak.
