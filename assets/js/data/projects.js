@@ -105,7 +105,10 @@ export const projects = [
     summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun, shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
     problem: 'Perangkat lama sering dianggap sampah karena tidak sanggup menjalankan alat modern. Padahal dengan desain yang hemat, ia masih bisa jadi server pribadi yang berguna.',
     highlights: [], // populated only from an entitled API response
-    metrics: [],
+    metrics: [
+      { label: 'tes otomatis', value: '231' },
+      { label: 'berkas uji', value: '4' },
+    ],
     stack: ['Python', 'HMAC-SHA256', 'stdlib only', 'Telegram', 'Discord'],
     repo: 'https://github.com/VicterHong/mina-remote-control',
     accent: 'amina',
@@ -141,7 +144,10 @@ export const projects = [
     summary: 'Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Bisa mendengar pesan suara, mencari berita sendiri, dan membaca isi tautan yang dibagikan.',
     problem: 'Bot grup biasanya berisik dan rawan diblokir. Yang ini dirancang untuk diam sampai dipanggil, dan tahan lama.',
     highlights: [],
-    metrics: [],
+    metrics: [
+      { label: 'tes otomatis', value: '1274' },
+      { label: 'berkas uji', value: '148' },
+    ],
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
     accent: 'wa',
