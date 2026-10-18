@@ -110,7 +110,13 @@ console.log('Catatan: ini angka lab, bukan field p75 dari pengunjung nyata.\n');
 
 for (const jalur of HALAMAN) {
   const baris = hasil.filter((h) => h.jalur === jalur);
-  const ambil = (k) => baris.map((r) => r[k]).filter((v) => typeof v === 'number' && v > 0);
+  // ── KENAPA CLS HARUS MENERIMA 0 ──────────────────────────────────────────
+  // Versi sebelumnya menyaring `v > 0`, sehingga CLS 0 — hasil TERBAIK yang
+  // mungkin — dilaporkan sebagai "tidak terukur". Itu menyesatkan: 0 adalah
+  // nilai sah, bukan data yang hilang. Hanya null yang berarti tidak terukur.
+  const ambil = (k) => baris
+    .map((r) => r[k])
+    .filter((v) => typeof v === 'number' && (k === 'cls' ? v >= 0 : v > 0));
 
   const p75 = {};
   for (const k of Object.keys(ANGGARAN)) {

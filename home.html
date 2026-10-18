@@ -654,7 +654,33 @@
   }
 
   import { initHeroOrb, pasangLab3d } from '/assets/js/orb-3d.js';
-  initHeroOrb();
+
+  // ── KENAPA ORB DITUNDA SAMPAI BROWSER SENGGANG ─────────────────────────────
+  // `initHeroOrb()` membangun 240 titik 3D + garis penghubung di canvas.
+  // Itu pekerjaan berat yang, kalau dijalankan saat halaman dimuat, menahan
+  // paint pertama.
+  //
+  // Terukur di produksi (profiler Chromium): `K @ orb-3d.min.js` memakan
+  // 114ms + `Q @ orb-3d.min.js` 20ms — total blocking JS 435ms, dan
+  // first-contentful-paint baru tercapai di 1660-1748ms padahal first-paint
+  // sudah 552-560ms.
+  //
+  // Orb ini dekoratif: ia tidak menyampaikan informasi yang dibutuhkan untuk
+  // membaca halaman. Menundanya sampai browser senggang membuat teks hero
+  // tampil lebih dulu tanpa mengorbankan animasinya — orb tetap muncul, hanya
+  // tidak lagi menahan konten.
+  //
+  // `requestIdleCallback` dengan batas waktu: kalau browser tidak pernah
+  // senggang (halaman berat), orb tetap dipasang setelah 2 detik. Tidak ada
+  // kondisi di mana orb hilang sama sekali.
+  const pasangOrb = () => {
+    try { initHeroOrb(); } catch { /* dekoratif: gagal tidak boleh merusak halaman */ }
+  };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(pasangOrb, { timeout: 2000 });
+  } else {
+    setTimeout(pasangOrb, 200);
+  }
 
   // ── EKSPERIMEN 3D: HANYA UNTUK OWNER ──────────────────────────────────────
   // Markup seksi TIDAK ada di HTML ini (lihat #eksperimenHost). Server yang
