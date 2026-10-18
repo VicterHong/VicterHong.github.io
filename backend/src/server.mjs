@@ -25,7 +25,7 @@ import { jalankanPutaran } from './sentinel/pengirim.mjs';
 import { bersihkanAkunKedaluwarsa } from './purge-akun.mjs';
 import { sweepRateLimit } from './rate-limit.mjs';
 import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -95,7 +95,7 @@ initRoutes();
  * rate limit di memori ikut tereset, jadi penyerang bisa mengulanginya
  * tanpa henti. Pembungkus ini menutup celah itu.
  */
-async function requestHandler(req, res) {
+export async function requestHandler(req, res) {
   try {
     await handleRequest(req, res);
   } catch (err) {
@@ -296,7 +296,7 @@ setInterval(() => {
   } catch (err) {
     console.error('[cleanup] gagal:', err?.message ?? err);
   }
-}, 3_600_000);
+}, 3_600_000).unref();
 
 /**
  * Flush agregat SLA berkala (A1).
@@ -497,6 +497,20 @@ if (config.sentinelTujuanUrl) {
  */
 const servers = [];
 
+/**
+ * Nyalakan listener hanya kalau berkas ini dijalankan LANGSUNG.
+ *
+ * ── KENAPA ADA PEMERIKSAAN INI ──────────────────────────────────────────────
+ * Tanpa `import.meta.main`-style guard, `import '../src/server.mjs'` dari tes
+ * ikut menyalakan dua listener di port produksi (8788) dan bertabrakan dengan
+ * layanan yang sedang berjalan — tes gagal dengan EADDRINUSE, dan lebih buruk,
+ * ia bisa melayani permintaan nyata memakai database uji.
+ *
+ * Tes HTTP membutuhkan `requestHandler` yang diekspor tanpa efek samping ini.
+ */
+const dijalankanLangsung = process.argv[1]
+  && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+
 function startListener(host, label) {
   const s = createServer(requestHandler);
   s.on('error', (err) => {
@@ -511,11 +525,13 @@ function startListener(host, label) {
   return s;
 }
 
-startListener('127.0.0.1', 'IPv4');
-startListener('::1', 'IPv6');
+if (dijalankanLangsung) {
+  startListener('127.0.0.1', 'IPv4');
+  startListener('::1', 'IPv6');
 
-console.log(`[startup] database: ${config.dbPath}`);
-console.log(`[startup] origin diizinkan: ${config.allowedOrigins.join(', ') || '(tidak ada)'}`);
+  console.log(`[startup] database: ${config.dbPath}`);
+  console.log(`[startup] origin diizinkan: ${config.allowedOrigins.join(', ') || '(tidak ada)'}`);
+}
 
 /** Matikan dengan bersih supaya WAL SQLite tersimpan. */
 function shutdown(signal) {
