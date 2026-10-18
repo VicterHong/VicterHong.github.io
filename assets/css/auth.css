@@ -1149,6 +1149,16 @@ select.auth-input {
   line-height: 1.45;
 }
 
+/* ── Hint konfirmasi sandi (real-time validation) ── */
+.auth-hint-sandi {
+  margin: 6px 0 0;
+  font-size: var(--fs-1);
+  line-height: 1.4;
+  min-height: 1.2em;
+}
+.auth-hint-sandi.ok { color: #4ade80; }
+.auth-hint-sandi.galat { color: #f87171; }
+
 /* ══ Turnstile ═════════════════════════════════════════════════════════════ */
 
 /* ══ INGAT EMAIL & METODE LOGIN ══════════════════════════════════════════════

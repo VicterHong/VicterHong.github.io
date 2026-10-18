@@ -284,6 +284,42 @@
             </div>
           </div>
 
+          <div class="auth-field">
+            <label for="inpSandiKonfirmasi">Konfirmasi sandi <span class="auth-wajib" aria-hidden="true">*</span></label>
+            <div class="auth-input-wrap auth-input-ikon">
+              <span class="auth-ikon-kiri" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                     stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                     stroke-linejoin="round">
+                  <rect x="4" y="10.5" width="16" height="10.5" rx="2.5"/>
+                  <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>
+                  <path d="m9 15 2 2 4-4"/>
+                </svg>
+              </span>
+              <input class="auth-input" type="password" id="inpSandiKonfirmasi" name="password_confirm"
+                     required autocomplete="new-password">
+              <button type="button" class="auth-reveal" id="btnRevealKonfirmasi"
+                      aria-label="Tampilkan sandi" aria-pressed="false">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none"
+                     stroke="currentColor" stroke-width="1.75"
+                     stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                  <g class="mata-buka">
+                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </g>
+                  <g class="mata-tutup">
+                    <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/>
+                    <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/>
+                    <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/>
+                    <path d="m2 2 20 20"/>
+                  </g>
+                </svg>
+              </button>
+            </div>
+            <p class="auth-hint-sandi" id="hintKonfirmasi" role="status" aria-live="polite"></p>
+          </div>
+
           <div class="auth-turnstile" id="turnstileSlotDaftar" aria-hidden="true"></div>
 
           <button type="submit" class="auth-submit" id="btnDaftar">

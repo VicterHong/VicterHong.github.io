@@ -772,6 +772,16 @@
           // Tanpa ini pengguna hanya tahu gagal, tidak tahu harus apa.
           tampilkanSaranDaftar(email);
           getar(kartu);
+          // ── AUTO-REDIRECT KE SIGN UP SETELAH 2 DETIK ──────────────
+          // Pola Clerk: "Couldn't find your account" → langsung tawarkan
+          // daftar. Pengguna tidak perlu mencari tombol — sistem yang
+          // mengalihkan. Email sudah dibawa ke query string supaya tidak
+          // perlu mengetik ulang.
+          if (hasil.isi?.saran === 'daftar' && email) {
+            setTimeout(() => {
+              window.location.href = '/sign-up?email=' + encodeURIComponent(email);
+            }, 2000);
+          }
           if (turnstileWidgetId !== null && window.turnstile) {
             window.turnstile.reset(turnstileWidgetId);
             turnstileToken = '';
@@ -1013,6 +1023,43 @@
   const btnDaftar = $('#btnDaftar');
   const msgDaftar = $('#msgDaftar');
 
+  // ── KONFIRMASI SANDI: validasi real-time (pola Clerk/Auth0)
+  // Saat pengguna mengetik di field konfirmasi, cek apakah cocok dengan sandi.
+  // Umpan balik langsung mencegah submit gagal karena sandi tidak cocok.
+  const inpSandiDaftar = $('#inpSandiDaftar');
+  const inpKonfirmasi = $('#inpSandiKonfirmasi');
+  const hintKonfirmasi = $('#hintKonfirmasi');
+
+  function cekKonfirmasi() {
+    if (!inpKonfirmasi || !inpSandiDaftar) return;
+    const s1 = inpSandiDaftar.value;
+    const s2 = inpKonfirmasi.value;
+    if (!s2) {
+      hintKonfirmasi.textContent = '';
+      inpKonfirmasi.removeAttribute('data-valid');
+      return;
+    }
+    if (s1 === s2) {
+      hintKonfirmasi.textContent = 'Sandi cocok.';
+      hintKonfirmasi.className = 'auth-hint-sandi ok';
+      inpKonfirmasi.setAttribute('data-valid', '1');
+    } else {
+      hintKonfirmasi.textContent = 'Sandi belum cocok.';
+      hintKonfirmasi.className = 'auth-hint-sandi galat';
+      inpKonfirmasi.removeAttribute('data-valid');
+    }
+  }
+  inpKonfirmasi?.addEventListener('input', cekKonfirmasi);
+  inpSandiDaftar?.addEventListener('input', cekKonfirmasi);
+
+  // Reveal toggle untuk field konfirmasi
+  const btnRevealKonfirmasi = $('#btnRevealKonfirmasi');
+  btnRevealKonfirmasi?.addEventListener('click', () => {
+    const pressed = btnRevealKonfirmasi.getAttribute('aria-pressed') === 'true';
+    btnRevealKonfirmasi.setAttribute('aria-pressed', String(!pressed));
+    inpKonfirmasi.type = !pressed ? 'text' : 'password';
+  });
+
   formDaftar?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -1023,6 +1070,7 @@
     const email = $('#inpEmail')?.value?.trim() ?? '';
     const perusahaan = $('#inpPerusahaan')?.value?.trim() ?? '';
     const sandi = $('#inpSandiDaftar')?.value ?? '';
+    const konfirmasi = $('#inpSandiKonfirmasi')?.value ?? '';
 
     // ── Validasi lokal (server memvalidasi ULANG — ini hanya umpan balik cepat)
     const gagal = (m, sel) => {
@@ -1039,6 +1087,9 @@
     // Memeriksa di klien menghemat perjalanan ke server untuk kesalahan yang
     // bisa diketahui sekarang.
     if (sandi.length < 12) return gagal('Sandi minimal 12 karakter.', '#inpSandiDaftar');
+
+    // Konfirmasi sandi — harus cocok dengan field sandi (pola Clerk/Auth0).
+    if (konfirmasi !== sandi) return gagal('Konfirmasi sandi tidak cocok.', '#inpSandiKonfirmasi');
 
     setMemuat(btnDaftar, true);
     pesan(msgDaftar, 'Mengirim…');
