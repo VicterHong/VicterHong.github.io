@@ -31,7 +31,16 @@ writeFileSync(
   'utf8',
 );
 const originalContentDir = config.contentDir;
+const originalSecret = config.secret;
+const originalOwnerEmails = [...config.ownerEmails];
+
 config.contentDir = tempContentDir;
+if (!config.secret) {
+  config.secret = 'synthetic-test-secret-32-chars-long-minimum-hex';
+}
+if (!config.ownerEmails.length) {
+  config.ownerEmails = ['owner.test@example.com'];
+}
 
 openDb(':memory:');
 siapkanTabelPengguna();
@@ -42,6 +51,8 @@ initRoutes();
 after(() => {
   closeDb();
   config.contentDir = originalContentDir;
+  config.secret = originalSecret;
+  config.ownerEmails = originalOwnerEmails;
   try { rmSync(tempContentDir, { recursive: true, force: true }); } catch {}
 });
 
