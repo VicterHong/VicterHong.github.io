@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 456 perubahan dari 469 commit (2026-10-01 → 2026-10-18).
+Total 458 perubahan dari 471 commit (2026-10-01 → 2026-10-18).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -18,11 +18,13 @@ Total 456 perubahan dari 469 commit (2026-10-01 → 2026-10-18).
 
 ### Dokumentasi
 
+- **changelog**: Regenerasi setelah pass desain (`4fa388b`)
 - **changelog**: Regenerasi setelah perbaikan aksesibilitas (`ba3481a`)
 - **changelog**: Regenerasi catatan rilis termasuk upgrade 3D motion (`3bd98f2`)
 
 ### Pemeliharaan
 
+- **design**: Budget aksen emas & hierarki hero (`b8e2fb0`)
 - **design**: Skala tipografi & radius, leading hero, fallback token (`e4dca19`)
 
 ## 2026-10-17

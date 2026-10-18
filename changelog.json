@@ -1,20 +1,20 @@
 {
- "dibuat": "2026-10-18T03:10:14.492Z",
- "totalCommit": 469,
- "totalDicatat": 456,
+ "dibuat": "2026-10-18T03:34:00.571Z",
+ "totalCommit": 471,
+ "totalDicatat": 458,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-18",
  "rilis": [
   {
    "tanggal": "2026-10-18",
-   "jumlah": 5,
+   "jumlah": 7,
    "ringkasan": {
     "fitur": 1,
     "perbaikan": 1,
     "performa": 0,
-    "dokumentasi": 2,
+    "dokumentasi": 3,
     "data": 0,
-    "pemeliharaan": 1
+    "pemeliharaan": 2
    },
    "kategori": [
     {
@@ -44,6 +44,11 @@
      "label": "Dokumentasi",
      "item": [
       {
+       "hash": "4fa388b",
+       "teks": "Regenerasi setelah pass desain",
+       "scope": "changelog"
+      },
+      {
        "hash": "ba3481a",
        "teks": "Regenerasi setelah perbaikan aksesibilitas",
        "scope": "changelog"
@@ -59,6 +64,11 @@
      "kunci": "pemeliharaan",
      "label": "Pemeliharaan",
      "item": [
+      {
+       "hash": "b8e2fb0",
+       "teks": "Budget aksen emas & hierarki hero",
+       "scope": "design"
+      },
       {
        "hash": "e4dca19",
        "teks": "Skala tipografi & radius, leading hero, fallback token",
