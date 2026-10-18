@@ -27,10 +27,11 @@ async function loadData() {
       profile: mod.profile ?? null,
       projects: Array.isArray(mod.projects) ? mod.projects : [],
       sideProjects: Array.isArray(mod.sideProjects) ? mod.sideProjects : [],
+      services: Array.isArray(mod.services) ? mod.services : [],
     };
   } catch (err) {
     console.error('gagal memuat data proyek:', err.message);
-    return { profile: null, projects: [], sideProjects: [] };
+    return { profile: null, projects: [], sideProjects: [], services: [] };
   }
 }
 
@@ -96,7 +97,7 @@ function buildRobots() {
 
 // ── LLMS.TXT (AEO) ───────────────────────────────────────────────────────────
 
-function buildLlmsTxt({ profile, projects }) {
+function buildLlmsTxt({ profile, projects, services }) {
   const lines = [];
   lines.push(`# ${profile?.name ?? 'Victer'}`);
   lines.push('');
@@ -126,6 +127,13 @@ function buildLlmsTxt({ profile, projects }) {
     lines.push(parts.join(' '));
     lines.push('');
   }
+
+  lines.push('## Layanan');
+  lines.push('');
+  for (const s of (services ?? [])) {
+    if (s?.title && s?.body) lines.push(`- **${s.title}**: ${s.body}`);
+  }
+  lines.push('');
 
   lines.push('## Halaman penting');
   lines.push('');

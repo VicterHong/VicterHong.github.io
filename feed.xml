@@ -5,14 +5,28 @@
     <link>https://portfolio-victer.pages.dev/changelog</link>
     <description>Semua perubahan penting pada layanan VIVASTIC, dikelompokkan per tanggal — fitur baru, perbaikan, dan performa.</description>
     <language>id</language>
-    <lastBuildDate>Sat, 17 Oct 2026 17:51:31 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 18 Oct 2026 01:46:16 GMT</lastBuildDate>
     <atom:link href="https://portfolio-victer.pages.dev/feed.xml" rel="self" type="application/rss+xml"/>
     <item>
-      <title>14 Oktober 2026 — 43 perubahan</title>
+      <title>17 Oktober 2026 — 2 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-17</link>
+      <guid isPermaLink="false">changelog-2026-10-17</guid>
+      <pubDate>Sat, 17 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Fitur baru: Add interactive 3D neural mesh and creative engineering stack · Pemeliharaan: Penguatan defense-in-depth SQL dan validasi kunci</description>
+    </item>
+    <item>
+      <title>16 Oktober 2026 — 2 perubahan</title>
+      <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-16</link>
+      <guid isPermaLink="false">changelog-2026-10-16</guid>
+      <pubDate>Fri, 16 Oct 2026 00:00:00 +0700</pubDate>
+      <description>Perbaikan: Worker baca alamat backend dinamis — /api/* pulih dari 530 · Pemeliharaan: Perbarui alamat layanan token</description>
+    </item>
+    <item>
+      <title>14 Oktober 2026 — 44 perubahan</title>
       <link>https://portfolio-victer.pages.dev/changelog#tgl-2026-10-14</link>
       <guid isPermaLink="false">changelog-2026-10-14</guid>
       <pubDate>Wed, 14 Oct 2026 00:00:00 +0700</pubDate>
-      <description>Fitur baru: Tambah header keamanan — HSTS, CSP, anti-framing; Metrik terverifikasi, diagram arsitektur, sandbox demo · Perbaikan: Muat logo-mount.js sebagai module — monogram hilang; Jangan deploy cloudflare.config.ts — ia membocorkan topologi · Dokumentasi: Tambah prosedur rollback yang sebelumnya tidak ada; Perbaiki menu dashboard + kunci URL webhook dengan tes · Data: Catat 4 perbaikan audit (angka, bocor config, rollback, module) · Pemeliharaan: Hapus titik kuning dari tombol &quot;Sedang digunakan&quot;; Jatah gratis ditulis sebagai ANGKA, bukan mekanisme 3+2</description>
+      <description>Fitur baru: Tambah header keamanan — HSTS, CSP, anti-framing; Metrik terverifikasi, diagram arsitektur, sandbox demo · Perbaikan: Muat logo-mount.js sebagai module — monogram hilang; Jangan deploy cloudflare.config.ts — ia membocorkan topologi · Dokumentasi: Tambah prosedur rollback yang sebelumnya tidak ada; Perbaiki menu dashboard + kunci URL webhook dengan tes · Data: Catat header keamanan + perbaikan module changelog; Catat 4 perbaikan audit (angka, bocor config, rollback, module) · Pemeliharaan: Hapus titik kuning dari tombol &quot;Sedang digunakan&quot;; Jatah gratis ditulis sebagai ANGKA, bukan mekanisme 3+2</description>
     </item>
     <item>
       <title>13 Oktober 2026 — 18 perubahan</title>

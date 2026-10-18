@@ -18,6 +18,15 @@ Lokasi: Indonesia.
 
 ### WhatsApp Family Assistant Bot grup keluarga yang reaktif dan aman. Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Bisa mendengar pesan suara, mencari berita sendiri, dan membaca isi tautan yang dibagikan. Teknologi: Node.js, Baileys, faster-whisper, systemd. Kode sumber privat; akses lewat token setelah permintaan disetujui (lihat /docs).
 
+## Layanan
+
+- **Otomasi alur kerja**: Mengubah proses manual yang berulang menjadi alur otomatis yang bisa diaudit, dari pencatatan stok sampai laporan terjadwal.
+- **Bot & integrasi**: Bot Telegram, Discord, atau WhatsApp yang terhubung ke sistem Anda. Reaktif, tidak berisik, dengan kontrol anti-ban berlapis.
+- **Sistem self-hosted**: Aplikasi yang berjalan di server atau perangkat Anda sendiri, tanpa langganan, tanpa ketergantungan cloud yang wajib.
+- **Audit & perbaikan**: Meninjau sistem yang sudah berjalan: menemukan titik lemah keamanan, pemborosan sumber daya, dan bagian yang rapuh.
+- **3D Web & Creative Motion**: Antarmuka web interaktif dengan Three.js, WebGL shader, animasi fisika 3D, dan smooth velocity scroll (Lenis) yang tetap enteng di perangkat hemat daya.
+- **Audit Keamanan AI & Pentest**: Pengujian penetrasi dinamis multi-agent AI (standar Strix) untuk membongkar celah keamanan aplikasi vibe-coded dan membersihkan jejak watermark data sebelum rilis.
+
 ## Halaman penting
 
 - [Beranda](https://portfolio-victer.pages.dev/home): portofolio lengkap.
