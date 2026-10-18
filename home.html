@@ -112,6 +112,7 @@
 <link rel="stylesheet" href="assets/css/visi-misi.css">
 <link rel="stylesheet" href="assets/css/interactions.css">
 <link rel="stylesheet" href="assets/css/orb-3d.css">
+<link rel="stylesheet" href="assets/css/gerbang-akses.css">
 <link rel="stylesheet" href="assets/css/skip-link.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
@@ -630,14 +631,28 @@
      tidak bergantung pada app.js — kegagalannya tidak boleh mengosongkan
      halaman utama. -->
 <script type="module">
-  import { pasangMetrik } from '/assets/js/metrik-view.js';
-  pasangMetrik('metrikHost');
+  // ── METRIK / DIAGRAM / SANDBOX: HANYA SETELAH LOGIN ───────────────────────
+  // Modul-modul ini mengambil data dari backend dan merendernya. Untuk
+  // pengunjung anonim, modul TIDAK DIPANGGIL SAMA SEKALI — bukan dipanggil
+  // lalu hasilnya disembunyikan. Alasannya: kalau dipanggil, datanya tetap
+  // melintas di jaringan dan tetap bisa dibaca dari panel Network, walaupun
+  // tidak terlihat di layar.
+  //
+  // Statusnya dibaca dari /api/akses yang sama dengan yang dipakai app.js,
+  // jadi tidak ada dua sumber kebenaran.
+  import { ambilAkses } from '/assets/js/akses.js';
+  const akses = await ambilAkses();
 
-  import { pasangDiagram } from '/assets/js/diagram-view.js';
-  pasangDiagram('diagramHost');
+  if (akses?.masuk) {
+    const { pasangMetrik } = await import('/assets/js/metrik-view.js');
+    pasangMetrik('metrikHost');
 
-  import { pasangSandbox } from '/assets/js/sandbox-view.js';
-  pasangSandbox('sandboxHost');
+    const { pasangDiagram } = await import('/assets/js/diagram-view.js');
+    pasangDiagram('diagramHost');
+
+    const { pasangSandbox } = await import('/assets/js/sandbox-view.js');
+    pasangSandbox('sandboxHost');
+  }
 
   import { initHeroOrb, pasangLab3d } from '/assets/js/orb-3d.js';
   initHeroOrb();

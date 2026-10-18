@@ -36,6 +36,7 @@ import { initScrollSpy } from './scroll-spy.js';
 import { createSpotlightCarousel } from './spotlight.js';
 import { ambilManifest, susunGambar, pantauPerubahan } from './media-loader.js';
 import { icon } from './icons.js';
+import { ambilAkses, bolehLihatAngka, bolehLihatDemo, ajakanUntuk } from './akses.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -55,9 +56,30 @@ const el = (tag, attrs = {}, ...children) => {
 
 // ── ANGKA RINGKAS ──────────────────────────────────────────────────────────────
 // Dihitung dari data proyek, jadi tidak bisa "basi" saat proyek baru ditambahkan.
-function renderStats() {
-  const s = stats();
+//
+// ── ANGKA INI BENEFIT LOGIN, BUKAN PAJANGAN PUBLIK ──────────────────────────
+// Pengunjung anonim melihat label tanpa nilai ("—"), bukan angka sebenarnya.
+// Alasannya bukan sekadar bisnis: angka tes & jumlah proyek adalah hasil kerja
+// yang bisa disalin tanpa pernah menghubungi pemiliknya. Yang diberi sebagai
+// bukti publik cukup nama proyek, ringkasan, dan tautan.
+function renderStats(akses) {
   const host = $('#heroStats');
+  if (!host) return;
+
+  const boleh = Boolean(akses?.masuk);
+
+  if (!boleh) {
+    // Tiga label dengan nilai tersamar — bentuk tetap terbaca, isinya tidak.
+    for (const label of ['proyek', 'tes otomatis', 'teknologi']) {
+      host.append(el('div', { class: 'stat-terkunci' },
+        el('dd', { class: 'stat-tersamar', text: '—', 'aria-label': 'tersedia setelah masuk' }),
+        el('dt', { text: label }),
+      ));
+    }
+    return;
+  }
+
+  const s = stats();
   const entries = [
     { label: 'proyek', value: String(s.projects) },
     { label: 'tes otomatis', value: s.tests.toLocaleString('id-ID') },
@@ -165,13 +187,13 @@ function renderServices() {
  * Tiap proyek dapat komposisi berbeda (variasi `variant`) supaya terlihat
  * sebagai tiga karya tersendiri, bukan tiga panel seragam.
  */
-function renderProjectArt(p) {
+function renderProjectArt(p, lihatAngka = false) {
   const art = el('figure', { class: `project-art project-art--${p.variant ?? 'default'}` });
 
   // Baris atas: label kategori atau judul
   const top = el('div', { class: 'project-art__accent' });
-  if (p.metrics?.length) {
-    // Proyek dengan metrik: tampilkan angka besar (data nyata)
+  if (lihatAngka && p.metrics?.length) {
+    // Proyek dengan metrik DAN pengguna berhak: tampilkan angka besar.
     const dl = el('dl', { class: 'project-art__metrics' });
     for (const m of p.metrics) {
       dl.append(el('div', { class: 'project-art__metric' },
@@ -181,7 +203,7 @@ function renderProjectArt(p) {
     }
     top.append(dl);
   } else {
-    // Proyek tanpa metrik: label kategori, bukan angka rekaan
+    // Tanpa hak: label kategori, bukan angka rekaan DAN bukan angka nyata.
     top.append(el('p', { class: 'project-art__label', text: p.artLabel ?? 'Proyek' }));
   }
   art.append(top);
@@ -197,7 +219,20 @@ function renderProjectArt(p) {
 }
 
 // ── PROYEK ─────────────────────────────────────────────────────────────────────
-function renderProjects() {
+/**
+ * @param {object} akses status dari ambilAkses()
+ *
+ * ── TIGA TINGKAT, BUKAN DUA ─────────────────────────────────────────────────
+ *   anonim        → nama, ringkasan, stack. TANPA angka, TANPA highlight,
+ *                   TANPA tautan detail (diganti ajakan masuk)
+ *   login (Free)  → + angka proyek yang sudah dibuka jatahnya
+ *   berbayar      → + semua angka
+ *
+ * Yang dibuka jatahnya per PROYEK, bukan per halaman — itu aturan yang sudah
+ * berlaku di backend (KUOTA_METRIK_GRATIS), dan frontend mengikutinya supaya
+ * yang terlihat sama dengan yang diizinkan server.
+ */
+function renderProjects(akses) {
   const host = $('#featuredProjects');
 
   for (const p of projects) {
@@ -208,9 +243,12 @@ function renderProjects() {
     // yang membuat keduanya bisa hidup berdampingan.
     const inner = el('div', { class: 'project-card-inner' });
 
+    const lihatAngka = bolehLihatAngka(akses, p.slug);
+    const sudahMasuk = Boolean(akses?.masuk);
+
     // Artefak visual dari data asli — sebelum teks, supaya mata punya
     // titik masuk sebelum membaca.
-    inner.append(renderProjectArt(p));
+    inner.append(renderProjectArt(p, lihatAngka));
 
     inner.append(el('div', { class: 'project-head' },
       el('h3', { class: 'project-name', text: p.name }),
@@ -219,18 +257,32 @@ function renderProjects() {
     inner.append(el('p', { class: 'project-summary', text: p.summary }));
     if (p.problem) inner.append(el('p', { class: 'project-problem', text: p.problem }));
 
-    const highlights = el('div', { class: 'project-highlights' });
-    for (const h of p.highlights) {
-      highlights.append(el('div', { class: 'highlight' },
-        el('h4', { text: h.title }),
-        el('p', { text: h.detail }),
+    // ── HIGHLIGHT: HANYA UNTUK YANG SUDAH MASUK ─────────────────────────────
+    // Ini bagian yang paling berharga: cara kerja internal, angka keamanan,
+    // keputusan desain. Kalau semuanya terbuka, tidak ada alasan masuk.
+    // Pengunjung anonim melihat ringkasan satu paragraf di atas — cukup untuk
+    // menilai apakah proyek ini relevan, tidak cukup untuk menyalinnya.
+    if (sudahMasuk) {
+      const highlights = el('div', { class: 'project-highlights' });
+      for (const h of p.highlights) {
+        highlights.append(el('div', { class: 'highlight' },
+          el('h4', { text: h.title }),
+          el('p', { text: h.detail }),
+        ));
+      }
+      inner.append(highlights);
+    } else {
+      inner.append(el('div', { class: 'project-highlights-terkunci' },
+        el('p', { class: 'project-highlights-petunjuk' },
+          `Masuk untuk membaca ${p.highlights.length} catatan teknis proyek ini.`,
+        ),
       ));
     }
-    inner.append(highlights);
 
     const foot = el('div', { class: 'project-foot' });
 
-    if (p.metrics.length) {
+    // Angka hanya untuk yang berhak — sesuai jatah paket, bukan sekadar login.
+    if (lihatAngka && p.metrics.length) {
       const metrics = el('dl', { class: 'project-metrics' });
       for (const m of p.metrics) {
         metrics.append(el('div', {},
@@ -239,6 +291,13 @@ function renderProjects() {
         ));
       }
       foot.append(metrics);
+    } else if (p.metrics.length) {
+      foot.append(el('dl', { class: 'project-metrics project-metrics--terkunci' },
+        el('div', {},
+          el('dd', { class: 'stat-tersamar', text: '—' }),
+          el('dt', { text: 'angka tersedia setelah masuk' }),
+        ),
+      ));
     }
 
     const tags = el('div', { class: 'stack' });
@@ -246,16 +305,32 @@ function renderProjects() {
     foot.append(tags);
 
     const links = el('div', { class: 'project-links' });
+    // ── DETAIL TEKNIS: GERBANG LOGIN ────────────────────────────────────────
     // Proyek dengan bagian terkunci punya halaman detail sendiri.
     // URL memakai kode akses acak (/s/<kode>/) supaya nama proyek tidak
     // muncul di tautan — pola yang dipakai Notion, Figma, Linear.
-    // Kode utama = elemen pertama `access_codes`.
+    //
+    // ── KENAPA ANONIM DIARAHKAN KE SIGN-IN, BUKAN KE /s/ ────────────────────
+    // Halaman /s/ sudah punya gerbangnya sendiri, tapi mengirim pengunjung
+    // anonim ke sana berarti dia menabrak tembok setelah mengklik, bukan
+    // sebelum. Yang lebih jelas: tombolnya langsung berkata "Masuk untuk
+    // detail teknis" dan menuju sign-in dengan tujuan kembali ke sini.
+    // Server tetap memeriksa ulang di /s/ — frontend hanya memperbaiki alurnya.
     if (p.gated && p.access_codes?.length) {
-      links.append(el('a', {
-        class: 'project-link project-link-detail',
-        href: `/s/${p.access_codes[0]}/`,
-        text: 'Detail teknis',
-      }));
+      if (sudahMasuk) {
+        links.append(el('a', {
+          class: 'project-link project-link-detail',
+          href: `/s/${p.access_codes[0]}/`,
+          text: 'Detail teknis',
+        }));
+      } else {
+        const balik = encodeURIComponent(`/s/${p.access_codes[0]}/`);
+        links.append(el('a', {
+          class: 'project-link project-link-detail project-link-detail--masuk',
+          href: `/sign-in?lanjut=${balik}`,
+          text: 'Masuk untuk detail teknis',
+        }));
+      }
     }
     // Tombol akses kode mengarah ke HALAMAN KONTAK, bukan ke repo.
     // Repo-nya privat — menautkan langsung ke sana berarti pengunjung
@@ -545,6 +620,88 @@ function loadHeroVideo() {
 }
 
 // ── MUNCUL SAAT DIGULIR ────────────────────────────────────────────────────────
+// ── GERBANG AKSES ──────────────────────────────────────────────────────────────
+/**
+ * Pasang panel ajakan di seksi yang butuh login, dan sembunyikan seksi yang
+ * sepenuhnya bergantung pada data berbayar.
+ *
+ * ── KENAPA PANEL AJAKAN, BUKAN SEKADAR MENYEMBUNYIKAN ────────────────────────
+ * Seksi yang hilang tanpa penjelasan membuat halaman terasa rusak. Yang
+ * diinginkan pengunjung bukan "tidak ada apa-apa", tapi "ada sesuatu di sini,
+ * dan ini caranya". Panel ini menjawab keduanya: menyebut apa yang tersedia
+ * dan memberi satu tindakan yang jelas.
+ *
+ * ── KENAPA SEKSI TETAP ADA (TIDAK DIHAPUS) UNTUK ANONIM ─────────────────────
+ * Menghapus seluruh seksi metrik & demo berarti pengunjung tidak pernah tahu
+ * ada data yang bisa diperiksa — dan itu justru kehilangan daya tarik
+ * portofolio ini. Yang ditampilkan: judul seksi + panel ajakan. Isinya tidak.
+ */
+function pasangGerbangAkses(akses) {
+  const ajakan = ajakanUntuk(akses);
+  const sudahMasuk = Boolean(akses?.masuk);
+
+  // 1. Metrik & diagram & sandbox: hanya untuk yang sudah masuk.
+  const peta = [
+    { host: '#metrikHost', induk: '.metrik-bagian' },
+    { host: '#diagramHost', induk: '.diagram-bagian' },
+    { host: '#sandboxHost', induk: '.sandbox-bagian' },
+  ];
+
+  for (const { host, induk } of peta) {
+    const elHost = $(host);
+    if (!elHost) continue;
+
+    if (sudahMasuk) {
+      elHost.hidden = false;
+      continue;
+    }
+
+    // Kosongkan isi (kalau ada yang sempat dirender) lalu ganti dengan ajakan.
+    elHost.replaceChildren();
+    elHost.hidden = true;
+
+    const seksi = elHost.closest(induk);
+    if (seksi && !seksi.querySelector('.gerbang-akses')) {
+      seksi.append(buatPanelGerbang(ajakan));
+    }
+  }
+
+  // 2. Angka ringkas di hero: beri keterangan kenapa tersamar.
+  const statsHost = $('#heroStats');
+  if (statsHost && !sudahMasuk && !statsHost.dataset.gerbangTerpasang) {
+    statsHost.dataset.gerbangTerpasang = '1';
+    const catatan = el('p', { class: 'hero-stats-catatan' });
+    catatan.append(
+      document.createTextNode('Angka tersedia setelah '),
+      el('a', { href: '/sign-in', text: 'masuk' }),
+      document.createTextNode(' atau '),
+      el('a', { href: '/sign-up', text: 'membuat akun' }),
+      document.createTextNode('.'),
+    );
+    statsHost.after(catatan);
+  }
+}
+
+/** Panel ajakan yang dipakai ulang di beberapa seksi. */
+function buatPanelGerbang(ajakan) {
+  if (!ajakan) return el('div');
+
+  const panel = el('div', { class: 'gerbang-akses', role: 'note' });
+  panel.append(el('p', { class: 'gerbang-akses-judul', text: ajakan.judul }));
+  panel.append(el('p', { class: 'gerbang-akses-teks', text: ajakan.teks }));
+
+  const aksi = el('div', { class: 'gerbang-akses-aksi' });
+  if (ajakan.aksi && ajakan.href) {
+    aksi.append(el('a', { class: 'btn btn-primary', href: ajakan.href, text: ajakan.aksi }));
+  }
+  if (ajakan.aksiSekunder && ajakan.hrefSekunder) {
+    aksi.append(el('a', { class: 'btn btn-ghost', href: ajakan.hrefSekunder, text: ajakan.aksiSekunder }));
+  }
+  if (aksi.childElementCount) panel.append(aksi);
+
+  return panel;
+}
+
 function observeReveals() {
   const targets = document.querySelectorAll('[data-reveal]');
   if (!('IntersectionObserver' in window)) {
@@ -617,16 +774,31 @@ function watchHeader() {
 // tanpa .js-ready, konten langsung terlihat (tidak menunggu animasi).
 document.documentElement.classList.add('js-ready');
 
-renderStats();
+// ── STATUS AKSES DIAMBIL DULU, SEBELUM APA PUN DIRENDER ────────────────────
+// Urutannya penting: renderStats() dan renderProjects() memutuskan APA YANG
+// DITAMPILKAN berdasarkan hasil ini. Kalau dirender dulu lalu diperbaiki,
+// pengunjung anonim sempat melihat angka penuh selama satu frame — dan itu
+// sudah cukup untuk screenshot atau copy-paste.
+//
+// `await` di sini menahan seluruh render, jadi kalau backend lambat halaman
+// terasa kosong sebentar. Dua hal yang membuat itu dapat diterima:
+//   1. akses.js punya batas waktu lewat fetch bawaan browser, dan gagal →
+//      status terkunci (bukan menggantung selamanya)
+//   2. konten statis (judul, misi, layanan) sudah ada di HTML, jadi halaman
+//      tidak pernah benar-benar kosong
+const akses = await ambilAkses();
+
+renderStats(akses);
 renderAbout();
 renderServices();
-renderProjects();
+renderProjects(akses);
 // `await` — galeri menunggu daftar gambar dari backend (maks 4 detik).
 // Kalau backend lambat atau mati, ambilManifest() menyerah dan susunGambar()
 // memakai gambar bawaan; galeri tetap muncul, tidak pernah kosong.
 await renderSpotlight();
 renderSideProjects();
 renderContact();
+pasangGerbangAkses(akses);
 $('#year').textContent = String(new Date().getFullYear());
 loadHeroVideo();
 observeReveals();

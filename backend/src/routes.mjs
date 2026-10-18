@@ -56,7 +56,7 @@ import { catatPaketGratis, punyaLanggananBerbayar } from './paket-akun.mjs';
 // ── paketPengguna UNTUK MENANDAI TOMBOL PAKET AKTIF ──────────────────────────
 // Dipakai /api/checkout/konteks supaya halaman harga tahu paket mana yang
 // sedang dipakai pengguna, lalu menonaktifkan tombolnya.
-import { paketPengguna } from './akses-proyek.mjs';
+import { paketPengguna, keadaanMetrik } from './akses-proyek.mjs';
 
 /**
  * Catat paket gratis untuk pengguna yang baru masuk — kalau memang tidak berbayar.
@@ -4276,6 +4276,72 @@ export const routes = [
       // Aman dilihat publik: ini hanya nama proyek yang sudah tampil di
       // halaman depan. Tidak ada data internal.
       sendJson(res, 200, { ok: true, projects: listProjects() });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/akses',
+    handler: safe(async (req, res) => {
+      // ── STATUS AKSES PENGUNJUNG ────────────────────────────────────────────
+      // Frontend memakai ini untuk memutuskan APA YANG DITAMPILKAN:
+      //   belum masuk  → kartu proyek tanpa angka, tanpa demo, tanpa highlight
+      //   sudah masuk  → angka & demo sesuai jatah paketnya
+      //
+      // ── KENAPA STATUS DIKIRIM, BUKAN DATA-NYA SAJA ────────────────────────
+      // Kalau server hanya mengirim "boleh/tidak" per proyek, frontend tetap
+      // perlu tahu MENGAPA terkunci (jatah habis? perlu star? perlu
+      // berlangganan?) untuk menampilkan ajakan yang benar. `alasan` dan
+      // `sisa` dipakai untuk itu.
+      //
+      // ── YANG TIDAK PERNAH DIKIRIM KE PENGUNJUNG ANONIM ────────────────────
+      // Tidak ada angka metrik, tidak ada daftar metrik, tidak ada status
+      // per-proyek. Semuanya `null`/kosong — bukan disembunyikan di CSS,
+      // tapi memang tidak ada di respons.
+      const sesi = sesiDariRequest(req);
+
+      if (!sesi) {
+        return sendJson(res, 200, {
+          ok: true,
+          masuk: false,
+          paket: null,
+          berbayar: false,
+          total: null,
+          terpakai: 0,
+          sisa: null,
+          sudahStar: false,
+          bonusStarTersedia: 0,
+          proyekTerbuka: [],
+          // Alasan kenapa belum ada apa pun — dipakai untuk teks ajakan.
+          alasan: 'belum_masuk',
+        });
+      }
+
+      const pengguna = cariPengguna(sesi.issued_to);
+      if (!pengguna || pengguna.status !== 'aktif') {
+        // Sesi ada tapi akunnya tidak aktif (menunggu hapus / ditangguhkan).
+        // Diperlakukan seperti belum masuk: jangan bocorkan apa pun.
+        return sendJson(res, 200, {
+          ok: true, masuk: false, paket: null, berbayar: false,
+          total: null, terpakai: 0, sisa: null, sudahStar: false,
+          bonusStarTersedia: 0, proyekTerbuka: [], alasan: 'akun_tidak_aktif',
+        });
+      }
+
+      const k = keadaanMetrik(pengguna.id);
+      return sendJson(res, 200, {
+        ok: true,
+        masuk: true,
+        paket: k.paket,
+        berbayar: k.berbayar,
+        total: k.total,          // null = tanpa batas (berbayar)
+        terpakai: k.terpakai,
+        sisa: k.sisa,            // null = tanpa batas
+        sudahStar: k.sudahStar,
+        bonusStarTersedia: k.bonusStarTersedia,
+        proyekTerbuka: k.proyek,
+        alasan: null,
+      });
     }),
   },
 

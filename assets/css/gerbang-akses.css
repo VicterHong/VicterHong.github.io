@@ -1,0 +1,127 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GERBANG AKSES — panel ajakan, angka tersamar, highlight terkunci
+
+   ── KENAPA ADA ────────────────────────────────────────────────────────────
+   Metrik, demo, dan diagram adalah benefit akun. Pengunjung anonim melihat
+   BENTUK seksi (judul + panel ajakan), bukan isinya. Yang dihindari dua
+   ekstrem sekaligus:
+     • seksi hilang tanpa penjelasan → halaman terasa rusak
+     • seksi tampil penuh           → tidak ada alasan membuat akun
+
+   ── KENAPA TIDAK MEMAKAI `filter: blur()` UNTUK MENYAMARKAN ───────────────
+   Blur pada teks nyata masih menyimpan teksnya di DOM: bisa dibaca dengan
+   View Source, copy-paste, atau screen reader. Yang dipakai di sini adalah
+   pengganti literal ("—"), jadi tidak ada yang bisa dipulihkan.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Angka tersamar (hero stats & metrik proyek) ───────────────────────────── */
+.stat-tersamar {
+  color: var(--text-faint);
+  letter-spacing: 0.12em;
+  /* Bukan teks yang perlu dibaca — murni penanda "ada sesuatu di sini". */
+  user-select: none;
+}
+
+.hero-stats-catatan {
+  margin: 0.85rem 0 0;
+  font-size: var(--fs-1);
+  color: var(--text-faint);
+  line-height: 1.6;
+}
+
+.hero-stats-catatan a {
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s var(--ease);
+}
+
+.hero-stats-catatan a:hover,
+.hero-stats-catatan a:focus-visible {
+  color: var(--accent);
+}
+
+/* ── Metrik proyek yang terkunci ──────────────────────────────────────────── */
+.project-metrics--terkunci dd {
+  /* Tetap mono & besar supaya bentuknya sama dengan versi terbuka — yang
+     berubah hanya isinya. Perbedaan bentuk akan terlihat seperti bug. */
+  color: var(--text-faint);
+}
+
+.project-metrics--terkunci dt {
+  color: var(--text-faint);
+  font-size: var(--fs-1);
+}
+
+/* ── Highlight terkunci di kartu proyek ───────────────────────────────────── */
+.project-highlights-terkunci {
+  margin: 1.1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-ctl);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.project-highlights-petunjuk {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--text-faint);
+  line-height: 1.6;
+}
+
+/* ── Panel ajakan di seksi metrik / diagram / sandbox ─────────────────────── */
+.gerbang-akses {
+  max-width: 46rem;
+  margin: 1.5rem 0 0;
+  padding: 1.6rem 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  /* Sedikit lebih terang dari latar supaya terbaca sebagai panggilan, bukan
+     sebagai kesalahan render. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012));
+}
+
+.gerbang-akses-judul {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-4);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.gerbang-akses-teks {
+  margin: 0 0 1.15rem;
+  font-size: var(--fs-3);
+  line-height: 1.65;
+  color: var(--text-dim);
+  /* 65 karakter per baris — batas keterbacaan yang sama dengan paragraf lain. */
+  max-width: 60ch;
+}
+
+.gerbang-akses-aksi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+@media (max-width: 640px) {
+  .gerbang-akses {
+    padding: 1.25rem 1.15rem;
+  }
+  .gerbang-akses-aksi {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gerbang-akses-aksi .btn {
+    justify-content: center;
+  }
+}
+
+/* ── Tombol "Masuk untuk detail teknis" ─────────────────────────────────────
+   Tetap memakai gaya CTA solid supaya terlihat sebagai jalur utama, bukan
+   sebagai tombol nonaktif. Yang berubah hanya teksnya. */
+.project-link-detail--masuk {
+  /* Tidak ada perubahan visual — kelas ini ada supaya bisa ditarget tes dan
+     supaya nanti mudah dibedakan kalau perlu. */
+}
