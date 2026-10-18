@@ -1,10 +1,57 @@
 {
- "dibuat": "2026-10-18T01:42:20.583Z",
- "totalCommit": 464,
- "totalDicatat": 451,
+ "dibuat": "2026-10-18T02:22:06.044Z",
+ "totalCommit": 467,
+ "totalDicatat": 454,
  "hariPertama": "2026-10-01",
- "hariTerakhir": "2026-10-17",
+ "hariTerakhir": "2026-10-18",
  "rilis": [
+  {
+   "tanggal": "2026-10-18",
+   "jumlah": 3,
+   "ringkasan": {
+    "fitur": 1,
+    "perbaikan": 1,
+    "performa": 0,
+    "dokumentasi": 1,
+    "data": 0,
+    "pemeliharaan": 0
+   },
+   "kategori": [
+    {
+     "kunci": "fitur",
+     "label": "Fitur baru",
+     "item": [
+      {
+       "hash": "e70156a",
+       "teks": "Layanan masuk llms.txt + OfferCatalog JSON-LD",
+       "scope": "aeo"
+      }
+     ]
+    },
+    {
+     "kunci": "perbaikan",
+     "label": "Perbaikan",
+     "item": [
+      {
+       "hash": "1ea9472",
+       "teks": "Audit Web Interface Guidelines — skip link, fokus keyboard, kontras, tema",
+       "scope": "a11y"
+      }
+     ]
+    },
+    {
+     "kunci": "dokumentasi",
+     "label": "Dokumentasi",
+     "item": [
+      {
+       "hash": "3bd98f2",
+       "teks": "Regenerasi catatan rilis termasuk upgrade 3D motion",
+       "scope": "changelog"
+      }
+     ]
+    }
+   ]
+  },
   {
    "tanggal": "2026-10-17",
    "jumlah": 2,

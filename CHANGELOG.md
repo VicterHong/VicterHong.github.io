@@ -2,9 +2,23 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 451 perubahan dari 464 commit (2026-10-01 → 2026-10-17).
+Total 454 perubahan dari 467 commit (2026-10-01 → 2026-10-18).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
+
+## 2026-10-18
+
+### Fitur baru
+
+- **aeo**: Layanan masuk llms.txt + OfferCatalog JSON-LD (`e70156a`)
+
+### Perbaikan
+
+- **a11y**: Audit Web Interface Guidelines — skip link, fokus keyboard, kontras, tema (`1ea9472`)
+
+### Dokumentasi
+
+- **changelog**: Regenerasi catatan rilis termasuk upgrade 3D motion (`3bd98f2`)
 
 ## 2026-10-17
 
