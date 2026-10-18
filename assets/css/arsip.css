@@ -90,7 +90,7 @@
      beraksen. Di sini sengaja lebih redup — hierarki visualnya lebih rendah. */
   background: rgba(255, 255, 255, 0.014);
   border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   color: inherit;
   text-decoration: none;
   transition: border-color 0.25s var(--ease, ease), background-color 0.25s var(--ease, ease);

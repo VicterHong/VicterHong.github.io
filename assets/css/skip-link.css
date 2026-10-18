@@ -13,6 +13,14 @@
    Elemen `display: none` dilewati Tab sepenuhnya — justru itu masalahnya.
    Ia harus ADA di alur fokus, hanya tidak terlihat. Karena itu dipakai
    `transform: translateY(-120%)` + `:focus` untuk memunculkannya.
+
+   ── KENAPA NILAI FALLBACK, BUKAN TOKEN SAJA ───────────────────────────────
+   Berkas ini dimuat di DUA jenis halaman: halaman biasa (memuat main.css,
+   punya --accent/--radius-ctl) dan halaman auth (memuat auth.css saja,
+   TIDAK punya token itu). Tanpa fallback, di halaman auth skip link tampil
+   tanpa latar dan tanpa sudut — bug nyata yang tertangkap saat diuji, bukan
+   saat membaca kode. `var(--token, fallback)` membuat satu berkas bekerja di
+   kedua konteks tanpa menduplikasi token.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .skip-link {
@@ -21,15 +29,15 @@
   left: 0;
   z-index: 9999; /* di atas header (sticky) dan gate */
   padding: 0.85rem 1.25rem;
-  background: var(--accent);
+  background: var(--accent, #f5c542);
   color: #0a0a0b;
   font-family: 'Satoshi', system-ui, sans-serif;
-  font-size: var(--fs-2);
+  font-size: var(--fs-2, 0.875rem);
   font-weight: 700;
   text-decoration: none;
-  border-radius: 0 0 var(--radius-sm) 0;
+  border-radius: 0 0 var(--radius-ctl, 8px) 0;
   transform: translateY(-120%);
-  transition: transform 0.18s var(--ease);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .skip-link:focus,

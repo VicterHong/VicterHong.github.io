@@ -236,7 +236,7 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: var(--radius-ctl);
   background: var(--emas-redup);
   color: var(--emas);
 }
@@ -378,7 +378,7 @@
   flex-shrink: 0;
   padding: 7px 12px;
   border: 1px solid var(--garis-terang);
-  border-radius: 7px;
+  border-radius: var(--radius-ctl);
   background: transparent;
   color: var(--teks-redup);
   font: inherit;
@@ -928,7 +928,7 @@
   border: 0;
   /* Radius di ATAS saja — sudut bawah menempel garis bar, dan sudut membulat
      di sana akan terlihat seperti celah. */
-  border-radius: 7px 7px 0 0;
+  border-radius: var(--radius-ctl) 7px 0 0;
   background: transparent;
   color: var(--teks-redup);
   font: inherit;
@@ -1733,7 +1733,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: var(--radius-sm, 9px);
+  border-radius: var(--radius-ctl);
   background: var(--bg-card, #16161a);
   border: 1px solid var(--line, #26262c);
   color: var(--text, #f4f4f6);
@@ -2379,7 +2379,7 @@
   /* Latar putih WAJIB — QR hitam-putih tidak terbaca di atas tema gelap. */
   background: #fff;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   /* Ukuran minimum yang masih bisa difokus kamera ponsel. */
   width: 180px;
   height: 180px;
@@ -2433,7 +2433,7 @@
 .kam-pemulihan {
   margin: 12px 0;
   padding: 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--garis);
   list-style: none;
@@ -2555,7 +2555,7 @@
   .kam-dialog-kotak .auth-otp-cell {
     aspect-ratio: 1 / 1.15;
     font-size: var(--fs-4);
-    border-radius: var(--radius-sm, 9px);
+    border-radius: var(--radius-ctl);
   }
 }
 

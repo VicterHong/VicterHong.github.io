@@ -64,7 +64,7 @@
   padding: 0.625rem 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   color: var(--text);
   /* ── MONO UNTUK ANGKANYA ───────────────────────────────────────────────
      Angka di kolom ini dibandingkan dan diketik ulang. Font mono membuat
@@ -106,7 +106,7 @@
   padding: 0 0.625rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   color: var(--text-faint);
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
@@ -237,6 +237,6 @@
   padding: 0.875rem 1rem;
   background: rgba(252, 165, 165, 0.06);
   border: 1px solid rgba(252, 165, 165, 0.18);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   color: #fca5a5;
 }

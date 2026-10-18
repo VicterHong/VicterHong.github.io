@@ -92,7 +92,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.7rem 0.4rem 0.6rem;
-  border-radius: 10px;
+  border-radius: var(--radius-ctl);
   cursor: pointer;
   --tech-color: var(--accent);
   transition: background 0.3s var(--ease), transform 0.3s var(--ease);
@@ -121,7 +121,7 @@
   width: 100%;
   height: 100%;
   display: block;
-  border-radius: 7px;
+  border-radius: var(--radius-ctl);
 }
 
 .tech-item:hover .tech-icon {
@@ -155,7 +155,7 @@
 @media (max-width: 720px) {
   .tech-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; }
   .tech-icon { width: 28px; height: 28px; }
-  .tech-icon svg { border-radius: 6px; }
+  .tech-icon svg { border-radius: var(--radius-hair); }
   .tech-name { font-size: var(--fs-1); }
   .tilt-panel { padding: 1.35rem 1.1rem; }
 }
@@ -163,7 +163,7 @@
 @media (max-width: 420px) {
   .tech-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.3rem; }
   .tech-icon { width: 24px; height: 24px; }
-  .tech-icon svg { border-radius: 5px; }
+  .tech-icon svg { border-radius: var(--radius-hair); }
   .tech-name { font-size: var(--fs-1); }
 }
 

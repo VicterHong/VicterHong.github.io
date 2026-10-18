@@ -257,7 +257,7 @@
   /* Pembulatan dipindah ke sini karena `.spotlight-card` tidak lagi punya
      `overflow: hidden`. Media ini yang mengisi seluruh kartu, jadi dialah
      yang perlu membulat. */
-  border-radius: 13px;
+  border-radius: var(--radius);
   background: #0a0a0c;
 }
 
@@ -328,7 +328,7 @@
   inset: auto 1.15rem 1.15rem 1.15rem;
   height: 2.6rem;
   z-index: 1;
-  border-radius: 6px;
+  border-radius: var(--radius-ctl);
   /* Dua batang: lebar (judul) dan pendek (label). Bentuknya menyerupai
      teks asli sehingga peralihan ke konten nyata tidak terasa melompat. */
   background:

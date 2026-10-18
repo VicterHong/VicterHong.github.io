@@ -170,7 +170,7 @@
   font: inherit;
   font-size: var(--fs-2);
   font-weight: 500;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   cursor: pointer;
   /* Transisi dipercepat (0.18s) — tombol harus terasa merespons seketika
      saat ditekan, bukan menunggu animasi selesai. */
@@ -311,7 +311,7 @@
   justify-content: center;
   background: none;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   color: var(--text-dim);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;

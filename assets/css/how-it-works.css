@@ -514,7 +514,7 @@ html:not(.js-ready) .hiw-item { opacity: 1; transform: none; }
 
   .hiw-dalam {
     padding: 0.75rem;
-    border-radius: 12px;
+    border-radius: var(--radius);
   }
 
   .hiw-nomor {

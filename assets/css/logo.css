@@ -28,7 +28,7 @@
 .brand-logo {
   display: block;
   flex: none;                      /* jangan menyusut saat teks brand panjang */
-  border-radius: 7px;
+  border-radius: var(--radius-ctl);
   box-shadow:
     0 0 0 1px rgba(248, 187, 37, 0.18),
     0 0 14px rgba(248, 187, 37, 0.10);
@@ -63,7 +63,7 @@ a:focus-visible > .brand-logo {
   line-height: 1;
   color: #0e1116;
   background: #f8bb25;
-  border-radius: 7px;
+  border-radius: var(--radius-ctl);
 }
 
 @media (prefers-reduced-motion: reduce) {

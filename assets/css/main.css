@@ -24,7 +24,18 @@
   --sukses: #4ade80;
   --galat: #f87171;
   --radius: 14px;
-  --radius-sm: 9px;
+  /* ── SKALA RADIUS — EMPAT TINGKAT ──────────────────────────────────────────
+     Sebelumnya 12 nilai berbeda dipakai (3,4,5,6,7,8,9,10,12,13,14,15,25,999).
+     Tujuh di antaranya berjarak 1-2px: cukup mirip untuk terlihat seperti
+     salah, cukup beda untuk tidak bisa diprediksi. Sekarang empat:
+       --radius-hair  3px   garis progres, penanda mikro
+       --radius-ctl   8px   tombol, chip, input, lencana
+       --radius      14px   kartu, panel, terminal
+       --radius-lg   20px   wadah besar (kartu visi-misi)
+     Ditambah 999px untuk pil dan 50% untuk lingkaran. */
+  --radius-hair: 3px;
+  --radius-ctl: 8px;
+  --radius-lg: 20px;
   --maxw: 1080px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -290,7 +301,7 @@ a { color: inherit; text-decoration: none; }
 
 .brand-mark {
   width: 10px; height: 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-hair);
   background: var(--accent);
   box-shadow: 0 0 14px var(--accent-line);
 }
@@ -506,7 +517,7 @@ a { color: inherit; text-decoration: none; }
   padding: 0.4rem;
   background: var(--surface, #131316);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
@@ -537,7 +548,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--text);
   background: transparent;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-ctl);
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.15s var(--ease);
@@ -618,7 +629,7 @@ a { color: inherit; text-decoration: none; }
 
 .nav-akun-badge {
   padding: 0.15rem 0.45rem;
-  border-radius: 6px;
+  border-radius: var(--radius-ctl);
   font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -720,7 +731,7 @@ a { color: inherit; text-decoration: none; }
   background: none;
   border: 1px solid var(--line);
   color: var(--text-dim);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   padding: 0.45rem 0.55rem;
   cursor: pointer;
   line-height: 0;
@@ -840,7 +851,16 @@ a { color: inherit; text-decoration: none; }
 
 .hero-title {
   font-size: var(--fs-5);
-  line-height: 1.08;
+  /* ── LEADING (DIUKUR, bukan selera) ────────────────────────────────────────
+     Sebelumnya 1.08 = 47,5px untuk glyph setinggi 44px (ascent 35 + descent 9).
+     Sisa jarak antar-baris hanya 3,5px: descender "y/g" baris atas menyentuh
+     ascender baris bawah. Diukur dengan Range.getClientRects() pada Playfair
+     Display 700 44px, lalu diperiksa visual pada tangkapan 2x.
+
+     1.14 memberi jarak 50,2 - 44 = 6,2px — cukup untuk descender tanpa
+     membuat judul terasa longgar. Untuk serif kontras tinggi, leading < 1.12
+     hampir selalu bertabrakan karena descent Playfair dalam. */
+  line-height: 1.14;
   letter-spacing: -0.035em;
   font-weight: 700;
   margin: 0 0 1.5rem;
@@ -893,7 +913,7 @@ a { color: inherit; text-decoration: none; }
 
 .terminal {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: rgba(13, 13, 16, 0.82);
   backdrop-filter: blur(12px);
   box-shadow:
@@ -967,7 +987,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 0.5rem;
   padding: 0.72rem 1.35rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   font-size: var(--fs-2);
   font-weight: 500;
   border: 1px solid transparent;
@@ -1186,7 +1206,7 @@ a { color: inherit; text-decoration: none; }
 
 .highlight {
   border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   padding: 1.05rem 1.15rem;
   background: rgba(255,255,255,0.012);
 }
@@ -1282,7 +1302,7 @@ a { color: inherit; text-decoration: none; }
 .side-project {
   position: relative;
   border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   padding: 1.15rem;
   background: rgba(255,255,255,0.012);
   transition: border-color 0.3s var(--ease), transform 0.3s var(--ease);
@@ -1311,8 +1331,8 @@ a { color: inherit; text-decoration: none; }
   padding: 0.75rem 0.875rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--line-soft);
-  border-radius: var(--radius-sm);
-  font-size: 0.8125rem;
+  border-radius: var(--radius-ctl);
+  font-size: var(--fs-1);
 }
 
 .ci-badge-utama {
@@ -1337,7 +1357,7 @@ a { color: inherit; text-decoration: none; }
 .ci-badge-tautan {
   margin-left: auto;
   color: var(--accent);
-  font-size: 0.75rem;
+  font-size: var(--fs-1);
   text-decoration: underline;
   text-underline-offset: 2px;
   white-space: nowrap;
@@ -1351,13 +1371,13 @@ a { color: inherit; text-decoration: none; }
   margin-top: 0.375rem;
   color: var(--text-dim);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
+  font-size: var(--fs-1);
 }
 
 .ci-badge-commit {
   margin-top: 0.25rem;
   color: var(--text-faint);
-  font-size: 0.75rem;
+  font-size: var(--fs-1);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -1523,7 +1543,7 @@ a { color: inherit; text-decoration: none; }
   /* Tidak ada margin-bottom: kartu memakai grid dua kolom, jadi posisi ikon
      ditentukan `align-items: start` — bukan margin. Menambah margin di sini
      akan mendorong ikon turun dari judul. */
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   background: var(--accent-soft);
   color: var(--accent);
   /* Ikon mewarisi warna dari sini — SVG memakai stroke="currentColor" */
@@ -1629,7 +1649,7 @@ a { color: inherit; text-decoration: none; }
   gap: 0.55rem;
   padding: 0.7rem 1.25rem;
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-ctl);
   font-size: var(--fs-2);
   color: var(--text-dim);
   transition: border-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease);
@@ -1922,7 +1942,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 .footer-merek-mark {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--radius-ctl);
   background: var(--accent);
   flex-shrink: 0;
 }
@@ -1979,7 +1999,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 .footer-sosial-teks a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 3px;
+  border-radius: var(--radius-hair);
 }
 
 /* ── Tiga kolom tautan ──────────────────────────────────────────────────────── */
@@ -2023,7 +2043,7 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
 .footer-kolom a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 3px;
+  border-radius: var(--radius-hair);
 }
 
 /* ── Baris bawah: copyright + legal ─────────────────────────────────────────── */
