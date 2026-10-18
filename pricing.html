@@ -6,7 +6,7 @@
 <title>Paket &amp; Harga | VIVASTIC</title>
 <meta name="description" content="Tiga paket untuk kebutuhan berbeda: Standar, Profesional, dan Enterprise. Harga jelas, tanpa biaya tersembunyi.">
 <meta name="author" content="VIVASTIC">
-<meta name="theme-color" content="#f5c542">
+<meta name="theme-color" content="#0a0a0b">
 <link rel="canonical" href="https://portfolio-victer.pages.dev/pricing">
 
 <!-- Ikon -->
@@ -64,6 +64,7 @@
   kedipan yang ingin dihindari.
 -->
 <link rel="stylesheet" href="assets/css/cf-gate.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan.
   // Jaring pengaman 8 detik: kalau skrip gate gagal dimuat, halaman tetap
@@ -79,6 +80,7 @@
 </script>
 </head>
 <body>
+<a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
 <!-- ══ HEADER ══════════════════════════════════════════════════════════════
      Disalin dari home.html supaya navigasi terasa sama di seluruh situs. -->
@@ -112,7 +114,7 @@
 
 <div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
 
-<main id="konten-utama" class="pricing-page">
+<main id="konten-utama" class="pricing-page" tabindex="-1">
   <div class="pricing-wrap">
 
     <!--

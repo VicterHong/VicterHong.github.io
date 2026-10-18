@@ -196,9 +196,16 @@ function tabelBarang(onDetail) {
 
     // ── BARIS BISA DIKLIK ────────────────────────────────────────────────────
     // Ini aksi yang benar-benar bekerja, jadi barisnya dibuat bisa diklik.
+    //
+    // aria-label SENGAJA tidak dipakai di sini. axe-core menandainya sebagai
+    // `label-content-name-mismatch`: label "Lihat detail Bearing 6204" tidak
+    // memuat seluruh teks yang terlihat di baris (kode, kategori, stok, harga),
+    // dan pembaca layar mengucapkan dua nama berbeda untuk elemen yang sama.
+    // Nama aksesibel kini diambil dari isi baris itu sendiri — sudah deskriptif,
+    // dan hint tindakan dipindah ke `title` (tidak menimpa nama).
     tr.tabIndex = 0;
     tr.setAttribute('role', 'button');
-    tr.setAttribute('aria-label', `Lihat detail ${p.nama}`);
+    tr.title = `Lihat detail ${p.nama}`;
     tr.addEventListener('click', () => onDetail(p));
     tr.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {

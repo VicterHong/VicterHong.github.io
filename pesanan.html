@@ -6,7 +6,7 @@
 <title>Status pesanan | VIVASTIC</title>
 <meta name="description" content="Status pembayaran dan rincian pesanan langganan VIVASTIC.">
 <meta name="author" content="VIVASTIC">
-<meta name="theme-color" content="#f5c542">
+<meta name="theme-color" content="#0a0a0b">
 <!--
   ── noindex ─────────────────────────────────────────────────────────────────
   Halaman ini hanya berarti bagi orang yang punya nomor pesanan. Ia juga
@@ -38,6 +38,7 @@
   (`html.cf-gating body { visibility: hidden }`) aktif sebelum konten digambar.
 -->
 <link rel="stylesheet" href="assets/css/cf-gate.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan.
   // Jaring pengaman 8 detik: kalau skrip gate gagal dimuat, halaman tetap
@@ -53,6 +54,7 @@
 </script>
 </head>
 <body>
+<a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
 <!-- ══ HEADER ══════════════════════════════════════════════════════════════
      Disalin dari pricing.html supaya navigasi terasa sama di seluruh situs. -->
@@ -86,7 +88,7 @@
 
 <div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
 
-<main id="konten-utama" class="pesanan-page">
+<main id="konten-utama" class="pesanan-page" tabindex="-1">
 
   <div class="pesanan-head">
     <h1 class="pesanan-judul">Pesanan Anda</h1>

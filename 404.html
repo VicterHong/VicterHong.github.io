@@ -5,12 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Halaman tidak ditemukan | VIVASTIC</title>
 <meta name="robots" content="noindex, follow">
-<meta name="theme-color" content="#f5c542">
+<meta name="theme-color" content="#0a0a0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/assets/favicon-180.png">
 <link rel="manifest" href="/assets/site.webmanifest">
-<meta name="theme-color" content="#f5c542">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Satoshi (Fontshare) = body. Playfair Display = heading serif. JetBrains Mono = kode/angka. -->
@@ -57,8 +56,9 @@
 </style>
 </head>
 <body>
+<a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
-<main class="err">
+<main id="konten-utama" class="err" tabindex="-1">
   <p class="err-code">404</p>
   <h1>Halaman ini tidak ada</h1>
   <p>
@@ -74,6 +74,7 @@
 <!-- Gerbang verifikasi (mode dinamis — cf-gate.js membangun overlay sendiri).
      cf-gate-i18n.js HARUS lebih dulu: cf-gate.js membacanya saat dijalankan. -->
 <link rel="stylesheet" href="assets/css/cf-gate.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 <script>
   window.CF_GATE_CONFIG = {
     siteKey: '0x4AAAAAAFMyWUdxNriDmfym',

@@ -13,6 +13,9 @@
  */
 
 :root {
+  /* Halaman auth memuat auth.css, bukan main.css — token tema harus
+     diduplikasi di sini atau scrollbar/kontrol native tetap terang. */
+  color-scheme: dark;
   /* Warna — senada dengan situs utama */
   --emas: #f5c542;
   --emas-terang: #f7d77a;
@@ -2525,7 +2528,8 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   text-align: center;
 }
 
-.auth-status-bantuan a {
+.auth-status-bantuan a,
+.auth-status-bantuan-btn {
   color: var(--teks-redup);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -2533,8 +2537,21 @@ body.is-tersembunyi .auth-qr-shimmer { animation-play-state: paused; }
   transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 
+/* Tombol yang tampil sebagai tautan. Ini AKSI (memuat ulang panel), bukan
+   navigasi — jadi elemennya <button>, bukan <a href="#">. Reset tampilan
+   bawaan tombol supaya warisan visualnya tetap seperti tautan. */
+.auth-status-bantuan-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
 .auth-status-bantuan a:hover,
-.auth-status-bantuan a:focus-visible {
+.auth-status-bantuan a:focus-visible,
+.auth-status-bantuan-btn:hover,
+.auth-status-bantuan-btn:focus-visible {
   color: var(--emas);
   text-decoration-color: currentColor;
 }

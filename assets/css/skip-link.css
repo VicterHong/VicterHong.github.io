@@ -1,0 +1,47 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SKIP LINK — "Lompat ke konten"
+
+   ── KENAPA ADA ────────────────────────────────────────────────────────────
+   Pengguna keyboard dan pembaca layar harus menekan Tab melewati SELURUH
+   navigasi (8 tautan + tombol akun) sebelum mencapai konten di setiap
+   halaman. Dengan 20 halaman, itu ratusan penekanan Tab yang tidak perlu.
+
+   Tautan ini elemen PERTAMA di <body>, tersembunyi sampai difokus, lalu
+   melompat ke <main>. Pola standar (WCAG 2.4.1 "Bypass Blocks").
+
+   ── KENAPA BUKAN `display: none` ──────────────────────────────────────────
+   Elemen `display: none` dilewati Tab sepenuhnya — justru itu masalahnya.
+   Ia harus ADA di alur fokus, hanya tidak terlihat. Karena itu dipakai
+   `transform: translateY(-120%)` + `:focus` untuk memunculkannya.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999; /* di atas header (sticky) dan gate */
+  padding: 0.85rem 1.25rem;
+  background: var(--accent);
+  color: #0a0a0b;
+  font-family: 'Satoshi', system-ui, sans-serif;
+  font-size: var(--fs-2);
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-sm) 0;
+  transform: translateY(-120%);
+  transition: transform 0.18s var(--ease);
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid #0a0a0b;
+  outline-offset: -4px;
+}
+
+/* `main` menerima fokus programatik dari skip link; cincin fokus bawaan
+   browser pada elemen besar terlihat seperti bug, jadi dimatikan HANYA untuk
+   main. Elemen interaktif tetap punya cincin sendiri. */
+main:focus {
+  outline: none;
+}

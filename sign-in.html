@@ -21,8 +21,10 @@
 <link rel="stylesheet" href="/assets/css/logo.css">
 <link rel="stylesheet" href="/assets/css/auth-bg.css">
 <link rel="stylesheet" href="/assets/css/auth.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 </head>
 <body class="auth-body">
+<a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
 <!-- ══ Latar ══════════════════════════════════════════════════════════════════
      Hanya satu gradien radial statis (opasitas 0.04) — tanpa blob beranimasi,
@@ -90,7 +92,7 @@
   </div>
 </header>
 
-<main class="auth-main">
+<main id="konten-utama" class="auth-main" tabindex="-1">
 
   <!-- ══ Kartu login: 3D tilt mengikuti kursor ══════════════════════════════
        Referensi: 21st.dev sign-in card (mouse-tracking rotation, parallax).
@@ -554,7 +556,10 @@
            memang punya akun yang menunggu dihapus. -->
           <section class="auth-panel" id="panel-pulih" data-panel="pulih">
 
-          <h1 class="auth-panel-title">Pulihkan akun Anda</h1>
+          <!-- h2, bukan h1: ini sub-panel di dalam halaman Sign in. Satu
+               halaman satu h1 (judul halaman di atas); panel pemulihan adalah
+               bagian di bawahnya, jadi tingkatnya turun satu. -->
+          <h2 class="auth-panel-title">Pulihkan akun Anda</h2>
           <p class="auth-panel-desc" id="pulihKeterangan">
           Akun ini sedang menunggu penghapusan. Anda masih bisa memulihkannya.
           </p>
@@ -764,7 +769,11 @@
           </svg>
           <h2 class="auth-done-title">Berhasil masuk</h2>
           <p class="auth-done-sub" id="doneSub">Mengalihkan ke area proyek…</p>
-          <a class="auth-submit auth-submit-link" id="btnGoProject" href="#">Buka proyek</a>
+          <!-- href BUKAN "#": kalau JS gagal dimuat, tautan "#" melompat ke
+               atas halaman dan terlihat seperti tombol rusak. Tujuan default
+               /home sudah benar (sama dengan fallback di auth.js), lalu JS
+               menimpanya dengan tujuan sesi yang sebenarnya. -->
+          <a class="auth-submit auth-submit-link" id="btnGoProject" href="/home">Buka proyek</a>
 
           <!-- Tawaran setup 2FA — muncul SETELAH login berhasil, bukan
                sebagai langkah wajib. Pengguna yang baru pertama masuk

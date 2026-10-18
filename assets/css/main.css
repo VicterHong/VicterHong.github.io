@@ -4,6 +4,9 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
+  /* Kontrol native (scrollbar, input, date picker) ikut tema gelap. Tanpa ini
+     scrollbar Firefox tetap terang di tengah halaman gelap. */
+  color-scheme: dark;
   --bg: #0a0a0b;
   --bg-soft: #121214;
   --bg-card: #16161a;

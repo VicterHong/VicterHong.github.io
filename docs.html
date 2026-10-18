@@ -6,7 +6,7 @@
 <title>Panduan Penggunaan | VIVASTIC</title>
 <meta name="description" content="Panduan lengkap penggunaan layanan: cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.">
 <meta name="author" content="VIVASTIC">
-<meta name="theme-color" content="#f5c542">
+<meta name="theme-color" content="#0a0a0b">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://portfolio-victer.pages.dev/docs">
 
@@ -14,7 +14,6 @@
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/assets/favicon-180.png">
 <link rel="manifest" href="/assets/site.webmanifest">
-<meta name="theme-color" content="#f5c542">
 
 <meta property="og:title" content="Panduan Penggunaan, VIVASTIC">
 <meta property="og:description" content="Cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.">
@@ -50,6 +49,7 @@
 <link rel="stylesheet" href="assets/css/tabel-banding.css">
 </head>
 <body>
+<a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
 <!-- Latar animasi — sama dengan halaman utama supaya konsisten.
      Video di-scrub saat scroll (desktop) atau autoplay loop (mobile). -->
@@ -89,7 +89,7 @@
 <!-- Tirai gelap saat menu mobile terbuka — memisahkan panel dari konten. -->
 <div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
 
-<main class="docs-page">
+<main id="konten-utama" class="docs-page" tabindex="-1">
 
   <div class="docs-head">
     <p class="docs-eyebrow">
@@ -826,6 +826,7 @@ GitHub:         https://github.com/VicterHong</code>
      cf-gate-i18n.js HARUS lebih dulu: cf-gate.js membacanya saat dijalankan. -->
 <link rel="stylesheet" href="assets/css/logo.css">
 <link rel="stylesheet" href="assets/css/cf-gate.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 <script>
   window.CF_GATE_CONFIG = {
     siteKey: '0x4AAAAAAFMyWUdxNriDmfym',

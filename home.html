@@ -6,7 +6,7 @@
 <title>VIVASTIC | Automation &amp; Self-hosted Tools</title>
 <meta name="description" content="Saya membangun alat otomasi yang membuat perangkat lama berguna kembali. MINA, Spareparts Inventory, dan lainnya.">
 <meta name="author" content="VIVASTIC">
-<meta name="theme-color" content="#f5c542">
+<meta name="theme-color" content="#0a0a0b">
 <link rel="canonical" href="https://portfolio-victer.pages.dev/home">
 
 <!-- Ikon: SVG untuk browser modern, ICO fallback untuk yang lama -->
@@ -14,7 +14,6 @@
 <link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/assets/favicon-180.png">
 <link rel="manifest" href="/assets/site.webmanifest">
-<meta name="theme-color" content="#f5c542">
 
 <!-- Open Graph: supaya tautan yang dibagikan tampil rapi.
      URL produksi = pages.dev; github.io adalah cermin cadangan. -->
@@ -113,6 +112,7 @@
 <link rel="stylesheet" href="assets/css/visi-misi.css">
 <link rel="stylesheet" href="assets/css/interactions.css">
 <link rel="stylesheet" href="assets/css/orb-3d.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
   // kedipan konten sebelum overlay verifikasi muncul (pola Cloudflare).
@@ -128,6 +128,7 @@
 </script>
 </head>
 <body>
+<a class="skip-link" href="#zs6xae">Lompat ke konten</a>
 
 <!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
      Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
@@ -173,7 +174,7 @@
 <!-- Tirai gelap saat menu mobile terbuka — memisahkan panel dari konten. -->
 <div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
 
-<main id="zs6xae">
+<main id="zs6xae" tabindex="-1">
 
   <!-- ── PEMBUKA ─────────────────────────────────────────────────────────────
        Dua kolom: kiri menjelaskan, kanan MEMBUKTIKAN. Terminal window berisi

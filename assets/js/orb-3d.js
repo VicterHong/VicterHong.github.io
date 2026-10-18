@@ -121,6 +121,55 @@ export function create3DOrb(canvas, opts = {}) {
     shockwave = 1.0;
   }
 
+  // ── KENDALI KEYBOARD ──────────────────────────────────────────────────────
+  // Rotasi HANYA bisa lewat drag berarti pengguna keyboard tidak bisa
+  // menyentuh efek ini sama sekali. Panah kiri/kanan memutar sumbu Y, atas/
+  // bawah sumbu X, spasi memicu gelombang. `tabindex` dipasang di sini, bukan
+  // di HTML, supaya pemanggil tidak perlu ingat.
+  function onKeyDown(e) {
+    const step = 0.12;
+    let handled = true;
+    switch (e.key) {
+      case 'ArrowLeft':  velY = -step; rotY -= step; break;
+      case 'ArrowRight': velY = step;  rotY += step; break;
+      case 'ArrowUp':    velX = -step; rotX -= step; break;
+      case 'ArrowDown':  velX = step;  rotX += step; break;
+      case ' ':
+      case 'Enter':      shockwave = 1.0; break;
+      default: handled = false;
+    }
+    if (handled) e.preventDefault();
+  }
+
+  // ── FOKUSABILITAS: HANYA KALAU TERLIHAT OLEH AT ───────────────────────────
+  // Kanvas di dalam wadah `aria-hidden="true"` (hero dekoratif) TIDAK BOLEH
+  // menerima tabindex: itu membuat elemen fokusabel yang tidak punya nama
+  // aksesibel — jebakan fokus bagi pengguna keyboard, dan pelanggaran
+  // `aria-hidden-focus`. Kanvas hero memang murni hiasan (teks di sebelahnya
+  // sudah menyampaikan maksudnya), jadi cukup `aria-hidden`.
+  // Kanvas di lab3d adalah kontrol sungguhan, jadi ia mendapat tabindex,
+  // role, label, dan handler panah.
+  const dalamAriaHidden = (() => {
+    let n = canvas.parentElement;
+    while (n) {
+      if (n.getAttribute && n.getAttribute('aria-hidden') === 'true') return true;
+      n = n.parentElement;
+    }
+    return false;
+  })();
+
+  if (dalamAriaHidden) {
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.removeAttribute('tabindex');
+  } else {
+    canvas.tabIndex = 0;
+    canvas.setAttribute('role', 'img');
+    if (!canvas.getAttribute('aria-label')) {
+      canvas.setAttribute('aria-label', 'Bola partikel 3D interaktif. Gunakan tombol panah untuk memutar.');
+    }
+    canvas.addEventListener('keydown', onKeyDown);
+  }
+
   canvas.addEventListener('pointerdown', onPointerDown, { passive: true });
   window.addEventListener('pointermove', onPointerMove, { passive: true });
   window.addEventListener('pointerup', onPointerUp, { passive: true });
@@ -328,6 +377,7 @@ export function create3DOrb(canvas, opts = {}) {
       observer.disconnect();
       window.removeEventListener('resize', resizeHandler);
       canvas.removeEventListener('pointerdown', onPointerDown);
+      if (!dalamAriaHidden) canvas.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('click', onClick);

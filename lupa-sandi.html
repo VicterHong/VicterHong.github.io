@@ -25,8 +25,10 @@
 <link rel="stylesheet" href="/assets/css/logo.css">
 <link rel="stylesheet" href="/assets/css/auth-bg.css">
 <link rel="stylesheet" href="/assets/css/auth.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 </head>
 <body class="auth-body">
+<a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
 <div class="auth-bg" aria-hidden="true"></div>
 
@@ -106,7 +108,7 @@
   </div>
 </header>
 
-<main class="auth-main">
+<main id="konten-utama" class="auth-main" tabindex="-1">
   <div class="auth-card" id="card">
 
     <!--
@@ -231,7 +233,7 @@
       -->
       <p class="auth-status-bantuan">
         Salah mengetik email?
-        <a href="#" id="btnUlangi">Coba lagi</a>
+        <button type="button" class="auth-status-bantuan-btn" id="btnUlangi">Coba lagi</button>
       </p>
     </section>
 

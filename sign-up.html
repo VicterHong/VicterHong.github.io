@@ -21,8 +21,10 @@
 <link rel="stylesheet" href="/assets/css/logo.css">
 <link rel="stylesheet" href="/assets/css/auth-bg.css">
 <link rel="stylesheet" href="/assets/css/auth.css">
+<link rel="stylesheet" href="assets/css/skip-link.css">
 </head>
 <body class="auth-body">
+<a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
 <!-- ══ Latar ══════════════════════════════════════════════════════════════════
      Hanya satu gradien radial statis (opasitas 0.04) — tanpa blob beranimasi,
@@ -90,7 +92,7 @@
   </div>
 </header>
 
-<main class="auth-main">
+<main id="konten-utama" class="auth-main" tabindex="-1">
 
   <!-- ══ Kartu login: 3D tilt mengikuti kursor ══════════════════════════════
        Referensi: 21st.dev sign-in card (mouse-tracking rotation, parallax).
