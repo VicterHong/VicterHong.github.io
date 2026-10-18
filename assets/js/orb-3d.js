@@ -287,25 +287,43 @@ export function create3DOrb(canvas, opts = {}) {
       }
     }
 
-    // Gambar partikel
+    // ── GAMBAR PARTIKEL: STRUKTUR PUTIH, EMAS HANYA SEBAGAI HIGHLIGHT ───────
+    // DIUKUR SEBELUM PERUBAHAN: luas piksel emas di kanvas hero = 6.210 px CSS,
+    // sementara tombol CTA "Lihat proyek" = 6.073 px. Rasio 1,02 — dua massa
+    // emas berukuran sama di satu layar, jadi tidak ada yang menang.
+    //
+    // Penyebabnya bukan warna, tapi ALPHA + HALO: partikel depan memakai
+    // alpha sampai 1.0 DITAMBAH shadowBlur 6x, sehingga titik-titik saling
+    // tumpuk menjadi bidang emas padat.
+    //
+    // Sekarang: kerangka bola memakai warna teks (netral) — ia MEMBENTUK
+    // bentuk, bukan menarik mata. Emas dipakai hanya pada partikel yang
+    // benar-benar paling depan sebagai aksen kecil. Hasil: emas kembali
+    // menandai satu hal (CTA), bola tetap terbaca sebagai 3D.
     for (let i = 0; i < projected.length; i++) {
       const p = projected[i];
-      const isFront = p.z > 0;
+      const radius = p.baseSize * p.scale;
 
-      let radius = p.baseSize * p.scale;
-      let alpha = 0.15 + (p.z + 1) * 0.42; // range 0.15 s/d 0.99
-      alpha = Math.max(0.08, Math.min(1.0, alpha));
+      // Kedalaman → alpha, tapi dibatasi 0.72 supaya tidak pernah jadi padat.
+      let alpha = 0.10 + (p.z + 1) * 0.30; // range 0.10 s/d 0.70
+      alpha = Math.max(0.06, Math.min(0.72, alpha));
 
       ctx.beginPath();
       ctx.arc(p.x, p.y, Math.max(0.5, radius), 0, Math.PI * 2);
 
-      if (isFront && p.z > 0.4) {
-        // Glowing halo untuk partikel paling depan
-        ctx.fillStyle = accentColor;
-        ctx.shadowColor = accentColor;
-        ctx.shadowBlur = 6 * p.scale;
+      if (p.z > 0.55) {
+        // Highlight emas: hanya belahan paling depan, dan hanya sebagian
+        // kecil titik (setiap ke-3) supaya tidak menjadi bidang.
+        if (i % 3 === 0) {
+          ctx.fillStyle = accentColor;
+          ctx.shadowColor = accentColor;
+          ctx.shadowBlur = 4 * p.scale;
+        } else {
+          ctx.fillStyle = `rgba(244, 244, 246, ${alpha.toFixed(2)})`;
+          ctx.shadowBlur = 0;
+        }
       } else {
-        ctx.fillStyle = `rgba(245, 197, 66, ${alpha.toFixed(2)})`;
+        ctx.fillStyle = `rgba(244, 244, 246, ${alpha.toFixed(2)})`;
         ctx.shadowBlur = 0;
       }
       ctx.fill();
