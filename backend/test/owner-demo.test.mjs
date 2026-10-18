@@ -10,9 +10,10 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import { openDb, closeDb } from '../src/db.mjs';
 import { siapkanTabelPengguna, buatPengguna } from '../src/users.mjs';
 import { issueToken } from '../src/tokens.mjs';
@@ -21,13 +22,28 @@ import { config } from '../src/config.mjs';
 
 const AKAR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+// Buat direktori konten dummy agar tes dapat berjalan di CI di mana ~/.portfolio-token tidak ada
+const tempContentDir = join(tmpdir(), `test-content-${Date.now()}`);
+mkdirSync(tempContentDir, { recursive: true });
+writeFileSync(
+  join(tempContentDir, 'demo-anthropic.html'),
+  '<!DOCTYPE html><html><head><title>Anthropic</title></head><body>--color-ivory-medium</body></html>',
+  'utf8',
+);
+const originalContentDir = config.contentDir;
+config.contentDir = tempContentDir;
+
 openDb(':memory:');
 siapkanTabelPengguna();
 
 const { resolveRoute, initRoutes } = await import('../src/routes.mjs');
 initRoutes();
 
-after(() => closeDb());
+after(() => {
+  closeDb();
+  config.contentDir = originalContentDir;
+  try { rmSync(tempContentDir, { recursive: true, force: true }); } catch {}
+});
 
 function panggil(path, method = 'GET', headers = {}) {
   return new Promise((selesai) => {
