@@ -16,6 +16,8 @@ import { initRoutes, resolveRoute } from '../src/routes.mjs';
 openDb(':memory:');
 siapkanTabelPengguna();
 initRoutes();
+// CI deliberately has no production service.env; tests must use an explicit fixture secret.
+config.secret = 'synthetic-p0-test-secret-never-use-in-production';
 const contentDir = mkdtempSync(join(tmpdir(), 'p0-content-'));
 config.contentDir = contentDir;
 after(() => { closeDb(); rmSync(contentDir, { recursive: true, force: true }); });

@@ -21,6 +21,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { config } from '../src/config.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const AKAR = join(__dirname, '..', '..');
