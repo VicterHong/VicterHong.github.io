@@ -2,7 +2,7 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 460 perubahan dari 473 commit (2026-10-01 → 2026-10-18).
+Total 463 perubahan dari 476 commit (2026-10-01 → 2026-10-18).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
 
@@ -10,14 +10,17 @@ Total 460 perubahan dari 473 commit (2026-10-01 → 2026-10-18).
 
 ### Fitur baru
 
+- **eksperimen**: Seksi 3D hanya untuk owner, dikirim server-side (`6a53409`)
 - **aeo**: Layanan masuk llms.txt + OfferCatalog JSON-LD (`e70156a`)
 
 ### Perbaikan
 
+- **eksperimen**: Jangan sebut id lab3d di JS publik (`9885c2b`)
 - **a11y**: Audit Web Interface Guidelines — skip link, fokus keyboard, kontras, tema (`1ea9472`)
 
 ### Dokumentasi
 
+- **changelog**: Regenerasi setelah pass bola 3d (`9d12934`)
 - **changelog**: Regenerasi setelah pass aksen (`debd5a8`)
 - **changelog**: Regenerasi setelah pass desain (`4fa388b`)
 - **changelog**: Regenerasi setelah perbaikan aksesibilitas (`ba3481a`)

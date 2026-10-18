@@ -1,18 +1,18 @@
 {
- "dibuat": "2026-10-18T03:55:11.683Z",
- "totalCommit": 473,
- "totalDicatat": 460,
+ "dibuat": "2026-10-18T04:33:24.958Z",
+ "totalCommit": 476,
+ "totalDicatat": 463,
  "hariPertama": "2026-10-01",
  "hariTerakhir": "2026-10-18",
  "rilis": [
   {
    "tanggal": "2026-10-18",
-   "jumlah": 9,
+   "jumlah": 12,
    "ringkasan": {
-    "fitur": 1,
-    "perbaikan": 1,
+    "fitur": 2,
+    "perbaikan": 2,
     "performa": 0,
-    "dokumentasi": 4,
+    "dokumentasi": 5,
     "data": 0,
     "pemeliharaan": 3
    },
@@ -21,6 +21,11 @@
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
+      {
+       "hash": "6a53409",
+       "teks": "Seksi 3D hanya untuk owner, dikirim server-side",
+       "scope": "eksperimen"
+      },
       {
        "hash": "e70156a",
        "teks": "Layanan masuk llms.txt + OfferCatalog JSON-LD",
@@ -33,6 +38,11 @@
      "label": "Perbaikan",
      "item": [
       {
+       "hash": "9885c2b",
+       "teks": "Jangan sebut id lab3d di JS publik",
+       "scope": "eksperimen"
+      },
+      {
        "hash": "1ea9472",
        "teks": "Audit Web Interface Guidelines — skip link, fokus keyboard, kontras, tema",
        "scope": "a11y"
@@ -43,6 +53,11 @@
      "kunci": "dokumentasi",
      "label": "Dokumentasi",
      "item": [
+      {
+       "hash": "9d12934",
+       "teks": "Regenerasi setelah pass bola 3d",
+       "scope": "changelog"
+      },
       {
        "hash": "debd5a8",
        "teks": "Regenerasi setelah pass aksen",
