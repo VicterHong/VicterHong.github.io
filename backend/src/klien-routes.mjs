@@ -23,14 +23,17 @@
  * yang bisa berbeda.
  */
 
-import { randomUUID } from 'node:crypto';
 
 import { getDb, now } from './db.mjs';
 import { sendJson, readBody, clientIp, parseCookies } from './http-util.mjs';
-import { validateSession } from './sessions.mjs';
-import { tokenProblem } from './tokens.mjs';
+import { validateAccountSession as validateSession } from './sessions.mjs';
+import { tokenProblem, issueToken } from './tokens.mjs';
 import { cariPengguna } from './users.mjs';
 import { config } from './config.mjs';
+import { projectDetails } from './project-details.mjs';
+import { metrikProyek, catatanMetrik } from '../../assets/js/data/metrik.js';
+import { alurProyek, JENIS_LANGKAH } from '../../assets/js/data/alur.js';
+import { contohParts, contohMovements } from '../../assets/js/data/sandbox.js';
 
 /**
  * Nama cookie sesi. Sama dengan yang dipakai auth-routes.mjs.
@@ -51,13 +54,13 @@ import {
   keadaanKuota,
   pakaiKuota,
   sudahKlaimBonus,
-  catatBonusStar,
+
   keadaanMetrik,
   periksaAksesMetrik,
   daftarProyekDenganAkses,
   ringkasanAkun,
 } from './akses-proyek.mjs';
-import { verifikasiStar, lupakanCache, usernameSah } from './star-github.mjs';
+import { verifikasiStar, usernameSah } from './star-github.mjs';
 import { pesanTolak, PAKET_BERBAYAR } from './langganan.mjs';
 
 /**
@@ -119,7 +122,7 @@ function proyekPublik() {
     subtitle: p.subtitle || '',
     summary: p.summary || '',
     stack: Array.isArray(p.stack) ? p.stack : [],
-    metrics: Array.isArray(p.metrics) ? p.metrics : [],
+    metrics: projectDetails(p.slug)?.metrics ?? [],
   }));
 }
 
@@ -198,6 +201,12 @@ const ruteMetrikProyek = {
     }
 
     const bonus = sudahKlaimBonus(pengguna.id);
+    const detail = projectDetails(slug);
+    if (!detail) return sendJson(res, 503, { ok: false, error: 'konten_belum_tersedia' });
+    const access = keadaanMetrik(pengguna.id);
+    if (req.method === 'GET' && !access.berbayar && !access.proyek.includes(slug)) {
+      return sendJson(res, 403, { ok: false, error: 'proyek_belum_dibuka' });
+    }
     const hasil = periksaAksesMetrik(pengguna.id, slug, { sudahStar: bonus });
 
     if (!hasil.boleh) {
@@ -215,7 +224,8 @@ const ruteMetrikProyek = {
       ok: true,
       slug,
       nama: proyek.name,
-      metrik: proyek.metrics,
+      metrik: detail.metrics,
+      highlights: detail.highlights,
       // Ditandai supaya halaman bisa menampilkan "ini pratinjau gratis" saat
       // dibuka lewat trial — pengguna perlu tahu kenapa dia bisa melihat ini.
       lewat: hasil.alasan,
@@ -241,16 +251,6 @@ const ruteBuatToken = {
   method: 'POST',
   pattern: '/api/klien/token',
   handler: wajibMasuk(async (req, res, _params, _url, pengguna) => {
-    const kuota = keadaanKuota(pengguna.id);
-
-    if (!kuota.bolehBuat) {
-      return sendJson(res, 403, {
-        ok: false,
-        error: kuota.total === 0 ? 'bukan-langganan' : 'kuota-habis',
-        pesan: kuota.total === 0 ? pesanTolak('bukan-langganan') : pesanTolak('kuota-habis', kuota),
-        kuota,
-      });
-    }
 
     // Body opsional: label + proyek tujuan.
     let body = {};
@@ -265,30 +265,51 @@ const ruteBuatToken = {
 
     const label = String(body.label || '').slice(0, 80).trim();
     const proyek = String(body.proyek || '').slice(0, 60).trim();
+    const requestKey = body.idempotencyKey;
+    if (typeof requestKey !== 'string' || !/^[a-zA-Z0-9_-]{16,128}$/.test(requestKey)) {
+      return sendJson(res, 400, { ok: false, error: 'idempotency_wajib' });
+    }
 
     if (proyek && !proyekPublik().some((p) => p.slug === proyek)) {
       return sendJson(res, 400, { ok: false, error: 'proyek_tidak_dikenal' });
     }
 
-    // Buat token. Bentuknya mengikuti token yang sudah ada: VP-XXXX-XXXX-XXXX-XXXX
-    const mentah = [...Array(16)]
-      .map(() => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)])
-      .join('');
-    const token = `VP-${mentah.slice(0, 4)}-${mentah.slice(4, 8)}-${mentah.slice(8, 12)}-${mentah.slice(12, 16)}`;
-
-    const { createHash } = await import('node:crypto');
-    const hash = createHash('sha256').update(token).digest('hex');
-
-    const paket = paketPengguna(pengguna.id);
-    const id = randomUUID();
-
-    getDb().prepare(`
-      INSERT INTO tokens (id, token_hash, label, project_slug, tier, issued_to, issued_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, hash, label || `Token ${new Date().toISOString().slice(0, 10)}`, proyek || 'semua', paket, pengguna.email, now());
-
-    // Baru sekarang jatahnya dipakai — token sudah pasti dibuat.
-    const kuotaBaru = pakaiKuota(pengguna.id);
+    // No await inside the reservation: quota, token and retry marker commit together.
+    const db = getDb();
+    let minted, kuotaBaru, paket;
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      const previous = db.prepare('SELECT token_id FROM token_requests WHERE user_id=? AND request_key=?')
+        .get(pengguna.id, requestKey);
+      if (previous) {
+        db.exec('ROLLBACK');
+        return sendJson(res, 409, { ok: false, error: 'token_sudah_dibuat', id: previous.token_id,
+          pesan: 'Token untuk permintaan ini sudah dibuat. Buka daftar token; nilai rahasianya hanya ditampilkan sekali.' });
+      }
+      const kuota = keadaanKuota(pengguna.id);
+      if (!kuota.bolehBuat) {
+        db.exec('ROLLBACK');
+        const alasan = kuota.total === 0 ? 'bukan-langganan' : 'kuota-habis';
+        return sendJson(res, 403, { ok: false, error: alasan, pesan: pesanTolak(alasan, kuota), kuota });
+      }
+      paket = paketPengguna(pengguna.id);
+      const subscription = db.prepare("SELECT selesai_at FROM langganan WHERE user_id=? AND status='aktif' ORDER BY mulai_at DESC LIMIT 1")
+        .get(pengguna.id);
+      const days = subscription?.selesai_at
+        ? Math.min(35, (subscription.selesai_at - now()) / 86_400_000) : 35;
+      minted = issueToken({ secret: config.secret, projectSlug: proyek || 'semua',
+        tier: paket === 'profesional' ? 'professional' : paket === 'enterprise' ? 'enterprise' : 'standard',
+        scopes: proyek ? [proyek] : listProjects().map(p => p.slug),
+        label, issuedTo: pengguna.email, issuedBy: 'klien', expiresInDays: days });
+      kuotaBaru = pakaiKuota(pengguna.id);
+      db.prepare('INSERT INTO token_requests (user_id,request_key,token_id) VALUES (?,?,?)')
+        .run(pengguna.id, requestKey, minted.id);
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+    const { id, token } = minted;
 
     recordEvent({
       action: 'token_dibuat',
@@ -387,63 +408,12 @@ const ruteKlaimStar = {
       });
     }
 
-    // `paksa` kalau pengguna bilang "saya baru star" — cache lama dibuang
-    // supaya pemeriksaan benar-benar diulang ke GitHub.
-    const hasil = await verifikasiStar(username, { paksa: Boolean(body.baruStar) });
+    // Existing bonus rows remain valid. New claims require a verified ownership
+    // flow; a public username (even with a real star) is not proof of ownership.
+    return sendJson(res, 403, { ok: false, error: 'identitas_github_belum_terverifikasi',
+      pesan: 'Klaim bonus baru menunggu verifikasi kepemilikan akun GitHub. Bonus yang sudah diterima tetap berlaku.' });
 
-    if (hasil.error) {
-      // "Tidak tahu" BUKAN "belum star". Membedakan keduanya penting: kalau
-      // GitHub sedang lambat, memberi tahu pengguna yang sudah star bahwa dia
-      // belum akan membuatnya memberi star dua kali, atau menyerah.
-      const pesanError = {
-        username_tidak_ada: `Nama pengguna @${username} tidak ditemukan di GitHub. Periksa ejaannya.`,
-        batas_github: 'Sedang terlalu banyak permintaan ke GitHub. Coba lagi beberapa menit lagi.',
-        github_tidak_jawab: 'Tidak bisa memeriksa star saat ini. Coba lagi sebentar lagi.',
-      }[hasil.error] || 'Tidak bisa memeriksa star saat ini. Coba lagi sebentar lagi.';
 
-      return sendJson(res, hasil.error === 'username_tidak_ada' ? 404 : 503, {
-        ok: false,
-        error: hasil.error,
-        pesan: pesanError,
-      });
-    }
-
-    if (!hasil.starred) {
-      return sendJson(res, 403, {
-        ok: false,
-        error: 'belum_star',
-        pesan: `Belum terlihat star dari @${username}. Beri star di repo portofolio, lalu coba lagi.`,
-      });
-    }
-
-    const paket = paketPengguna(pengguna.id);
-    const tercatat = catatBonusStar(pengguna.id, { paket, githubUser: username });
-
-    if (!tercatat) {
-      // Balapan: dua permintaan datang bersamaan, dua-duanya lolos
-      // pemeriksaan awal. UNIQUE di database menolak yang kedua.
-      return sendJson(res, 409, {
-        ok: false,
-        error: 'sudah_diklaim',
-        pesan: 'Bonus dari star sudah pernah diklaim untuk akun ini.',
-      });
-    }
-
-    recordEvent({
-      action: 'bonus_star',
-      outcome: 'sukses',
-      detail: `github=${username} paket=${paket}`,
-      ip: clientIp(req),
-    });
-
-    return sendJson(res, 200, {
-      ok: true,
-      pesan: PAKET_BERBAYAR.has(paket)
-        ? 'Bonus diterima. Jatah token Anda bertambah 1 bulan ini.'
-        : 'Bonus diterima. Anda bisa melihat data metrik satu proyek, sekali.',
-      kuota: keadaanKuota(pengguna.id),
-      metrik: keadaanMetrik(pengguna.id),
-    });
   }),
 };
 
@@ -478,9 +448,24 @@ const ruteCekStar = {
 /** Semua rute area klien, siap didaftarkan. */
 export function ruteKlien() {
   return [
+    {
+      method: 'GET', pattern: '/api/klien/evidence',
+      handler: wajibMasuk(async (_req, res, _params, _url, pengguna) => {
+        const access = keadaanMetrik(pengguna.id);
+        const owner = config.ownerEmails.includes(pengguna.email.trim().toLowerCase());
+        const allowed = new Set(access.berbayar || owner ? listProjects().map(p => p.slug) : access.proyek);
+        const filter = source => Object.fromEntries(Object.entries(source).filter(([slug]) => allowed.has(slug)));
+        return sendJson(res, 200, { ok: true,
+          metrikProyek: filter(metrikProyek), alurProyek: filter(alurProyek),
+          catatanMetrik, jenisLangkah: JENIS_LANGKAH,
+          sandbox: allowed.has('spareparts') ? { parts: contohParts, movements: contohMovements } : null,
+        });
+      }),
+    },
     ruteRingkasan,
     ruteDaftarProyek,
     ruteMetrikProyek,
+    { ...ruteMetrikProyek, method: 'POST' },
     ruteBuatToken,
     ruteDaftarToken,
     ruteKlaimStar,

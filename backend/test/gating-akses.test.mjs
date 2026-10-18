@@ -57,9 +57,9 @@ test('renderStats menerima status akses dan menyamarkan angka untuk anonim', () 
 });
 
 // ── 3. Kartu proyek: highlight & metrik dijaga ──────────────────────────────
-test('highlight proyek hanya dirender untuk yang sudah masuk', () => {
+test('highlight proyek hanya dirender sesuai entitlement proyek', () => {
   const src = appJs();
-  assert.match(src, /if \(sudahMasuk\) \{[\s\S]{0,400}project-highlights/, 'highlight di balik sudahMasuk');
+  assert.match(src, /if \(lihatAngka && p\.highlights\.length\) \{[\s\S]{0,400}project-highlights/, 'highlight membutuhkan entitlement, bukan login saja');
   assert.match(src, /project-highlights-terkunci/, 'anonim melihat penanda terkunci');
 });
 

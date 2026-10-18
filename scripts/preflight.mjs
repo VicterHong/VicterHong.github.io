@@ -11,6 +11,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, dirname, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { auditAssets, BUDGETS } from '../backend/src/performance.mjs';
+import { auditPrivateArtifacts } from './private-artifacts.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -179,7 +180,8 @@ try {
 // DITOLAK.
 console.log('\n── Angka Visi & Misi ──');
 try {
-  const visi = readFileSync(resolve(AUDIT, 'demo-how-it-works.html'), 'utf8');
+  // Developer-only visual fixture is excluded from the public artifact.
+  const visi = readFileSync(resolve(ROOT, 'demo-how-it-works.html'), 'utf8');
 
   const diklaim = {
     sistem: (visi.match(/hiw-angka">(\d+) sistem/) || [])[1],
@@ -212,8 +214,8 @@ try {
 
   check('angka:sistem', Number(diklaim.sistem) === jumlahProyek,
     `halaman bilang ${diklaim.sistem ?? '—'} · projects.js punya ${jumlahProyek}`);
-  check('angka:tes-proyek', Number(diklaim.tes?.replace(/\./g, '')) === tesProyek,
-    `halaman bilang ${diklaim.tes ?? '—'} · projects.js punya ${tesProyek.toLocaleString('id-ID')}`);
+  check('angka:tes-proyek', tesProyek === 0,
+    'katalog publik tidak membawa angka uji yang memerlukan entitlement');
   check('angka:anggaran-kb', Number(diklaim.anggaran) === anggaranKb,
     `halaman bilang ${diklaim.anggaran ?? '—'} KB · anggaran nyata ${anggaranKb} KB`);
   check('angka:memori-mina', Number(diklaim.memori) === 25 && Number(diklaim.ram) === 2,
@@ -277,8 +279,8 @@ try {
     .reduce((a, b) => a + b, 0);
 
   check('beranda:misi-jumlah', judulMisi === 4, `${judulMisi} misi (harus 4)`);
-  check('beranda:tes-cocok', target.includes(tesProyek),
-    `data-target memuat ${tesProyek.toLocaleString('id-ID')}? ${target.includes(tesProyek) ? 'ya' : 'TIDAK'} (target: ${target.join(', ')})`);
+  check('beranda:tes-cocok', !/data-target="\d+">[\d.]+ tes otomatis/.test(beranda),
+    'jumlah uji proyek tidak ditanam dalam HTML publik');
 
   // Angka yang TIDAK stabil tidak boleh muncul di sini juga.
   const terlarang = [/(\d[\d.]*)\s+berkas\s+catatan/, /(\d[\d.]*)\s+baris\s+dokumentasi/];
@@ -313,6 +315,10 @@ try {
 }
 
 // ── Ringkasan ────────────────────────────────────────────────────────────────
+if (AUDIT === DIST) {
+  const violations = auditPrivateArtifacts(DIST);
+  check('akses:artefak-privat', violations.length === 0, violations.join('; ') || 'payload privat tidak ditemukan oleh pemeriksaan marker');
+}
 const failed = checks.filter(c => !c.ok);
 console.log(`\n${'─'.repeat(50)}`);
 if (failed.length === 0) {

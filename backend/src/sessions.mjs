@@ -146,6 +146,15 @@ export function validateSession(sessionId, secret) {
   return { tokenRow: token, sessionRow: session };
 }
 
+/** A shareable project/payment token is not an account login credential. */
+export function validateAccountSession(sessionId, secret) {
+  const result = validateSession(sessionId, secret);
+  if (!result) return null;
+  const user = getDb().prepare("SELECT token_id FROM users WHERE email=? AND status='aktif'")
+    .get(result.tokenRow.issued_to);
+  return user?.token_id === result.tokenRow.id ? result : null;
+}
+
 /**
  * Hapus sesi (logout atau revoke).
  */

@@ -112,6 +112,31 @@ export function applyCors(req, res) {
   res.setHeader('access-control-max-age', '600');
 }
 
+/** Origin is authorization for browser mutations, not merely a CORS hint.
+ * Originless JSON clients are non-simple requests: browsers cannot send them
+ * cross-origin without Origin/preflight. Simple forms never get this bypass.
+ */
+export function mutationAllowed(req) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
+  const origin = req.headers.origin;
+  if (origin !== undefined) {
+    if (config.allowedOrigins.includes(origin)) return true;
+    // SSH-tunnel admin UI uses this same listener, not the public site origin.
+    const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket?.remoteAddress);
+    if (local && !req.headers['cf-ray'] && !req.headers['cf-connecting-ip'] && !req.headers['x-forwarded-for']) {
+      try {
+        const url = new URL(origin);
+        return ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+          && ['http:', 'https:'].includes(url.protocol) && url.host === req.headers.host;
+      } catch { return false; }
+    }
+    return false;
+  }
+  if (req.headers['sec-fetch-site'] === 'cross-site') return false;
+  if (!req.headers.cookie) return true;
+  return /^application\/json(?:\s*;|$)/i.test(req.headers['content-type'] || '');
+}
+
 /**
  * Alamat IP klien.
  *

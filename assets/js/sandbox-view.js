@@ -299,6 +299,10 @@ export function pasangSandbox(idHost = 'sandboxHost') {
   if (!host) return;
 
   host.replaceChildren();
+  if (!contohParts.length) {
+    host.textContent = 'Buka proyek Spareparts di area klien untuk mencoba demo.';
+    return;
+  }
 
   host.append(blokPemberitahuan());
 

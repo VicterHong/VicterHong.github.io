@@ -8,7 +8,7 @@
 import { createServer } from 'node:http';
 import { config, validateConfig, validateWarnings, ENV_FILE } from './config.mjs';
 import { initRoutes, resolveRoute, handlePreflight, rateLimited } from './routes.mjs';
-import { applyCors, sendJson } from './http-util.mjs';
+import { applyCors, sendJson, mutationAllowed } from './http-util.mjs';
 import { closeDb } from './db.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
 import { recordHeartbeat, cleanupHeartbeats, flushHeartbeats } from './sla.mjs';
@@ -141,6 +141,10 @@ async function handleRequest(req, res) {
   applyCors(req, res);
 
   if (req.method === 'OPTIONS') return handlePreflight(req, res);
+
+  if (!mutationAllowed(req)) {
+    return sendJson(res, 403, { ok: false, error: 'origin_ditolak' });
+  }
 
   // ── API admin: HANYA dari loopback ─────────────────────────────────────────
   //

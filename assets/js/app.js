@@ -262,7 +262,7 @@ function renderProjects(akses) {
     // keputusan desain. Kalau semuanya terbuka, tidak ada alasan masuk.
     // Pengunjung anonim melihat ringkasan satu paragraf di atas — cukup untuk
     // menilai apakah proyek ini relevan, tidak cukup untuk menyalinnya.
-    if (sudahMasuk) {
+    if (lihatAngka && p.highlights.length) {
       const highlights = el('div', { class: 'project-highlights' });
       for (const h of p.highlights) {
         highlights.append(el('div', { class: 'highlight' },
@@ -274,7 +274,7 @@ function renderProjects(akses) {
     } else {
       inner.append(el('div', { class: 'project-highlights-terkunci' },
         el('p', { class: 'project-highlights-petunjuk' },
-          `Masuk untuk membaca ${p.highlights.length} catatan teknis proyek ini.`,
+          'Buka proyek di area klien untuk membaca catatan teknisnya.',
         ),
       ));
     }
@@ -805,6 +805,13 @@ document.documentElement.classList.add('js-ready');
 //   2. konten statis (judul, misi, layanan) sudah ada di HTML, jadi halaman
 //      tidak pernah benar-benar kosong
 const akses = await ambilAkses();
+for (const p of projects) {
+  const detail = akses.detailProyek?.[p.slug];
+  if (bolehLihatAngka(akses, p.slug) && detail) {
+    p.metrics = Array.isArray(detail.metrics) ? detail.metrics : [];
+    p.highlights = Array.isArray(detail.highlights) ? detail.highlights : [];
+  }
+}
 
 renderStats(akses);
 renderAbout();

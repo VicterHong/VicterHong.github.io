@@ -47,6 +47,13 @@ CREATE INDEX IF NOT EXISTS idx_tokens_project ON tokens(project_slug);
 CREATE INDEX IF NOT EXISTS idx_tokens_status  ON tokens(status);
 CREATE INDEX IF NOT EXISTS idx_tokens_tier    ON tokens(tier);
 
+CREATE TABLE IF NOT EXISTS token_requests (
+  user_id TEXT NOT NULL,
+  request_key TEXT NOT NULL,
+  token_id TEXT NOT NULL REFERENCES tokens(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, request_key)
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id          TEXT PRIMARY KEY,
   token_id    TEXT NOT NULL,
@@ -1203,15 +1210,18 @@ export function closeDb() {
 export const now = () => Date.now();
 
 /** Jalankan beberapa pernyataan dalam satu transaksi. */
+let transactionSequence = 0;
 export function transaction(fn) {
   const handle = getDb();
-  handle.exec('BEGIN');
+  const savepoint = `atomic_${++transactionSequence}`;
+  handle.exec(`SAVEPOINT ${savepoint}`);
   try {
     const result = fn();
-    handle.exec('COMMIT');
+    handle.exec(`RELEASE ${savepoint}`);
     return result;
   } catch (err) {
-    handle.exec('ROLLBACK');
+    handle.exec(`ROLLBACK TO ${savepoint}`);
+    handle.exec(`RELEASE ${savepoint}`);
     throw err;
   }
 }

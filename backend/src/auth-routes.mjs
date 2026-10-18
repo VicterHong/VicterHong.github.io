@@ -65,7 +65,7 @@ import { getDb, transaction } from './db.mjs';
 // berlangganan.
 import { adaLanggananAktif, nonaktifkanAkun, cekKodePembatalan } from './purge-akun.mjs';
 import { sendJson, setCookie, clientIp, clientCountry, clientGeo, ipSamar, readJson, bacaBodyBiner, safe } from './http-util.mjs';
-import { createSession, validateSession, destroySession, hashSession } from './sessions.mjs';
+import { createSession, validateAccountSession as validateSession, destroySession, hashSession } from './sessions.mjs';
 // ── PENCATATAN PAKET GRATIS ──────────────────────────────────────────────────
 // Dipanggil di buatSesiUntuk() — titik yang dilalui SEMUA cara masuk
 // (sandi, passkey, SSO). Kalau ditaruh di masing-masing alur, salah satu

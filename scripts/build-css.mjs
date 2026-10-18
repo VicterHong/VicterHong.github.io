@@ -26,6 +26,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, rmSync
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { privateModule } from './private-modules.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -99,6 +100,8 @@ const LEWATI_DIR = new Set(['node_modules', '.git', '.github', '.wrangler', 'dis
 // melakukan apa pun dengannya.
 const LEWATI_BERKAS = new Set([
   'preview-email.html',
+  'demo-how-it-works.html',
+  'demo-animasi-blackray.html',
   'cloudflare.config.ts',
 ]);
 
@@ -200,7 +203,9 @@ function tulisUlangImportJs(isi) {
 // saat memproses app.js, peta belum memuat berkas yang belum diproses.
 const hasilJs = [];
 for (const src of jsFiles) {
-  const isi = readFileSync(src);
+  const relative = src.slice(jsDir.length + 1).replace(/\\/g, '/');
+  const adapter = privateModule(relative);
+  const isi = adapter === null ? readFileSync(src) : Buffer.from(adapter);
   totalJsAsli += isi.length;
 
   let hasil;
@@ -247,7 +252,7 @@ console.log(`  JS : ${jsFiles.length} berkas · ${totalJsAsli} → ${totalJsMin}
 // dilihat pengembang, tidak untuk pengunjung situs.
 const htmlFiles = readdirSync(ROOT)
   .filter((f) => f.endsWith('.html'))
-  .filter((f) => f !== 'preview-email.html');
+  .filter((f) => !LEWATI_BERKAS.has(f));
 let nHtml = 0;
 
 function prosesHtml(isi) {

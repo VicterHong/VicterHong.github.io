@@ -110,6 +110,10 @@ export function pasangDiagram(idHost = 'diagramHost') {
   host.replaceChildren();
 
   const slugList = Object.keys(alurProyek);
+  if (!slugList.length) {
+    host.textContent = 'Buka proyek di area klien untuk melihat diagramnya.';
+    return;
+  }
 
   // ── TAB ───────────────────────────────────────────────────────────────────
   const tabBar = el('div', 'alur-tab-bar');

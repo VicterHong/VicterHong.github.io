@@ -29,6 +29,8 @@ import {
   verifikasiTandaTanganMidtrans, statusInternalMidtrans, pesanGalatMidtrans,
 } from './midtrans.mjs';
 import { issueToken } from './tokens.mjs';
+import { aktifkanLangganan } from './langganan-aktivasi.mjs';
+import { listProjects } from './projects.mjs';
 
 const MS_SEHARI = 86_400_000;
 
@@ -137,6 +139,21 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
 
   if (lama) {
     // Kalau sudah dibayar, tidak ada yang perlu dilakukan
+    if (lama.email !== emailBersih || lama.tier !== harga.tier || lama.periode !== harga.periode) {
+      throw Object.assign(new Error('Kunci permintaan sudah digunakan untuk pesanan lain'), {
+        kode: 'idempotency_konflik', statusCode: 409,
+      });
+    }
+    if (lama.status !== STATUS.PENDING && lama.status !== STATUS.DIBAYAR) {
+      throw Object.assign(new Error('Pesanan telah selesai. Mulai pesanan baru dengan kunci baru.'), {
+        kode: 'pesanan_terminal', statusCode: 409,
+      });
+    }
+    if (lama.status === STATUS.PENDING && !lama.payment_url && !lama.midtrans_order_id) {
+      throw Object.assign(new Error('Pembuatan pembayaran belum dapat dipastikan. Periksa pesanan, jangan membuat transaksi kedua.'), {
+        kode: 'pembayaran_diproses', statusCode: 409,
+      });
+    }
     if (lama.status === STATUS.DIBAYAR) {
       return {
         sudahDibayar: true,
@@ -217,9 +234,17 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
 
       // expire / cancel / deny → transaksi lama sudah terminal. Baris ini
       // dipakai ulang di bawah (kunci idempotensi UNIK — INSERT baru ditolak).
+      if (!['expire', 'cancel', 'deny', 'failure'].includes(st)) {
+        throw Object.assign(new Error('Status pembayaran belum terminal; periksa pesanan.'), {
+          kode: 'status_tidak_terbaca', statusCode: 409,
+        });
+      }
       db.prepare(
         'UPDATE payments SET status = ?, alasan_gagal = ? WHERE id = ?',
       ).run(STATUS.KEDALUWARSA, `midtrans:${st || 'tidak_dikenal'}`, lama.id);
+      throw Object.assign(new Error('Mulai pesanan baru dengan kunci baru.'), {
+        kode: 'pesanan_terminal', statusCode: 409,
+      });
     }
   }
 
@@ -295,10 +320,11 @@ export async function mulaiPembayaran({ tier, periode, email, nama = '', idempot
       jumlah: harga.total,
     };
   } catch (err) {
-    // Tandai gagal — jangan biarkan baris "pending" yang tidak pernah selesai
+    // A network timeout does not prove Snap did not create a chargeable order.
+    // Keep the reservation pending; a retry must reconcile, never POST again.
     db.prepare(
       'UPDATE payments SET status = ?, alasan_gagal = ? WHERE id = ?',
-    ).run(STATUS.GAGAL, String(err?.kode ?? err?.message ?? 'tidak_diketahui').slice(0, 200), id);
+    ).run(STATUS.PENDING, 'status_pembuatan_belum_pasti', id);
 
     const terjemahan = pesanGalatMidtrans(err);
     throw Object.assign(new Error(terjemahan.pesan), {
@@ -380,28 +406,23 @@ export async function prosesWebhook(bodyMentah) {
   // percobaan transaksi — dan kita ingin masing-masing tercatat.
   const kunciEvent = `${orderId}:${statusTrx}:${payload.transaction_id ?? ''}`;
 
-  const sudahAda = db.prepare('SELECT event_id, diproses FROM payment_events WHERE event_id = ?')
-    .get(kunciEvent);
-
-  if (sudahAda) {
-    return {
-      ok: true,
-      statusCode: 200,
-      duplikat: true,
-      sudahDiproses: Boolean(sudahAda.diproses),
-      pesan: 'Webhook sudah pernah diterima',
-    };
-  }
+  // Always reconcile with the provider: a previously pending/challenged
+  // response must not suppress a later accepted payment with the same event id.
 
   db.prepare(`
-    INSERT INTO payment_events (event_id, tipe, body_mentah, diterima_pada, diproses)
+    INSERT OR IGNORE INTO payment_events (event_id, tipe, body_mentah, diterima_pada, diproses)
     VALUES (?, ?, ?, ?, 0)
-  `).run(kunciEvent, `transaksi.${statusTrx}`, bodyMentah.slice(0, 200_000), sekarang);
+  `).run(kunciEvent, `transaksi.${statusTrx}`, JSON.stringify({ order_id: orderId, transaction_status: statusTrx }), sekarang);
 
   // ── Proses ───────────────────────────────────────────────────────────────
   let hasil;
   try {
-    hasil = await tanganiTransaksi(payload);
+    // Signature does not cover transaction_status or fraud_status.
+    const confirmed = await ambilStatusTransaksi(orderId);
+    if (confirmed?.order_id !== orderId || Number(confirmed.gross_amount) !== Number(payload.gross_amount)) {
+      throw new Error('status_provider_tidak_cocok');
+    }
+    hasil = tanganiTransaksi(confirmed);
   } catch (err) {
     // ── KENAPA TIDAK MELEMPAR ──────────────────────────────────────────────
     // Kalau kita jawab 500, Midtrans akan mengirim ulang. Tapi kalau
@@ -411,15 +432,13 @@ export async function prosesWebhook(bodyMentah) {
     // Webhook sudah tercatat. Yang perlu adalah PERHATIAN MANUSIA.
     // Dicatat sebagai `diproses = -1` supaya terlihat di pemeriksaan.
     db.prepare('UPDATE payment_events SET diproses = -1, catatan = ? WHERE event_id = ?')
-      .run(String(err?.message ?? err).slice(0, 500), kunciEvent);
-
-    console.error(`[midtrans] webhook ${kunciEvent} GAGAL diproses:`, err?.stack ?? err);
+      .run('pemrosesan_gagal_perlu_retry', kunciEvent);
 
     return {
-      ok: true,
-      statusCode: 200,
+      ok: false,
+      statusCode: 503,
       gagalDiproses: true,
-      pesan: 'Webhook dicatat, tapi pemrosesan gagal — perlu diperiksa manual',
+      pesan: 'Webhook dicatat; pemrosesan belum selesai, kirim ulang.',
     };
   }
 
@@ -444,7 +463,16 @@ export async function prosesWebhook(bodyMentah) {
  * Fungsi ini idempoten: kalau dipanggil dua kali untuk transaksi yang sama,
  * token hanya terbit sekali (dicek dari status pembayaran di database).
  */
-async function tanganiTransaksi(payload) {
+function tanganiTransaksi(payload) {
+  const result = transaction(() => terapkanTransaksi(payload));
+  if (result.tokenId) {
+    const bayar = getDb().prepare('SELECT * FROM payments WHERE id=?').get(payload.order_id);
+    kirimStrukSesudahCommit(payload, bayar);
+  }
+  return result;
+}
+
+function terapkanTransaksi(payload) {
   const orderId = payload.order_id;
   const status = statusInternalMidtrans(payload.transaction_status, payload.fraud_status);
 
@@ -464,8 +492,8 @@ async function tanganiTransaksi(payload) {
   // `gross_amount` datang sebagai string "200000.00" — dibandingkan sebagai
   // angka setelah diparse, karena perbandingan string akan gagal untuk
   // format yang berbeda ("200000" vs "200000.00").
-  const ditagih = Math.round(Number(payload.gross_amount ?? 0));
-  if (ditagih !== bayar.jumlah) {
+  const ditagih = Number(payload.gross_amount);
+  if (!Number.isSafeInteger(ditagih) || ditagih !== bayar.jumlah || (payload.currency && payload.currency !== 'IDR')) {
     throw new Error(
       `Jumlah tidak cocok untuk ${orderId}: tercatat ${bayar.jumlah}, `
       + `dibayar ${ditagih}. Token TIDAK diterbitkan — perlu diperiksa manual.`,
@@ -495,7 +523,7 @@ async function tanganiTransaksi(payload) {
   }
 
   // ── Sudah dibayar? Jangan terbitkan token kedua ──────────────────────────
-  if (bayar.status === STATUS.DIBAYAR && bayar.token_id) {
+  if (bayar.token_id || bayar.status === STATUS.DIKEMBALIKAN) {
     return { pesan: 'Sudah dibayar — token tidak diterbitkan ulang', sudahDibayar: true };
   }
 
@@ -511,6 +539,7 @@ async function tanganiTransaksi(payload) {
   const token = issueToken({
     secret: config.secret,
     projectSlug: 'semua',
+    scopes: listProjects().map(p => p.slug),
     tier: tierToken,
     label: `${bayar.nama || bayar.email} — ${bayar.tier} ${bayar.periode}`,
     issuedTo: bayar.email,
@@ -532,7 +561,6 @@ async function tanganiTransaksi(payload) {
     `).run(STATUS.DIBAYAR, Date.now(), orderId, token.id, orderId);
   });
 
-  console.log(`[midtrans] ✅ ${orderId} dibayar — token ${token.id} diterbitkan untuk ${bayar.email}`);
 
   // ── AKTIFKAN LANGGANAN ─────────────────────────────────────────────────────
   //
@@ -550,9 +578,6 @@ async function tanganiTransaksi(payload) {
   // Dalam kasus itu, pembayaran TETAP SAH (uangnya sudah masuk) tapi aksesnya
   // tidak bisa dibuat otomatis. Itu harus terlihat di log supaya bisa
   // ditindaklanjuti manual — bukan gagal diam-diam.
-  try {
-    const { aktifkanLangganan } = await import('./langganan-aktivasi.mjs');
-
     const hasil = aktifkanLangganan({
       paymentId: bayar.id,
       email: bayar.email,
@@ -561,19 +586,9 @@ async function tanganiTransaksi(payload) {
       nama: bayar.nama,
     });
 
-    if (hasil.aktif) {
-      console.log(`[midtrans] ✅ langganan ${hasil.diperpanjang ? 'diperpanjang' : 'aktif'} — ${hasil.pesan}`);
-    } else {
-      // Pembayaran sah, langganan gagal dibuat. Ini butuh perhatian manusia.
-      console.error(`[midtrans] ⚠️  ${orderId}: pembayaran DIBAYAR tapi langganan TIDAK aktif — ${hasil.pesan}`);
-      console.error('[midtrans]    Tindakan: pastikan pembeli punya akun dengan email itu, lalu aktifkan manual lewat admin-cli.mjs');
+    if (!hasil.aktif) {
+      throw new Error('aktivasi_langganan_belum_selesai');
     }
-  } catch (err) {
-    // Kegagalan tak terduga (database terkunci, bug). Pembayaran tetap sah —
-    // jangan gagalkan webhook, karena Midtrans akan mengirim ulang dan
-    // pembayaran bisa tercatat dua kali.
-    console.error(`[midtrans] ⚠️  ${orderId}: gagal aktivasi langganan — ${err.message}`);
-  }
 
   // ── STRUK PEMBAYARAN ───────────────────────────────────────────────────────
   //
@@ -584,6 +599,18 @@ async function tanganiTransaksi(payload) {
   // Tidak di-await: webhook Midtrans punya batas waktu balasan, dan menunggu
   // SMTP di jalur kritis bisa membuat Midtrans menganggap webhook gagal lalu
   // mengirim ulang — pembayaran tercatat dua kali.
+  return {
+    pesan: 'Pembayaran berhasil, token diterbitkan',
+    tokenId: token.id,
+    token: token.token,
+    email: bayar.email,
+    tier: bayar.tier,
+    periode: bayar.periode,
+  };
+}
+
+function kirimStrukSesudahCommit(payload, bayar) {
+  const orderId = bayar.id;
   (async () => {
     try {
       const { kirimStrukPembayaran } = await import('./email.mjs');
@@ -603,16 +630,6 @@ async function tanganiTransaksi(payload) {
     }
   })();
 
-  return {
-    pesan: 'Pembayaran berhasil, token diterbitkan',
-    tokenId: token.id,
-    // Token plaintext HANYA ada di sini dan tidak disimpan di database.
-    // Ia dikembalikan ke pemanggil untuk diteruskan ke pembeli — lalu hilang.
-    token: token.token,
-    email: bayar.email,
-    tier: bayar.tier,
-    periode: bayar.periode,
-  };
 }
 
 /**

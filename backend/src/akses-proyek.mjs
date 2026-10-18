@@ -37,7 +37,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { getDb, now } from './db.mjs';
+import { getDb, now, transaction } from './db.mjs';
 import {
   hitungKuota,
   bolehLihatMetrik,
@@ -151,8 +151,7 @@ export function pakaiKuota(userId) {
   const db = getDb();
   const bulan = bulanSekarang();
 
-  db.exec('BEGIN IMMEDIATE');
-  try {
+  return transaction(() => {
     const baris = db
       .prepare('SELECT terpakai FROM kuota_token WHERE user_id = ? AND bulan = ?')
       .get(userId, bulan);
@@ -165,13 +164,8 @@ export function pakaiKuota(userId) {
         .run(randomUUID(), userId, bulan, now());
     }
 
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
-
-  return keadaanKuota(userId);
+    return keadaanKuota(userId);
+  });
 }
 
 // ── 4. METRIK TERBUKA (paket Gratis) ─────────────────────────────────────────
@@ -247,6 +241,9 @@ export function keadaanMetrik(userId) {
  * adalah fungsi yang sama yang memutuskan, dan hanya saat keputusannya "boleh".
  */
 export function periksaAksesMetrik(userId, projectSlug, { sudahStar, ip = '', userAgent = '' } = {}) {
+  const db = getDb();
+  db.exec('BEGIN IMMEDIATE');
+  try {
   const paket = paketPengguna(userId);
   const jumlahTerbuka = jumlahMetrikTerbuka(userId);
   const proyekSama = metrikSudahTerbuka(userId, projectSlug);
@@ -266,18 +263,19 @@ export function periksaAksesMetrik(userId, projectSlug, { sudahStar, ip = '', us
     // Kalau barisnya sudah ada (proyek sudah terbuka), tidak ada jatah yang
     // terpakai — dan pemeriksaan `proyekSama` di atas sudah menanganinya lebih
     // dulu, jadi jalur ini hanya untuk proyek yang benar-benar baru.
-    try {
       getDb().prepare(`
         INSERT OR IGNORE INTO metrik_terbuka
           (id, user_id, project_slug, sumber, dibuka_at, ip, user_agent)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(randomUUID(), userId, projectSlug, hasil.sumber ?? 'login', now(), ip, String(userAgent).slice(0, 300));
-    } catch (err) {
-      console.error('[metrik] gagal mencatat proyek terbuka:', err?.message ?? err);
-    }
   }
 
+  db.exec('COMMIT');
   return hasil;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 }
 
 // ── 5. RINGKASAN UNTUK UI ────────────────────────────────────────────────────

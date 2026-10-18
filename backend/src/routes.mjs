@@ -45,6 +45,7 @@ import {
 } from './purge-akun.mjs';
 import {
   createSession, validateSession, destroySession, cleanupExpiredSessions,
+  validateAccountSession,
   setSudoUntil, sudoAktif, SUDO_MS,
 } from './sessions.mjs';
 import { recordEvent, recentEvents, recordLead, listLeads } from './audit.mjs';
@@ -136,7 +137,8 @@ import {
 } from './http-util.mjs';
 import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
 import { ruteAuth } from './auth-routes.mjs';
-import { ruteKlien } from './klien-routes.mjs';
+import { ruteKlien, penggunaDariRequest } from './klien-routes.mjs';
+import { projectDetails } from './project-details.mjs';
 // ── SENTINEL: inspector webhook ──────────────────────────────────────────────
 // Rutenya sudah DIKUNCI di dalam ruteSentinel() — semuanya lewat pembungkus
 // kunciAdmin, jadi tidak ada yang bisa terdaftar tanpa kunci.
@@ -627,6 +629,20 @@ function isAdmin(req) {
   return timingSafeEqual(h(key), h(expected));
 }
 
+function bolehEksperimen(req, res) {
+  if (isAdmin(req)) return true;
+  const user = penggunaDariRequest(req);
+  if (!user) {
+    sendJson(res, 401, { ok: false, error: 'belum_masuk' });
+    return false;
+  }
+  if (!config.ownerEmails.includes(user.email.trim().toLowerCase())) {
+    sendJson(res, 403, { ok: false, error: 'bukan_owner' });
+    return false;
+  }
+  return true;
+}
+
 /**
  * Bungkus handler: tangkap error supaya satu permintaan buruk tidak menjatuhkan layanan.
  *
@@ -788,7 +804,7 @@ function verifySession(req, { projectSlug = '', action = 'content' } = {}) {
   const sessionId = cookies.portfolio_session ?? '';
   if (!sessionId) return null;
 
-  const hasil = validateSession(sessionId, config.secret);
+  const hasil = validateAccountSession(sessionId, config.secret);
   if (!hasil) return null;
 
   // Sesi sah, tapi tokennya bisa sudah dicabut atau kedaluwarsa SETELAH
@@ -856,7 +872,7 @@ function sesiLengkap(req) {
   const sessionId = cookies.portfolio_session ?? '';
   if (!sessionId) return null;
 
-  const hasil = validateSession(sessionId, config.secret);
+  const hasil = validateAccountSession(sessionId, config.secret);
   if (!hasil) return null;
 
   const problem = tokenProblem(hasil.tokenRow);
@@ -2793,7 +2809,11 @@ export const routes = [
       // Coba session dulu, kalau tidak ada coba token di header
       let tokenRow = null;
       const cookies = parseCookies(req);
-      if (cookies.portfolio_session) {
+      const account = penggunaDariRequest(req);
+      const owner = account && config.ownerEmails.includes(account.email.trim().toLowerCase());
+      if (account && (owner || paketPengguna(account.id) !== 'gratis') && listProjects().some(p => p.slug === slug)) {
+        tokenRow = validateAccountSession(cookies.portfolio_session, config.secret).tokenRow;
+      } else if (cookies.portfolio_session) {
         const result = verifySession(req, { projectSlug: slug, action: 'content' });
         if (result.error) {
           // Kalau session gagal, coba token di header sebagai fallback
@@ -2809,6 +2829,15 @@ export const routes = [
         tokenRow = row;
       }
 
+      // A login identity can open the presentation subset using its 3+2
+      // allowance. It must not inherit paid internal content from defaultProject.
+      const accountRow = cariPengguna(tokenRow.issued_to);
+      if (accountRow?.token_id === tokenRow.id) {
+        const permittedOwner = config.ownerEmails.includes(accountRow.email.trim().toLowerCase());
+        if (accountRow.status !== 'aktif' || (!permittedOwner && paketPengguna(accountRow.id) === 'gratis')) {
+          return sendJson(res, 403, { ok: false, error: 'perlu_entitlement_internal' });
+        }
+      }
       const content = loadLockedContent(slug) ?? sampleLockedContent(slug);
 
       // Record analytics: content_view
@@ -4046,7 +4075,7 @@ export const routes = [
     method: 'GET',
     pattern: '/api/experiment/:slug',
     handler: safe(async (req, res, params, url) => {
-      // Publik: hanya memberi varian untuk pengunjung — bukan data hasil.
+      if (!bolehEksperimen(req, res)) return;
       const visitor = url?.searchParams.get('v') ?? clientIp(req);
       const variant = pickVariant(params.slug, visitor);
       if (!variant) return sendJson(res, 404, { ok: false, error: 'eksperimen_tidak_aktif' });
@@ -4062,6 +4091,7 @@ export const routes = [
     method: 'POST',
     pattern: '/api/experiment/convert',
     handler: safe(async (req, res) => {
+      if (!bolehEksperimen(req, res)) return;
       const body = await readJson(req);
       recordExpEvent({
         slug: String(body.slug ?? ''),
@@ -4329,9 +4359,14 @@ export const routes = [
       }
 
       const k = keadaanMetrik(pengguna.id);
+      const detailProyek = Object.fromEntries(listProjects()
+        .filter(p => k.berbayar || k.proyek.includes(p.slug))
+        .map(p => [p.slug, projectDetails(p.slug)])
+        .filter(([, detail]) => detail !== null));
       return sendJson(res, 200, {
         ok: true,
         masuk: true,
+        detailProyek,
         paket: k.paket,
         berbayar: k.berbayar,
         total: k.total,          // null = tanpa batas (berbayar)

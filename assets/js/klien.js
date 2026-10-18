@@ -219,11 +219,39 @@ function buatKartu(proyek, indeks) {
   // STATUS_TERBUKA di backend.
   const terbuka = proyek.status === 'terbuka' || proyek.status === 'sudah-dibuka';
 
-  if (terbuka) {
-    const lihat = document.createElement('a');
+  if (terbuka || proyek.status === 'terkunci-bisa-buka') {
+    const lihat = document.createElement('button');
+    lihat.type = 'button';
     lihat.className = 'klien-btn';
-    lihat.href = `/s/${proyek.slug}`;
     lihat.textContent = 'Buka proyek';
+    lihat.addEventListener('click', async () => {
+      lihat.disabled = true;
+      try {
+        const data = await panggilApi(`${API.proyek}/${encodeURIComponent(proyek.slug)}/metrik`, { method: 'POST', body: '{}' });
+        let detail = isi.querySelector('.klien-detail-proyek');
+        if (!detail) {
+          detail = document.createElement('div');
+          detail.className = 'klien-detail-proyek';
+          isi.append(detail);
+        }
+        detail.replaceChildren();
+        for (const m of data.metrik || []) {
+          const row = document.createElement('p');
+          row.textContent = `${m.label}: ${m.value}`;
+          detail.append(row);
+        }
+        for (const h of data.highlights || []) {
+          const row = document.createElement('p');
+          row.textContent = `${h.title}: ${h.detail}`;
+          detail.append(row);
+        }
+        labelStatus.textContent = 'Sudah dibuka';
+        lihat.textContent = 'Muat ulang data proyek';
+        renderPaket(await panggilApi(API.ringkasan));
+      } catch (err) {
+        lihat.textContent = err.message;
+      } finally { lihat.disabled = false; }
+    });
     aksi.append(lihat);
   } else {
     const kunci = document.createElement('span');
@@ -526,13 +554,16 @@ async function muatToken() {
 function pasangBuatToken() {
   const tombol = $('#klienBuatToken');
   const wadah = $('#klienTokenBaru');
+  let requestKey = null;
 
   tombol.addEventListener('click', async () => {
     tombol.disabled = true;
     tombol.textContent = 'Membuat…';
 
     try {
-      const data = await panggilApi(API.token, { method: 'POST', body: '{}' });
+      requestKey ||= crypto.randomUUID();
+      const data = await panggilApi(API.token, { method: 'POST', body: JSON.stringify({ idempotencyKey: requestKey }) });
+      requestKey = null;
 
       // Tampilkan token SEKALI. Karena hanya hash-nya yang tersimpan, ini
       // satu-satunya kesempatan pengguna menyalinnya.

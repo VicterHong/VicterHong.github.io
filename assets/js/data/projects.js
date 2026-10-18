@@ -104,32 +104,8 @@ export const projects = [
     subtitle: 'Remote Control for Your Home Machine',
     summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun, shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
     problem: 'Perangkat lama sering dianggap sampah karena tidak sanggup menjalankan alat modern. Padahal dengan desain yang hemat, ia masih bisa jadi server pribadi yang berguna.',
-    highlights: [
-      {
-        title: 'Keamanan sejak desain',
-        detail: 'Token bearer + HMAC-SHA256 di setiap permintaan, proteksi replay (jendela 5 menit), allowlist perintah yang ketat, batas laju per aksi, dan shell=False di mana pun. Tidak ada eksekusi shell bebas, selamanya.',
-      },
-      {
-        title: 'Hemat sumber daya',
-        detail: 'Berjalan di ~25 MB RSS dengan batas memori 100 MB. Fitur berat (otomasi GUI) dimatikan sendiri saat RAM menipis, dengan circuit breaker agar tidak memaksa.',
-      },
-      {
-        title: 'Web UI tanpa framework',
-        detail: 'UI admin bawaan (hanya stdlib): setup awal, login, generator kredensial dengan tampilan sekali, dashboard. Tanpa Django, tanpa Flask, tanpa Node.',
-      },
-      {
-        title: 'Lintas platform',
-        detail: 'Windows, Linux, macOS. Manajemen daya, kontrol GUI, dan eksekusi skrip menyesuaikan diri per platform.',
-      },
-      {
-        title: 'Wake-on-LAN bawaan',
-        detail: 'Bangunkan perangkat berdasarkan nama dari registri, atau MAC mentah.',
-      },
-    ],
-    metrics: [
-      { label: 'tes otomatis', value: '231' },
-      { label: 'berkas uji', value: '4' },
-    ],
+    highlights: [], // populated only from an entitled API response
+    metrics: [],
     stack: ['Python', 'HMAC-SHA256', 'stdlib only', 'Telegram', 'Discord'],
     repo: 'https://github.com/VicterHong/mina-remote-control',
     accent: 'amina',
@@ -147,11 +123,7 @@ export const projects = [
     subtitle: 'Inventory & logistik untuk suku cadang alat berat',
     summary: 'Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit.',
     problem: 'Pencatatan suku cadang secara manual mudah hilang dan sulit ditelusuri saat dibutuhkan.',
-    highlights: [
-      { title: 'API + database', detail: 'FastAPI di atas PostgreSQL, dijalankan lewat Docker agar penyiapan konsisten.' },
-      { title: 'Otomasi alur kerja', detail: 'n8n menghubungkan kejadian stok dengan notifikasi dan tindakan lanjutan.' },
-      { title: 'Bot Telegram', detail: 'Tim bisa mengecek dan memperbarui stok tanpa membuka aplikasi terpisah.' },
-    ],
+    highlights: [],
     metrics: [],
     stack: ['FastAPI', 'PostgreSQL', 'Docker', 'n8n', 'Telegram'],
     repo: 'https://github.com/VicterHong/spareparts-inventory-system',
@@ -168,18 +140,8 @@ export const projects = [
     subtitle: 'Bot grup keluarga yang reaktif dan aman',
     summary: 'Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Bisa mendengar pesan suara, mencari berita sendiri, dan membaca isi tautan yang dibagikan.',
     problem: 'Bot grup biasanya berisik dan rawan diblokir. Yang ini dirancang untuk diam sampai dipanggil, dan tahan lama.',
-    highlights: [
-      { title: 'Reaktif, bukan berisik', detail: 'Hanya menjawab saat disebut atau dibalas. Tidak pernah menyela percakapan.' },
-      { title: 'Anti-ban berlapis', detail: '14 kelas kontrol: ritme manusia, batas laju, jam tenang, dan pemantau kesehatan yang menjeda sendiri saat ada dorongan dari server.' },
-      { title: 'Mendengar pesan suara', detail: 'Voice note ditranskripsi (ffmpeg + faster-whisper) lalu dijawab isinya. Kalau gagal, keluarga diberi tahu alasannya — tidak pernah dibiarkan bingung.' },
-      { title: 'Mencari berita sendiri', detail: 'Saat diminta "cek berita itu", bot benar-benar mencari (DuckDuckGo), membaca isi halaman hasil teratas, lalu menjawab dengan datanya — bukan mengelak.' },
-      { title: 'Memori per grup', detail: 'Riwayat percakapan tersimpan per grup, tidak bocor antar grup, dengan pemulihan otomatis saat berkas rusak.' },
-      { title: 'Privasi dijaga', detail: 'Kunci sesi tidak pernah ditulis ke log, dua lapis penjaga mencegahnya bocor. Kosakata log tertutup: teks keluarga tidak pernah masuk journal.' },
-    ],
-    metrics: [
-      { label: 'tes otomatis', value: '1274' },
-      { label: 'berkas uji', value: '148' },
-    ],
+    highlights: [],
+    metrics: [],
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
     accent: 'wa',
