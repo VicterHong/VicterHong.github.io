@@ -326,6 +326,39 @@
   perspective: 1600px;
 }
 
+/* ── RUANG CADANGAN SEBELUM KARTU DIRENDER ───────────────────────────────────
+   Diukur di produksi: CLS /pricing = 0.238 (GAGAL, anggaran 0.1). Penyebabnya
+   `#wadahKartu` kosong saat HTML pertama dicat, lalu terisi empat kartu setinggi
+   ~862px — seluruh isi di bawahnya melompat turun. Itu terukur, bukan dugaan:
+   LayoutShift 0.2376 pada 750ms dengan sumber `#wadahKartu`.
+
+   Angka di bawah BUKAN tebakan: diukur dari kartu yang sudah dirender pada
+   tiap breakpoint (Chromium, 18 Okt 2026):
+
+     1366px / 1280px → 862px (4 kolom, satu baris)
+     1024px          → 1255px (2×2)
+      900px          → 1303px (2×2, kartu lebih tinggi)
+      768px          → 2356px (1 kolom, 4 kartu bertumpuk)
+      360px          → 2628px (1 kolom, paling tinggi)
+
+   ── KENAPA `:empty`, BUKAN `aria-busy="false"` ──────────────────────────────
+   Melepas min-height saat `aria-busy` berubah berarti tinggi grid berubah LAGI
+   setelah kartu masuk — persis jenis lompatan yang ingin dihilangkan. `:empty`
+   hanya berlaku selama grid benar-benar belum punya anak, jadi tingginya
+   berhenti berlaku pada saat yang sama kartu pertama masuk. Tidak ada langkah
+   kedua, tidak ada shift kedua. */
+#wadahKartu:empty {
+  min-height: 2628px;
+}
+
+@media (min-width: 56rem) {
+  #wadahKartu:empty { min-height: 1303px; }
+}
+
+@media (min-width: 75rem) {
+  #wadahKartu:empty { min-height: 862px; }
+}
+
 /* ── EMPAT KOLOM DI LAYAR LEBAR ───────────────────────────────────────────────
    Sebelumnya tiga kolom, karena paketnya tiga. Sekarang empat (Gratis,
    Standar, Profesional, Enterprise).

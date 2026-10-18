@@ -363,6 +363,34 @@ export function initTextStagger(selector = '[data-cine-words]') {
   }, { rootMargin: '0px 0px 12% 0px', threshold: 0.01 });
 
   for (const el of targets) {
+    // ── KENAPA ELEMEN DI VIEWPORT TIDAK DISEMBUNYIKAN DULU ──────────────────
+    //
+    // Versi sebelumnya menambahkan `cine-words-pending` (opacity: 0) ke SEMUA
+    // target, lalu menunggu IntersectionObserver melepasnya. Untuk elemen yang
+    // sudah terlihat saat halaman dibuka — judul hero — itu berarti teks utama
+    // TIDAK TERLIHAT sampai observer sempat berjalan.
+    //
+    // Terukur di produksi: first-paint 584ms, tapi first-contentful-paint
+    // 1724ms. Selisih ~1,1 detik itu bukan waktu muat; itu teks hero yang
+    // sengaja disembunyikan. FCP menunggu konten pertama yang TERLIHAT, jadi
+    // animasi masuk yang "halus" justru membuat halaman terasa lambat.
+    //
+    // Perbaikan: elemen yang sudah berpotongan dengan viewport saat ini
+    // langsung dipasangi `cine-words-in` tanpa fase tersembunyi. Stagger tetap
+    // berjalan untuk elemen yang baru masuk saat digulir — di sanalah animasi
+    // masuk memang terlihat dan tidak menunda paint pertama.
+    const kotak = el.getBoundingClientRect();
+    const sudahTerlihat = kotak.top < window.innerHeight && kotak.bottom > 0;
+
+    if (sudahTerlihat) {
+      const words = splitWords(el);
+      words.forEach((w, i) => {
+        w.style.transitionDelay = `${Math.min(i * 55, 500)}ms`;
+      });
+      el.classList.add('cine-words-in');
+      continue;
+    }
+
     // Sembunyikan kata SEBELUM masuk layar supaya tidak ada flash.
     el.classList.add('cine-words-pending');
     observer.observe(el);
