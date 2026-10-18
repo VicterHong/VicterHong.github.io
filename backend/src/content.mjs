@@ -19,6 +19,19 @@ export function isValidSlug(slug) {
   return typeof slug === 'string' && SLUG_RE.test(slug);
 }
 
+/** Baca dokumen demo privat khusus owner dari CONTENT_DIR. */
+export function loadOwnerDemo(name = 'anthropic') {
+  if (!/^[a-z0-9-]{1,32}$/.test(name)) return null;
+  const file = resolve(join(config.contentDir, `demo-${name}.html`));
+  if (!file.startsWith(resolve(config.contentDir))) return null;
+  if (!existsSync(file)) return null;
+  try {
+    return readFileSync(file, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 /** Baca konten terkunci untuk satu proyek. */
 export function loadLockedContent(slug) {
   if (!isValidSlug(slug)) return null;

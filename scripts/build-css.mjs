@@ -102,6 +102,7 @@ const LEWATI_BERKAS = new Set([
   'preview-email.html',
   'demo-how-it-works.html',
   'demo-animasi-blackray.html',
+  'demo-anthropic.html',
   'cloudflare.config.ts',
 ]);
 

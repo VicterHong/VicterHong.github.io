@@ -91,7 +91,7 @@ import { scoreLead } from './spam-guard.mjs';
 import { verifyTurnstile, turnstileMessage } from './turnstile.mjs';
 import { slaSummary, slaReport } from './sla.mjs';
 import { liveness, readiness } from './health.mjs';
-import { isValidSlug, loadLockedContent, sampleLockedContent } from './content.mjs';
+import { isValidSlug, loadLockedContent, sampleLockedContent, loadOwnerDemo } from './content.mjs';
 import { listProjects, isKnownProject } from './projects.mjs';
 import { buildPricing } from './pricing.mjs';
 import {
@@ -4101,6 +4101,28 @@ export const routes = [
         country: clientCountry(req),
       });
       sendJson(res, 200, { ok: true });
+    }),
+  },
+
+  {
+    method: 'GET',
+    pattern: '/api/owner/demo-anthropic',
+    handler: safe(async (req, res) => {
+      // Hanya pemilik (sesi login yang cocok dengan config.ownerEmails) atau admin_key
+      const user = penggunaDariRequest(req);
+      const isOwner = user && config.ownerEmails.includes(user.email.trim().toLowerCase());
+      if (!isAdmin(req) && !isOwner) {
+        // Balas 404 agar akun lain atau penjelajah publik tidak bisa menemukan halaman ini
+        return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan' });
+      }
+      const html = loadOwnerDemo('anthropic');
+      if (!html) return sendJson(res, 404, { ok: false, error: 'tidak_ditemukan' });
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store, private',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      res.end(html);
     }),
   },
 
