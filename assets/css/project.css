@@ -549,19 +549,30 @@
 
 /* ══ SLOT WIDGET TURNSTILE ═══════════════════════════════════════════════════
  *
- * ── KENAPA TIDAK ADA BINGKAI DI SINI ────────────────────────────────────────
- * Percobaan pertama menambahkan bingkai sendiri (border 1px + radius 10px +
- * latar transparan) dengan maksud menyatukan widget dengan kartu gelap.
- * Hasilnya justru sebaliknya: Turnstile SUDAH membawa bingkainya sendiri
- * (putih, 1px, sudut hampir tajam). Menambah bingkai luar menghasilkan dua
- * kotak bersarang dengan radius dan warna berbeda — terlihat seperti tambalan,
- * bukan desain.
+ * ── MASALAH YANG DIPERBAIKI: WIDGET TERPOTONG DI LAYAR SEMPIT ───────────────
+ * Turnstile merender widget dengan lebar TETAP 300px. Itu bukan preferensi
+ * yang bisa ditawar lewat opsi `size`:
  *
- * Yang benar: jangan menambah bingkai. Cukup pusatkan widget, dan beri radius
- * kecil pada iframe supaya sudutnya tidak menonjol keluar dari kartu.
+ *     size: 'normal'    → 300×65  (tetap)
+ *     size: 'compact'   → 150×140 (tetap, vertikal)
+ *     size: 'flexible'  → tetap 300px di dalam wadah sempit
  *
- * `color-scheme: dark` tetap dipertahankan — itu yang memberi tahu Turnstile
- * memakai palet gelapnya sendiri, bukan memaksa putih.
+ * Di layar 360px, kartu gerbang menyisakan 278px untuk slot (323px kartu
+ * dikurangi padding 2×21,6px). Widget 300px lalu meluber 22px ke kanan dan
+ * terpotong: logo Cloudflare terbaca "CLOUDFLA", tautan "Privasi" jadi
+ * "Privi", "Bantuan" jadi "Bant".
+ *
+ * Di layar 320px kekurangannya 62px — jauh lebih parah.
+ *
+ * ── KENAPA `overflow: hidden` BUKAN SOLUSI ──────────────────────────────────
+ * Memotong sisi kanan membuat widget tampak rusak, bukan rapi. Yang benar
+ * adalah memberi widget ruang yang cukup: kurangi padding kartu di layar
+ * sempit supaya 300px muat.
+ *
+ * ── KENAPA TIDAK MEMAKAI `size: 'compact'` ──────────────────────────────────
+ * Compact mengubah tata letak jadi vertikal 150×140 — checkbox di atas teks.
+ * Itu membuat kartu gerbang melompat tinggi dan tampilannya berbeda dari
+ * halaman auth. Menjaga bentuk yang sama di semua halaman lebih penting.
  *
  * ── TINGGI MINIMUM ──────────────────────────────────────────────────────────
  * 65px = tinggi widget Turnstile standar. Ditetapkan dari awal supaya kartu
@@ -573,16 +584,57 @@
   place-items: center;
   min-height: 65px;
   max-width: 100%;
+  /* Ruang sudah dijamin lewat padding kartu (lihat media query di bawah).
+     `hidden` di sini hanya jaring pengaman: kalau ada keadaan tak terduga
+     yang membuat widget lebih lebar dari slot, lebih baik terpotong sedikit
+     daripada merusak lebar halaman. Padding-lah yang mencegah pemotongan,
+     bukan overflow. */
   overflow: hidden;
   color-scheme: dark;
 }
 
 .turnstile-slot iframe,
-.gate-turnstile iframe {
-  max-width: 100%;
+.gate-turnstile iframe,
+.turnstile-slot > div,
+.gate-turnstile > div {
+  max-width: none;
   border: 0;
   border-radius: 8px;
   display: block;
+}
+
+/* ── LAYAR SEMPIT: BERI RUANG 300px UNTUK WIDGET ─────────────────────────────
+ * Turnstile SELALU 300px. Padding kartu harus cukup kecil agar 300px muat
+ * di dalamnya:
+ *
+ *     layar 390px → kartu 353px, padding 21,6px → slot 308px  ✓ muat
+ *     layar 360px → kartu 323px, padding 21,6px → slot 278px  ✗ kurang 22px
+ *     layar 320px → kartu 283px, padding 21,6px → slot 238px  ✗ kurang 62px
+ *
+ * Perlu padding ≤30px di 360px (sudah terpenuhi) dan ≤10px di 320px.
+ * Padding dipangkas bertahap, bukan sekaligus: kartu tetap punya napas di
+ * layar normal, dan hanya menipis saat memang sempit.
+ * ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .gate-card {
+    padding-left: 0.75rem;   /* 12px → slot 299px di 360px */
+    padding-right: 0.75rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .gate-card {
+    padding-left: 0.5rem;    /* 8px → slot 267px di 320px */
+    padding-right: 0.5rem;
+  }
+  /* Di bawah 340px, 300px benar-benar tidak muat di dalam kartu. Widget
+     diskalakan sedikit supaya utuh — lebih baik sedikit lebih kecil dan
+     terbaca lengkap daripada terpotong "CLOUDFLA". */
+  .turnstile-slot:not([hidden]),
+  .gate-turnstile:not([hidden]) {
+    transform: scale(0.88);
+    transform-origin: center center;
+  }
 }
 
 /* Gerbang token: widget verifikasi di bawah form token. Tombol Buka tetap
