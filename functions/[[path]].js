@@ -67,6 +67,35 @@ export async function onRequest(context) {
     });
   }
 
+  // ── BLOKIR: /s/whatsapp-bot/ — halaman yatim yang membocorkan isi teknis ───
+  //
+  // ── KENAPA DIBLOKIR DI EDGE, BUKAN CUKUP DIHAPUS DARI REPO ────────────────
+  // Berkasnya sudah dihapus dari repo dan dari deploy (verifikasi dengan
+  // cache-buster → 404). Tapi CDN masih menyajikan salinan lamanya: 200 OK,
+  // 7745 byte, lengkap dengan "Keputusan desain" dan "14 kelas kontrol
+  // terpisah" — isi yang seharusnya di balik gerbang token.
+  //
+  // Menunggu cache kedaluwarsa bukan pilihan: selama masih tersaji, siapa pun
+  // yang membuka URL itu membaca isi teknis tanpa token. Blokir di edge
+  // berlaku SEKARANG dan mengirim `no-store` supaya salinan lama tidak
+  // dihidupkan kembali.
+  //
+  // `whatsapp-bot` bukan kode akses sah (tidak ada di access_codes mana pun);
+  // URL proyek yang benar memakai kode acak. Jadi memblokir jalur ini tidak
+  // memutus tautan yang sah.
+  if (/^\/s\/whatsapp-bot(\/|$)/i.test(pathname)) {
+    return new Response('Not Found', {
+      status: 404,
+      statusText: 'Not Found',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'CDN-Cache-Control': 'no-store',
+        'Cloudflare-CDN-Cache-Control': 'no-store',
+      },
+    });
+  }
+
   // Bukan jalur yang perlu diproxy → biarkan Pages melayani berkas statisnya.
   // Mengembalikan context.next() penting: tanpa itu, SEMUA permintaan
   // (termasuk HTML, CSS, gambar lokal) akan kita tangani dan situs rusak.
