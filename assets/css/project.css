@@ -624,15 +624,20 @@
 
 @media (max-width: 340px) {
   .gate-card {
-    padding-left: 0.35rem;   /* 5,6px → slot 272px di 320px */
+    padding-left: 0.35rem;
     padding-right: 0.35rem;
   }
-  /* Di bawah 340px, 300px benar-benar tidak muat di dalam kartu. Widget
-     diskalakan supaya utuh — lebih baik sedikit lebih kecil dan terbaca
-     lengkap daripada terpotong "CLOUDFLA".
-     0,84 × 300 = 252px, muat di slot 272px dengan sisa ruang. */
+  /* Di bawah 340px, 300px tidak muat. Widget diskalakan 0,84 → 252px dan
+     slot dibuat mengikuti lebar isinya (`inline-block`, bukan grid), supaya
+     tidak ada pemotongan dari `place-items: center` + `overflow: hidden`.
+     Slot lalu dipusatkan dengan `margin-inline: auto`. */
   .turnstile-slot:not([hidden]),
   .gate-turnstile:not([hidden]) {
+    display: block;
+    width: max-content;
+    max-width: none;
+    margin-inline: auto;
+    overflow: visible;
     transform: scale(0.84);
     transform-origin: center center;
   }
