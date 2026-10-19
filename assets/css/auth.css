@@ -1377,12 +1377,58 @@ select.auth-input {
   min-height: 65px;
 }
 
+/* ── BINGKAI WIDGET: MENYATU DENGAN KARTU, BUKAN KOTAK MENGAMBANG ───────────
+ *
+ * ── MASALAH YANG DIPERBAIKI ────────────────────────────────────────────────
+ * Turnstile merender iframe-nya sendiri dengan latar TERANG (tema widget
+ * hanya mengubah sebagian, bukan kotak luarnya). Di kartu gelap, hasilnya
+ * terlihat seperti tempelan: satu persegi abu-abu terang di tengah form,
+ * dengan sudut tajam yang tidak mengikuti radius kartu.
+ *
+ * Itu bukan sekadar kurang rapi — ia memutus alur membaca tepat sebelum
+ * tombol utama, di titik pengguna paling butuh keyakinan.
+ *
+ * ── YANG DILAKUKAN ─────────────────────────────────────────────────────────
+ * Slot diberi bingkai sendiri: latar lebih gelap dari kartu, garis rambut,
+ * dan radius yang sama dengan input. Iframe di dalamnya dibuat transparan
+ * dan lebarnya 100% supaya tidak menyisakan celah di kanan-kiri.
+ *
+ * ── KENAPA TIDAK MEMAKSA LATAR IFRAME ──────────────────────────────────────
+ * Iframe berasal dari domain Cloudflare — CSS kita TIDAK menembusnya (dan
+ * tidak boleh; itu batas keamanan browser). Yang bisa diatur hanya kotak
+ * pembungkusnya dan `color-scheme`, yang dipakai Turnstile untuk memilih
+ * palet gelapnya sendiri.
+ * ────────────────────────────────────────────────────────────────────────── */
+.auth-turnstile.is-ada {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  padding: 2px;
+  border: 1px solid var(--garis, #232329);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  /* `color-scheme: dark` memberi tahu iframe Turnstile bahwa konteksnya
+     gelap — ia memakai palet gelapnya sendiri, bukan memaksa putih. */
+  color-scheme: dark;
+}
+
+.auth-turnstile.is-ada iframe {
+  width: 100% !important;
+  max-width: 100%;
+  border: 0;
+  border-radius: 8px;
+  display: block;
+}
+
 /* Kalau widget TIDAK dirender (Turnstile tidak dikonfigurasi, atau script
    diblokir), slot tidak boleh menyisakan ruang kosong 65px. Kelas `is-ada`
    ditambahkan JS hanya setelah render berhasil. */
 .auth-turnstile:not(.is-ada) {
   min-height: 0;
   overflow: hidden;
+  border: 0;
+  padding: 0;
+  background: none;
 }
 
 /* ══ SARAN DAFTAR — JALAN KELUAR SAAT EMAIL TIDAK DITEMUKAN ═══════════════════

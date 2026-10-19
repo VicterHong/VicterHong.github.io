@@ -206,19 +206,46 @@ function kerangka({ preheader, isi, catatanKaki = '' }) {
       </mj-column>
     </mj-section>
 
-    <!-- Kepala: logo + nama perusahaan -->
-    <mj-section padding="44px 0 0 0">
+    <!-- ══ KEPALA: LOGO + WORDMARK + TAGLINE ═════════════════════════════════
+      ── KENAPA TIGA ELEMEN, BUKAN SATU IKON KECIL ───────────────────────────
+      Versi sebelumnya hanya ikon 38px + teks "VIVASTIC" — berfungsi, tapi
+      terbaca seperti label, bukan identitas. Email transaksional dari layanan
+      yang mapan (Stripe, Linear, Vercel) memakai kepala yang memberi konteks:
+      siapa pengirimnya DAN apa yang dikerjakannya.
+
+      ── STRUKTUR ────────────────────────────────────────────────────────────
+        Baris 1 — pelat logo 44px (emas, sudut membulat) + wordmark berjarak
+        Baris 2 — tagline satu baris, redup, sejajar dengan wordmark
+
+      Tagline sengaja TIDAK diulang di footer (di sana sudah ada baris legal),
+      dan tidak muncul di badan email — satu kali per email sudah cukup.
+
+      ── KENAPA LOGO PAKAI PNG, BUKAN SVG ────────────────────────────────────
+      Gmail dan Outlook MEMBLOCK SVG di email. PNG 72px cukup untuk tampilan
+      44px di layar Retina (2x), dan ukurannya 3 KB — tidak sebanding dengan
+      risiko logo tidak muncul sama sekali.
+
+      ── KENAPA alt DIBIARKAN KOSONG ─────────────────────────────────────────
+      Wordmark "VIVASTIC" ada tepat di sebelahnya. Membaca alt akan
+      mengumumkan nama yang sama dua kali ke pembaca layar.
+    -->
+    <mj-section padding="40px 0 0 0">
       <mj-column>
         <mj-table padding="0 0 0 32px">
           <tr>
-            <td width="38" height="38" bgcolor="${WARNA.emas}"
-                style="width:38px;height:38px;border-radius:11px;text-align:center;vertical-align:middle;font-family:${FONT};font-size:19px;font-weight:700;color:#0a0a0b;line-height:38px">
+            <td width="44" height="44" bgcolor="${WARNA.emas}"
+                style="width:44px;height:44px;border-radius:12px;text-align:center;vertical-align:middle;font-family:${FONT};font-size:21px;font-weight:700;color:#0a0a0b;line-height:44px">
               <img src="https://victer.is-a.dev/assets/img/vivastic-mark-72.png"
-                   width="38" height="38" alt=""
-                   style="display:block;width:38px;height:38px;border:0;border-radius:11px" />
+                   width="44" height="44" alt=""
+                   style="display:block;width:44px;height:44px;border:0;border-radius:12px" />
             </td>
-            <td style="padding-left:13px;vertical-align:middle;font-family:${FONT};font-size:15px;font-weight:600;color:${WARNA.teks};letter-spacing:0.14em">
-              VIVASTIC
+            <td style="padding-left:14px;vertical-align:middle">
+              <div style="font-family:${FONT};font-size:16px;font-weight:700;color:${WARNA.teks};letter-spacing:0.18em;line-height:1.1">
+                VIVASTIC
+              </div>
+              <div style="font-family:${FONT};font-size:11px;font-weight:400;color:${WARNA.teksBisu};letter-spacing:0.06em;line-height:1.5;padding-top:3px">
+                Automation &amp; self-hosted tools
+              </div>
             </td>
           </tr>
         </mj-table>
@@ -296,21 +323,76 @@ ${catatanKaki ? `                      <p style="margin:0 0 10px;font-family:${F
       </mj-column>
     </mj-section>
 
-    <!-- Kaki halaman di luar kartu -->
-    <mj-section padding="30px 0 44px 0">
+    <!-- ══ KAKI HALAMAN: IDENTITAS + NAVIGASI + LEGAL ═════════════════════════
+      ── KENAPA FOOTER INI DIBANGUN ULANG ────────────────────────────────────
+      Versi sebelumnya hanya tiga baris teks rata tengah: tagline, tautan,
+      copyright. Itu berfungsi, tapi tidak menjawab pertanyaan yang sebenarnya
+      muncul saat pembaca sampai di bawah email: "siapa yang mengirim ini, dan
+      bagaimana saya menghubungi mereka?"
+
+      ── STRUKTUR BARU ───────────────────────────────────────────────────────
+        Baris 1 — logo 28px + wordmark, di tengah (identitas penutup)
+        Baris 2 — navigasi: Panduan · Privasi · Keamanan
+        Baris 3 — alamat email balasan (kanal nyata, bukan "jangan dibalas")
+        Baris 4 — copyright + catatan otomatis
+
+      ── KENAPA ALAMAT EMAIL DITAMPILKAN ─────────────────────────────────────
+      "Mohon jangan dibalas" adalah jalan buntu. Pembaca yang punya pertanyaan
+      legitimate tetap butuh tujuan. Menampilkan alamat sungguhan mengubah
+      footer dari tembok menjadi pintu — dan itu yang membedakan email
+      transaksional yang dipercaya dari yang diabaikan.
+
+      ── KENAPA GARIS DI ATAS, BUKAN KOTAK ───────────────────────────────────
+      Footer harus terasa sebagai PENUTUP, bukan bagian konten baru. Garis
+      rambut tipis memisahkan tanpa menambah bidang yang bersaing dengan
+      kartu utama di atasnya.
+    -->
+    <mj-section padding="0 0 44px 0">
       <mj-column>
-        <mj-text align="center" font-size="12px" color="${WARNA.teksSamar}" padding="0 0 14px 0"
-                 letter-spacing="0.02em">
-          Layanan pengembangan perangkat lunak
-        </mj-text>
-        <mj-text align="center" font-size="12px" color="${WARNA.teksSamar}" padding="0 0 14px 0"
+        <mj-raw>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td height="1" bgcolor="${WARNA.garisHalus}" style="height:1px;line-height:1px;font-size:0">&nbsp;</td></tr>
+          </table>
+        </mj-raw>
+
+        <mj-table padding="26px 0 0 0">
+          <tr>
+            <td align="center" style="text-align:center">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto">
+                <tr>
+                  <td width="28" height="28" bgcolor="${WARNA.emas}"
+                      style="width:28px;height:28px;border-radius:8px;text-align:center;vertical-align:middle;line-height:28px">
+                    <img src="https://victer.is-a.dev/assets/img/vivastic-mark-72.png"
+                         width="28" height="28" alt=""
+                         style="display:block;width:28px;height:28px;border:0;border-radius:8px" />
+                  </td>
+                  <td style="padding-left:10px;vertical-align:middle;font-family:${FONT};font-size:12px;font-weight:700;color:${WARNA.teksSamar};letter-spacing:0.16em">
+                    VIVASTIC
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </mj-table>
+
+        <mj-text align="center" font-size="12px" color="${WARNA.teksSamar}" padding="14px 0 0 0"
                  css-class="tautan-kaki">
           <a href="https://victer.is-a.dev/docs">Panduan</a> &nbsp;·&nbsp;
           <a href="https://victer.is-a.dev/privasi">Kebijakan privasi</a> &nbsp;·&nbsp;
           <a href="https://victer.is-a.dev/keamanan">Keamanan</a>
         </mj-text>
-        <mj-text align="center" font-size="12px" color="${WARNA.teksSamar}" padding="0">
-          © {{tahun}} VIVASTIC
+
+        <mj-text align="center" font-size="12px" color="${WARNA.teksBisu}" padding="12px 0 0 0">
+          Butuh bantuan? Kunjungi
+          <a href="https://victer.is-a.dev/docs" style="color:${WARNA.teksRedup};text-decoration:none">pusat panduan</a>
+          atau hubungi kami lewat
+          <a href="https://victer.is-a.dev/home#89fk39" style="color:${WARNA.teksRedup};text-decoration:none">halaman kontak</a>.
+        </mj-text>
+
+        <mj-text align="center" font-size="11px" color="${WARNA.teksBisu}" padding="16px 0 0 0"
+                 line-height="1.7">
+          &copy; {{tahun}} VIVASTIC. Seluruh hak cipta dilindungi.<br />
+          Email otomatis — dikirim karena ada aktivitas pada akun Anda.
         </mj-text>
       </mj-column>
     </mj-section>
@@ -555,7 +637,7 @@ ${tabelDetail([
       ])}
         <mj-button href="https://victer.is-a.dev/pesanan" padding="0 0 8px 0">Lihat pesanan</mj-button>
         <mj-text font-size="13px" color="${WARNA.teksSamar}">Simpan email ini sebagai bukti pembayaran Anda.</mj-text>`,
-      catatanKaki: 'Pertanyaan tentang tagihan? Balas email ini atau hubungi kami lewat pusat bantuan.',
+      catatanKaki: 'Pertanyaan tentang tagihan? Hubungi kami lewat halaman kontak di victer.is-a.dev.',
     }),
   },
 
@@ -668,7 +750,8 @@ ${kotakCatatan({
         </mj-text>
         <mj-button href="{{tautan_perpanjang}}">Aktifkan kembali</mj-button>
         <mj-text font-size="13px" color="${WARNA.teksSamar}">
-          Punya pertanyaan sebelum memutuskan? Balas email ini — kami bantu.
+          Punya pertanyaan sebelum memutuskan? Hubungi kami lewat halaman
+          kontak di victer.is-a.dev — kami bantu.
         </mj-text>`,
       catatanKaki: 'Anda menerima email ini karena langganan Anda berakhir hari ini.',
     }),

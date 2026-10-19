@@ -1965,8 +1965,17 @@
   display: none;
 }
 
-  50%      { opacity: 0.45; transform: scale(0.85); }
-}
+/* ── BLOK @keyframes YATIM DIHAPUS ───────────────────────────────────────────
+   Di sini dulu ada sisa `50% { opacity: 0.45; transform: scale(0.85); }` dan
+   `}` tanpa pembuka — potongan dari `@keyframes denyut-aktif` milik titik
+   status yang elemennya sudah dihapus.
+
+   Dampaknya bukan sekadar CSS mati: esbuild melaporkan `css-syntax-error`
+   pada SETIAP build, dan aturan sesudahnya berisiko tidak terparse. Build
+   yang selalu berwarna kuning juga membuat peringatan baru tidak terlihat —
+   persis jenis gangguan yang membuat bug lain lolos.
+
+   Titik statusnya sudah tidak ada, jadi animasinya tidak diperlukan. */
 
 /* ── DI LAYAR SANGAT SEMPIT ──────────────────────────────────────────────────
    "Sedang digunakan" lebih panjang dari "Mulai Standar". Di bawah 360px

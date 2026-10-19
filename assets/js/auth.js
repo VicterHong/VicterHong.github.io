@@ -622,6 +622,16 @@
       turnstileWidgetId = window.turnstile.render(slot, {
         sitekey: kunci,
         theme: 'dark',
+        // ── TEMA & BAHASA: MENYATU DENGAN KARTU ──────────────────────────────
+        //
+        // `theme: 'dark'` membuat Turnstile memakai palet gelapnya sendiri.
+        // Tanpa ini, iframe-nya berlatar putih dan tampil sebagai kotak
+        // terang di tengah kartu gelap — terlihat seperti tempelan.
+        //
+        // `language: 'id'` menyamakan bahasa widget dengan halaman. Widget
+        // berbahasa Inggris di halaman berbahasa Indonesia adalah salah satu
+        // detail yang membuat situs terasa dirakit, bukan dirancang.
+        language: 'id',
         // ── UKURAN WIDGET DIPILIH BERDASARKAN LEBAR LAYAR ────────────────────
         //
         // Turnstile 'flexible' mengisi lebar container, TAPI punya lantai

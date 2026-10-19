@@ -1986,6 +1986,26 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
   border-radius: var(--radius-ctl);
   background: var(--accent);
   flex-shrink: 0;
+  /* Mark berisi SVG chevron — harus di tengah, bukan menempel di sudut.
+     `display: grid` + `place-items` adalah cara paling langsung dan tidak
+     bergantung pada ukuran intrinsik SVG. */
+  display: grid;
+  place-items: center;
+  color: #0a0a0b;
+}
+
+/* Hover: mark menyala sedikit, mengikuti pola tautan lain di footer.
+   Hanya warna latar yang berubah — ukuran tetap, supaya tidak ada
+   pergeseran tata letak saat kursor lewat. */
+.footer-merek:hover .footer-merek-mark {
+  background: var(--accent-strong, var(--accent));
+  filter: brightness(1.08);
+}
+
+.footer-merek:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
 }
 
 .footer-merek-teks {

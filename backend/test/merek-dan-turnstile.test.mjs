@@ -1,0 +1,154 @@
+/**
+ * Tes: identitas merek & integrasi widget Turnstile.
+ *
+ * ── TIGA HAL YANG DIJAGA ────────────────────────────────────────────────────
+ *   1. Email transaksional punya kepala bermerek (logo + wordmark + tagline)
+ *      dan kaki yang lengkap (logo, navigasi, bantuan, copyright).
+ *   2. Footer situs menampilkan identitas VIVASTIC, bukan hanya deskripsi.
+ *   3. Widget Turnstile di halaman auth memakai tema gelap + bahasa Indonesia
+ *      dan slot-nya punya bingkai yang menyatu dengan kartu.
+ *
+ * ── KENAPA DIPERIKSA DI SUMBER, BUKAN DI BROWSER ────────────────────────────
+ * Email tidak bisa dibuka di browser sungguhan di CI (tidak ada klien email).
+ * Footer dibangun JavaScript saat runtime, dan widget Turnstile butuh
+ * Cloudflare. Yang bisa dijamin secara deterministik adalah: sumbernya
+ * MENGANDUNG elemen yang dimaksud, dan tidak ada yang menghapusnya diam-diam
+ * di kemudian hari.
+ */
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const baca = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
+
+const mjml = baca('../../email-src/templates.mjml.mjs');
+const footerJs = baca('../../assets/js/footer.js');
+const authJs = baca('../../assets/js/auth.js');
+const authCss = baca('../../assets/css/auth.css');
+const mainCss = baca('../../assets/css/main.css');
+const pricingCss = baca('../../assets/css/pricing.css');
+
+// ══ 1. EMAIL ═════════════════════════════════════════════════════════════════
+
+test('kepala email: logo, wordmark, dan tagline', () => {
+  assert.match(mjml, /vivastic-mark-72\.png/, 'logo PNG harus dirujuk (SVG diblokir Gmail/Outlook)');
+  assert.match(mjml, /width="44"[^>]*height="44"/, 'logo kepala harus 44px');
+  assert.match(mjml, /VIVASTIC/, 'wordmark harus ada');
+  assert.match(mjml, /Automation &amp; self-hosted tools/, 'tagline harus ada');
+});
+
+test('kaki email: logo, navigasi, bantuan, dan copyright', () => {
+  // Logo footer lebih kecil dari kepala — ia tanda tangan, bukan pembuka.
+  assert.match(mjml, /width="28"[^>]*height="28"/, 'logo footer harus 28px');
+
+  for (const tautan of ['/docs', '/privasi', '/keamanan']) {
+    assert.ok(mjml.includes(tautan), `tautan footer ${tautan} harus ada`);
+  }
+  assert.match(mjml, /Butuh bantuan\?/, 'baris bantuan harus ada');
+  assert.match(mjml, /Seluruh hak cipta dilindungi/, 'copyright lengkap harus ada');
+  assert.match(mjml, /garisHalus/, 'garis pemisah footer harus ada');
+});
+
+test('email tidak menjanjikan alamat yang tidak menerima balasan', () => {
+  // noreply@ tidak bisa dibalas. Footer tidak boleh menyuruh "balas email ini"
+  // sambil menunjuk ke alamat yang tidak pernah dibaca.
+  assert.doesNotMatch(mjml, /mailto:noreply@/i, 'jangan arahkan balasan ke noreply');
+  assert.doesNotMatch(mjml, /Balas email ini/i, 'jangan janjikan balasan pada alamat noreply');
+});
+
+// ══ 2. FOOTER SITUS ══════════════════════════════════════════════════════════
+
+test('footer situs menampilkan identitas merek', () => {
+  assert.match(footerJs, /footer-merek/, 'blok merek harus dibuat');
+  assert.match(footerJs, /footer-merek-mark/, 'pelat logo harus ada');
+  assert.match(footerJs, /footer-merek-teks/, 'wordmark harus ada');
+  // Logo memakai SVG inline: tidak ada permintaan gambar tambahan per halaman.
+  assert.match(footerJs, /<svg[^>]*viewBox="0 0 128 128"/, 'logo harus SVG inline');
+});
+
+test('footer: tautan merek menuju beranda dan punya label aksesibel', () => {
+  assert.match(footerJs, /merek\.href = '\/home'/, 'merek harus menuju /home, bukan /');
+  assert.match(footerJs, /aria-label/, 'tautan merek butuh aria-label');
+});
+
+test('CSS footer: pelat logo memusatkan chevron', () => {
+  const blok = mainCss.slice(
+    mainCss.indexOf('.footer-merek-mark {'),
+    mainCss.indexOf('.footer-merek-teks {'),
+  );
+  assert.match(blok, /display:\s*grid/, 'pelat harus grid agar SVG terpusat');
+  assert.match(blok, /place-items:\s*center/, 'SVG harus di tengah pelat');
+});
+
+// ══ 3. TURNSTILE ═════════════════════════════════════════════════════════════
+
+test('widget Turnstile: tema gelap dan bahasa Indonesia', () => {
+  const render = authJs.slice(authJs.indexOf('window.turnstile.render'));
+  const blok = render.slice(0, render.indexOf('slot.classList.add'));
+
+  assert.match(blok, /theme:\s*'dark'/, 'widget harus bertema gelap');
+  assert.match(blok, /language:\s*'id'/, 'widget harus berbahasa Indonesia');
+  assert.match(blok, /appearance:\s*'always'/, 'widget harus terlihat (bukan interaction-only)');
+});
+
+test('slot Turnstile punya bingkai yang menyatu dengan kartu', () => {
+  const blok = authCss.slice(
+    authCss.indexOf('.auth-turnstile.is-ada {'),
+    authCss.indexOf('.auth-turnstile:not(.is-ada)'),
+  );
+  assert.match(blok, /border:\s*1px solid/, 'slot butuh garis rambut');
+  assert.match(blok, /border-radius/, 'slot butuh radius seperti input');
+  assert.match(blok, /color-scheme:\s*dark/, 'iframe perlu tahu konteksnya gelap');
+  assert.match(blok, /iframe\s*\{[\s\S]*?width:\s*100%/, 'iframe harus mengisi slot');
+});
+
+test('slot Turnstile tidak menyisakan ruang saat widget tidak dirender', () => {
+  const blok = authCss.slice(authCss.indexOf('.auth-turnstile:not(.is-ada)'));
+  const akhir = blok.slice(0, blok.indexOf('}') + 1);
+  assert.match(akhir, /min-height:\s*0/, 'slot kosong tidak boleh menyisakan 65px');
+  assert.match(akhir, /border:\s*0/, 'bingkai harus hilang saat kosong');
+});
+
+// ══ 4. KESEHATAN BUILD ═══════════════════════════════════════════════════════
+
+test('tidak ada sisa @keyframes yatim di CSS', () => {
+  // Potongan `50% { ... }` tanpa pembuka membuat esbuild melaporkan
+  // css-syntax-error pada SETIAP build — dan peringatan yang selalu muncul
+  // membuat peringatan baru tidak terlihat.
+  //
+  // Deteksi: lacak kedalaman kurung. Blok persentase hanya sah kalau ia
+  // berada di dalam blok `@keyframes` (kedalaman > 0 tepat setelah baris
+  // pembuka @keyframes).
+  for (const [nama, isi] of [['pricing.css', pricingCss], ['auth.css', authCss], ['main.css', mainCss]]) {
+    const tanpaKomentar = isi.replace(/\/\*[\s\S]*?\*\//g, '');
+    let kedalaman = 0;
+    let kedalamanKeyframes = -1; // -1 = tidak sedang di dalam @keyframes
+
+    for (const baris of tanpaKomentar.split('\n')) {
+      const buka = (baris.match(/\{/g) || []).length;
+      const tutup = (baris.match(/\}/g) || []).length;
+
+      // Baris pembuka @keyframes: catat kedalaman SETELAH kurung dibuka.
+      if (/@keyframes/.test(baris)) {
+        kedalaman += buka - tutup;
+        kedalamanKeyframes = kedalaman;
+        continue;
+      }
+
+      const dalamKeyframes = kedalamanKeyframes >= 0 && kedalaman >= kedalamanKeyframes;
+
+      if (/^\s*\d+%\s*[,{]/.test(baris) && !dalamKeyframes) {
+        assert.fail(`${nama}: blok persentase di luar @keyframes → ${baris.trim()}`);
+      }
+
+      kedalaman += buka - tutup;
+
+      // Blok @keyframes ditutup ketika kedalaman turun di bawah levelnya.
+      if (kedalamanKeyframes >= 0 && kedalaman < kedalamanKeyframes) {
+        kedalamanKeyframes = -1;
+      }
+    }
+  }
+});

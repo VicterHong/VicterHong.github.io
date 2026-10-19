@@ -118,29 +118,42 @@
     const kiri = document.createElement('div');
     kiri.className = 'footer-kiri';
 
-    // ── TIDAK ADA LOGO/NAMA DI FOOTER ────────────────────────────────────────
+    // ── IDENTITAS DI FOOTER: LOGO + WORDMARK ─────────────────────────────────
     //
-    // ── MASALAH YANG DIPERBAIKI ──────────────────────────────────────────────
-    // Footer ini awalnya menampilkan logo + "VIVASTIC" — sama persis dengan
-    // header di atasnya. Diukur: nama merek muncul 3× di satu halaman
-    // (title, header, footer), dan ikon sosial muncul 2× (tombol di bagian
-    // Kontak, ikon di footer).
+    // ── KENAPA DITAMBAHKAN LAGI SETELAH SEBELUMNYA DIHAPUS ──────────────────
+    // Versi sebelumnya menghapus logo dari footer dengan alasan "nama merek
+    // sudah muncul di header, mengulanginya membuat halaman terasa tidak
+    // disunting". Alasan itu benar untuk halaman yang header-nya SELALU
+    // terlihat — tapi tidak untuk halaman panjang.
     //
-    // Pengulangan tanpa alasan membuat halaman terasa tidak disunting —
-    // seperti template yang setiap bagiannya diisi tanpa dilihat keseluruhan.
+    // Pada beranda dan halaman harga, pengunjung bisa menggulir 4-5 layar.
+    // Di titik itu header sudah jauh di atas, dan footer menjadi SATU-SATUNYA
+    // penanda siapa pemilik halaman. Footer tanpa identitas pada halaman
+    // sepanjang itu terasa seperti akhir yang terputus.
     //
-    // ── YANG DILAKUKAN KORPORASI ─────────────────────────────────────────────
-    // Riset 258 footer SaaS: Linear, Vercel, dan Stripe TIDAK mengulang logo
-    // di footer. Brand block cukup SATU KALI di header. Footer fokus pada
-    // navigasi + legal — dua hal yang justru dicari orang di sana.
+    // ── KENAPA KECIL, BUKAN BESAR ───────────────────────────────────────────
+    // Logo di sini adalah TANDA TANGAN, bukan pembuka. Ukuran 26px dengan
+    // wordmark redup sudah cukup dikenali tanpa bersaing dengan navigasi —
+    // yang justru menjadi isi utama footer.
     //
-    // Linear merumuskannya: "Setiap elemen harus berhak ada di sana."
-    // Logo di footer tidak berhak — pengunjung sudah tahu situs apa ini.
-    //
-    // ── KONSEKUENSINYA: KOLOM KIRI DIPAKAI UNTUK HAL BERGUNA ────────────────
-    // Ruang yang dulu dipakai logo sekarang menampung deskripsi singkat
-    // tentang apa yang VIVASTIC kerjakan — informasi yang BELUM ada di
-    // halaman lain, bukan pengulangan.
+    // ── KENAPA PAKAI SVG INLINE, BUKAN <img> ────────────────────────────────
+    // Logo footer tampil di SETIAP halaman. Satu permintaan gambar tambahan
+    // per halaman hanya untuk ikon 26px tidak sebanding — apalagi bila
+    // gambarnya gagal dimuat dan menyisakan kotak rusak di kaki halaman.
+    // SVG inline selalu tampil, tajam di semua kerapatan piksel.
+    const merek = document.createElement('a');
+    merek.className = 'footer-merek';
+    merek.href = '/home';
+    merek.setAttribute('aria-label', `${DATA.nama} — beranda`);
+    merek.innerHTML = `
+      <span class="footer-merek-mark" aria-hidden="true">
+        <svg viewBox="0 0 128 128" width="13" height="13" focusable="false" aria-hidden="true">
+          <path d="M64 92 30 40h18l16 27 16-27h18L64 92Z" fill="#0a0a0b"/>
+        </svg>
+      </span>
+      <span class="footer-merek-teks">${DATA.nama}</span>
+    `;
+    kiri.appendChild(merek);
 
     const desc = document.createElement('p');
     desc.className = 'footer-deskripsi';
