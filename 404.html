@@ -53,12 +53,58 @@
     text-wrap: pretty;
   }
   .err-links { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+
+  /* ── IDENTITAS DI HALAMAN 404 ────────────────────────────────────────────
+     Halaman ini sebelumnya hanya menampilkan "404" besar tanpa satu pun
+     penanda pemilik situs. Pengunjung yang mendarat di sini karena tautan
+     rusak adalah orang yang PALING perlu diyakinkan bahwa ia masih di situs
+     yang benar — bukan di halaman error acak.
+
+     Merek ditempatkan di atas, kecil, sebagai jangkar identitas. Ia tidak
+     boleh bersaing dengan angka 404 yang justru informasi utamanya. */
+  .err-merek {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 1.75rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .err-merek-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-ctl);
+    background: var(--accent);
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+  }
+  .err-merek-teks {
+    font-size: var(--fs-3);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+  .err-merek:hover .err-merek-mark { filter: brightness(1.08); }
+  .err-merek:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
 </style>
 </head>
 <body>
 <a class="skip-link" href="#konten-utama">Lompat ke konten</a>
 
 <main id="konten-utama" class="err" tabindex="-1">
+  <a class="err-merek" href="/home" aria-label="VIVASTIC — beranda">
+    <span class="err-merek-mark" aria-hidden="true">
+      <svg viewBox="0 0 128 128" width="16" height="16" focusable="false" aria-hidden="true">
+        <path d="M64 92 30 40h18l16 27 16-27h18L64 92Z" fill="#0a0a0b"/>
+      </svg>
+    </span>
+    <span class="err-merek-teks">VIVASTIC</span>
+  </a>
+
   <p class="err-code">404</p>
   <h1>Halaman ini tidak ada</h1>
   <p>

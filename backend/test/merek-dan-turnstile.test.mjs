@@ -82,6 +82,41 @@ test('CSS footer: pelat logo memusatkan chevron', () => {
   assert.match(blok, /place-items:\s*center/, 'SVG harus di tengah pelat');
 });
 
+// ══ 2b. SETIAP HALAMAN PUNYA IDENTITAS ═══════════════════════════════════════
+
+test('setiap halaman publik & privat menampilkan logo VIVASTIC', () => {
+  // Halaman yang dibuka pengguna langsung — termasuk yang privat dan halaman
+  // error. Halaman tanpa identitas membuat pengguna ragu apakah ia berada di
+  // situs yang benar, dan keraguan itu paling merugikan di halaman yang
+  // menampilkan data pribadi atau pesan error.
+  const halaman = [
+    'home.html', 'pricing.html', 'docs.html', 'keamanan.html', 'klien.html',
+    'pesanan.html', 'privasi.html', 'syarat.html', 'arsip.html', 'changelog.html',
+    'sign-in.html', 'sign-up.html', 'lupa-sandi.html', 'reset-sandi.html', '404.html',
+  ];
+
+  const tanpaLogo = [];
+  for (const nama of halaman) {
+    const isi = baca(`../../${nama}`);
+    const punyaLogo = /brand-mark|auth-nav-mark|klien-merek-mark|err-merek-mark|vivastic-mark/.test(isi);
+    if (!punyaLogo) tanpaLogo.push(nama);
+  }
+
+  assert.deepEqual(tanpaLogo, [], `halaman tanpa logo: ${tanpaLogo.join(', ')}`);
+});
+
+test('logo di halaman privat & error memakai SVG inline, bukan gambar eksternal', () => {
+  for (const [nama, kelas] of [['klien.html', 'klien-merek-mark'], ['404.html', 'err-merek-mark']]) {
+    const isi = baca(`../../${nama}`);
+
+    // Cari kemunculan class di MARKUP (class="..."), bukan di blok <style>.
+    // Versi pertama tes ini memakai indexOf biasa dan menemukan aturan CSS
+    // lebih dulu — lalu gagal padahal markup-nya benar.
+    const pola = new RegExp(`class="${kelas}"[\\s\\S]{0,400}?<svg[^>]*viewBox="0 0 128 128"`);
+    assert.match(isi, pola, `${nama}: ${kelas} harus berisi SVG inline`);
+  }
+});
+
 // ══ 3. TURNSTILE ═════════════════════════════════════════════════════════════
 
 test('widget Turnstile: tema gelap dan bahasa Indonesia', () => {

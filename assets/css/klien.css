@@ -60,6 +60,55 @@
   margin-bottom: var(--klien-jarak);
 }
 
+/* ── IDENTITAS DI KEPALA HALAMAN ──────────────────────────────────────────────
+ *
+ * Halaman ini privat, jadi ia tidak memakai header situs penuh (yang berisi
+ * menu pemasaran). Yang tetap diperlukan hanya SATU hal: penanda bahwa
+ * pengguna berada di situs yang benar.
+ *
+ * Ukurannya sengaja lebih kecil dari merek di footer (22px) — di sini ia
+ * pembuka halaman yang isinya data pribadi, bukan penutup. Cukup terlihat,
+ * tidak menarik perhatian dari judul "Proyek Saya" yang justru harus dibaca
+ * lebih dulu.
+ * ────────────────────────────────────────────────────────────────────────── */
+.klien-merek {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1.25rem;
+  color: var(--text);
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.klien-merek-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-ctl);
+  background: var(--accent);
+  flex-shrink: 0;
+  /* Pelat berisi SVG chevron — dipusatkan dengan grid, bukan margin manual,
+     supaya tetap tepat di tengah berapa pun ukuran SVG-nya. */
+  display: grid;
+  place-items: center;
+}
+
+.klien-merek-teks {
+  font-size: var(--fs-3);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.klien-merek:hover .klien-merek-mark {
+  filter: brightness(1.08);
+}
+
+.klien-merek:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
 .klien-halo {
   margin: 0 0 0.5rem;
   color: var(--text-dim);

@@ -47,6 +47,31 @@
 <div class="klien-wrap">
 
   <header class="klien-head">
+    <!-- ══ IDENTITAS: LOGO + WORDMARK ══════════════════════════════════════
+         ── KENAPA DITAMBAHKAN ──────────────────────────────────────────────
+         Halaman ini sebelumnya langsung dibuka dengan "Memuat…" lalu judul —
+         tanpa satu pun penanda siapa pemiliknya. Pengguna yang membuka tab
+         ini dari tautan di email atau dari riwayat browser tidak punya cara
+         memastikan ia berada di situs yang benar.
+
+         Halaman privat tetap butuh identitas. Justru di sinilah ia paling
+         diperlukan: pengguna sedang melihat data akunnya sendiri, dan
+         keraguan tentang "apakah ini situs yang benar" adalah hal terakhir
+         yang ingin ia rasakan.
+
+         ── KENAPA SVG INLINE ───────────────────────────────────────────────
+         Sama seperti footer: satu ikon 24px tidak sebanding dengan satu
+         permintaan jaringan tambahan, dan SVG inline tidak pernah gagal
+         dimuat sehingga tidak menyisakan kotak rusak di kepala halaman. -->
+    <a class="klien-merek" href="/home" aria-label="VIVASTIC — beranda">
+      <span class="klien-merek-mark" aria-hidden="true">
+        <svg viewBox="0 0 128 128" width="15" height="15" focusable="false" aria-hidden="true">
+          <path d="M64 92 30 40h18l16 27 16-27h18L64 92Z" fill="#0a0a0b"/>
+        </svg>
+      </span>
+      <span class="klien-merek-teks">VIVASTIC</span>
+    </a>
+
     <p class="klien-halo" id="klienHalo">Memuat…</p>
     <h1 class="klien-judul">Proyek Saya</h1>
   </header>
