@@ -64,8 +64,19 @@ test('footer situs menampilkan identitas merek', () => {
   assert.match(footerJs, /footer-merek/, 'blok merek harus dibuat');
   assert.match(footerJs, /footer-merek-mark/, 'pelat logo harus ada');
   assert.match(footerJs, /footer-merek-teks/, 'wordmark harus ada');
-  // Logo memakai SVG inline: tidak ada permintaan gambar tambahan per halaman.
-  assert.match(footerJs, /<svg[^>]*viewBox="0 0 128 128"/, 'logo harus SVG inline');
+  // ── LOGO FOOTER = LOGO HEADER ────────────────────────────────────────────
+  // Sebelumnya footer memakai SVG inline (chevron) sementara header memakai
+  // brand-vics.png. Dua bentuk berbeda = dua logo dalam satu halaman.
+  // Sekarang keduanya menunjuk berkas yang sama, jadi tidak mungkin menyimpang.
+  assert.match(
+    footerJs, /brand-vics\.png/,
+    'logo footer harus memakai berkas yang sama dengan header (brand-vics.png) — '
+    + 'SVG inline membuat bentuknya berbeda dari header',
+  );
+  assert.doesNotMatch(
+    footerJs, /<svg[^>]*viewBox="0 0 128 128"/,
+    'jangan kembali ke SVG inline — itu yang membuat logo footer beda dari header',
+  );
 });
 
 test('footer: tautan merek menuju beranda dan punya label aksesibel', () => {
@@ -73,13 +84,16 @@ test('footer: tautan merek menuju beranda dan punya label aksesibel', () => {
   assert.match(footerJs, /aria-label/, 'tautan merek butuh aria-label');
 });
 
-test('CSS footer: pelat logo memusatkan chevron', () => {
+test('CSS footer: wordmark memakai font yang sama dengan header', () => {
   const blok = mainCss.slice(
-    mainCss.indexOf('.footer-merek-mark {'),
     mainCss.indexOf('.footer-merek-teks {'),
+    mainCss.indexOf('.footer-deskripsi {'),
   );
-  assert.match(blok, /display:\s*grid/, 'pelat harus grid agar SVG terpusat');
-  assert.match(blok, /place-items:\s*center/, 'SVG harus di tengah pelat');
+  assert.match(
+    blok, /Playfair Display/,
+    'wordmark footer harus memakai serif Playfair seperti header — '
+    + 'sans-serif tebal di footer vs serif di header membuat merek terlihat seperti dua perusahaan',
+  );
 });
 
 // ══ 2b. SETIAP HALAMAN PUNYA IDENTITAS ═══════════════════════════════════════

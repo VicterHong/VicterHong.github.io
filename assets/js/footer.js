@@ -146,11 +146,7 @@
     merek.href = '/home';
     merek.setAttribute('aria-label', `${DATA.nama} — beranda`);
     merek.innerHTML = `
-      <span class="footer-merek-mark" aria-hidden="true">
-        <svg viewBox="0 0 128 128" width="13" height="13" focusable="false" aria-hidden="true">
-          <path d="M64 92 30 40h18l16 27 16-27h18L64 92Z" fill="#0a0a0b"/>
-        </svg>
-      </span>
+      <img class="footer-merek-mark" src="/assets/brand-vics.png" alt="" width="22" height="22" decoding="async" loading="lazy">
       <span class="footer-merek-teks">${DATA.nama}</span>
     `;
     kiri.appendChild(merek);

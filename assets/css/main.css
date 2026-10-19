@@ -1978,20 +1978,29 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
   align-self: flex-start;
 }
 
-/* Mark: kotak emas kecil. Mengikuti .brand-mark di header supaya footer dan
-   header terlihat satu keluarga, bukan dua desain berbeda. */
+/* Mark footer: memakai GAMBAR YANG SAMA dengan header.
+ *
+ * ── MASALAH YANG DIPERBAIKI ─────────────────────────────────────────────────
+ * Sebelumnya footer memakai SVG inline (chevron hitam di kotak emas), sementara
+ * header memakai `brand-vics.png` (V emas berfacet di kotak gelap). Dua mark
+ * yang berbeda dalam satu halaman — terlihat sebagai dua logo, bukan satu
+ * identitas. Komentar lama bahkan mengklaim "mengikuti .brand-mark di header",
+ * padahal bentuknya tidak sama.
+ *
+ * Sekarang keduanya memakai berkas yang sama, jadi tidak mungkin menyimpang
+ * lagi. Ukuran 22px di footer (header 28px) — mark footer adalah tanda tangan,
+ * bukan pembuka.
+ * ────────────────────────────────────────────────────────────────────────── */
 .footer-merek-mark {
   width: 22px;
   height: 22px;
-  border-radius: var(--radius-ctl);
-  background: var(--accent);
   flex-shrink: 0;
-  /* Mark berisi SVG chevron — harus di tengah, bukan menempel di sudut.
-     `display: grid` + `place-items` adalah cara paling langsung dan tidak
-     bergantung pada ukuran intrinsik SVG. */
-  display: grid;
-  place-items: center;
-  color: #0a0a0b;
+  display: block;
+  border-radius: 4px;
+  /* Latar gelap tipis supaya PNG (yang punya latar sendiri) menyatu dengan
+     footer, bukan mengambang sebagai kotak terang. */
+  background: transparent;
+  object-fit: contain;
 }
 
 /* Hover: mark menyala sedikit, mengikuti pola tautan lain di footer.
@@ -2008,10 +2017,16 @@ html:not(.js-ready) [data-stagger] > * { opacity: 1; transform: none; }
   border-radius: 4px;
 }
 
+/* Wordmark footer — SAMA dengan header: serif Playfair, huruf renggang.
+ * Sebelumnya footer memakai sans-serif tebal, header memakai serif. Dua gaya
+ * untuk satu nama merek dalam satu halaman membuat keduanya terlihat seperti
+ * dua perusahaan berbeda. */
 .footer-merek-teks {
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: var(--fs-3);
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  margin-right: -0.08em;
 }
 
 .footer-deskripsi {

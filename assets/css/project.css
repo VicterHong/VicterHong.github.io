@@ -386,6 +386,22 @@
   background: var(--bg-soft);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  /* ── JUDUL TERTUTUP HEADER STICKY ────────────────────────────────────────
+   * `.site-header` memakai `position: sticky; top: 0` setinggi ~72px. Saat
+   * pengunjung menekan "Belum punya token? Minta akses", skrip menggulir ke
+   * section ini — dan tanpa `scroll-margin-top`, judul "Minta akses detail"
+   * mendarat TEPAT di bawah header, separuh tertutup.
+   *
+   * Nilainya 6rem (96px): tinggi header ~72px + 24px napas, supaya judul
+   * terlihat utuh dan tidak menempel di tepi header.
+   * ──────────────────────────────────────────────────────────────────────── */
+  scroll-margin-top: 6rem;
+}
+
+/* Saat section ini dibuka lewat tombol, browser memberi fokus ke elemen di
+   dalamnya. Tanpa ini, fokus bisa mendarat di luar pandangan. */
+.request-section:target {
+  scroll-margin-top: 6rem;
 }
 
 .request-section h2 {
@@ -620,16 +636,24 @@
     padding-left: 0.5rem;    /* 8px → slot 307px di 360px, 300px muat */
     padding-right: 0.5rem;
   }
+  /* Kartu "Minta akses detail" memakai widget Turnstile yang SAMA. Padding
+     yang sama besar menyisakan 286px di layar 360px — widget 300px terpotong
+     14px. Perlakuan harus sama, bukan hanya di kartu gerbang token. */
+  .request-section {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
 }
 
 @media (max-width: 340px) {
-  .gate-card {
+  .gate-card,
+  .request-section {
     padding-left: 0.35rem;
     padding-right: 0.35rem;
   }
   /* Di bawah 340px, 300px tidak muat. Widget diskalakan 0,84 → 252px dan
-     slot dibuat mengikuti lebar isinya (`inline-block`, bukan grid), supaya
-     tidak ada pemotongan dari `place-items: center` + `overflow: hidden`.
+     slot dibuat mengikuti lebar isinya (`width: max-content`, bukan grid),
+     supaya tidak ada pemotongan dari `place-items: center` + `overflow: hidden`.
      Slot lalu dipusatkan dengan `margin-inline: auto`. */
   .turnstile-slot:not([hidden]),
   .gate-turnstile:not([hidden]) {
