@@ -44,7 +44,26 @@
  * mengubah BENTUK saat interaksi adalah tanda identitas yang belum matang.
  */
 
-const ASET_LOGO = 'assets/brand-vics.png';
+/**
+ * Path logo — ABSOLUT, bukan relatif.
+ *
+ * ── BUG YANG DIPERBAIKI ─────────────────────────────────────────────────────
+ * Sebelumnya `'assets/brand-vics.png'` (tanpa garis miring di depan). Itu
+ * bekerja di halaman yang berada di root (`/home`, `/pricing`), tapi GAGAL di
+ * halaman proyek yang berada dua tingkat di bawah (`/s/<kode>/`):
+ *
+ *     browser meminta  /s/e7kz4swubfvg/assets/brand-vics.png  → 404
+ *
+ * Akibatnya logo jatuh ke cadangan huruf "V" — header halaman proyek
+ * kehilangan identitasnya, tepat di halaman yang tugasnya meyakinkan calon
+ * klien. Gejalanya halus: tidak ada error yang terlihat, hanya huruf V
+ * menggantikan logo.
+ *
+ * Path absolut bekerja dari kedalaman mana pun. Selama aset ini disajikan
+ * dari root situs (yang memang begitu — `assets/` ada di root dist), tidak
+ * ada halaman yang bisa salah menghitungnya.
+ */
+const ASET_LOGO = '/assets/brand-vics.png';
 
 /**
  * Buat elemen logo sebagai <img>.
