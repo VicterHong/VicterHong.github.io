@@ -547,37 +547,38 @@
 
 .turnstile-slot[hidden] { display: none; }
 
-/* ══ BINGKAI WIDGET TURNSTILE — SAMA DENGAN HALAMAN AUTH ═════════════════════
+/* ══ SLOT WIDGET TURNSTILE ═══════════════════════════════════════════════════
  *
- * ── KENAPA DISAMAKAN ────────────────────────────────────────────────────────
- * Turnstile merender iframe-nya sendiri. Tanpa bingkai, ia tampil sebagai
- * kotak terang mengambang di tengah halaman gelap — sudut tajam, latar tidak
- * cocok, dan terlihat seperti tempelan pihak ketiga.
+ * ── KENAPA TIDAK ADA BINGKAI DI SINI ────────────────────────────────────────
+ * Percobaan pertama menambahkan bingkai sendiri (border 1px + radius 10px +
+ * latar transparan) dengan maksud menyatukan widget dengan kartu gelap.
+ * Hasilnya justru sebaliknya: Turnstile SUDAH membawa bingkainya sendiri
+ * (putih, 1px, sudut hampir tajam). Menambah bingkai luar menghasilkan dua
+ * kotak bersarang dengan radius dan warna berbeda — terlihat seperti tambalan,
+ * bukan desain.
  *
- * Halaman auth (sign-in, sign-up, lupa-sandi) sudah memakai bingkai gelap
- * dengan garis rambut dan radius yang sama dengan input. Halaman proyek
- * memakai widget yang SAMA untuk tujuan yang sama (gerbang token), jadi
- * tampilannya tidak boleh berbeda — pengguna melihat dua gaya berbeda untuk
- * satu mekanisme yang sama, dan itu terbaca sebagai situs yang tidak konsisten.
+ * Yang benar: jangan menambah bingkai. Cukup pusatkan widget, dan beri radius
+ * kecil pada iframe supaya sudutnya tidak menonjol keluar dari kartu.
  *
- * ── `color-scheme: dark` ────────────────────────────────────────────────────
- * Memberi tahu iframe Turnstile bahwa konteksnya gelap, sehingga ia memakai
- * palet gelapnya sendiri. Tanpa ini, iframe tetap berlatar putih.
+ * `color-scheme: dark` tetap dipertahankan — itu yang memberi tahu Turnstile
+ * memakai palet gelapnya sendiri, bukan memaksa putih.
+ *
+ * ── TINGGI MINIMUM ──────────────────────────────────────────────────────────
+ * 65px = tinggi widget Turnstile standar. Ditetapkan dari awal supaya kartu
+ * tidak "melompat" saat widget selesai dimuat (menghindari layout shift).
  * ────────────────────────────────────────────────────────────────────────── */
 .turnstile-slot:not([hidden]),
 .gate-turnstile:not([hidden]) {
   display: grid;
   place-items: center;
-  padding: 2px;
-  border: 1px solid var(--garis, rgba(255, 255, 255, 0.09));
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  min-height: 65px;
+  max-width: 100%;
+  overflow: hidden;
   color-scheme: dark;
 }
 
 .turnstile-slot iframe,
 .gate-turnstile iframe {
-  width: 100% !important;
   max-width: 100%;
   border: 0;
   border-radius: 8px;
