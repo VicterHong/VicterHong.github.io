@@ -617,22 +617,23 @@
  * ────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 380px) {
   .gate-card {
-    padding-left: 0.75rem;   /* 12px → slot 299px di 360px */
-    padding-right: 0.75rem;
+    padding-left: 0.5rem;    /* 8px → slot 307px di 360px, 300px muat */
+    padding-right: 0.5rem;
   }
 }
 
 @media (max-width: 340px) {
   .gate-card {
-    padding-left: 0.5rem;    /* 8px → slot 267px di 320px */
-    padding-right: 0.5rem;
+    padding-left: 0.35rem;   /* 5,6px → slot 272px di 320px */
+    padding-right: 0.35rem;
   }
   /* Di bawah 340px, 300px benar-benar tidak muat di dalam kartu. Widget
-     diskalakan sedikit supaya utuh — lebih baik sedikit lebih kecil dan
-     terbaca lengkap daripada terpotong "CLOUDFLA". */
+     diskalakan supaya utuh — lebih baik sedikit lebih kecil dan terbaca
+     lengkap daripada terpotong "CLOUDFLA".
+     0,84 × 300 = 252px, muat di slot 272px dengan sisa ruang. */
   .turnstile-slot:not([hidden]),
   .gate-turnstile:not([hidden]) {
-    transform: scale(0.88);
+    transform: scale(0.84);
     transform-origin: center center;
   }
 }
