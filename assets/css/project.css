@@ -547,6 +547,43 @@
 
 .turnstile-slot[hidden] { display: none; }
 
+/* ══ BINGKAI WIDGET TURNSTILE — SAMA DENGAN HALAMAN AUTH ═════════════════════
+ *
+ * ── KENAPA DISAMAKAN ────────────────────────────────────────────────────────
+ * Turnstile merender iframe-nya sendiri. Tanpa bingkai, ia tampil sebagai
+ * kotak terang mengambang di tengah halaman gelap — sudut tajam, latar tidak
+ * cocok, dan terlihat seperti tempelan pihak ketiga.
+ *
+ * Halaman auth (sign-in, sign-up, lupa-sandi) sudah memakai bingkai gelap
+ * dengan garis rambut dan radius yang sama dengan input. Halaman proyek
+ * memakai widget yang SAMA untuk tujuan yang sama (gerbang token), jadi
+ * tampilannya tidak boleh berbeda — pengguna melihat dua gaya berbeda untuk
+ * satu mekanisme yang sama, dan itu terbaca sebagai situs yang tidak konsisten.
+ *
+ * ── `color-scheme: dark` ────────────────────────────────────────────────────
+ * Memberi tahu iframe Turnstile bahwa konteksnya gelap, sehingga ia memakai
+ * palet gelapnya sendiri. Tanpa ini, iframe tetap berlatar putih.
+ * ────────────────────────────────────────────────────────────────────────── */
+.turnstile-slot:not([hidden]),
+.gate-turnstile:not([hidden]) {
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border: 1px solid var(--garis, rgba(255, 255, 255, 0.09));
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  color-scheme: dark;
+}
+
+.turnstile-slot iframe,
+.gate-turnstile iframe {
+  width: 100% !important;
+  max-width: 100%;
+  border: 0;
+  border-radius: 8px;
+  display: block;
+}
+
 /* Gerbang token: widget verifikasi di bawah form token. Tombol Buka tetap
    terkunci sampai widget ini lolos — mencegah percobaan token otomatis. */
 .gate-turnstile {

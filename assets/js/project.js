@@ -416,6 +416,13 @@ async function renderGateTurnstile() {
       gateWidgetId = window.turnstile.render(slot, {
         sitekey: cfg.site_key,
         theme: 'dark',
+        // ── BAHASA & TAMPILAN: SAMA DENGAN HALAMAN AUTH ─────────────────────
+        // Widget berbahasa Inggris di halaman berbahasa Indonesia adalah
+        // detail yang membuat situs terasa dirakit, bukan dirancang.
+        // `appearance: 'always'` membuat widget terlihat sejak awal — pengguna
+        // perlu tahu mengapa tombol "Buka" belum bisa diklik.
+        language: 'id',
+        appearance: 'always',
         action: 'token_gate',
         callback: () => {
           gateVerified = true;
@@ -468,6 +475,8 @@ async function renderRequestTurnstile() {
     requestWidgetId = window.turnstile.render(slot, {
       sitekey: cfg.site_key,
       theme: 'dark',
+      language: 'id',
+      appearance: 'always',
       action: 'lead_form',
       // Kalau token kedaluwarsa (pengunjung lama mengisi), perbarui otomatis
       // supaya tidak perlu muat ulang halaman.

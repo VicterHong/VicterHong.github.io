@@ -520,4 +520,11 @@ for (const js of readdirSync(join(ROOT, 'assets', 'js'))) {
 }
 writeFileSync(join(DIST, '.build-manifest.json'), JSON.stringify(manifest, null, 2));
 
+// ── CSP mengikuti backend-url.json ───────────────────────────────────────────
+// `connect-src` yang ditulis tangan akan basi setiap kali URL tunnel berubah,
+// dan gejalanya senyap: Turnstile tidak pernah dirender, konten terkunci tidak
+// bisa dibuka. Dibangun di sini supaya selalu sinkron dengan alamat yang
+// benar-benar dipakai halaman.
+execFileSync(process.execPath, [join(ROOT, 'scripts', 'build-headers.mjs')], { stdio: 'inherit' });
+
 console.log(`  ✅ build selesai → dist/`);
