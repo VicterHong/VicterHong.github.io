@@ -95,7 +95,7 @@ export function initDepthTilt(selector = '.project-card-inner, .side-project, .t
     if (card.dataset.depthTilt === 'on') continue;
     card.dataset.depthTilt = 'on';
 
-    const maxDeg = 4.5;
+    const maxDeg = 8;
     let raf = null;
     let glare = card.querySelector(':scope > .depth-glare');
     if (!glare) {

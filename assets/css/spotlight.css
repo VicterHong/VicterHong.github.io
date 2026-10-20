@@ -193,7 +193,7 @@
   /* Latar kartu: gradien gelap dengan sedikit warna aksen proyek.
      Setiap kartu punya --card-accent sendiri (dari data proyek). */
   background:
-    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--card-accent, #f5c542) 22%, transparent) 0%, transparent 62%),
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--card-accent, #22C55E) 22%, transparent) 0%, transparent 62%),
     linear-gradient(170deg, #17171b 0%, #0d0d10 100%);
   border: 1px solid var(--line);
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.75);
@@ -315,7 +315,7 @@
 .spotlight-card-media.is-holding {
   background:
     radial-gradient(120% 80% at 50% 0%,
-      color-mix(in srgb, var(--card-accent, #f5c542) 9%, transparent) 0%,
+      color-mix(in srgb, var(--card-accent, #22C55E) 9%, transparent) 0%,
       transparent 58%),
     linear-gradient(168deg, #16161a 0%, #0d0d10 100%);
 }
@@ -401,11 +401,11 @@
   margin: 0;
   border-radius: 0;
   background: none;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: var(--fs-5);
   font-weight: 600;
   letter-spacing: 0.01em;
-  color: color-mix(in srgb, var(--card-accent, #f5c542) 34%, transparent);
+  color: color-mix(in srgb, var(--card-accent, #22C55E) 34%, transparent);
   /* Bayangan halus: memberi kesan monogram "terukir" di permukaan,
      bukan menempel di atasnya. */
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
@@ -423,7 +423,7 @@
   width: 2.1rem;
   height: 3px;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--card-accent, #f5c542) 26%, transparent);
+  background: color-mix(in srgb, var(--card-accent, #22C55E) 26%, transparent);
   animation: spotlight-pulse 2.4s var(--ease) infinite;
   pointer-events: none;
 }
@@ -437,7 +437,7 @@
   justify-content: center;
   background:
     radial-gradient(120% 80% at 50% 0%,
-      color-mix(in srgb, var(--card-accent, #f5c542) 9%, transparent) 0%,
+      color-mix(in srgb, var(--card-accent, #22C55E) 9%, transparent) 0%,
       transparent 58%),
     linear-gradient(168deg, #16161a 0%, #0d0d10 100%);
 }
@@ -450,10 +450,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: var(--fs-5);
   font-weight: 600;
-  color: color-mix(in srgb, var(--card-accent, #f5c542) 34%, transparent);
+  color: color-mix(in srgb, var(--card-accent, #22C55E) 34%, transparent);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
 }
 
@@ -506,7 +506,7 @@
 
    Sekarang pembagiannya jelas: border di sini, bayangan di kelas tingkat. */
 .spotlight-card.is-front {
-  border-color: color-mix(in srgb, var(--card-accent, #f5c542) 55%, transparent);
+  border-color: color-mix(in srgb, var(--card-accent, #22C55E) 55%, transparent);
 }
 
 /* ── BAYANGAN BERJENJANG: 4 TINGKAT ──────────────────────────────────────────
@@ -537,7 +537,7 @@
   box-shadow:
     0 44px 76px -28px rgba(0, 0, 0, 0.90),
     0 12px 20px rgba(0, 0, 0, 0.65),
-    0 0 26px color-mix(in srgb, var(--card-accent, #f5c542) 22%, transparent);
+    0 0 26px color-mix(in srgb, var(--card-accent, #22C55E) 22%, transparent);
 }
 
 /* Tingkat 1 — kartu ke-2. Sedikit lebih dekat ke panggung. */
@@ -545,7 +545,7 @@
   box-shadow:
     0 34px 60px -24px rgba(0, 0, 0, 0.78),
     0 9px 16px rgba(0, 0, 0, 0.52),
-    0 0 18px color-mix(in srgb, var(--card-accent, #f5c542) 15%, transparent);
+    0 0 18px color-mix(in srgb, var(--card-accent, #22C55E) 15%, transparent);
 }
 
 /* Tingkat 2 — kartu ke-3. Mulai menempel. */
@@ -553,7 +553,7 @@
   box-shadow:
     0 26px 46px -20px rgba(0, 0, 0, 0.66),
     0 7px 13px rgba(0, 0, 0, 0.42),
-    0 0 12px color-mix(in srgb, var(--card-accent, #f5c542) 9%, transparent);
+    0 0 12px color-mix(in srgb, var(--card-accent, #22C55E) 9%, transparent);
 }
 
 /* Tingkat 3 — kartu terjauh yang masih terlihat. Hampir menempel panggung. */
@@ -561,7 +561,7 @@
   box-shadow:
     0 18px 32px -16px rgba(0, 0, 0, 0.55),
     0 5px 10px rgba(0, 0, 0, 0.34),
-    0 0 8px color-mix(in srgb, var(--card-accent, #f5c542) 5%, transparent);
+    0 0 8px color-mix(in srgb, var(--card-accent, #22C55E) 5%, transparent);
 }
 
 /* Tingkat 4 — di luar jangkauan. Tidak terlihat, jadi tanpa bayangan:
@@ -579,7 +579,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--card-accent, #f5c542) 80%, white);
+  color: color-mix(in srgb, var(--card-accent, #22C55E) 80%, white);
   /* Label kartu BELAKANG disembunyikan — kritik: "label di kartu samping
      tumpang tindih dan tak terbaca efek skew+redup, jadi noise bukan
      informasi."
@@ -629,7 +629,7 @@
 
 .spotlight-front-title {
   margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: var(--fs-4);
   line-height: 1.2;
   color: var(--text);

@@ -54,9 +54,9 @@
   --pr-text: var(--text, #f4f4f6);
   --pr-text-dim: var(--text-dim, #a1a1aa);
   --pr-text-faint: var(--text-faint, #8a8a94);
-  --pr-accent: var(--accent, #f5c542);
-  --pr-accent-soft: var(--accent-soft, rgba(245, 197, 66, 0.12));
-  --pr-accent-line: var(--accent-line, rgba(245, 197, 66, 0.35));
+  --pr-accent: var(--accent, #22C55E);
+  --pr-accent-soft: var(--accent-soft, rgba(34, 197, 94, 0.12));
+  --pr-accent-line: var(--accent-line, rgba(34, 197, 94, 0.35));
   --pr-accent-light: var(--accent-light, #f7d77a);
 
   /* Skala jarak — kelipatan 4px supaya konsisten */
@@ -485,10 +485,10 @@
   background: conic-gradient(
     transparent 0deg,
     transparent 210deg,
-    rgba(245, 197, 66, 0.25) 250deg,
-    rgba(245, 197, 66, 0.85) 290deg,
+    rgba(34, 197, 94, 0.25) 250deg,
+    rgba(34, 197, 94, 0.85) 290deg,
     var(--pr-accent-light) 320deg,
-    rgba(245, 197, 66, 0.25) 350deg,
+    rgba(34, 197, 94, 0.25) 350deg,
     transparent 360deg
   );
   /* Titik putar di tengah kotak — sama dengan titik pusat kartu */
@@ -523,8 +523,8 @@
 .harga-kartu:focus-within {
   border-color: transparent;
   box-shadow:
-    0 0 0 1px rgba(245, 197, 66, 0.18),
-    0 18px 50px -18px rgba(245, 197, 66, 0.28);
+    0 0 0 1px rgba(34, 197, 94, 0.18),
+    0 18px 50px -18px rgba(34, 197, 94, 0.28);
 }
 
 /* ── Kartu unggulan ─────────────────────────────────────────────────────────
@@ -538,12 +538,12 @@
 .harga-kartu--unggulan {
   border-color: var(--pr-accent-line);
   background: var(--pr-card-soft);
-  box-shadow: 0 0 40px -24px rgba(245, 197, 66, 0.5);
+  box-shadow: 0 0 40px -24px rgba(34, 197, 94, 0.5);
 }
 
 .harga-kartu--unggulan:hover {
   border-color: var(--pr-accent);
-  box-shadow: 0 0 50px -20px rgba(245, 197, 66, 0.6);
+  box-shadow: 0 0 50px -20px rgba(34, 197, 94, 0.6);
 }
 
 .harga-lencana {
@@ -897,7 +897,7 @@
   background: var(--pr-accent-light);
   border-color: var(--pr-accent-light);
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(245, 197, 66, 0.2);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.2);
 }
 
 .tombol--sekunder {

@@ -382,7 +382,7 @@ html:not(.js-ready) .vm-kartu--visi .vm-teks {
 .vm-teks .angka {
   padding: 0.05em 0.35em;
   border-radius: var(--radius-hair);
-  background: rgba(245, 197, 66, 0.18);
+  background: rgba(34, 197, 94, 0.18);
   color: var(--accent-light);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.95em;

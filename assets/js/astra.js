@@ -162,24 +162,28 @@ export function initCounters(selector = '[data-count]') {
     return;
   }
 
-  const observer = new IntersectionObserver((entries) => {
+  let observer;
+  const startCounter = (node) => {
+    if (node.dataset.astraCountStarted === '1') return;
+    node.dataset.astraCountStarted = '1';
+    observer?.unobserve(node);
+
+    const target = Number(node.dataset.count);
+    const duration = 900;
+    const start = performance.now();
+    const tick = (t) => {
+      const p = Math.min((t - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      node.textContent = format(target * eased, node);
+      if (p < 1) requestAnimationFrame(tick);
+      else node.textContent = format(target, node);
+    };
+    requestAnimationFrame(tick);
+  };
+
+  observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
-      const node = entry.target;
-      observer.unobserve(node);
-
-      const target = Number(node.dataset.count);
-      const duration = 900;
-      const start = performance.now();
-
-      const tick = (t) => {
-        const p = Math.min((t - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
-        node.textContent = format(target * eased, node);
-        if (p < 1) requestAnimationFrame(tick);
-        else node.textContent = format(target, node);
-      };
-      requestAnimationFrame(tick);
+      if (entry.isIntersecting) startCounter(entry.target);
     }
   }, { threshold: 0.5 });
 
@@ -187,6 +191,17 @@ export function initCounters(selector = '[data-count]') {
     node.textContent = format(0, node);
     observer.observe(node);
   }
+
+  // Recheck elements hidden by the Cloudflare challenge. Each count is guarded
+  // and unobserved once, so the gate and IntersectionObserver cannot double-run it.
+  document.addEventListener('cf-gate:lulus', () => {
+    const viewport = window.innerHeight;
+    for (const node of nodes) {
+      if (node.dataset.astraCountStarted === '1') continue;
+      const rect = node.getBoundingClientRect();
+      if (rect.top < viewport && rect.height > 0) startCounter(node);
+    }
+  }, { once: true });
 }
 
 // ── 5. SCROLL PROGRESS ────────────────────────────────────────────────────────

@@ -366,13 +366,12 @@ function renderProjects(akses) {
  *
  * Warna aksen per proyek diambil dari `p.accent` di data — nilainya nama
  * ('amina', 'parts', 'wa'), bukan hex. Peta di bawah menerjemahkannya ke warna
- * yang selaras dengan palet situs: tetap dalam keluarga hangat, tidak
- * memperkenalkan warna baru yang bertabrakan dengan aksen kuning premium.
+ * yang selaras dengan MASTER.md: satu aksen hijau untuk seluruh sistem.
  */
 const ACCENT_WARNA = {
-  amina: '#f5c542',   // kuning premium — proyek unggulan
-  parts: '#7fb3d5',   // biru tenang — inventory/logistik
-  wa: '#8fc98f',      // hijau tenang — bot percakapan
+  amina: '#22C55E',
+  parts: '#22C55E',
+  wa: '#22C55E',
 };
 
 async function renderSpotlight() {
