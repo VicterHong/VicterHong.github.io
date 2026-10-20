@@ -354,7 +354,7 @@ export function initTextStagger(selector = '[data-cine-words]') {
       const el = entry.target;
       const words = splitWords(el);
       words.forEach((w, i) => {
-        w.style.transitionDelay = `${Math.min(i * (el.matches('.hero-title') ? 40 : 55), el.matches('.hero-title') ? 400 : 500)}ms`;
+        w.style.transitionDelay = `${Math.min(i * 55, 500)}ms`;
       });
       el.classList.remove('cine-words-pending');
       el.classList.add('cine-words-in');
@@ -385,7 +385,7 @@ export function initTextStagger(selector = '[data-cine-words]') {
     if (sudahTerlihat) {
       const words = splitWords(el);
       words.forEach((w, i) => {
-        w.style.transitionDelay = `${Math.min(i * (el.matches('.hero-title') ? 40 : 55), el.matches('.hero-title') ? 400 : 500)}ms`;
+        w.style.transitionDelay = `${Math.min(i * 55, 500)}ms`;
       });
       el.classList.add('cine-words-in');
       continue;
@@ -419,7 +419,7 @@ export function initTextStagger(selector = '[data-cine-words]') {
       if (kotak.top < tinggiLayar && kotak.height > 0) {
         const words = splitWords(el);
         words.forEach((w, i) => {
-          w.style.transitionDelay = `${Math.min(i * (el.matches('.hero-title') ? 40 : 55), el.matches('.hero-title') ? 400 : 500)}ms`;
+          w.style.transitionDelay = `${Math.min(i * 55, 500)}ms`;
         });
         el.classList.remove('cine-words-pending');
         el.classList.add('cine-words-in');

@@ -1,148 +1,26 @@
 {
- "dibuat": "2026-10-20T01:54:30.915Z",
- "totalCommit": 519,
- "totalDicatat": 505,
+ "dibuat": "2026-10-18T05:54:22.888Z",
+ "totalCommit": 480,
+ "totalDicatat": 467,
  "hariPertama": "2026-10-01",
- "hariTerakhir": "2026-10-19",
+ "hariTerakhir": "2026-10-18",
  "rilis": [
   {
-   "tanggal": "2026-10-19",
-   "jumlah": 12,
-   "ringkasan": {
-    "fitur": 1,
-    "perbaikan": 9,
-    "performa": 0,
-    "dokumentasi": 0,
-    "data": 0,
-    "pemeliharaan": 2
-   },
-   "kategori": [
-    {
-     "kunci": "fitur",
-     "label": "Fitur baru",
-     "item": [
-      {
-       "hash": "a439d80",
-       "teks": "Logo di email & footer, widget Turnstile menyatu dengan kartu",
-       "scope": "merek"
-      }
-     ]
-    },
-    {
-     "kunci": "perbaikan",
-     "label": "Perbaikan",
-     "item": [
-      {
-       "hash": "4abf5d7",
-       "teks": "Samakan logo footer dengan header + perbaiki form minta akses",
-       "scope": "proyek"
-      },
-      {
-       "hash": "257416f",
-       "teks": "Slot mengikuti lebar widget di layar <340px",
-       "scope": "turnstile"
-      },
-      {
-       "hash": "4c67312",
-       "teks": "Padding kartu 8px/5,6px + skala 0,84 di layar <340px",
-       "scope": "turnstile"
-      },
-      {
-       "hash": "d971881",
-       "teks": "Widget terpotong di layar sempit — beri ruang 300px",
-       "scope": "turnstile"
-      },
-      {
-       "hash": "ce17cc1",
-       "teks": "Widget tidak muncul karena CSP memblokir semua panggilan API",
-       "scope": "turnstile"
-      },
-      {
-       "hash": "654e355",
-       "teks": "Halaman /s/<kode>/ kini beridentitas sama dengan beranda",
-       "scope": "proyek"
-      },
-      {
-       "hash": "bbf927a",
-       "teks": "Blokir /s/whatsapp-bot/ agar cache CDN berhenti menyajikan halaman bocor",
-       "scope": "edge"
-      },
-      {
-       "hash": "e24832b",
-       "teks": "Hapus /s/whatsapp-bot/ yang membocorkan isi teknis tanpa gerbang",
-       "scope": "keamanan"
-      },
-      {
-       "hash": "5687c23",
-       "teks": "Logo di halaman Proyek Saya & 404 yang sebelumnya tanpa identitas",
-       "scope": "merek"
-      }
-     ]
-    },
-    {
-     "kunci": "pemeliharaan",
-     "label": "Pemeliharaan",
-     "item": [
-      {
-       "hash": "faf2fd2",
-       "teks": "Jaga widget tidak terpotong di layar sempit",
-       "scope": "turnstile"
-      },
-      {
-       "hash": "ca8f49f",
-       "teks": "Hapus bingkai ganda pada widget gerbang token",
-       "scope": "turnstile"
-      }
-     ]
-    }
-   ]
-  },
-  {
    "tanggal": "2026-10-18",
-   "jumlah": 42,
+   "jumlah": 16,
    "ringkasan": {
-    "fitur": 9,
-    "perbaikan": 5,
-    "performa": 3,
-    "dokumentasi": 8,
+    "fitur": 3,
+    "perbaikan": 2,
+    "performa": 0,
+    "dokumentasi": 7,
     "data": 0,
-    "pemeliharaan": 17
+    "pemeliharaan": 4
    },
    "kategori": [
     {
      "kunci": "fitur",
      "label": "Fitur baru",
      "item": [
-      {
-       "hash": "9d50b34",
-       "teks": "Hapus panel Token akses dari halaman pengguna",
-       "scope": "privasi"
-      },
-      {
-       "hash": "2a6316c",
-       "teks": "Konfirmasi sandi di sign-up + auto-redirect sign-in",
-       "scope": "auth"
-      },
-      {
-       "hash": "ef74f51",
-       "teks": "Blokir demo-anthropic di edge function dengan 404 no-store",
-       "scope": "edge"
-      },
-      {
-       "hash": "7bd6ca1",
-       "teks": "Isolasi demo anthropic ke penyimpanan privat khusus owner",
-       "scope": "security"
-      },
-      {
-       "hash": "9bde084",
-       "teks": "Tambahkan demo studi desain editorial gaya Anthropic",
-       "scope": "demo"
-      },
-      {
-       "hash": "863dbef",
-       "teks": "Redesign beranda studio 3D korporat & isolasi metrik privat",
-       "scope": "ui"
-      },
       {
        "hash": "0a3f872",
        "teks": "Metrik, demo, dan highlight jadi benefit akun",
@@ -165,21 +43,6 @@
      "label": "Perbaikan",
      "item": [
       {
-       "hash": "b9e14a9",
-       "teks": "Blokir akun nonaktif di SEMUA jalur masuk, bukan hanya sandi",
-       "scope": "auth"
-      },
-      {
-       "hash": "0f6d5aa",
-       "teks": "Jangan buat akun OAuth baru dari sign-in",
-       "scope": "auth"
-      },
-      {
-       "hash": "6de5294",
-       "teks": "Strip JS comments dari inline script di produksi",
-       "scope": "build"
-      },
-      {
        "hash": "9885c2b",
        "teks": "Jangan sebut id lab3d di JS publik",
        "scope": "eksperimen"
@@ -192,35 +55,9 @@
      ]
     },
     {
-     "kunci": "performa",
-     "label": "Performa",
-     "item": [
-      {
-       "hash": "491c5f5",
-       "teks": "Tunda orb 3D agar teks hero tampil lebih dulu",
-       "scope": "hero"
-      },
-      {
-       "hash": "0aeed81",
-       "teks": "Hilangkan CLS 0.238 → 0 dengan memperbaiki skeleton",
-       "scope": "pricing"
-      },
-      {
-       "hash": "32893ee",
-       "teks": "Perbaiki CLS harga dan FCP beranda yang terukur di produksi",
-       "scope": "ui"
-      }
-     ]
-    },
-    {
      "kunci": "dokumentasi",
      "label": "Dokumentasi",
      "item": [
-      {
-       "hash": "5777016",
-       "teks": "Regenerasi setelah penyederhanaan pintu masuk",
-       "scope": "changelog"
-      },
       {
        "hash": "c79fe49",
        "teks": "Regenerasi setelah gating akses",
@@ -262,71 +99,6 @@
      "kunci": "pemeliharaan",
      "label": "Pemeliharaan",
      "item": [
-      {
-       "hash": "874139e",
-       "teks": "Uji HTTP nyata untuk gerbang status akun + guard server.mjs",
-       "scope": "auth"
-      },
-      {
-       "hash": "1a08ea9",
-       "teks": "Provide fallback secret and owner email in owner-demo test fixture",
-       "scope": "ci"
-      },
-      {
-       "hash": "767ce2e",
-       "teks": "Mock temporary contentDir fixture for headless CI environments",
-       "scope": "owner-demo"
-      },
-      {
-       "hash": "7e8a4dc",
-       "teks": "Kembalikan desain asli beranda terminal 3d orb",
-       "scope": "ui"
-      },
-      {
-       "hash": "b528a2d",
-       "teks": "Isolate playwright browser tests from default unit test glob",
-       "scope": "ci"
-      },
-      {
-       "hash": "7f29b8e",
-       "teks": "Isolate contrast gate and exercise delayed pricing load",
-       "scope": "ui"
-      },
-      {
-       "hash": "676d93b",
-       "teks": "Buat tes kontras tombol mandiri dan benar-benar mengukur",
-       "scope": "kontras"
-      },
-      {
-       "hash": "13f80bc",
-       "teks": "Pertajam copy headline dan bersihkan terminal mockup",
-       "scope": "hero"
-      },
-      {
-       "hash": "86b756e",
-       "teks": "Use explicit fixtures in CI",
-       "scope": ""
-      },
-      {
-       "hash": "adff16f",
-       "teks": "Add isolated backup restore drill and fail closed monitoring",
-       "scope": ""
-      },
-      {
-       "hash": "28ab9c7",
-       "teks": "A11y(ui): label project region and verify narrow reflow",
-       "scope": ""
-      },
-      {
-       "hash": "bc8bb4f",
-       "teks": "Pindahkan bukti privat keluar dari repo publik",
-       "scope": "akses"
-      },
-      {
-       "hash": "9efa271",
-       "teks": "Token, kuota, sesi, pembayaran, dan data privat",
-       "scope": "akses"
-      },
       {
        "hash": "ccb8e27",
        "teks": "Satu pintu masuk, bukan tiga belas",

@@ -29,9 +29,9 @@
   left: 0;
   z-index: 9999; /* di atas header (sticky) dan gate */
   padding: 0.85rem 1.25rem;
-  background: var(--accent, #22C55E);
+  background: var(--accent, #f5c542);
   color: #0a0a0b;
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-family: 'Satoshi', system-ui, sans-serif;
   font-size: var(--fs-2, 0.875rem);
   font-weight: 700;
   text-decoration: none;

@@ -240,7 +240,7 @@
 
 .klien-tab button[aria-selected='true'] {
   background: var(--accent);
-  color: #0F172A;
+  color: #1a0d06;
 }
 
 /* Ikon tab: ukuran sama, warna mengikuti tombolnya. */
@@ -446,14 +446,14 @@
 .klien-btn--utama {
   border-color: var(--accent);
   background: var(--accent);
-  color: #0F172A;
+  color: #1a0d06;
   font-weight: 600;
 }
 
 .klien-btn--utama:hover:not(:disabled) {
   border-color: var(--accent-light);
   background: var(--accent-light);
-  color: #0F172A;
+  color: #1a0d06;
 }
 
 /* ── TAB TOKEN ────────────────────────────────────────────────────────────── */

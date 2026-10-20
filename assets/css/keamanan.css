@@ -280,7 +280,7 @@
  * Penanda bentuk, bukan hanya lencana. Pengguna yang memindai daftar dari
  * jauh menemukan barisnya lewat latar; lencananya mengonfirmasi. */
 .kam-item-sesi.is-sekarang {
-  background: rgba(34, 197, 94, 0.04);
+  background: rgba(245, 197, 66, 0.04);
   border-color: var(--emas-garis);
 }
 
@@ -728,12 +728,12 @@
 }
 
 .kam-ubah:hover {
-  border-color: rgba(34, 197, 94, 0.5);
-  background: rgba(34, 197, 94, 0.06);
+  border-color: rgba(245, 197, 66, 0.5);
+  background: rgba(245, 197, 66, 0.06);
 }
 
 .kam-ubah:focus-visible {
-  outline: 2px solid rgba(34, 197, 94, 0.9);
+  outline: 2px solid rgba(245, 197, 66, 0.9);
   outline-offset: 2px;
 }
 
@@ -774,7 +774,7 @@
 
 .kam-input:focus {
   outline: none;
-  border-color: rgba(34, 197, 94, 0.55);
+  border-color: rgba(245, 197, 66, 0.55);
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -829,7 +829,7 @@
 }
 
 .kam-batal:focus-visible {
-  outline: 2px solid rgba(34, 197, 94, 0.9);
+  outline: 2px solid rgba(245, 197, 66, 0.9);
   outline-offset: 2px;
 }
 
@@ -1408,8 +1408,8 @@
 
 .kam-lencana.is-sukses {
   color: var(--emas);
-  background: rgba(34, 197, 94, 0.1);
-  border-color: rgba(34, 197, 94, 0.28);
+  background: rgba(245, 197, 66, 0.1);
+  border-color: rgba(245, 197, 66, 0.28);
 }
 
 .kam-lencana.is-menunggu {
@@ -1754,7 +1754,7 @@
    latar penuh berwarna akan terlalu mencolok untuk notifikasi kecil. */
 .kam-toast.is-sukses { border-left: 3px solid var(--sukses); }
 .kam-toast.is-galat  { border-left: 3px solid var(--galat); }
-.kam-toast.is-info   { border-left: 3px solid var(--accent, #22C55E); }
+.kam-toast.is-info   { border-left: 3px solid var(--accent, #f5c542); }
 
 .kam-toast-ikon {
   flex: 0 0 auto;
@@ -1764,7 +1764,7 @@
 }
 .kam-toast.is-sukses .kam-toast-ikon { color: var(--sukses); }
 .kam-toast.is-galat  .kam-toast-ikon { color: var(--galat); }
-.kam-toast.is-info   .kam-toast-ikon { color: var(--accent, #22C55E); }
+.kam-toast.is-info   .kam-toast-ikon { color: var(--accent, #f5c542); }
 
 .kam-toast-teks {
   flex: 1;
@@ -1878,7 +1878,7 @@
    Emas menarik perhatian tanpa terasa seperti peringatan galat. */
 .kam-item-ikon.is-kunci {
   color: var(--emas);
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(245, 197, 66, 0.1);
 }
 
 /* Sesi dicabut — perlu diperiksa, tapi bukan galat. */
@@ -1998,7 +1998,7 @@
 }
 
 .kam-toggle[aria-checked="true"] {
-  background: var(--emas, #22C55E);
+  background: var(--emas, #f5c542);
 }
 
 .kam-toggle:disabled {
@@ -2007,7 +2007,7 @@
 }
 
 .kam-toggle:focus-visible {
-  outline: 2px solid var(--emas, #22C55E);
+  outline: 2px solid var(--emas, #f5c542);
   outline-offset: 2px;
 }
 
@@ -2239,7 +2239,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--emas, #22C55E);
+  color: var(--emas, #f5c542);
   font: inherit;
   font-size: inherit;
   text-decoration: underline;
@@ -2247,7 +2247,7 @@
   cursor: pointer;
 }
 
-.kam-hapus-tautan:hover { color: var(--emas-terang, #4ADE80); }
+.kam-hapus-tautan:hover { color: var(--emas-terang, #f7d77a); }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    BARIS PENGATURAN — ikon kiri · teks tengah · tombol kanan
@@ -2460,15 +2460,15 @@
    keduanya terlihat sama pentingnya — dan pengguna harus membaca teksnya
    untuk tahu mana yang melanjutkan. */
 .auth-oauth-utama {
-  background: var(--emas, #22C55E);
-  border-color: var(--emas, #22C55E);
-  color: #0F172A;
+  background: var(--emas, #f5c542);
+  border-color: var(--emas, #f5c542);
+  color: #1a1a1a;
   font-weight: 600;
 }
 
 .auth-oauth-utama:hover {
-  background: var(--emas-terang, #4ADE80);
-  border-color: var(--emas-terang, #4ADE80);
+  background: var(--emas-terang, #f7d77a);
+  border-color: var(--emas-terang, #f7d77a);
 }
 
 /* ══ ENAM KOTAK KODE 2FA — JARAK & LABEL ══════════════════════════════════════

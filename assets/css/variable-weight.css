@@ -25,7 +25,7 @@
    hanya menyediakan berat statis 400/500/700/900 — tidak bisa dianimasikan. */
 @supports (font-variation-settings: normal) {
   [data-variable-weight] {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: 'Playfair Display', Georgia, serif;
     font-optical-sizing: auto;
   }
 }

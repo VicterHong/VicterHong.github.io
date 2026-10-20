@@ -2,64 +2,25 @@
 
 Semua perubahan penting pada proyek ini, dikelompokkan per tanggal.
 
-Total 505 perubahan dari 519 commit (2026-10-01 → 2026-10-19).
+Total 467 perubahan dari 480 commit (2026-10-01 → 2026-10-18).
 
 > Berkas ini dibuat otomatis dari riwayat git: `node scripts/generate-changelog.mjs`
-
-## 2026-10-19
-
-### Fitur baru
-
-- **merek**: Logo di email & footer, widget Turnstile menyatu dengan kartu (`a439d80`)
-
-### Perbaikan
-
-- **proyek**: Samakan logo footer dengan header + perbaiki form minta akses (`4abf5d7`)
-- **turnstile**: Slot mengikuti lebar widget di layar <340px (`257416f`)
-- **turnstile**: Padding kartu 8px/5,6px + skala 0,84 di layar <340px (`4c67312`)
-- **turnstile**: Widget terpotong di layar sempit — beri ruang 300px (`d971881`)
-- **turnstile**: Widget tidak muncul karena CSP memblokir semua panggilan API (`ce17cc1`)
-- **proyek**: Halaman /s/<kode>/ kini beridentitas sama dengan beranda (`654e355`)
-- **edge**: Blokir /s/whatsapp-bot/ agar cache CDN berhenti menyajikan halaman bocor (`bbf927a`)
-- **keamanan**: Hapus /s/whatsapp-bot/ yang membocorkan isi teknis tanpa gerbang (`e24832b`)
-- **merek**: Logo di halaman Proyek Saya & 404 yang sebelumnya tanpa identitas (`5687c23`)
-
-### Pemeliharaan
-
-- **turnstile**: Jaga widget tidak terpotong di layar sempit (`faf2fd2`)
-- **turnstile**: Hapus bingkai ganda pada widget gerbang token (`ca8f49f`)
 
 ## 2026-10-18
 
 ### Fitur baru
 
-- **privasi**: Hapus panel Token akses dari halaman pengguna (`9d50b34`)
-- **auth**: Konfirmasi sandi di sign-up + auto-redirect sign-in (`2a6316c`)
-- **edge**: Blokir demo-anthropic di edge function dengan 404 no-store (`ef74f51`)
-- **security**: Isolasi demo anthropic ke penyimpanan privat khusus owner (`7bd6ca1`)
-- **demo**: Tambahkan demo studi desain editorial gaya Anthropic (`9bde084`)
-- **ui**: Redesign beranda studio 3D korporat & isolasi metrik privat (`863dbef`)
 - **akses**: Metrik, demo, dan highlight jadi benefit akun (`0a3f872`)
 - **eksperimen**: Seksi 3D hanya untuk owner, dikirim server-side (`6a53409`)
 - **aeo**: Layanan masuk llms.txt + OfferCatalog JSON-LD (`e70156a`)
 
 ### Perbaikan
 
-- **auth**: Blokir akun nonaktif di SEMUA jalur masuk, bukan hanya sandi (`b9e14a9`)
-- **auth**: Jangan buat akun OAuth baru dari sign-in (`0f6d5aa`)
-- **build**: Strip JS comments dari inline script di produksi (`6de5294`)
 - **eksperimen**: Jangan sebut id lab3d di JS publik (`9885c2b`)
 - **a11y**: Audit Web Interface Guidelines — skip link, fokus keyboard, kontras, tema (`1ea9472`)
 
-### Performa
-
-- **hero**: Tunda orb 3D agar teks hero tampil lebih dulu (`491c5f5`)
-- **pricing**: Hilangkan CLS 0.238 → 0 dengan memperbaiki skeleton (`0aeed81`)
-- **ui**: Perbaiki CLS harga dan FCP beranda yang terukur di produksi (`32893ee`)
-
 ### Dokumentasi
 
-- **changelog**: Regenerasi setelah penyederhanaan pintu masuk (`5777016`)
 - **changelog**: Regenerasi setelah gating akses (`c79fe49`)
 - **changelog**: Regenerasi setelah seksi eksperimen owner-only (`ba85427`)
 - **changelog**: Regenerasi setelah pass bola 3d (`9d12934`)
@@ -70,19 +31,6 @@ Total 505 perubahan dari 519 commit (2026-10-01 → 2026-10-19).
 
 ### Pemeliharaan
 
-- **auth**: Uji HTTP nyata untuk gerbang status akun + guard server.mjs (`874139e`)
-- **ci**: Provide fallback secret and owner email in owner-demo test fixture (`1a08ea9`)
-- **owner-demo**: Mock temporary contentDir fixture for headless CI environments (`767ce2e`)
-- **ui**: Kembalikan desain asli beranda terminal 3d orb (`7e8a4dc`)
-- **ci**: Isolate playwright browser tests from default unit test glob (`b528a2d`)
-- **ui**: Isolate contrast gate and exercise delayed pricing load (`7f29b8e`)
-- **kontras**: Buat tes kontras tombol mandiri dan benar-benar mengukur (`676d93b`)
-- **hero**: Pertajam copy headline dan bersihkan terminal mockup (`13f80bc`)
-- Use explicit fixtures in CI (`86b756e`)
-- Add isolated backup restore drill and fail closed monitoring (`adff16f`)
-- A11y(ui): label project region and verify narrow reflow (`28ab9c7`)
-- **akses**: Pindahkan bukti privat keluar dari repo publik (`bc8bb4f`)
-- **akses**: Token, kuota, sesi, pembayaran, dan data privat (`9efa271`)
 - **akses**: Satu pintu masuk, bukan tiga belas (`ccb8e27`)
 - **3d**: Bola partikel jadi struktur netral, emas hanya highlight (`f44fe94`)
 - **design**: Budget aksen emas & hierarki hero (`b8e2fb0`)

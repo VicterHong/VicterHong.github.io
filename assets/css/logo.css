@@ -1,5 +1,5 @@
 /* ── LOGO VIVASTIC — dari icon "Vic's Private HQ" ─────────────────────────────
-   Huruf V dari pita geometris, emas (#22C55E) di atas latar gelap (#0e1116).
+   Huruf V dari pita geometris, emas (#f8bb25) di atas latar gelap (#0e1116).
    Lihat assets/js/monogram.js untuk asal usul lengkapnya.
 
    ── UKURAN: 28px ────────────────────────────────────────────────────────────
@@ -30,9 +30,8 @@
   flex: none;                      /* jangan menyusut saat teks brand panjang */
   border-radius: var(--radius-ctl);
   box-shadow:
-    0 0 0 1px rgba(34, 197, 94, 0.18),
-    0 0 14px rgba(34, 197, 94, 0.10);
-  filter: hue-rotate(95deg) saturate(1.15);
+    0 0 0 1px rgba(248, 187, 37, 0.18),
+    0 0 14px rgba(248, 187, 37, 0.10);
   transition: box-shadow 0.25s var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
@@ -45,8 +44,8 @@
 a:hover > .brand-logo,
 a:focus-visible > .brand-logo {
   box-shadow:
-    0 0 0 1px rgba(34, 197, 94, 0.34),
-    0 0 20px rgba(34, 197, 94, 0.20);
+    0 0 0 1px rgba(248, 187, 37, 0.34),
+    0 0 20px rgba(248, 187, 37, 0.20);
 }
 
 /* ── CADANGAN KALAU GAMBAR GAGAL DIMUAT ──────────────────────────────────────
@@ -58,12 +57,12 @@ a:focus-visible > .brand-logo {
   width: 28px;
   height: 28px;
   flex: none;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: 'Playfair Display', Georgia, serif;
   font-size: var(--fs-3);
   font-weight: 600;
   line-height: 1;
   color: #0e1116;
-  background: #22C55E;
+  background: #f8bb25;
   border-radius: var(--radius-ctl);
 }
 

@@ -23,16 +23,10 @@ export function create3DOrb(canvas, opts = {}) {
   if (!ctx) return null;
 
   const nodeCount = opts.count ?? 320;
-  canvas.dataset.particleCount = String(nodeCount);
   const baseRadius = opts.radius ?? 110;
   const fov = opts.fov ?? 340;
-  const accentColor = opts.accent ?? '#22C55E';
-  const accentRgb = opts.accentRgb ?? '34, 197, 94';
+  const accentColor = opts.accent ?? '#f5c542';
   const showLines = opts.showLines ?? true;
-  const cameraZStart = opts.cameraZStart ?? null;
-  const cameraZEnd = opts.cameraZEnd ?? null;
-  const idleRotation = opts.idleRotation ?? null;
-  let scrollProgress = 0;
   let mode = opts.mode ?? 'fibonacci'; // 'fibonacci' | 'constellation' | 'wave'
 
   // Siapkan titik-titik pada permukaan bola (Fibonacci Spiral)
@@ -50,66 +44,12 @@ export function create3DOrb(canvas, opts = {}) {
       points.push({
         x, y, z,
         origX: x, origY: y, origZ: z,
-        baseSize: nodeCount >= 900 ? 0.58 + (i % 3) * 0.14 : 1.2 + (i % 3) * 0.5,
+        baseSize: 1.2 + (i % 3) * 0.5,
         pulseOffset: (i * 0.17) % (Math.PI * 2),
       });
     }
   }
   buildPoints();
-
-  // Build a small, stable neighbor graph once. The hero uses this instead of
-  // testing every projected pair (O(n²)) on every frame.
-  function buildSparseEdges() {
-    const cellSize = 0.16;
-    const cells = new Map();
-    const key = (x, y, z) => `${x}|${y}|${z}`;
-    const coords = points.map((point) => ({
-      x: Math.floor((point.origX + 1) / cellSize),
-      y: Math.floor((point.origY + 1) / cellSize),
-      z: Math.floor((point.origZ + 1) / cellSize),
-    }));
-
-    coords.forEach((cell, index) => {
-      const id = key(cell.x, cell.y, cell.z);
-      if (!cells.has(id)) cells.set(id, []);
-      cells.get(id).push(index);
-    });
-
-    const maxDistanceSq = 0.18 * 0.18;
-    const edgeSet = new Set();
-    const edges = [];
-    points.forEach((point, index) => {
-      const cell = coords[index];
-      const candidates = [];
-      for (let dx = -1; dx <= 1; dx += 1) {
-        for (let dy = -1; dy <= 1; dy += 1) {
-          for (let dz = -1; dz <= 1; dz += 1) {
-            const near = cells.get(key(cell.x + dx, cell.y + dy, cell.z + dz)) ?? [];
-            for (const other of near) {
-              if (other === index) continue;
-              const q = points[other];
-              const x = point.origX - q.origX;
-              const y = point.origY - q.origY;
-              const z = point.origZ - q.origZ;
-              const distanceSq = x * x + y * y + z * z;
-              if (distanceSq <= maxDistanceSq) candidates.push({ other, distanceSq });
-            }
-          }
-        }
-      }
-      candidates.sort((a, b) => a.distanceSq - b.distanceSq);
-      for (const candidate of candidates.slice(0, 3)) {
-        const a = Math.min(index, candidate.other);
-        const b = Math.max(index, candidate.other);
-        const edgeKey = `${a}:${b}`;
-        if (edgeSet.has(edgeKey)) continue;
-        edgeSet.add(edgeKey);
-        edges.push([a, b]);
-      }
-    });
-    return edges;
-  }
-  const sparseEdges = opts.sparseLines ? buildSparseEdges() : null;
 
   // Ring orbit tambahan (satelit)
   const satelliteCount = 24;
@@ -129,7 +69,7 @@ export function create3DOrb(canvas, opts = {}) {
   let rotY = 0.4;
   let velX = 0.0018;
   let velY = 0.0035;
-  const friction = opts.friction ?? 0.945;
+  const friction = 0.945;
 
   let width = 0;
   let height = 0;
@@ -152,7 +92,6 @@ export function create3DOrb(canvas, opts = {}) {
   let shockwave = 0;
 
   function onPointerDown(e) {
-    if (PREFERS_REDUCED()) return;
     isDragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
@@ -161,7 +100,7 @@ export function create3DOrb(canvas, opts = {}) {
   }
 
   function onPointerMove(e) {
-    if (PREFERS_REDUCED() || !isDragging) return;
+    if (!isDragging) return;
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
     lastX = e.clientX;
@@ -179,7 +118,6 @@ export function create3DOrb(canvas, opts = {}) {
   }
 
   function onClick() {
-    if (PREFERS_REDUCED()) return;
     shockwave = 1.0;
   }
 
@@ -189,7 +127,6 @@ export function create3DOrb(canvas, opts = {}) {
   // bawah sumbu X, spasi memicu gelombang. `tabindex` dipasang di sini, bukan
   // di HTML, supaya pemanggil tidak perlu ingat.
   function onKeyDown(e) {
-    if (PREFERS_REDUCED()) return;
     const step = 0.12;
     let handled = true;
     switch (e.key) {
@@ -239,24 +176,22 @@ export function create3DOrb(canvas, opts = {}) {
   canvas.addEventListener('click', onClick, { passive: true });
 
   let animId = null;
-  let isVisible = width > 0 && height > 0;
-  let isTabVisible = document.visibilityState !== 'hidden';
+  let isVisible = true;
   let lastTime = performance.now();
 
   function render(now) {
-    if (!isVisible || !isTabVisible) { animId = null; return; }
-    const reduced = PREFERS_REDUCED();
-    if (!reduced) animId = requestAnimationFrame(render);
+    if (!isVisible) return;
+    animId = requestAnimationFrame(render);
 
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
-    if (!reduced) {
+    if (!PREFERS_REDUCED()) {
       if (!isDragging) {
         velX *= friction;
         velY *= friction;
-        rotX += velX + (idleRotation === null ? 0.0012 : 0);
-        rotY += velY + (idleRotation === null ? 0.0028 : idleRotation * dt);
+        rotX += velX + 0.0012;
+        rotY += velY + 0.0028;
       }
       if (shockwave > 0) {
         shockwave = Math.max(0, shockwave - dt * 1.5);
@@ -277,16 +212,9 @@ export function create3DOrb(canvas, opts = {}) {
     const cosY = Math.cos(rotY);
     const sinY = Math.sin(rotY);
 
-    // Transformasi titik 3D ke 2D. Peta indeks terpisah mempertahankan
-    // akses edge yang stabil setelah daftar diranking berdasarkan depth.
+    // Transformasi titik 3D ke 2D
     const projected = [];
-    const projectedByIndex = new Array(points.length);
     const waveTime = now * 0.003;
-    const cameraProgress = reduced ? 0 : scrollProgress;
-    const cameraZ = cameraZStart === null || cameraZEnd === null
-      ? null
-      : cameraZStart + (cameraZEnd - cameraZStart) * cameraProgress;
-    const cameraDistance = cameraZ === null ? fov : cameraZ * R;
 
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
@@ -315,62 +243,41 @@ export function create3DOrb(canvas, opts = {}) {
       const z2 = y1 * sinX + z1 * cosX;
 
       // Proyeksi perspektif
-      const scale = cameraDistance / (cameraDistance + z2 * R * 0.85);
+      const distance = fov;
+      const scale = distance / (distance + z2 * R * 0.85);
       const projX = cx + x2 * R * scale;
       const projY = cy + y2 * R * scale;
-      const point2d = { index: i, x: projX, y: projY, z: z2, scale, baseSize: p.baseSize };
-      projected.push(point2d);
-      projectedByIndex[i] = point2d;
+
+      projected.push({
+        x: projX,
+        y: projY,
+        z: z2,
+        scale,
+        baseSize: p.baseSize,
+      });
     }
 
     // Urutkan berdasarkan kedalaman Z (depth sort: back to front)
     projected.sort((a, b) => a.z - b.z);
 
-    // Garis hanya menghubungkan tetangga terdekat di belahan depan.
-    // Hero memakai sparseEdges: O(n) per frame, bukan membandingkan semua pasangan.
+    // Gambar garis konstelasi untuk partikel belahan depan jika mode aktif
     if (showLines && (mode === 'constellation' || mode === 'fibonacci')) {
       const maxDist = mode === 'constellation' ? 44 : 32;
-      const maxDistSq = maxDist * maxDist;
-      if (sparseEdges) {
-        const buckets = [[], [], [], []];
-        for (const [a, b] of sparseEdges) {
-          const p1 = projectedByIndex[a];
-          const p2 = projectedByIndex[b];
-          if (p1.z <= 0.05 || p2.z <= 0.05) continue;
+      const frontPoints = projected.filter((pt) => pt.z > 0.05);
+
+      ctx.lineWidth = 0.75;
+      for (let i = 0; i < frontPoints.length; i++) {
+        const p1 = frontPoints[i];
+        for (let j = i + 1; j < frontPoints.length; j++) {
+          const p2 = frontPoints[j];
           const dx = p1.x - p2.x;
           const dy = p1.y - p2.y;
           const distSq = dx * dx + dy * dy;
-          if (distSq >= maxDistSq) continue;
-          const dist = Math.sqrt(distSq);
-          const alpha = (1 - dist / maxDist) * Math.min(p1.z, p2.z) * 0.35;
-          buckets[Math.min(3, Math.floor(alpha * 4))].push(p1, p2);
-        }
-        ctx.lineWidth = 0.75;
-        for (let bucket = 0; bucket < buckets.length; bucket += 1) {
-          const segments = buckets[bucket];
-          if (!segments.length) continue;
-          ctx.beginPath();
-          for (let i = 0; i < segments.length; i += 2) {
-            ctx.moveTo(segments[i].x, segments[i].y);
-            ctx.lineTo(segments[i + 1].x, segments[i + 1].y);
-          }
-          ctx.strokeStyle = `rgba(${accentRgb}, ${((bucket + 0.5) / 4).toFixed(2)})`;
-          ctx.stroke();
-        }
-      } else {
-        const frontPoints = projected.filter((pt) => pt.z > 0.05);
-        ctx.lineWidth = 0.75;
-        for (let i = 0; i < frontPoints.length; i++) {
-          const p1 = frontPoints[i];
-          for (let j = i + 1; j < frontPoints.length; j++) {
-            const p2 = frontPoints[j];
-            const dx = p1.x - p2.x;
-            const dy = p1.y - p2.y;
-            const distSq = dx * dx + dy * dy;
-            if (distSq >= maxDistSq) continue;
+
+          if (distSq < maxDist * maxDist) {
             const dist = Math.sqrt(distSq);
             const alpha = (1 - dist / maxDist) * Math.min(p1.z, p2.z) * 0.35;
-            ctx.strokeStyle = `rgba(${accentRgb}, ${alpha.toFixed(3)})`;
+            ctx.strokeStyle = `rgba(245, 197, 66, ${alpha.toFixed(3)})`;
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
@@ -380,8 +287,19 @@ export function create3DOrb(canvas, opts = {}) {
       }
     }
 
-    // Partikel netral membentuk volume; warna aksen hanya menandai titik depan.
-    // Batas alpha mencegah titik berdekatan berubah menjadi bidang padat.
+    // ── GAMBAR PARTIKEL: STRUKTUR PUTIH, EMAS HANYA SEBAGAI HIGHLIGHT ───────
+    // DIUKUR SEBELUM PERUBAHAN: luas piksel emas di kanvas hero = 6.210 px CSS,
+    // sementara tombol CTA "Lihat proyek" = 6.073 px. Rasio 1,02 — dua massa
+    // emas berukuran sama di satu layar, jadi tidak ada yang menang.
+    //
+    // Penyebabnya bukan warna, tapi ALPHA + HALO: partikel depan memakai
+    // alpha sampai 1.0 DITAMBAH shadowBlur 6x, sehingga titik-titik saling
+    // tumpuk menjadi bidang emas padat.
+    //
+    // Sekarang: kerangka bola memakai warna teks (netral) — ia MEMBENTUK
+    // bentuk, bukan menarik mata. Emas dipakai hanya pada partikel yang
+    // benar-benar paling depan sebagai aksen kecil. Hasil: emas kembali
+    // menandai satu hal (CTA), bola tetap terbaca sebagai 3D.
     for (let i = 0; i < projected.length; i++) {
       const p = projected[i];
       const radius = p.baseSize * p.scale;
@@ -401,11 +319,11 @@ export function create3DOrb(canvas, opts = {}) {
           ctx.shadowColor = accentColor;
           ctx.shadowBlur = 4 * p.scale;
         } else {
-          ctx.fillStyle = `rgba(248, 250, 252, ${alpha.toFixed(2)})`;
+          ctx.fillStyle = `rgba(244, 244, 246, ${alpha.toFixed(2)})`;
           ctx.shadowBlur = 0;
         }
       } else {
-        ctx.fillStyle = `rgba(248, 250, 252, ${alpha.toFixed(2)})`;
+        ctx.fillStyle = `rgba(244, 244, 246, ${alpha.toFixed(2)})`;
         ctx.shadowBlur = 0;
       }
       ctx.fill();
@@ -432,7 +350,7 @@ export function create3DOrb(canvas, opts = {}) {
       const sy2 = sy1 * cosX - sz1 * sinX;
       const sz2 = sy1 * sinX + sz1 * cosX;
 
-      const satScale = cameraDistance / (cameraDistance + sz2 * 0.85);
+      const satScale = fov / (fov + sz2 * 0.85);
       const satX = cx + sx2 * satScale;
       const satY = cy + sy2 * satScale;
 
@@ -445,63 +363,36 @@ export function create3DOrb(canvas, opts = {}) {
     }
 
     ctx.restore();
-    if (reduced) animId = null;
   }
 
-  function scheduleRender() {
-    if (!isVisible || !isTabVisible || animId) return;
-    lastTime = performance.now();
-    animId = requestAnimationFrame(render);
-  }
-
-  function stopRender() {
-    if (animId) cancelAnimationFrame(animId);
-    animId = null;
-  }
-
-  function onVisibilityChange() {
-    isTabVisible = document.visibilityState !== 'hidden';
-    if (isTabVisible) scheduleRender();
-    else stopRender();
-  }
-
-  function onGateOpen() {
-    const rect = canvas.getBoundingClientRect();
-    resize();
-    isVisible = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
-    scheduleRender();
-  }
-
-  // Stop completely outside the viewport or in a hidden tab.
-  const observer = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
+  // IntersectionObserver: hemat baterai saat scrolled out of view
+  const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       isVisible = entry.isIntersecting;
-      if (isVisible) scheduleRender();
-      else stopRender();
+      if (isVisible && !animId) {
+        lastTime = performance.now();
+        animId = requestAnimationFrame(render);
+      } else if (!isVisible && animId) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
     }
-  }, { threshold: 0.05 }) : null;
+  }, { threshold: 0.05 });
 
-  if (observer) observer.observe(canvas);
-  document.addEventListener('visibilitychange', onVisibilityChange);
-  document.addEventListener('cf-gate:lulus', onGateOpen, { once: true });
+  observer.observe(canvas);
 
   // Resize listener
-  const resizeHandler = () => {
-    resize();
-    if (PREFERS_REDUCED()) scheduleRender();
-  };
+  const resizeHandler = () => resize();
   window.addEventListener('resize', resizeHandler, { passive: true });
 
-  scheduleRender();
+  // Start rendering
+  animId = requestAnimationFrame(render);
 
   return {
     setMode: (m) => { mode = m; },
-    setScrollProgress: (p) => { scrollProgress = Math.max(0, Math.min(1, p)); },
     destroy: () => {
-      stopRender();
-      observer?.disconnect();
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      document.removeEventListener('cf-gate:lulus', onGateOpen);
+      if (animId) cancelAnimationFrame(animId);
+      observer.disconnect();
       window.removeEventListener('resize', resizeHandler);
       canvas.removeEventListener('pointerdown', onPointerDown);
       if (!dalamAriaHidden) canvas.removeEventListener('keydown', onKeyDown);
@@ -518,43 +409,14 @@ export function create3DOrb(canvas, opts = {}) {
 export function initHeroOrb() {
   const canvas = document.getElementById('heroOrbCanvas');
   if (!canvas) return null;
-  const orb = create3DOrb(canvas, {
-    count: 1080,
+  return create3DOrb(canvas, {
+    count: 240,
     radius: 75,
     fov: 300,
-    accent: '#22C55E',
-    accentRgb: '34, 197, 94',
+    accent: '#f5c542',
     showLines: true,
-    sparseLines: true,
-    friction: 0.92,
-    idleRotation: 0.05,
-    cameraZStart: 6,
-    cameraZEnd: 3.5,
     mode: 'fibonacci',
   });
-  if (!orb) return null;
-
-  const hero = canvas.closest('.hero');
-  let scrollFrame = null;
-  const updateScroll = () => {
-    if (scrollFrame) return;
-    scrollFrame = requestAnimationFrame(() => {
-      scrollFrame = null;
-      const start = hero ? hero.getBoundingClientRect().top + window.scrollY : 0;
-      orb.setScrollProgress((window.scrollY - start) / Math.max(1, window.innerHeight));
-    });
-  };
-  window.addEventListener('scroll', updateScroll, { passive: true });
-  updateScroll();
-
-  return {
-    ...orb,
-    destroy: () => {
-      if (scrollFrame) cancelAnimationFrame(scrollFrame);
-      window.removeEventListener('scroll', updateScroll);
-      orb.destroy();
-    },
-  };
 }
 
 /**
@@ -623,8 +485,7 @@ export function pasangLab3d(hostId) {
     count: 320,
     radius: 120,
     fov: 340,
-    accent: '#22C55E',
-    accentRgb: '34, 197, 94',
+    accent: '#f5c542',
     showLines: true,
     mode: 'fibonacci',
   });
