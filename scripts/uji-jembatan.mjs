@@ -28,6 +28,14 @@ for (const vp of [
 
   await page.goto(`${BASE}/home.html`, { waitUntil: 'domcontentloaded' });
 
+  // Beranda punya gerbang Turnstile. Selama `cf-gating` masih di <html>, teks
+  // kartu kosong karena lapisan gate menutupinya. Tunggu sampai kelas itu
+  // hilang, kalau tidak uji membaca teks kosong dan gagal secara palsu.
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains('cf-gating'),
+    { timeout: 20000 },
+  ).catch(() => {});
+
   const kartu = page.locator('.akses-bridge');
   const navLink = page.locator('.site-nav a[href="/akses/"]');
   const jumlah = await kartu.count();

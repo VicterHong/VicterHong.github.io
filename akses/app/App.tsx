@@ -66,7 +66,7 @@ export default function App() {
               satu akses.
             </h1>
             <p className="hero__lede">
-              Satu halaman React yang memuat scene tiga dimensi, bukan halaman
+              Satu halaman React yang menampilkan scene 3D, bukan halaman
               statis. Harga dan ketentuan sudah tetap; aplikasinya masih
               diselesaikan.
             </p>
@@ -91,7 +91,7 @@ export default function App() {
             </div>
             <div className="ledger__row">
               <span className="ledger__key">Aset berlisensi</span>
-              <span className="ledger__val" data-tone="wait">Dikumpulkan</span>
+              <span className="ledger__val" data-tone="wait">Sedang dikumpulkan</span>
             </div>
             <p className="ledger__note">{RELEASE.body}</p>
           </div>
@@ -180,7 +180,7 @@ export default function App() {
                   <div>
                     <dt>
                       Biaya QRIS
-                      <span className="sum__hint">ditanggung merchant</span>
+                      <span className="sum__hint">ditanggung VIVASTIC</span>
                     </dt>
                     <dd>{money(0)}</dd>
                   </div>
@@ -190,10 +190,13 @@ export default function App() {
                   </div>
                 </dl>
 
+                {/* Alasan ditulis SEBELUM tombol. Di bawah tombol, ia
+                    terbaca sebagai catatan kaki dan pengunjung sudah
+                    menyimpulkan sendiri kenapa tombolnya mati. */}
+                <p className="checkout__why">{RELEASE.closedReason}</p>
                 <button className="btn btn--wide" type="button" disabled>
                   {RELEASE.closedCta}
                 </button>
-                <p className="checkout__why">{RELEASE.closedReason}</p>
 
                 <button
                   className="btn btn--ghost btn--wide"
