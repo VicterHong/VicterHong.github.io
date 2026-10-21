@@ -792,3 +792,69 @@ button, label, a { touch-action: manipulation; }
   .wrap > .glass, .wrap > .split { animation: none; }
   .plan:hover .plan__body, .plan input:checked + .plan__body { transform: none; }
 }
+
+/* ---------- FAQ ----------
+   Satu kolom, garis pemisah tipis. <details> dipakai apa adanya: ia sudah
+   bisa dibuka tanpa JavaScript, terbaca pembaca layar, dan bisa dicari
+   browser (Ctrl+F menemukan teks di dalamnya). */
+
+.faq {
+  margin: 18px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.faq__item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq__q {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 15px 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  list-style: none;
+  transition: color 180ms var(--ease);
+}
+.faq__q::-webkit-details-marker { display: none; }
+.faq__q:hover { color: var(--gold); }
+
+/* Penanda buka/tutup: garis plus yang berputar jadi minus. */
+.faq__q::before {
+  content: '';
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-right: 1px solid var(--gold);
+  border-bottom: 1px solid var(--gold);
+  transform: rotate(45deg);
+  transition: transform 220ms var(--ease);
+}
+.faq__item[open] .faq__q::before {
+  transform: rotate(-135deg);
+}
+
+.faq__a {
+  margin: 0;
+  padding: 0 0 17px 23px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 68ch;
+  text-wrap: pretty;
+}
+
+.panel--faq { padding: 26px 28px 24px; }
+
+@media (max-width: 620px) {
+  .panel--faq { padding: 22px 18px 22px; }
+  .faq__a { padding-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq__q::before { transition: none; }
+}

@@ -15,21 +15,19 @@ import {
   type Plan,
 } from './data';
 
-/** Aset latar. Berkas disalin ke akses/assets/motion/ saat build. */
+/** Aset latar. Berkas disalin ke akses/media/ saat build. */
 const ASET = 'media/';
 
 /**
- * Halaman akses 3D.
+ * Halaman akses 3D, versi ringkas.
  *
- * Tiga hal yang dijaga:
- *  1. Harga dan kebijakan berasal dari satu berkas data, bukan diketik di JSX.
- *  2. Pembayaran ditutup selama aplikasi 3D belum siap, dan alasannya ditulis
- *     SEBELUM tombolnya, bukan sebagai catatan kaki di bawah.
- *  3. Tidak ada pratinjau palsu: blok transaksi memuat contoh berlabel contoh
- *     dan keadaan kosong yang sebenarnya.
+ * Tiga panel: status, paket, pertanyaan. Riwayat transaksi dan ketentuan tidak
+ * punya panel sendiri karena keduanya belum punya isi yang bisa ditampilkan.
+ * Ketentuannya masuk FAQ, tempat orang benar-benar mencarinya.
  *
- * Permukaan memakai Glass: refraksi SVG asli, bukan blur saja. Latar video
- * memberi kedalaman yang tidak mungkin didapat dari kartu di atas warna solid.
+ * Tidak ada nama akun, sisa jam, atau tanggal berakhir yang ditulis di sini.
+ * Semuanya bergantung pada data akun yang belum tersedia, dan angka karangan
+ * membuat halaman terbaca palsu.
  */
 export default function App() {
   const { state, reload } = usePenawaran();
@@ -38,22 +36,19 @@ export default function App() {
   const [selected, setSelected] = useState<'year' | 'lifetime'>('lifetime');
   const [copied, setCopied] = useState(false);
   const copyTimer = useCopyTimer();
-  const [masuk, setMasuk] = useState<'memuat' | 'belum' | 'ya'>('belum');
-  const [login, setLogin] = useState('');
+  const [aktif, setAktif] = useState(false);
 
   // Status akun dibaca dari API yang sama dengan beranda. Gagal berarti
-  // "belum masuk", bukan halaman rusak: harga tetap harus terbaca.
+  // "belum aktif", bukan halaman rusak: harga tetap harus terbaca.
   useEffect(() => {
     let alive = true;
     fetch('/api/akses', { credentials: 'include', headers: { accept: 'application/json' } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!alive || !d?.ok) return;
-        setMasuk(d.masuk ? 'ya' : 'belum');
-        if (d.masuk) setLogin(String(d.nama || d.login || d.issued_to || ''));
+        if (alive) setAktif(Boolean(d?.ok && d.masuk && d.berbayar));
       })
       .catch(() => {
-        if (alive) setMasuk('belum');
+        /* Diam: status akun bukan syarat untuk membaca harga. */
       });
     return () => {
       alive = false;
@@ -74,63 +69,54 @@ export default function App() {
         </a>
         <nav className="bar__nav" aria-label="Navigasi halaman">
           <a href="#paket">Paket</a>
-          <a href="#transaksi">Transaksi</a>
-          <a href="#ketentuan">Ketentuan</a>
+          <a href="#tanya">Pertanyaan</a>
         </nav>
-        <span className="bar__user">
-          {masuk === 'ya' && login ? `@${login}` : 'Belum masuk'}
-        </span>
         <a className="bar__back" href="/home.html">Kembali</a>
       </header>
 
       <main id="konten" className="wrap">
-        {state.phase === 'loading' && <Glass className="panel panel--status"><SkeletonStatus /></Glass>}
+        {state.phase === 'loading' && (
+          <Glass className="panel panel--status">
+            <SkeletonStatus />
+          </Glass>
+        )}
 
         {state.phase === 'error' && (
           <Glass className="panel panel--status">
-            <div className="signed-out">
-              <p className="field-label">Gagal memuat</p>
-              <h2 className="status__title">Data akses tidak tersedia</h2>
-              <p className="status__sub">
-                Berkas penawaran gagal dibaca ({state.message}). Tidak ada angka yang
-                ditampilkan supaya tidak ada harga tebakan.
-              </p>
-              <button className="btn btn--ghost btn--auto" type="button" onClick={reload}>
-                Coba lagi
-              </button>
-            </div>
+            <p className="field-label">Gagal memuat</p>
+            <h2 className="status__title">Harga tidak bisa dimuat</h2>
+            <p className="status__sub">
+              Berkas penawaran gagal dibaca ({state.message}). Tidak ada angka yang
+              ditampilkan supaya tidak ada harga tebakan.
+            </p>
+            <button className="btn btn--ghost btn--auto" type="button" onClick={reload}>
+              Coba lagi
+            </button>
           </Glass>
         )}
 
         {state.phase === 'ready' && (
           <>
-            <StatusPanel data={state.data} masuk={masuk} login={login} reduced={reduced} />
+            <StatusPanel aktif={aktif} />
 
-            <div className="split">
-              <Glass className="panel panel--pay">
-                <PlanPicker
-                  data={state.data}
-                  plans={plans}
-                  selected={selected}
-                  setSelected={setSelected}
-                  copied={copied}
-                  onCopy={() => copySummary(state.data, selected, setCopied, copyTimer)}
-                />
-              </Glass>
+            <Glass className="panel panel--pay" as="section">
+              <PlanPicker
+                data={state.data}
+                plans={plans}
+                selected={selected}
+                setSelected={setSelected}
+                copied={copied}
+                onCopy={() => copySummary(state.data, selected, setCopied, copyTimer)}
+              />
+            </Glass>
 
-              <Glass className="panel panel--history">
-                <TransactionPanel data={state.data} />
-              </Glass>
-            </div>
-
-            <Glass className="panel panel--policy">
-              <PolicyPanel data={state.data} />
+            <Glass className="panel panel--faq" as="section">
+              <Faq data={state.data} />
             </Glass>
 
             <p className="foot">
               Harga dalam Rupiah, kurs tampilan Rp{state.data.idr.toLocaleString('id-ID')} per USD.
-              Pembayaran diverifikasi di server lewat webhook Midtrans. Akses tidak pernah
-              diberikan dari browser.
+              Pembayaran diverifikasi di server lewat webhook Midtrans.
             </p>
           </>
         )}
@@ -141,72 +127,44 @@ export default function App() {
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-function StatusPanel({
-  data,
-  masuk,
-  login,
-  reduced,
-}: {
-  data: Penawaran;
-  masuk: 'memuat' | 'belum' | 'ya';
-  login: string;
-  reduced: boolean;
-}) {
-  const trialJam = 72;
-
+function StatusPanel({ aktif }: { aktif: boolean }) {
   return (
     <Glass className="panel panel--status">
       <header className="status__head">
         <div>
-          <p className="field-label">Status akses</p>
+          <p className="field-label">Status</p>
           <h1 className="status__title">
-            {masuk === 'ya' ? 'Masa akses berjalan' : 'Akses belum dibuka'}
+            {aktif ? 'Akses aktif' : 'Aplikasi 3D belum siap dipakai'}
           </h1>
           <p className="status__sub">
-            {masuk === 'ya'
+            {aktif
               ? 'Semua scene terbuka. Tidak ada penagihan otomatis.'
-              : 'Masuk dengan akun yang sudah terdaftar untuk melihat masa akses dan riwayat.'}
+              : 'Harga dan ketentuan di halaman ini sudah final. Pembayaran dibuka setelah aplikasinya lolos uji di perangkat nyata.'}
           </p>
         </div>
-        <span className="pill" data-state={masuk === 'ya' ? 'trialing' : 'unverified'}>
-          {masuk === 'ya' ? 'Trial' : 'Belum aktif'}
+        <span className="pill" data-state={aktif ? 'trialing' : 'unverified'}>
+          {aktif ? 'Aktif' : 'Dalam pengembangan'}
         </span>
       </header>
 
-      <div className="meter" role="group" aria-label="Sisa masa akses">
-        <div className="meter__track">
-          <div
-            className="meter__fill"
-            style={{ width: masuk === 'ya' ? '100%' : '0%' }}
-            data-still={reduced ? 'ya' : 'tidak'}
-          />
-        </div>
-        <div className="meter__meta">
-          <span>{masuk === 'ya' ? `Sisa ${trialJam} jam` : 'Menunggu aktivasi'}</span>
-          <span>{masuk === 'ya' ? 'dari 72 jam' : 'Belum ada'}</span>
-        </div>
-      </div>
-
       <dl className="facts">
         <div>
-          <dt>Akun</dt>
-          <dd>{masuk === 'ya' && login ? `@${login}` : 'Belum masuk'}</dd>
+          <dt>Aplikasi</dt>
+          <dd>{aktif ? 'Terbuka' : 'Belum siap'}</dd>
         </div>
         <div>
-          <dt>Paket</dt>
-          <dd>{masuk === 'ya' ? 'Trial 3 hari' : 'Belum ada'}</dd>
-        </div>
-        <div>
-          <dt>Berlaku sampai</dt>
-          <dd>{masuk === 'ya' ? '24 Oktober 2026' : 'Belum ada'}</dd>
+          <dt>Harga</dt>
+          <dd>Final</dd>
         </div>
         <div>
           <dt>Pembayaran</dt>
           <dd className="facts__wait">Ditutup</dd>
         </div>
+        <div>
+          <dt>Aset 3D</dt>
+          <dd className="facts__wait">Sedang dikumpulkan</dd>
+        </div>
       </dl>
-
-      <p className="status__clock">{RELEASE.body}</p>
     </Glass>
   );
 }
@@ -230,8 +188,8 @@ function PlanPicker({
 
   return (
     <>
-      <p className="field-label">Perpanjang atau buka permanen</p>
-      <h2 className="card__title">Pilih paket</h2>
+      <p className="field-label">Paket</p>
+      <h2 className="card__title">Pilih masa akses</h2>
 
       <fieldset className="plans">
         <legend className="sr-only">Pilih paket akses</legend>
@@ -272,16 +230,6 @@ function PlanPicker({
         ))}
       </ul>
 
-      <p className="field-label">Metode</p>
-      <div className="methods">
-        {data.methods.map((m) => (
-          <div key={m.id} className="method method--on">
-            <span className="method__label">{m.label}</span>
-            <span className="method__note">{m.note}</span>
-          </div>
-        ))}
-      </div>
-
       <dl className="summary">
         <div>
           <dt>Harga paket</dt>
@@ -289,18 +237,18 @@ function PlanPicker({
         </div>
         <div>
           <dt>
-            MDR QRIS <span>0% · ditanggung VIVASTIC</span>
+            Biaya QRIS <span>ditanggung VIVASTIC</span>
           </dt>
           <dd>{money(0)}</dd>
         </div>
         <div className="summary__total">
-          <dt>Total dibayar</dt>
+          <dt>Total</dt>
           <dd>{money(chosen.idr)}</dd>
         </div>
       </dl>
 
       {/* Alasan ditulis SEBELUM tombol. Di bawah tombol, ia terbaca sebagai
-          catatan kaki dan pengunjung sudah menyimpulkan sendiri. */}
+          catatan kaki dan pembaca sudah menyimpulkan sendiri. */}
       <p className="why">{RELEASE.closedReason}</p>
       <button className="btn" type="button" disabled>
         {RELEASE.closedCta}
@@ -309,84 +257,54 @@ function PlanPicker({
       <button className="btn btn--ghost btn--wide" type="button" onClick={onCopy}>
         {copied ? 'Ringkasan disalin' : 'Salin ringkasan harga'}
       </button>
-      <p className="fine">
-        Ringkasan berguna kalau kamu ingin menanyakan paket ini lebih dulu. Menyalin
-        tidak membuat pesanan.
-      </p>
+      <p className="fine">Menyalin tidak membuat pesanan.</p>
     </>
   );
 }
 
-function TransactionPanel({ data }: { data: Penawaran }) {
+/** FAQ menyerap ketentuan, metode bayar, dan status aset. Satu tempat untuk
+ *  pertanyaan yang benar-benar muncul sebelum membeli. */
+function Faq({ data }: { data: Penawaran }) {
+  const items = [
+    {
+      q: 'Kapan pembayaran dibuka?',
+      a: 'Setelah aplikasi 3D lolos uji di perangkat nyata. Yang berubah hanya tombolnya, bukan nominal paket.',
+    },
+    {
+      q: 'Apa yang didapat pembeli?',
+      a: 'Akses ke aplikasi 3D selama masa paket. Berkas sumber, model 3D, tekstur, dan kode tidak ikut dialihkan.',
+    },
+    {
+      q: 'Bagaimana cara membayar?',
+      a: 'QRIS lewat Midtrans. Biaya QRIS ditanggung VIVASTIC, jadi nominal yang dibayar sama dengan harga paket.',
+    },
+    {
+      q: 'Bisa refund?',
+      a: `Bisa, penuh, sampai ${data.policy.refundDays} hari kalender setelah pembayaran diterima. Lewat dari itu pembelian final.`,
+    },
+    {
+      q: 'Apakah diperpanjang otomatis?',
+      a: 'Tidak. Akses berhenti di tanggal yang tertera tanpa penarikan dana tambahan.',
+    },
+    {
+      q: 'Kenapa aset 3D masih dikumpulkan?',
+      a: 'Aset premium berlisensi komersial sedang dipilih satu per satu. Halaman ini tidak memakai model pengganti buatan sendiri.',
+    },
+  ];
+
   return (
     <>
-      <header className="card__head">
-        <div>
-          <p className="field-label">Riwayat</p>
-          <h2 className="card__title">Transaksi</h2>
-        </div>
-        {/* Tidak ada tombol muat ulang di sini: belum ada data yang bisa
-            dimuat, dan tombol mati berlabel "Memuat" terbaca sebagai halaman
-            yang gagal, bukan halaman yang kosong. */}
-      </header>
+      <p className="field-label">Pertanyaan</p>
+      <h2 className="card__title">Sebelum membeli</h2>
 
-      <div className="tx tx--sample">
-        <p className="tx__label">Contoh tampilan</p>
-        <p className="tx__code">{data.sampleOrder.code}</p>
-        <dl className="tx__facts">
-          <div>
-            <dt>Paket</dt>
-            <dd>{data.plans[data.sampleOrder.plan].name}</dd>
-          </div>
-          <div>
-            <dt>Nominal</dt>
-            <dd>{money(data.sampleOrder.amountIdr)}</dd>
-          </div>
-          <div>
-            <dt>Status</dt>
-            <dd>
-              Lunas <em>(contoh)</em>
-            </dd>
-          </div>
-        </dl>
-        <p className="tx__note">
-          Contoh bentuk pesanan setelah pembayaran dibuka, bukan pesanan siapa pun.
-        </p>
-      </div>
-
-      <div className="empty">
-        <p>Belum ada transaksi.</p>
-        <p className="empty__sub">
-          Pembelian pertama akan muncul di sini beserta nomor referensinya.
-        </p>
-      </div>
-    </>
-  );
-}
-
-function PolicyPanel({ data }: { data: Penawaran }) {
-  return (
-    <>
-      <p className="field-label">Ketentuan</p>
-      <h2 className="card__title">Pembelian &amp; refund</h2>
-      <p className="policy__lead">
-        Berlaku untuk semua paket. Angka di bawah mengikat, bukan ringkasan.
-      </p>
-
-      <dl className="policy__list">
-        {data.policy.lines.map((line) => (
-          <div key={line.title} className="policy__item">
-            <dt>{line.title}</dt>
-            <dd>{line.body}</dd>
-          </div>
+      <div className="faq">
+        {items.map((item) => (
+          <details key={item.q} className="faq__item">
+            <summary className="faq__q">{item.q}</summary>
+            <p className="faq__a">{item.a}</p>
+          </details>
         ))}
-      </dl>
-
-      <p className="policy__meta">
-        Jendela refund: {data.policy.refundDays} hari kalender sejak pembayaran diterima.
-        Hak paket hanya materi permukaan; berkas sumber, model 3D, dan kode tidak ikut
-        dialihkan.
-      </p>
+      </div>
     </>
   );
 }
