@@ -425,7 +425,7 @@ button, label, a { touch-action: manipulation; }
   border-radius: 14px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.025);
-  transition: border-color 220ms var(--ease), background 220ms var(--ease), box-shadow 220ms var(--ease);
+  transition: border-color 220ms var(--ease), background 220ms var(--ease), box-shadow 220ms var(--ease), transform 220ms var(--ease);
 }
 .plan input:checked + .plan__body {
   border-color: rgba(217, 186, 124, 0.75);
@@ -763,4 +763,32 @@ button, label, a { touch-action: manipulation; }
 /* Fallback: kalau backdrop-filter tidak didukung, panel tetap terbaca. */
 @supports not (backdrop-filter: blur(1px)) {
   .glass { background: rgba(10, 13, 20, 0.92); }
+}
+
+/* ---------- gerak ----------
+   Masuk berjenjang 60ms: cukup untuk terbaca sebagai urutan, tidak cukup
+   untuk terasa lambat. Hanya opacity dan transform, jadi tidak memicu layout.
+   Semua dimatikan di prefers-reduced-motion (blok di atas). */
+
+@keyframes masuk {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.wrap > .glass,
+.wrap > .split > .glass {
+  animation: masuk 620ms var(--ease) both;
+}
+.wrap > .glass:nth-child(1) { animation-delay: 40ms; }
+.wrap > .split { animation: masuk 620ms var(--ease) both; animation-delay: 120ms; }
+.wrap > .glass:nth-child(3) { animation-delay: 200ms; }
+
+/* Angkat 2px saat hover: umpan balik fisik, bukan hiasan. */
+.plan__body { will-change: transform; }
+.plan:hover .plan__body { transform: translateY(-2px); }
+.plan input:checked + .plan__body { transform: translateY(-1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap > .glass, .wrap > .split { animation: none; }
+  .plan:hover .plan__body, .plan input:checked + .plan__body { transform: none; }
 }

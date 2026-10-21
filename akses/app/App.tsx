@@ -325,9 +325,9 @@ function TransactionPanel({ data }: { data: Penawaran }) {
           <p className="field-label">Riwayat</p>
           <h2 className="card__title">Transaksi</h2>
         </div>
-        <button className="btn btn--ghost btn--auto" type="button" disabled>
-          Memuat
-        </button>
+        {/* Tidak ada tombol muat ulang di sini: belum ada data yang bisa
+            dimuat, dan tombol mati berlabel "Memuat" terbaca sebagai halaman
+            yang gagal, bukan halaman yang kosong. */}
       </header>
 
       <div className="tx tx--sample">
