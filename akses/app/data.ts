@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /** Bentuk data dari akses/data/penawaran.json. Satu sumber untuk halaman ini. */
 export type Plan = {
@@ -117,4 +117,64 @@ export const ORDER_STATUS: Record<string, string> = {
 
 export function usePlanOrder(): Array<'year' | 'lifetime'> {
   return useMemo(() => ['year', 'lifetime'], []);
+}
+
+/** Salin ringkasan sebagai teks biasa supaya bisa ditempel ke chat. */
+export function copySummary(
+  data: Penawaran,
+  plan: 'year' | 'lifetime',
+  setCopied: (value: boolean) => void,
+  timer: { current: number | null },
+) {
+  const chosen = data.plans[plan];
+  const text = [
+    `VIVASTIC ${chosen.name}`,
+    `Harga: ${money(chosen.idr)}`,
+    `Biaya QRIS: ${money(0)} (ditanggung VIVASTIC)`,
+    `Total: ${money(chosen.idr)}`,
+    `Status: ${RELEASE.stage}, pembayaran belum dibuka`,
+  ].join('\n');
+
+  const done = () => {
+    setCopied(true);
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setCopied(false), 2600);
+  };
+
+  if (navigator.clipboard?.writeText) {
+    void navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    return;
+  }
+  fallbackCopy(text, done);
+}
+
+/** Clipboard API butuh konteks aman; ini jalur cadangan untuk selain itu. */
+function fallbackCopy(text: string, done: () => void) {
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.left = '-9999px';
+  document.body.append(area);
+  area.select();
+  try {
+    document.execCommand('copy');
+    done();
+  } catch {
+    /* Gagal menyalin bukan kesalahan halaman: teksnya tetap terlihat. */
+  } finally {
+    area.remove();
+  }
+}
+
+/** Timer yang dibersihkan saat komponen dilepas. */
+export function useCopyTimer() {
+  const ref = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (ref.current) window.clearTimeout(ref.current);
+    },
+    [],
+  );
+  return ref;
 }

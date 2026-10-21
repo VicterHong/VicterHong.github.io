@@ -442,6 +442,18 @@ if (existsSync(aksesDir)) {
     htmlFiles.push('akses/index.html');
     nHtml++;
   }
+
+  // Video latar. Disimpan di `akses/media/`, bukan di `akses/assets/`, karena
+  // folder assets dibersihkan build-akses setiap kali dan berkas ini tidak
+  // dihasilkan build.
+  const dariMedia = join(aksesDir, 'media');
+  if (existsSync(dariMedia)) {
+    const keMedia = join(DIST, 'akses', 'media');
+    mkdirSync(keMedia, { recursive: true });
+    for (const entry of readdirSync(dariMedia, { withFileTypes: true })) {
+      if (entry.isFile()) copyFileSync(join(dariMedia, entry.name), join(keMedia, entry.name));
+    }
+  }
 }
 
 console.log(`  HTML: ${nHtml} berkas · rujukan CSS dialihkan ke .min.css`);
