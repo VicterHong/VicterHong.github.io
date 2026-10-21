@@ -1,0 +1,64 @@
+{
+  "idr": 17986,
+  "note": "Kurs tampilan, disamakan dengan shared/pricing.mjs di gateway. Bukan kurs transaksi: server pembayaran yang menentukan nominal akhir.",
+  "plans": {
+    "year": {
+      "name": "Akses 1 Tahun",
+      "tagline": "Dua belas bulan akses ke aplikasi 3D.",
+      "idr": 144000,
+      "anchorIdr": 180000,
+      "months": 12,
+      "points": [
+        "Seluruh scene yang sudah dirilis",
+        "Pembaruan selama masa akses",
+        "Tidak diperpanjang otomatis"
+      ]
+    },
+    "lifetime": {
+      "name": "Akses Lifetime",
+      "tagline": "Sekali bayar, tanpa tanggal berakhir.",
+      "idr": 270000,
+      "anchorIdr": 360000,
+      "months": null,
+      "badge": "Hemat",
+      "points": [
+        "Seluruh scene yang sudah dirilis",
+        "Pembaruan tanpa batas waktu",
+        "Tidak ada tagihan berulang"
+      ]
+    }
+  },
+  "methods": [
+    {
+      "id": "qris",
+      "label": "QRIS",
+      "note": "Semua e-wallet dan m-banking"
+    }
+  ],
+  "policy": {
+    "refundDays": 7,
+    "lines": [
+      {
+        "title": "Refund dalam 7 hari",
+        "body": "Pembelian dapat dikembalikan penuh sampai 7 hari kalender setelah pembayaran diterima. Setelah itu pembelian bersifat final."
+      },
+      {
+        "title": "Hak lihat dan pakai",
+        "body": "Pembeli boleh melihat dan memakai materi permukaan yang tampil di halaman, termasuk untuk presentasi atau referensi kerja."
+      },
+      {
+        "title": "Yang tidak termasuk",
+        "body": "Berkas sumber, model 3D, tekstur, kode, dan konfigurasi server tidak ikut dialihkan."
+      },
+      {
+        "title": "Tanpa perpanjangan otomatis",
+        "body": "Tidak ada tagihan berulang. Akses berhenti di tanggal yang tertera tanpa penarikan dana tambahan."
+      }
+    ]
+  },
+  "sampleOrder": {
+    "code": "VV-PE-2610-K7QM",
+    "plan": "lifetime",
+    "amountIdr": 270000
+  }
+}

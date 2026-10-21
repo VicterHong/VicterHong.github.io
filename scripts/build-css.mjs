@@ -22,7 +22,7 @@
  *
  * Jalankan: node scripts/build-css.mjs
  */
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, rmSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, rmSync, statSync, copyFileSync } from 'node:fs';
 import { resolve, dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -35,6 +35,11 @@ const DIST = join(ROOT, 'dist');
 // ── 1. Bersihkan dist ────────────────────────────────────────────────────────
 if (existsSync(DIST)) rmSync(DIST, { recursive: true, force: true });
 mkdirSync(join(DIST, 'assets', 'css'), { recursive: true });
+
+// ── 1b. Bangun halaman React /akses/ SEBELUM penyalinan ─────────────────────
+// Sumbernya .tsx, hasilnya akses/assets/app.js + app.css. Harus jalan lebih
+// dulu supaya berkas hasil build sudah ada saat penyalinan berlangsung.
+execFileSync(process.execPath, [join(ROOT, 'scripts', 'build-akses.mjs')], { stdio: 'inherit' });
 
 // ── 2. Minifikasi setiap CSS ─────────────────────────────────────────────────
 const cssDir = join(ROOT, 'assets', 'css');
@@ -106,10 +111,14 @@ const LEWATI_BERKAS = new Set([
   'cloudflare.config.ts',
 ]);
 
+/** Direktori sumber yang tidak boleh disalin: isinya dibangun, bukan dikirim. */
+const LEWATI_SUMBER = new Set(['akses/app']);
+
 function salin(dir, rel = '') {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name.startsWith('.') && entry.name !== '.well-known') continue;
     if (LEWATI_DIR.has(entry.name)) continue;
+    if (LEWATI_SUMBER.has(rel ? `${rel}/${entry.name}` : entry.name)) continue;
     const full = join(dir, entry.name);
     const relPath = rel ? `${rel}/${entry.name}` : entry.name;
 
@@ -121,6 +130,11 @@ function salin(dir, rel = '') {
     // CSS ditangani di langkah 2, JS di langkah 2b, HTML di langkah 4
     if (entry.name.endsWith('.css') || entry.name.endsWith('.html')) continue;
     if (entry.name.endsWith('.js')) continue;
+    // ── SUMBER TYPESCRIPT TIDAK PERNAH IKUT DEPLOY ─────────────────────────
+    // `akses/app/` adalah sumber React (.tsx/.ts). Yang dikirim ke browser
+    // hanya hasil build di `akses/assets/`. Tanpa aturan ini, source lengkap
+    // ikut ter-deploy dan bisa diunduh siapa pun dari /akses/app/App.tsx.
+    if (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts')) continue;
     // Alat pengembang — jangan ikut deploy
     if (LEWATI_BERKAS.has(entry.name)) continue;
     // Berkas yang tidak perlu ikut deploy
@@ -395,6 +409,37 @@ if (existsSync(sDir)) {
     const isi = readFileSync(idx, 'utf8');
     mkdirSync(join(DIST, 's', sub.name), { recursive: true });
     writeFileSync(join(DIST, 's', sub.name, 'index.html'), prosesHtml(isi));
+    nHtml++;
+  }
+}
+
+// ── 4b. /akses/: aset hasil build + halaman ─────────────────────────────────
+// Berkas .js/.css di akses/assets/ SENGAJA tidak lewat minifier situs: bundle
+// React sudah diminifikasi esbuild saat dibangun, dan memprosesnya lagi akan
+// merusak nama chunk. Yang disalin apa adanya hanya hasil build itu.
+const aksesDir = join(ROOT, 'akses');
+if (existsSync(aksesDir)) {
+  const dariAset = join(aksesDir, 'assets');
+  const keAset = join(DIST, 'akses', 'assets');
+  if (existsSync(dariAset)) {
+    const salinPohon = (from, to) => {
+      mkdirSync(to, { recursive: true });
+      for (const entry of readdirSync(from, { withFileTypes: true })) {
+        const src = join(from, entry.name);
+        const dst = join(to, entry.name);
+        if (entry.isDirectory()) salinPohon(src, dst);
+        else if (entry.isFile()) copyFileSync(src, dst);
+      }
+    };
+    salinPohon(dariAset, keAset);
+  }
+
+  const idx = join(aksesDir, 'index.html');
+  if (existsSync(idx)) {
+    const sumber = readFileSync(idx, 'utf8');
+    mkdirSync(join(DIST, 'akses'), { recursive: true });
+    writeFileSync(join(DIST, 'akses', 'index.html'), prosesHtml(sumber));
+    htmlFiles.push('akses/index.html');
     nHtml++;
   }
 }
