@@ -62,6 +62,18 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # ── KENAPA JOB INI BUTUH npm ci ─────────────────────────────────────────
+      # `scripts/build-css.mjs` memanggil `scripts/build-akses.mjs`, dan berkas
+      # itu mengimpor `esbuild` serta menyalin font dari `@fontsource/*`.
+      # Sebelum halaman /akses/ ada, job ini cukup menjalankan skrip Node
+      # tanpa dependensi. Sekarang tidak: tanpa langkah ini, build gagal
+      # `ERR_MODULE_NOT_FOUND` dan preflight tidak pernah sampai ke
+      # pemeriksaannya sendiri.
+      - name: Pasang dependensi situs
+        run: npm ci
 
       - name: Regenerasi berkas discovery
         run: node scripts/generate-discovery.mjs
