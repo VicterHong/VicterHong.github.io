@@ -27,3 +27,6 @@ email-src/impor/*.html
 akses/assets/app.js
 akses/assets/app.css
 akses/assets/fonts/
+
+# Video latar /akses/. Berkas 2,6 MB; disalin dari aset privat, tidak di-commit.
+akses/media/

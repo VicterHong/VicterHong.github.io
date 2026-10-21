@@ -32,8 +32,20 @@ const FONT_FILES = [
 
 const hash = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 8);
 
-await rm(OUT, { recursive: true, force: true });
+/**
+ * `motion/` SENGAJA tidak dihapus di sini. Isinya berkas 2,6 MB yang tidak
+ * dihasilkan build; menghapusnya berarti build berikutnya diam-diam
+ * menghasilkan halaman tanpa latar video.
+ */
+const KEEP = new Set(['motion']);
+
+await mkdir(OUT, { recursive: true });
+for (const entry of await readdir(OUT, { withFileTypes: true })) {
+  if (entry.isDirectory() && KEEP.has(entry.name)) continue;
+  await rm(join(OUT, entry.name), { recursive: true, force: true });
+}
 await mkdir(join(OUT, 'fonts'), { recursive: true });
+await mkdir(join(OUT, 'motion'), { recursive: true });
 
 // ── 1. JS: satu bundle ───────────────────────────────────────────────────────
 // Nama TANPA hash, sama seperti aset lain di situs ini. Perlindungan versi
