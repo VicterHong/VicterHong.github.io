@@ -104,8 +104,8 @@ export const RELEASE = {
   paymentsOpen: false,
   closedCta: 'Pembayaran belum dibuka',
   closedReason:
-    'Tombol pembayaran aktif setelah aplikasi 3D lolos uji di perangkat nyata. ' +
-    'Harga di bawah tidak akan berubah saat itu.',
+    'Pembayaran dibuka setelah aplikasi 3D lolos uji di perangkat fisik. ' +
+    'Nominal paket tetap seperti yang tertera.',
 } as const;
 
 export const ORDER_STATUS: Record<string, string> = {
