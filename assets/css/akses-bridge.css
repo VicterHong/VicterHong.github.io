@@ -1,0 +1,91 @@
+/* ==========================================================================
+   Jembatan ke aplikasi React /akses/.
+   Satu kartu, bukan banner besar: ini pintu, bukan section baru. Warnanya
+   memakai token situs (emas tunggal), dan tidak ada gradien ungu.
+   ========================================================================== */
+
+.akses-bridge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 40px;
+  padding: 26px 28px;
+  border: 1px solid rgba(244, 242, 236, 0.12);
+  border-left: 2px solid var(--accent, #c9a961);
+  border-radius: 10px;
+  background: rgba(244, 242, 236, 0.02);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    background 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.akses-bridge:hover {
+  border-color: rgba(244, 242, 236, 0.2);
+  border-left-color: var(--accent, #c9a961);
+  background: rgba(244, 242, 236, 0.04);
+}
+
+.akses-bridge:focus-visible {
+  outline: 2px solid var(--accent, #c9a961);
+  outline-offset: 3px;
+}
+
+.akses-bridge__body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.akses-bridge__label {
+  font-family: var(--mono, 'JetBrains Mono', monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent, #c9a961);
+}
+
+.akses-bridge__title {
+  font-size: clamp(1.1rem, 1.7vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--fg, #f4f2ec);
+}
+
+.akses-bridge__note {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fg-muted, rgba(244, 242, 236, 0.62));
+  max-width: 62ch;
+}
+
+.akses-bridge__cta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(201, 169, 97, 0.5);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--accent, #c9a961);
+  transition: background 200ms ease, border-color 200ms ease;
+}
+
+.akses-bridge:hover .akses-bridge__cta {
+  background: rgba(201, 169, 97, 0.1);
+  border-color: rgba(201, 169, 97, 0.75);
+}
+
+@media (max-width: 720px) {
+  .akses-bridge {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 22px;
+  }
+  .akses-bridge__cta { width: 100%; justify-content: center; }
+}

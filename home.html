@@ -87,6 +87,7 @@
 </script>
 
 <link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/akses-bridge.css">
 <link rel="stylesheet" href="assets/css/metrik.css">
 <link rel="stylesheet" href="assets/css/diagram.css">
 <link rel="stylesheet" href="assets/css/sandbox.css">
@@ -155,6 +156,10 @@
       <a href="#utqvwf">Proyek</a>
       <a href="#cckxsk">Layanan</a>
       <a href="/pricing">Harga</a>
+      <!-- Jembatan ke aplikasi React: halaman statis ini tetap vanilla,
+           sedangkan /akses/ adalah bundle React yang memuat harga dan alur
+           transaksi. Dua-duanya berbagi identitas, bukan kode. -->
+      <a href="/akses/">Akses 3D</a>
       <a href="#5nfyzw">Proses</a>
       <a href="/docs">Dokumentasi</a>
       <a href="/changelog">Changelog</a>
@@ -381,6 +386,26 @@
       </p>
     </div>
     <div class="services-grid" id="servicesGrid" data-stagger></div>
+
+    <!-- ── JEMBATAN KE APLIKASI REACT ────────────────────────────────────────
+         Halaman ini tetap HTML + CSS + JS vanilla. Tautan di bawah membawa
+         pengunjung ke /akses/, satu-satunya bagian situs yang memakai React,
+         karena di sana ada harga, ringkasan pembayaran, dan riwayat transaksi
+         yang butuh state.
+
+         Ditulis apa adanya: aplikasinya masih dibangun, dan pembayaran belum
+         dibuka. Kartu ini tidak menjanjikan tanggal rilis. -->
+    <a class="akses-bridge" href="/akses/">
+      <span class="akses-bridge__body">
+        <span class="akses-bridge__label">Portofolio 3D / dalam pengembangan</span>
+        <span class="akses-bridge__title">Harga dan alur akses 3D</span>
+        <span class="akses-bridge__note">
+          Halaman React terpisah: paket, ringkasan biaya, dan contoh transaksi.
+          Pembayaran ditutup sampai aplikasinya siap dipakai.
+        </span>
+      </span>
+      <span class="akses-bridge__cta" aria-hidden="true">Buka</span>
+    </a>
   </section>
 
   <!-- ── VISI & MISI ─────────────────────────────────────────────────────────

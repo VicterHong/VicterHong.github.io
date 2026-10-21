@@ -20,3 +20,10 @@ preview-email.html
 
 # HTML ekspor dari platform visual (besar, bisa diekspor ulang)
 email-src/impor/*.html
+
+# Hasil build halaman /akses/ — dibuat ulang oleh scripts/build-akses.mjs.
+# Yang di-commit hanya sumbernya (akses/app/*.tsx, akses/app/app.css), supaya
+# riwayat repo tidak menyimpan bundle yang bisa diregenerasi.
+akses/assets/app.js
+akses/assets/app.css
+akses/assets/fonts/
