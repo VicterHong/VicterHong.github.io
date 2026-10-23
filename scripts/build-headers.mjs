@@ -27,17 +27,77 @@
  * mencocokkan origin, bukan path.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
+const DIST = join(ROOT, 'dist');
 
 const SUMBER_TETAP = [
   "'self'",
   'https://api.github.com',
   'https://challenges.cloudflare.com',
   'https://api.iconify.design',
+  // Tunnel quick Cloudflare berputar (URL baru tiap restart). Origin aktif
+  // ditambahkan di bawah dari backend-url.json, tapi wildcard ini mencegah
+  // API mati total saat tunnel berganti sebelum build berikutnya.
+  'https://*.trycloudflare.com',
 ];
+
+/**
+ * Hash SHA-256 semua <script> inline di dist/, untuk CSP tanpa 'unsafe-inline'.
+ *
+ * ── KENAPA HASH, BUKAN 'unsafe-inline' ──────────────────────────────────────
+ * 'unsafe-inline' mematikan proteksi XSS terpenting di CSP: skrip apa pun yang
+ * berhasil disuntikkan ke HTML ikut dieksekusi. Hash membuat browser hanya
+ * menjalankan blok yang isinya persis sama dengan saat build.
+ *
+ * ── KENAPA DIHITUNG DARI dist/, BUKAN DARI SUMBER ───────────────────────────
+ * Minifier mengubah isi blok (spasi, tanda kutip). Hash dari sumber akan
+ * selalu salah. Yang di-hash harus byte yang benar-benar dikirim ke browser.
+ *
+ * ── KENAPA SETELAH MINIFIKASI ───────────────────────────────────────────────
+ * build-headers.mjs dipanggil di AKHIR build-css.mjs, setelah dist/ final.
+ * Kalau dipanggil lebih awal, hash-nya basi dan SEMUA skrip inline diblokir —
+ * halaman akan tampak rusak total tanpa error yang jelas.
+ */
+function hashSkripInline() {
+  const hash = new Set();
+  const berkas = [];
+  const pola = /<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/g;
+
+  const walk = (dir) => {
+    for (const nama of readdirSync(dir)) {
+      const jalur = join(dir, nama);
+      if (statSync(jalur).isDirectory()) walk(jalur);
+      else if (nama.endsWith('.html')) berkas.push(jalur);
+    }
+  };
+  walk(DIST);
+
+  for (const jalur of berkas) {
+    const isi = readFileSync(jalur, 'utf8');
+    for (const m of isi.matchAll(pola)) {
+      const attrs = m[1] || '';
+      // Blok data (JSON-LD, importmap) tidak dieksekusi; CSP tidak menjaganya.
+      if (/type\s*=\s*["']?(application\/(ld\+)?json|importmap)/i.test(attrs)) continue;
+      const badan = m[2];
+      if (!badan.trim()) continue;
+      const digest = createHash('sha256').update(badan, 'utf8').digest('base64');
+      hash.add(`'sha256-${digest}'`);
+    }
+  }
+  return [...hash].sort();
+}
+
+const hashInline = hashSkripInline();
+if (hashInline.length === 0) {
+  console.error('✖ Tidak ada skrip inline ditemukan di dist/ — build belum jalan?');
+  process.exit(1);
+}
+
 
 /** Origin dari backend-url.json, atau null kalau berkas tidak ada/rusak. */
 function originBackend() {
@@ -87,7 +147,7 @@ const headers = `# ── Header keamanan & cache — DIHASILKAN OTOMATIS ──
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
   Cross-Origin-Opener-Policy: same-origin
   X-DNS-Prefetch-Control: on
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src ${connectSrc}; frame-src https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' ${hashInline.join(' ')} https://challenges.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src ${connectSrc}; frame-src https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
 
 # ── Aset statis: selalu divalidasi ulang, JANGAN di-cache lama ───────────────
 # Nama berkas TIDAK berisi hash isi (app.min.js, main.min.css) — nama yang sama
