@@ -139,6 +139,20 @@ const headers = `# ── Header keamanan & cache — DIHASILKAN OTOMATIS ──
 #
 # Origin aktif saat build ini: ${origin}
 
+# ── CATATAN: CLOUDFLARE MENYUNTIK SKRIP DI HOST PROXIED ─────────────────────
+# victer.is-a.dev adalah CNAME proxied di zona is-a.dev. Zona itu menyuntikkan
+# <script> inline (beacon Web Analytics + challenge-platform) SETELAH HTML
+# meninggalkan Pages, jadi hash-nya tidak bisa dihitung saat build dan skrip
+# itu diblokir oleh CSP di bawah.
+#
+# Itu disengaja: 'unsafe-inline' TIDAK ditambahkan. Di CSP3, 'unsafe-inline'
+# diabaikan selama ada hash — jadi menambahkannya tidak akan menolong, hanya
+# melemahkan halaman lain. Yang diblokir hanya milik Cloudflare, bukan skrip
+# situs; halaman tetap berjalan (diuji: CF_GATE_CONFIG terdefinisi).
+#
+# Kalau nanti beacon Cloudflare ingin dihidupkan: lepas proxy (proxied:false)
+# atau minta maintainer is-a.dev mematikan Web Analytics zona.
+
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Frame-Options: SAMEORIGIN
@@ -147,19 +161,6 @@ const headers = `# ── Header keamanan & cache — DIHASILKAN OTOMATIS ──
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
   Cross-Origin-Opener-Policy: same-origin
   X-DNS-Prefetch-Control: on
-  // ── CATATAN: CLOUDFLARE MENYUNTIK SKRIP DI HOST PROXIED ──────────────────
-  // victer.is-a.dev adalah CNAME proxied di zona is-a.dev. Zona itu
-  // menyuntikkan <script> inline (beacon Web Analytics + challenge-platform)
-  // SETELAH HTML meninggalkan Pages, jadi hash-nya tidak bisa dihitung saat
-  // build dan skrip itu diblokir oleh CSP ini.
-  //
-  // Itu disengaja: 'unsafe-inline' TIDAK ditambahkan. Kalau ditambahkan pun
-  // browser mengabaikannya selama ada hash (CSP3), jadi tidak akan menolong.
-  // Yang diblokir hanya milik Cloudflare, bukan skrip kita — halaman tetap
-  // berjalan (diuji: CF_GATE_CONFIG terdefinisi, 0 error fungsional).
-  //
-  // Kalau nanti ingin beacon Cloudflare hidup, buka proxy (proxied:false)
-  // atau minta maintainer is-a.dev mematikan Web Analytics zona.
   Content-Security-Policy: default-src 'self'; script-src 'self' ${hashInline.join(' ')} https://challenges.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src ${connectSrc}; frame-src https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
 
 # ── Aset statis: selalu divalidasi ulang, JANGAN di-cache lama ───────────────
