@@ -26,6 +26,19 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
   Cross-Origin-Opener-Policy: same-origin
   X-DNS-Prefetch-Control: on
+  // ── CATATAN: CLOUDFLARE MENYUNTIK SKRIP DI HOST PROXIED ──────────────────
+  // victer.is-a.dev adalah CNAME proxied di zona is-a.dev. Zona itu
+  // menyuntikkan <script> inline (beacon Web Analytics + challenge-platform)
+  // SETELAH HTML meninggalkan Pages, jadi hash-nya tidak bisa dihitung saat
+  // build dan skrip itu diblokir oleh CSP ini.
+  //
+  // Itu disengaja: 'unsafe-inline' TIDAK ditambahkan. Kalau ditambahkan pun
+  // browser mengabaikannya selama ada hash (CSP3), jadi tidak akan menolong.
+  // Yang diblokir hanya milik Cloudflare, bukan skrip kita — halaman tetap
+  // berjalan (diuji: CF_GATE_CONFIG terdefinisi, 0 error fungsional).
+  //
+  // Kalau nanti ingin beacon Cloudflare hidup, buka proxy (proxied:false)
+  // atau minta maintainer is-a.dev mematikan Web Analytics zona.
   Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-+DzFF2AJ0NwmOmlHHWtRZGQFPQKBYUjPNYcCocndEo4=' 'sha256-+v5GWqE8x6gk2vOMQ/y3ha+OlIiPPS0+x/q1vWWLYNc=' 'sha256-/aAgYcapT31x/A6a27yNA6s2JsyeDiGp25yDyGa5ShE=' 'sha256-47xB4SV4wkgDM8f4Q6A1SRz0gp1hYGDK70ASvbKEP48=' 'sha256-4paZ8qpb8MQ6vzv9fKmU3dMclndaFFSWvaceiXjZdrY=' 'sha256-AFCFI5DdYEDxe9Q2rtudUBT9J91YWT9H6gF3N2fnMds=' 'sha256-ANp/pdYGGOiEOHxxtFAbz28fAMqSoMlDkzL8moLUSbs=' 'sha256-HbRobEGLufUR/zyh+gSi6MbSJtJxw3Pt16rRL8JdMTk=' 'sha256-MBY58ILkkf7iB7lQIrlTBdKtKE3iB9x9YxUUKrA6Oho=' 'sha256-UmK1Ry5URrnk0FEY1ev9WEe3sHVNN9H4MQmpria0NBE=' 'sha256-jWUTS62WYjCBdEa1ahPGbksoSdPgSkqDH55X0h89oQE=' 'sha256-mIVcpJ9UFa626q7PdW0AodvAHmWF0aymxhQDBesvbig=' 'sha256-qkfkXa7yHD+sPxBeMu6CgmuoRA9uzvzkpxreGVnHdfI=' 'sha256-wC6cbRCeDlRbqEHnun9PQB4YLjPPmJxfjCpVU79pbxk=' https://challenges.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' data: https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.github.com https://challenges.cloudflare.com https://api.iconify.design https://*.trycloudflare.com https://chronicles-draft-tackle-electron.trycloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
 
 # ── Aset statis: selalu divalidasi ulang, JANGAN di-cache lama ───────────────
