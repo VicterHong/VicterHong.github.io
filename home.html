@@ -1,761 +1,293 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIVASTIC | Automation &amp; Self-hosted Tools</title>
-<meta name="description" content="Perangkat lunak self-hosted yang berjalan di mesin Anda sendiri. MINA, Spareparts Inventory, dan alat otomasi lain tanpa langganan bulanan.">
-<meta name="author" content="VIVASTIC">
-<meta name="theme-color" content="#0a0a0b">
-<link rel="canonical" href="https://portfolio-victer.pages.dev/home">
-
-<!-- Ikon: SVG untuk browser modern, ICO fallback untuk yang lama -->
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="/assets/favicon-180.png">
-<link rel="manifest" href="/assets/site.webmanifest">
-
-<!-- Open Graph: supaya tautan yang dibagikan tampil rapi.
-     URL produksi = pages.dev; github.io adalah cermin cadangan. -->
-<meta property="og:title" content="VIVASTIC, Automation &amp; Self-hosted Tools">
-<meta property="og:description" content="Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://portfolio-victer.pages.dev/home">
-<meta property="og:image" content="https://portfolio-victer.pages.dev/assets/hero-poster.jpg">
-<meta property="og:locale" content="id_ID">
-
-<!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="VIVASTIC, Automation &amp; Self-hosted Tools">
-<meta name="twitter:description" content="Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Satoshi (Fontshare) = body. Playfair Display = heading serif. JetBrains Mono = kode/angka. -->
-<link rel="preconnect" href="https://api.fontshare.com">
-<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<!-- JSON-LD: structured data untuk search engine & AI (AEO).
-     Data di sini sinkron dengan llms.txt — satu sumber kebenaran. -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Person",
-      "@id": "https://portfolio-victer.pages.dev/#person",
-      "name": "VIVASTIC",
-      "url": "https://portfolio-victer.pages.dev",
-      "jobTitle": "Automation & self-hosted tools developer",
-      "address": { "@type": "PostalAddress", "addressCountry": "ID" },
-      "sameAs": ["https://github.com/VicterHong"]
-    },
-    {
-      "@type": "WebSite",
-      "@id": "https://portfolio-victer.pages.dev/#website",
-      "url": "https://portfolio-victer.pages.dev",
-      "name": "VIVASTIC — Automation & Self-hosted Tools",
-      "description": "Alat otomasi yang berjalan di tempat Anda sendiri. Hemat sumber daya, aman sejak desain.",
-      "publisher": { "@id": "https://portfolio-victer.pages.dev/#person" },
-      "inLanguage": "id-ID"
-    },
-    {
-      "@type": "ItemList",
-      "name": "Proyek",
-      "description": "Kode sumber proyek bersifat privat. Akses diberikan lewat token setelah permintaan disetujui.",
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "MINA Remote Control" },
-        { "@type": "ListItem", "position": 2, "name": "Spareparts Inventory System" },
-        { "@type": "ListItem", "position": 3, "name": "WhatsApp Family Assistant" }
-      ]
-    },
-    {
-      "@type": "OfferCatalog",
-      "name": "Layanan",
-      "itemListElement": [
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Otomasi alur kerja" } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Bot & integrasi" } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Sistem self-hosted" } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Audit & perbaikan" } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "3D Web & Creative Motion" } },
-        { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Audit Keamanan AI & Pentest" } }
-      ]
-    }
-  ]
-}
-</script>
-
-<link rel="stylesheet" href="assets/css/main.css">
-<link rel="stylesheet" href="assets/css/akses-bridge.css">
-<link rel="stylesheet" href="assets/css/metrik.css">
-<link rel="stylesheet" href="assets/css/diagram.css">
-<link rel="stylesheet" href="assets/css/sandbox.css">
-<link rel="stylesheet" href="assets/css/astra.css">
-<link rel="stylesheet" href="assets/css/cinematic.css">
-<link rel="stylesheet" href="assets/css/logo.css">
-<link rel="stylesheet" href="assets/css/tilt-panel.css">
-<link rel="stylesheet" href="assets/css/premium.css">
-<link rel="stylesheet" href="assets/css/bento.css">
-<link rel="stylesheet" href="assets/css/depth.css">
-<link rel="stylesheet" href="assets/css/editorial.css">
-<link rel="stylesheet" href="assets/css/grain.css">
-<link rel="stylesheet" href="assets/css/wave-reveal.css">
-<link rel="stylesheet" href="assets/css/magnetic.css">
-<link rel="stylesheet" href="assets/css/hscroll.css">
-<link rel="stylesheet" href="assets/css/orb-menu.css">
-<link rel="stylesheet" href="assets/css/variable-weight.css">
-<link rel="stylesheet" href="assets/css/spotlight.css">
-<link rel="stylesheet" href="assets/css/video-player.css">
-<link rel="stylesheet" href="assets/css/masonry.css">
-<link rel="stylesheet" href="assets/css/cf-gate.css">
-<link rel="stylesheet" href="assets/css/cookies.css">
-<link rel="stylesheet" href="assets/css/visi-misi.css">
-<link rel="stylesheet" href="assets/css/interactions.css">
-<link rel="stylesheet" href="assets/css/orb-3d.css">
-<link rel="stylesheet" href="assets/css/gerbang-akses.css">
-<link rel="stylesheet" href="assets/css/skip-link.css">
-<script>
-  // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
-  // kedipan konten sebelum overlay verifikasi muncul (pola Cloudflare).
-  try {
-    if (!sessionStorage.getItem('cf_clearance_' + location.hostname)) {
-      document.documentElement.classList.add('cf-gating');
-      // Jaring pengaman: kalau skrip gate gagal dimuat, halaman tetap tampil.
-      setTimeout(function () {
-        document.documentElement.classList.remove('cf-gating');
-      }, 8000);
-    }
-  } catch (e) { /* mode privasi ketat: tampilkan halaman apa adanya */ }
-</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sistem yang tepat. Di tangan Anda. | VIVASTIC</title>
+<meta name="description" content="Otomasi dan perangkat lunak self-hosted oleh Victer.">
+<meta name="theme-color" content="#0F172A">
+<link rel="canonical" href="https://portfolio-victer.pages.dev/home.html">
+<meta property="og:title" content="Sistem yang tepat. Di tangan Anda. | VIVASTIC">
+<meta property="og:image" content="https://portfolio-victer.pages.dev/assets/premium-orb.svg">
+<link rel="icon" href="/favicon.svg">
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/portfolio-premium.css">
+<link rel="stylesheet" href="/assets/css/metrik.css">
+<link rel="stylesheet" href="/assets/css/diagram.css">
+<link rel="stylesheet" href="/assets/css/sandbox.css">
+<link rel="stylesheet" href="/assets/css/orb-3d.css">
+<link rel="stylesheet" href="/assets/css/cf-gate.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Sistem yang tepat. Di tangan Anda.","inLanguage":"id"}</script>
 </head>
-<body>
-<a class="skip-link" href="#zs6xae">Lompat ke konten</a>
-
-<!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
-     Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
-<div class="hero-backdrop" aria-hidden="true">
-  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg">
-    <!-- Sumber diisi oleh app.js kalau berkasnya ada. MP4 untuk kompatibilitas, WebM untuk ukuran kecil. -->
-    <!-- Desktop: scroll-scrub. Mobile: autoplay loop (lihat cinematic.js). -->
-    <!-- Poster: frame terang — supaya background tidak terlihat polos saat
-         autoplay diblokir browser (mode hemat baterai/data). -->
-  </video>
-  <div class="hero-fallback"></div>
-  <div class="hero-grain"></div>
+<body class="portfolio-premium">
+<a class="p-skip" href="#main">Lompat ke konten</a>
+<header class="p-header">
+<a class="p-brand" href="/home.html">V<span aria-hidden="true">/</span> VIVASTIC<span class="p-brand-sub">VICTER / ENGINEERING</span>
+</a>
+<nav aria-label="Navigasi utama">
+<a href="/home.html#proyek">Proyek</a>
+<a href="/layanan.html" >Layanan</a>
+<a href="/docs">Dokumentasi</a>
+</nav>
+<div id="navAkun" class="nav-akun">
+<a href="/sign-in" class="nav-signin">Sign in ↗</a>
 </div>
-
-<header class="site-header">
-  <div class="site-header-inner">
-    <a class="brand" href="#zs6xae">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <span class="brand-text">VIVASTIC</span>
-    </a>
-    <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
-      <a href="#s6ahns">Tentang</a>
-      <a href="#utqvwf">Proyek</a>
-      <a href="#cckxsk">Layanan</a>
-      <a href="/pricing">Harga</a>
-      <!-- Jembatan ke aplikasi React: halaman statis ini tetap vanilla,
-           sedangkan /akses/ adalah bundle React yang memuat harga dan alur
-           transaksi. Dua-duanya berbagi identitas, bukan kode. -->
-      <a href="/akses/">Akses 3D</a>
-      <a href="#5nfyzw">Proses</a>
-      <a href="/docs">Dokumentasi</a>
-      <a href="/changelog">Changelog</a>
-      <a href="#89fk39">Kontak</a>
-    </nav>
-    <!-- Grup akun — TERPISAH dari nav. -->
-      <div class="nav-akun" id="navAkun">
-        <a class="nav-signin" href="/sign-in">Sign in</a>
-      </div>
-
-    <button class="nav-toggle" id="navToggle" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="siteNav">
-      <span data-icon="menu" data-icon-size="20"></span>
-    </button>
-  </div>
-  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
 </header>
-
-<!-- Tirai gelap saat menu mobile terbuka — memisahkan panel dari konten. -->
-<div class="nav-scrim" id="navScrim" aria-hidden="true"></div>
-
-<main id="zs6xae" tabindex="-1">
-
-  <!-- ── PEMBUKA ─────────────────────────────────────────────────────────────
-       Dua kolom: kiri menjelaskan, kanan MEMBUKTIKAN. Terminal window berisi
-       output nyata MINA — pola hero yang dipakai Framer/Vercel/Linear:
-       jangan cuma bilang "saya bangun alat", tunjukkan alatnya bekerja. -->
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="hero-copy">
-      <p class="hero-kicker">Automation &amp; self-hosted tools</p>
-      <h1 class="hero-title" id="hero-title" data-cine-words>
-        Perangkat lunak yang berjalan di <span class="accent">mesin Anda sendiri</span>, bukan di cloud orang lain.
-      </h1>
-      <p class="hero-lede">
-        Tanpa langganan, tanpa tagihan bulanan, tanpa data yang keluar dari jaringan Anda.
-        Aplikasi inventaris, asisten pesan, dan alat otomasi yang tetap hidup di laptop
-        2&nbsp;GB RAM.
-      </p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
-        <a class="btn btn-ghost" href="https://github.com/VicterHong" target="_blank" rel="noopener">GitHub</a>
-      </div>
-
-      <!-- Angka ringkas. Dihitung dari data proyek, bukan diketik manual. -->
-      <dl class="hero-stats" id="heroStats"></dl>
-    </div>
-
-    <div class="hero-visual" aria-hidden="true" data-melayang>
-      <div class="terminal">
-        <div class="terminal-bar">
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-title">mina@home:~</span>
-        </div>
-        <div class="terminal-orb-wrap" id="heroOrbWrap">
-          <canvas id="heroOrbCanvas" class="hero-orb-canvas" width="460" height="190" aria-label="Simulasi 3D Neural Mesh"></canvas>
-          <div class="orb-telemetry">
-            <span class="orb-pulse-dot" aria-hidden="true"></span>
-            <span class="orb-telemetry-text">NEURAL 3D CORE &middot; DRAG TO ROTATE</span>
-          </div>
-          <div class="orb-hint">&bull; 320 NODES 3D MESH</div>
-        </div>
-        <div class="terminal-body">
-          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina status</span></p>
-          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Proses aktif &middot; 24&nbsp;MB RAM</p>
-          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Telegram, Discord terhubung</p>
-          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Berjalan sejak 47 hari lalu</p>
-          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina run backup</span></p>
-          <p class="tline"><span class="tok" data-icon="check" data-icon-size="12"></span> Selesai dalam 1,8&nbsp;detik</p>
-          <p class="tline tdim">Log lengkap dan cara menjalankannya ada di dokumentasi.</p>
-          <p class="tline tcaret"><span class="tprompt">$</span> <span class="caret"></span></p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── TENTANG ─────────────────────────────────────────────────────────────
-       Pembaca perlu tahu ini siapa SEBELUM melihat proyek. Urutan standar
-       portofolio: perkenalan → layanan → bukti kerja → cara kerja → kontak. -->
-  <section class="section" id="s6ahns" aria-labelledby="about-title" data-cine-clip>
-    <div class="section-head">
-      <h2 class="section-title" id="about-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Tentang</h2>
-    </div>
-    <div class="about-layout">
-      <div class="about-body" id="aboutBody"></div>
-      <div class="about-skills" id="aboutSkills" data-stagger></div>
-    </div>
-  </section>
-
-  <!-- ── PROYEK ──────────────────────────────────────────────────────────────
-       Luna (audit strategi): "Tunjukkan bukti sebelum menjual layanan."
-       Karena itu Proyek didahulukan dari Layanan — pengunjung melihat bahwa
-       alatnya benar-benar berjalan SEBELUM ditawari jasa.
-
-       Satu proyek unggulan (MINA) dapat ruang paling besar — bukan grid kartu
-       seragam yang membuat semuanya terlihat sama penting. -->
-  <section class="section" id="utqvwf" aria-labelledby="work-title">
-    <div class="section-head">
-      <h2 class="section-title" id="work-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Proyek</h2>
-      <p class="section-note" data-reveal>
-        Angka di bawah berasal dari hasil uji terakhir. Kode sumbernya privat, saya tunjukkan saat diminta.
-      </p>
-    </div>
-
-    <div id="featuredProjects" class="projects-bento"></div>
-
-    <!-- ══ METRIK TERVERIFIKASI ═══════════════════════════════════════════════
-         ── KENAPA SETELAH PROYEK, BUKAN DI DALAM KARTU ─────────────────────────
-         Kartu proyek menampilkan ringkasan. Metrik ini menampilkan BUKTI, dan
-         bukti butuh ruang: setiap angka disertai perintah untuk memeriksanya.
-
-         Ditaruh di dalam kartu, perintahnya akan terpotong atau disembunyikan —
-         dan angka tanpa cara memeriksa sama saja dengan klaim.
-
-         ── KENAPA TIDAK ADA METRIK DAMPAK BISNIS ───────────────────────────────
-         "Menghemat 12 jam per minggu" mengandaikan kita tahu berapa jam yang
-         dipakai SEBELUM sistemnya. Tidak ada klien, tidak ada pengukuran
-         sebelum/sesudah — jadi angkanya tidak bisa ditulis tanpa mengarang.
-
-         Untuk hitungan penghematan, ada kalkulator di halaman harga: ia
-         menghitung dari angka yang diketik pengunjung sendiri.
-
-         Diisi oleh metrik-view.js.
-         ══════════════════════════════════════════════════════════════════════ -->
-    <section class="metrik-bagian" aria-labelledby="judulMetrik">
-      <div class="metrik-kepala-bagian">
-        <h2 class="metrik-judul-bagian" id="judulMetrik">Angka yang bisa Anda periksa</h2>
-        <p class="metrik-teks-bagian">
-          Setiap angka di bawah punya perintah atau lokasi yang bisa dibuka
-          untuk memeriksanya. Yang tidak bisa saya periksa sendiri, saya
-          sebutkan sumbernya, bukan ditulis seolah-olah saya yang mengukur.
-        </p>
-      </div>
-      <div id="metrikHost"></div>
-    </section>
-
-    <!-- ══ DIAGRAM ARSITEKTUR ═════════════════════════════════════════════════
-         ── KENAPA SETELAH METRIK ───────────────────────────────────────────────
-         Metrik menjawab "seberapa besar". Diagram menjawab "bagaimana ia
-         bekerja" — dan pertanyaan kedua muncul setelah yang pertama terjawab.
-
-         ── KENAPA DUA TINGKAT KEDALAMAN ────────────────────────────────────────
-         Pemilik bisnis butuh tahu ALURNYA. Engineer butuh tahu BAGAIMANA.
-         Tiap langkah menampilkan satu kalimat saat dilihat, dan penjelasan
-         teknis saat diklik — jadi yang tidak butuh detail tidak dipaksa
-         membacanya.
-
-         Diisi oleh diagram-view.js.
-         ══════════════════════════════════════════════════════════════════════ -->
-    <section class="diagram-bagian" aria-labelledby="judulDiagram">
-      <div class="metrik-kepala-bagian">
-        <h2 class="metrik-judul-bagian" id="judulDiagram">Bagaimana ia bekerja</h2>
-        <p class="metrik-teks-bagian">
-          Alur tiap sistem, termasuk di mana lapisan keamanannya. Klik langkah
-          mana pun untuk penjelasan teknisnya.
-        </p>
-      </div>
-      <div id="diagramHost"></div>
-    </section>
-
-    <!-- ══ SANDBOX DEMO ═══════════════════════════════════════════════════════
-         ── KENAPA INI ADA ──────────────────────────────────────────────────────
-         Calon klien tidak bisa mencoba sistem tanpa memasangnya dulu. Memasang
-         butuh server, database, dan waktu — dan kebanyakan orang tidak akan
-         melakukannya hanya untuk melihat apakah sistemnya cocok.
-
-         Akibatnya keputusan diambil dari tangkapan layar. Sandbox ini memberi
-         yang tidak bisa diberikan tangkapan layar: antarmuka yang BENAR-BENAR
-         bisa diklik.
-
-         ── KENAPA TIDAK MENYENTUH SERVER ───────────────────────────────────────
-         Seluruh sandbox berjalan di browser. Kalau ia mengirim permintaan ke
-         backend, siapa pun bisa mengisi database produksi dengan data sampah —
-         dari halaman publik yang tidak butuh login.
-
-         Diisi oleh sandbox-view.js.
-         ══════════════════════════════════════════════════════════════════════ -->
-    <section class="sandbox-bagian" aria-labelledby="judulSandbox">
-      <div class="metrik-kepala-bagian">
-        <h2 class="metrik-judul-bagian" id="judulSandbox">Coba sendiri, tanpa memasang</h2>
-        <p class="metrik-teks-bagian">
-          Ini bentuk antarmuka Spareparts Inventory System. Semuanya bisa
-          diklik, dan tidak ada yang tersimpan.
-        </p>
-      </div>
-      <div id="sandboxHost"></div>
-    </section>
-
-    <!-- ══ EKSPERIMEN 3D — KHUSUS OWNER ═══════════════════════════════════════
-         Isi seksi ini TIDAK ada di HTML ini dan TIDAK dikirim ke pengunjung
-         biasa. Markup-nya hidup di backend (KONTEN_EKSPERIMEN,
-         backend/src/auth-routes.mjs) dan baru dikirim lewat GET /api/eksperimen
-         setelah server memverifikasi sesi + email owner.
-
-         KENAPA BUKAN disembunyikan CSS: `display:none` tetap mengirim markup
-         ke setiap pengunjung — cukup dibuka dengan View Source atau curl.
-         Kalau yang dilindungi isinya, isinya tidak boleh ada di respons publik.
-
-         Wadah kosong ini tidak membocorkan apa pun: tanpa balasan server,
-         tidak ada yang dirender dan tidak ada tinggi yang tersisa.
-         ══════════════════════════════════════════════════════════════════════ -->
-    <div id="eksperimenHost" hidden></div>
-
-    <!-- Carousel spotlight: gambaran cepat seluruh koleksi. Ditaruh SEBELUM
-         kartu bento — carousel untuk menjelajah, bento untuk membaca detail.
-         Diisi oleh renderSpotlight() di app.js. -->
-    <div id="spotlightHost"></div>
-
-    <div class="side-projects" id="sideProjects" role="region" aria-label="Proyek pendukung"></div>
-
-    <!-- Marquee pemisah: dua baris teks berjalan berlawanan arah. Memberi
-         jeda visual sebelum blok berikutnya — diisi oleh editorial.js. -->
-    <div class="marquee-band" aria-hidden="true"></div>
-  </section>
-
-  <!-- ── LAYANAN ─────────────────────────────────────────────────────────────
-       Apa yang bisa dikerjakan — ditulis sebagai hasil, bukan daftar teknologi.
-       Ditaruh SETELAH Proyek: pengunjung sudah melihat buktinya, baru ditawari. -->
-  <section class="section" id="cckxsk" aria-labelledby="services-title" data-cine-clip>
-    <div class="section-head">
-      <h2 class="section-title" id="services-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Layanan</h2>
-      <p class="section-note" data-reveal>
-        Yang bisa saya kerjakan untuk tim atau bisnis Anda.
-      </p>
-    </div>
-    <div class="services-grid" id="servicesGrid" data-stagger></div>
-
-    <!-- ── JEMBATAN KE APLIKASI REACT ────────────────────────────────────────
-         Halaman ini tetap HTML + CSS + JS vanilla. Tautan di bawah membawa
-         pengunjung ke /akses/, satu-satunya bagian situs yang memakai React,
-         karena di sana ada harga, ringkasan pembayaran, dan riwayat transaksi
-         yang butuh state.
-
-         Ditulis apa adanya: aplikasinya masih dibangun, dan pembayaran belum
-         dibuka. Kartu ini tidak menjanjikan tanggal rilis. -->
-    <a class="akses-bridge" href="/akses/">
-      <span class="akses-bridge__body">
-        <span class="akses-bridge__label">Portofolio 3D / dalam pengembangan</span>
-        <span class="akses-bridge__title">Harga dan alur akses 3D</span>
-        <span class="akses-bridge__note">
-          Halaman React terpisah: paket, ringkasan biaya, dan contoh transaksi.
-          Pembayaran ditutup sampai aplikasinya siap dipakai.
-        </span>
-      </span>
-      <span class="akses-bridge__cta" aria-hidden="true">Buka</span>
-    </a>
-  </section>
-
-  <!-- ── VISI & MISI ─────────────────────────────────────────────────────────
-       Ditaruh SETELAH Proyek & Layanan, SEBELUM Kontak.
-
-       ── KENAPA DI SINI ──────────────────────────────────────────────────────
-       Pengunjung yang sudah menggulir sampai titik ini sudah melihat buktinya.
-       Yang tersisa di kepalanya bukan "apa lagi yang bisa dilakukan" tapi
-       "boleh saya percaya orang ini". Visi & misi menjawab itu, lalu CTA di
-       bawahnya mengubah keraguan jadi tindakan.
-
-       Kalau ditaruh di atas (dekat hero), pernyataannya belum punya bobot:
-       pembaca belum melihat apa pun yang bisa diperiksa.
-
-       ── MENGGANTIKAN "CARA SAYA BEKERJA" ────────────────────────────────────
-       Seksi lama berisi empat prinsip, dan dua di antaranya ("Anda bisa
-       memeriksa pekerjaan saya", "Batas jelas") menjawab pertanyaan yang sama
-       dengan misi di sini. Menampilkan keduanya = halaman mengulang diri.
-       Isi uniknya diserap, yang duplikat dibuang.
-
-       ── KENAPA TEKSNYA STATIS DI SINI, BUKAN DIRENDER JAVASCRIPT ───────────
-       Seluruh isi halaman ini (proyek, layanan, tentang) dirender JS, dan itu
-       keputusan lama yang tidak diubah di sini. TAPI bagian ini dikecualikan,
-       karena dua alasan:
-
-         1. Ini satu-satunya bagian yang menjawab "kenapa saya harus percaya".
-            Kalau crawler AI atau mesin pencari tidak menjalankan JS, mereka
-            tidak melihat jawabannya sama sekali.
-         2. Kalimat visi DIKETIK oleh JavaScript. Kalau teksnya juga berasal
-            dari JavaScript, tidak ada isi cadangan saat skrip gagal dimuat.
-
-       Jadi: HTML ini berisi teks lengkap dan angka final. JS hanya MENAMBAH
-       animasi di atasnya (fade untuk kalimat, hitung untuk angka). Tanpa JS,
-       pembaca melihat seluruh isinya dalam keadaan akhir yang benar.
-
-       Angka di sini dijaga scripts/preflight.mjs: kalau tidak cocok dengan
-       sumbernya, deploy ditolak. -->
-  <!--
-    ── KENAPA TIDAK ADA JUDUL YANG TERLIHAT ──────────────────────────────────
-    Seksi ini sempat punya judul "Visi & Misi" + satu kalimat penjelas di
-    atasnya. Keduanya dihapus: kartu pertama SUDAH berlabel "VISI", dan empat
-    kartu berikutnya bernomor 01 sampai 04. Judul yang mengulang apa yang
-    sudah terbaca dari kartunya hanya menambah baris tanpa menambah makna.
-
-    ── KENAPA <h2> MASIH ADA, TAPI TIDAK TERLIHAT ────────────────────────────
-    Judulnya dibutuhkan untuk tiga hal yang tidak terlihat:
-      1. `aria-labelledby` di <section> menunjuk ke sana, jadi pembaca layar
-         mendengar nama seksi ini sebelum isinya
-      2. Hierarki heading tetap utuh (h2 dari seksi sebelumnya → h2 ini →
-         h3 di dalam tiap kartu). Melompat dari h2 ke h3 tanpa h2 di antaranya
-         membingungkan pengguna pembaca layar
-      3. Tautan navigasi "Cara kerja" tetap punya sasaran yang bernama
-
-    `.sr-only` menyembunyikannya dari mata tanpa menyembunyikannya dari
-    pembaca layar — pola standar, bukan trik. -->
-  <section class="section section-visi" id="5nfyzw" aria-labelledby="visi-title"
-           data-cine-clip data-tanpa-eyebrow>
-    <h2 class="sr-only" id="visi-title">Visi &amp; Misi</h2>
-
-    <!--
-      ── PAPAN ────────────────────────────────────────────────────────────────
-      <div> pembungkus yang memuat dua hal: <svg> jalur dan <ol> kartunya.
-
-      ── KENAPA <div>, BUKAN <ol> LANGSUNG ────────────────────────────────────
-      <svg> tidak boleh jadi anak langsung <ol> — HTML hanya mengizinkan <li>
-      di dalamnya. Kalau dipaksa, browser memindahkan SVG-nya keluar dari
-      daftar dan koordinat jalurnya jadi kacau.
-
-      ── KENAPA SATU <ol> ─────────────────────────────────────────────────────
-      Ini URUTAN — itu maknanya. <ol> memberi tahu pembaca layar "daftar, 5
-      item" tanpa satu atribut ARIA pun.
-
-      ── KENAPA KARTU 1 ADALAH VISI, BUKAN MISI ───────────────────────────────
-      Visi itu pernyataan; misi itu langkah mewujudkannya. Menaruh visi sebagai
-      kartu PERTAMA membuat hubungannya terbaca dari urutannya sendiri: inilah
-      yang dituju, dan empat kartu berikutnya adalah caranya. Kalau visi
-      ditaruh di luar (mis. sebagai kalimat di atas papan), ia jadi terpisah
-      dari jalurnya.
-    -->
-    <div class="vm-papan">
-      <svg class="vm-jalur" aria-hidden="true" preserveAspectRatio="none">
-        <path d="" />
-      </svg>
-
-      <ol class="vm-daftar" data-vm aria-label="Visi dan misi">
-
-        <!-- VISI -->
-        <li class="vm-langkah">
-          <div class="vm-item">
-            <article class="vm-kartu vm-kartu--visi">
-              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
-              </svg>
-              <div class="vm-dalam">
-                <span class="vm-label">Visi</span>
-                <p class="vm-teks">Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.</p>
-              </div>
-            </article>
-          </div>
-        </li>
-
-        <!-- MISI 01 -->
-        <li class="vm-langkah">
-          <div class="vm-item">
-            <article class="vm-kartu">
-              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
-              </svg>
-              <div class="vm-dalam">
-                <span class="vm-label" aria-hidden="true">01</span>
-                <h3 class="vm-judul">Sistem yang ditampilkan benar-benar berjalan</h3>
-                <p class="vm-teks">
-                  Bukan tangkapan layar. Ada
-                  <span class="angka" data-count data-target="3">3 sistem</span>
-                  yang bisa Anda jalankan sendiri.
-                  <span class="angka">Hasil uji tersedia setelah membuka proyek.</span>
-                </p>
-
-                <!-- ══ BUKTI PIPELINE — DATA NYATA, BUKAN KLAIM ══════════════════
-                     Angka "1.428 tes" di atas tidak bisa diperiksa pengunjung.
-                     Badge ini yang membuatnya bisa diperiksa: ia mengambil
-                     status workflow TERAKHIR dari GitHub, lengkap dengan commit
-                     yang diuji dan berapa lama build-nya.
-
-                     ── KENAPA DITARUH DI SINI, BUKAN DI FOOTER ────────────────
-                     Ia harus tepat di sebelah klaimnya. Badge di footer
-                     terpisah dari angka yang ia buktikan — dan pengunjung
-                     tidak akan menghubungkan keduanya.
-
-                     Diisi oleh ci-badge.js. Kalau GitHub tidak bisa dihubungi,
-                     bagian ini menjelaskan kenapa — bukan menghilang diam-diam
-                     atau menampilkan badge kosong.
-                     ═══════════════════════════════════════════════════════════ -->
-                <div class="ci-badge" id="ciBadge" aria-live="polite"></div>
-              </div>
-            </article>
-          </div>
-        </li>
-
-        <!-- MISI 02 -->
-        <li class="vm-langkah">
-          <div class="vm-item">
-            <article class="vm-kartu">
-              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
-              </svg>
-              <div class="vm-dalam">
-                <span class="vm-label" aria-hidden="true">02</span>
-                <h3 class="vm-judul">Setiap klaim punya sumber yang bisa dibuka</h3>
-                <p class="vm-teks">
-                  Saya menulis audit untuk pekerjaan sendiri, lalu memverifikasi
-                  ulang ke kode. Hasilnya:
-                  <span class="angka" data-count data-target="5">5 dari 8 temuan</span>
-                  saya batalkan karena tidak terbukti.
-                </p>
-              </div>
-            </article>
-          </div>
-        </li>
-
-        <!-- MISI 03 -->
-        <li class="vm-langkah">
-          <div class="vm-item">
-            <article class="vm-kartu">
-              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
-              </svg>
-              <div class="vm-dalam">
-                <span class="vm-label" aria-hidden="true">03</span>
-                <h3 class="vm-judul">Jalan di perangkat yang sudah Anda punya</h3>
-                <p class="vm-teks">
-                  <a href="#utqvwf">MINA</a>, remote control rumah yang jadi
-                  proyek utama di halaman ini, hidup di
-                  <span class="angka" data-count data-target="25" data-prefix="~" data-suffix=" MB">~25 MB memori</span>
-                  pada laptop
-                  <span class="angka" data-count data-target="2" data-suffix=" GB RAM">2 GB RAM</span>.
-                  Sistem yang berat bukan tanda sistem yang serius.
-                </p>
-              </div>
-            </article>
-          </div>
-        </li>
-
-        <!-- MISI 04 -->
-        <li class="vm-langkah">
-          <div class="vm-item">
-            <article class="vm-kartu">
-              <svg class="vm-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
-              </svg>
-              <div class="vm-dalam">
-                <span class="vm-label" aria-hidden="true">04</span>
-                <h3 class="vm-judul">Batas disebut di depan, bukan saat bermasalah</h3>
-                <p class="vm-teks">
-                  Aset halaman dibatasi
-                  <span class="angka" data-count data-target="2048" data-suffix=" KB">2048 KB</span>,
-                  dijaga skrip yang <em>menolak</em> rilis kalau lewat. Batas yang
-                  tidak bisa dilanggar lebih berguna daripada janji.
-                </p>
-              </div>
-            </article>
-          </div>
-        </li>
-
-      </ol>
-    </div>
-
-    <!-- ── TIDAK ADA CTA DI SINI ───────────────────────────────────────────────
-         Seksi ini sempat punya dua tombol. "Mari bicara" DIHAPUS karena judul
-         seksi Kontak tepat di bawahnya berbunyi sama persis — dua CTA dengan
-         maksud sama membuat halaman terasa mengulang, dan skill
-         design-taste-frontend menyebutnya Pre-Flight Fail.
-
-         Sekarang kartu terakhir langsung diikuti seksi Kontak. Pembaca tidak
-         perlu mengklik apa pun di sini; yang perlu dilakukan adalah terus
-         menggulir, dan itu sudah jelas dari kartunya sendiri. -->
-  </section>
-
-  <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->
-  <section class="section section-contact" id="89fk39" aria-labelledby="contact-title" data-cine-clip>
-    <h2 class="section-title" id="contact-title" data-reveal data-cine-words>Mari bicara</h2>
-    <p class="contact-lede" data-reveal>
-      Terbuka untuk kerja sama, pertanyaan teknis, atau sekadar berbagi ide soal
-      otomasi dan perangkat hemat sumber daya.
-    </p>
-    <div class="contact-links" id="contactLinks" data-reveal></div>
-  </section>
-
+<main id="main">
+<section class="p-hero" id="zs6xae">
+<div class="p-hero-copy">
+<p class="p-kicker">
+<span class="p-dot">
+</span> INDEPENDENT ENGINEERING / INDONESIA</p>
+<h1>Sistem yang tepat.<br>
+<span>Di tangan Anda.</span>
+</h1>
+<p class="p-lede">Saya Victer. Membangun otomasi dan perangkat lunak self-hosted yang membuat perangkat Anda berguna lebih lama.</p>
+<div class="p-actions">
+<a class="p-button" href="#kontak">Mulai proyek ↗</a>
+<a class="p-text-link" href="#proyek">Telusuri karya ↓</a>
+</div>
+<p class="p-hero-note">Dari alur kerja sampai infrastruktur.<br>Hemat sumber daya, jelas cara kerjanya.</p>
+</div>
+<div class="p-scene" role="img" aria-label="Bola jaringan dengan orbit, visualisasi hubungan antarsistem">
+<img src="/assets/premium-orb.svg" width="640" height="640" alt="" class="p-poster">
+<div class="p-webgl">
+</div>
+<span class="p-scene-label">SYSTEM STUDY / 001</span>
+<span class="p-scene-caption">CONNECTED BY DESIGN</span>
+</div>
+<div class="p-hero-bottom">
+<span>SOFTWARE / AUTOMATION / SELF-HOSTED</span>
+<span>JELAJAHI ↓</span>
+</div>
+</section>
+<section class="p-section" >
+<span id="s6ahns" class="p-anchor" aria-hidden="true">
+</span>
+<div class="p-section-head">
+<span class="p-kicker">01 / BUKTI</span>
+<h2>Klaim yang bisa ditelusuri.</h2>
+</div>
+<div class="p-grid p-evidence">
+<article>
+<strong data-counter="3">3</strong>
+<h3>Proyek dalam katalog</h3>
+<p>MINA, Spareparts Inventory, dan WhatsApp Family Assistant.</p>
+</article>
+<article>
+<strong>~25 MB</strong>
+<h3>Jejak memori MINA</h3>
+<p>Catatan deskripsi proyek. Pengukuran pada perangkat Anda belum dilakukan.</p>
+</article>
+<article>
+<strong>Terbatas</strong>
+<h3>Akses sesuai izin</h3>
+<p>Detail teknis dilindungi akun dan token proyek. <a href="/docs">Pelajari akses ↗</a>
+</p>
+</article>
+</div>
+</section>
+<section class="p-section" >
+<span id="cckxsk" class="p-anchor" aria-hidden="true">
+</span>
+<div class="p-section-head">
+<span class="p-kicker">02 / CAPABILITIES</span>
+<h2>Rekayasa, dari ujung ke ujung.</h2>
+</div>
+<div class="p-grid p-services">
+<a class="p-card" href="/layanan/otomasi.html">
+<span class="p-kicker">01 / CAPABILITY</span>
+<h3>Otomasi alur kerja</h3>
+<p>Mengubah proses manual yang berulang menjadi alur otomatis yang bisa diaudit, dari pencatatan stok sampai laporan terjadwal.</p>
+<span class="p-arrow" aria-hidden="true">↗</span>
+</a>
+<a class="p-card" href="/layanan/bot-integrasi.html">
+<span class="p-kicker">02 / CAPABILITY</span>
+<h3>Bot & integrasi</h3>
+<p>Bot Telegram, Discord, atau WhatsApp yang terhubung ke sistem Anda. Reaktif, tidak berisik, dengan kontrol anti-ban berlapis.</p>
+<span class="p-arrow" aria-hidden="true">↗</span>
+</a>
+<a class="p-card" href="/layanan/self-hosted.html">
+<span class="p-kicker">03 / CAPABILITY</span>
+<h3>Sistem self-hosted</h3>
+<p>Aplikasi yang berjalan di server atau perangkat Anda sendiri, tanpa langganan, tanpa ketergantungan cloud yang wajib.</p>
+<span class="p-arrow" aria-hidden="true">↗</span>
+</a>
+<a class="p-card" href="/layanan/audit-perbaikan.html">
+<span class="p-kicker">04 / CAPABILITY</span>
+<h3>Audit & perbaikan</h3>
+<p>Meninjau sistem yang sudah berjalan: menemukan titik lemah keamanan, pemborosan sumber daya, dan bagian yang rapuh.</p>
+<span class="p-arrow" aria-hidden="true">↗</span>
+</a>
+<a class="p-card" href="/layanan/web-3d.html">
+<span class="p-kicker">05 / CAPABILITY</span>
+<h3>3D Web & Creative Motion</h3>
+<p>Antarmuka web interaktif dengan Three.js, WebGL shader, animasi fisika 3D, dan smooth velocity scroll (Lenis) yang tetap enteng di perangkat hemat daya.</p>
+<span class="p-arrow" aria-hidden="true">↗</span>
+</a>
+<a class="p-card" href="/layanan/pentest.html">
+<span class="p-kicker">06 / CAPABILITY</span>
+<h3>Audit Keamanan AI & Pentest</h3>
+<p>Pengujian penetrasi dinamis multi-agent AI (standar Strix) untuk membongkar celah keamanan aplikasi vibe-coded dan membersihkan jejak watermark data sebelum rilis.</p>
+<span class="p-arrow" aria-hidden="true">↗</span>
+</a>
+</div>
+</section>
+<section class="p-section" id="proyek">
+<span id="utqvwf" class="p-anchor" aria-hidden="true">
+</span>
+<div class="p-section-head">
+<span class="p-kicker">03 / SELECTED WORK</span>
+<h2>Dibangun untuk dipakai.</h2>
+</div>
+<div class="p-projects">
+<article class="p-project">
+<div class="p-project-art">
+<span class="p-kicker">Python / HMAC-SHA256 / stdlib only</span>
+<div class="p-diagram" aria-hidden="true">
+<span>>_</span>
+<i>
+</i>
+<b>MINA</b>
+</div>
+<span class="p-kicker">Remote Control for Your Home Machine</span>
+</div>
+<div>
+<span class="p-kicker">01 / TOKEN ACCESS</span>
+<h3>MINA</h3>
+<p>Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun, shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2 sampai 4 GB RAM dalam ~25 MB.</p>
+<a class="p-text-link" href="/s/e7kz4swubfvg/">Lihat proyek ↗</a>
+</div>
+</article>
+<article class="p-project">
+<div class="p-project-art">
+<span class="p-kicker">FastAPI / PostgreSQL / Docker</span>
+<div class="p-diagram" aria-hidden="true">
+<span>[ ]</span>
+<i>
+</i>
+<b>STOCK</b>
+</div>
+<span class="p-kicker">Inventory & logistik untuk suku cadang alat berat</span>
+</div>
+<div>
+<span class="p-kicker">02 / TOKEN ACCESS</span>
+<h3>Spareparts Inventory System</h3>
+<p>Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit.</p>
+<a class="p-text-link" href="/s/zsvjp554dkt4/">Lihat proyek ↗</a>
+</div>
+</article>
+<article class="p-project">
+<div class="p-project-art">
+<span class="p-kicker">Node.js / Baileys / faster-whisper</span>
+<div class="p-diagram" aria-hidden="true">
+<span>↔</span>
+<i>
+</i>
+<b>MESSAGE</b>
+</div>
+<span class="p-kicker">Bot grup keluarga yang reaktif dan aman</span>
+</div>
+<div>
+<span class="p-kicker">03 / PUBLIC OVERVIEW</span>
+<h3>WhatsApp Family Assistant</h3>
+<p>Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Bisa mendengar pesan suara, mencari berita sendiri, dan membaca isi tautan yang dibagikan.</p>
+<a class="p-text-link" href="/docs">Baca dokumentasi ↗</a>
+</div>
+</article>
+</div>
+</section>
+<section class="p-section" >
+<span id="5nfyzw" class="p-anchor" aria-hidden="true">
+</span>
+<div class="p-section-head">
+<span class="p-kicker">04 / PROSES</span>
+<h2>Kejelasan sebelum kompleksitas.</h2>
+</div>
+<div class="p-grid p-process">
+<article>
+<span class="p-kicker">01</span>
+<h3 class="vm-judul">Pahami</h3>
+<p>Petakan kebutuhan, perangkat, risiko, dan hasil yang ingin dicapai.</p>
+</article>
+<article>
+<span class="p-kicker">02</span>
+<h3 class="vm-judul">Sepakati</h3>
+<p>Tetapkan deliverable, batas lingkup, dan cara membuktikan hasil.</p>
+</article>
+<article>
+<span class="p-kicker">03</span>
+<h3 class="vm-judul">Bangun</h3>
+<p>Implementasi bertahap dengan kesempatan meninjau pekerjaan.</p>
+</article>
+<article>
+<span class="p-kicker">04</span>
+<h3 class="vm-judul">Serahkan</h3>
+<p>Uji penerimaan, dokumentasi, dan panduan operasi.</p>
+</article>
+</div>
+</section>
+<section class="p-section" >
+<div class="p-section-head">
+<span class="p-kicker">05 / SUARA KLIEN</span>
+<h2>Kepercayaan perlu bukti.</h2>
+</div>
+<div class="p-quote">
+<span aria-hidden="true">“</span>
+<div>
+<h3>Testimoni klien belum dipublikasikan.</h3>
+<p>Evaluasi pekerjaan melalui ringkasan proyek dan dokumentasi yang tersedia. Referensi klien hanya dibagikan dengan persetujuan pemiliknya.</p>
+<a class="p-text-link" href="/docs">Baca dokumentasi ↗</a>
+</div>
+</div>
+</section>
+<div id="eksperimenHost" hidden>
+</div>
+<section id="premiumPrivate" hidden class="p-section">
+<h2>Ruang proyek Anda</h2>
+<div id="metrikHost">
+</div>
+<div id="diagramHost">
+</div>
+<div id="sandboxHost">
+</div>
+</section>
+<script type="module" src="/assets/js/portfolio-access.js">
+</script>
+<section class="p-section" id="kontak">
+<span id="89fk39" class="p-anchor" aria-hidden="true">
+</span>
+<div class="p-section-head">
+<span class="p-kicker">LET’S BUILD</span>
+<h2>Mulai dari masalah yang nyata.</h2>
+</div>
+<div class="p-contact">
+<p>Ceritakan proses yang ingin diperbaiki, sistem yang sudah berjalan, dan batas yang perlu dijaga. Diskusi dimulai melalui profil GitHub Victer.</p>
+<a class="p-button" href="https://github.com/VicterHong">Mulai proyek <span aria-hidden="true">↗</span>
+</a>
+</div>
+</section>
 </main>
-
-<footer class="site-footer">
-  <p>
-    &copy; <span id="year"></span> VIVASTIC. Seluruh hak cipta dilindungi.
-    <span class="mono" style="opacity:.5">&middot;</span>
-    <a href="/privasi">Privasi</a>
-    <span class="mono" style="opacity:.5">&middot;</span>
-    <a href="/syarat">Syarat</a>
-  </p>
+<footer class="p-footer">
+<a class="p-brand" href="/home.html">V/ VIVASTIC</a>
+<p>Victer · Automation & self-hosted tools · Indonesia</p>
+<div>
+<a href="/pricing">Harga & akses</a>
+<a href="/privasi">Privasi</a>
+<a href="/syarat">Syarat</a>
+</div>
 </footer>
-
-<script type="module" src="assets/js/app.js"></script>
-<!-- Badge CI: mengambil status pipeline dari /api/ci/status. Dimuat sebagai
-     modul terpisah supaya kegagalannya tidak menghentikan app.js — badge yang
-     tidak bisa dimuat tidak boleh membuat seluruh halaman kosong. -->
-<script type="module" src="assets/js/ci-badge.js"></script>
-<!-- Metrik terverifikasi: modul terpisah. Ia membaca dari data/metrik.js dan
-     tidak bergantung pada app.js — kegagalannya tidak boleh mengosongkan
-     halaman utama. -->
-<script type="module">
-  // ── METRIK / DIAGRAM / SANDBOX: HANYA SETELAH LOGIN ───────────────────────
-  // Modul-modul ini mengambil data dari backend dan merendernya. Untuk
-  // pengunjung anonim, modul TIDAK DIPANGGIL SAMA SEKALI — bukan dipanggil
-  // lalu hasilnya disembunyikan. Alasannya: kalau dipanggil, datanya tetap
-  // melintas di jaringan dan tetap bisa dibaca dari panel Network, walaupun
-  // tidak terlihat di layar.
-  //
-  // Statusnya dibaca dari /api/akses yang sama dengan yang dipakai app.js,
-  // jadi tidak ada dua sumber kebenaran.
-  import { ambilAkses } from '/assets/js/akses.js';
-  const akses = await ambilAkses();
-
-  if (akses?.masuk) {
-    const { pasangMetrik } = await import('/assets/js/metrik-view.js');
-    pasangMetrik('metrikHost');
-
-    const { pasangDiagram } = await import('/assets/js/diagram-view.js');
-    pasangDiagram('diagramHost');
-
-    const { pasangSandbox } = await import('/assets/js/sandbox-view.js');
-    pasangSandbox('sandboxHost');
-  }
-
-  import { initHeroOrb, pasangLab3d } from '/assets/js/orb-3d.js';
-
-  // ── KENAPA ORB DITUNDA SAMPAI BROWSER SENGGANG ─────────────────────────────
-  // `initHeroOrb()` membangun 240 titik 3D + garis penghubung di canvas.
-  // Itu pekerjaan berat yang, kalau dijalankan saat halaman dimuat, menahan
-  // paint pertama.
-  //
-  // Terukur di produksi (profiler Chromium): `K @ orb-3d.min.js` memakan
-  // 114ms + `Q @ orb-3d.min.js` 20ms — total blocking JS 435ms, dan
-  // first-contentful-paint baru tercapai di 1660-1748ms padahal first-paint
-  // sudah 552-560ms.
-  //
-  // Orb ini dekoratif: ia tidak menyampaikan informasi yang dibutuhkan untuk
-  // membaca halaman. Menundanya sampai browser senggang membuat teks hero
-  // tampil lebih dulu tanpa mengorbankan animasinya — orb tetap muncul, hanya
-  // tidak lagi menahan konten.
-  //
-  // `requestIdleCallback` dengan batas waktu: kalau browser tidak pernah
-  // senggang (halaman berat), orb tetap dipasang setelah 2 detik. Tidak ada
-  // kondisi di mana orb hilang sama sekali.
-  const pasangOrb = () => {
-    try { initHeroOrb(); } catch { /* dekoratif: gagal tidak boleh merusak halaman */ }
-  };
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(pasangOrb, { timeout: 2000 });
-  } else {
-    setTimeout(pasangOrb, 200);
-  }
-
-  // ── EKSPERIMEN 3D: HANYA UNTUK OWNER ──────────────────────────────────────
-  // Markup seksi TIDAK ada di HTML ini (lihat #eksperimenHost). Server yang
-  // memutuskan: 401/403 → tidak ada yang dirender, dan pengunjung biasa tidak
-  // pernah tahu seksi ini ada. Gagal jaringan juga gagal-diam — eksperimen
-  // bukan konten yang boleh merusak halaman kalau backend sedang mati.
-  try {
-    const res = await fetch('/api/eksperimen', {
-      credentials: 'include',
-      headers: { accept: 'application/json' },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const host = document.getElementById('eksperimenHost');
-      if (host && data?.ok && data.konten) {
-        host.innerHTML = data.konten;
-        host.hidden = false;
-        // Wadah render dicari dari markup yang BARU disuntik, bukan nama
-        // tetap: id-nya bagian dari konten server, bukan kontrak di sini.
-        const kanvas = host.querySelector('[id^="lab3d"]');
-        if (kanvas) pasangLab3d(kanvas.id);
-      }
-    }
-  } catch { /* diam: bukan konten wajib */ }
+<script>window.CF_GATE_CONFIG={siteKey:'0x4AAAAAAFMyWUdxNriDmfym',verifyEndpoint:'/api/verify-turnstile'};</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer>
 </script>
-
-<!-- Gerbang verifikasi: setiap halaman memeriksa clearance (30 menit).
-     Kalau belum ada, overlay Cloudflare-style muncul sebelum konten. -->
-<script>
-  window.CF_GATE_CONFIG = {
-    siteKey: '0x4AAAAAAFMyWUdxNriDmfym',
-    // RELATIF, bukan absolut — ini WAJIB untuk cookie clearance.
-    //
-    // Dengan endpoint relatif, permintaan melewati Pages Function
-    // (functions/[[path]].js) yang mem-proxy ke Worker. Hasilnya SEMUA SAMA
-    // ORIGIN dari sudut browser, sehingga Set-Cookie dari backend disimpan
-    // untuk domain halaman ini.
-    //
-    // Kalau endpoint absolut ke workers.dev, cookie disimpan untuk domain
-    // workers.dev — dan TIDAK PERNAH terkirim saat browser meminta halaman
-    // dari pages.dev. Clearance tidak akan terbaca sama sekali.
-    verifyEndpoint: '/api/verify-turnstile'
-  };
+<script src="/assets/js/cf-gate-i18n.js">
 </script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
-<!-- Kamus bahasa gate. Dimuat SEBELUM cf-gate.js karena berkas itu membaca
-     window.CF_GATE_I18N saat dijalankan. -->
-<script src="assets/js/cf-gate-i18n.js"></script>
-<script src="assets/js/cf-gate.js"></script>
-<script src="/assets/js/nav-akun.js" defer></script>
-<script src="/assets/js/footer.js" defer></script>
+<script src="/assets/js/cf-gate.js">
+</script>
+<script src="/assets/js/nav-akun.js" defer>
+</script>
+<script type="module" src="/assets/js/portfolio-premium.js">
+</script>
 </body>
 </html>
