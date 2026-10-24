@@ -47,31 +47,6 @@ CREATE INDEX IF NOT EXISTS idx_tokens_project ON tokens(project_slug);
 CREATE INDEX IF NOT EXISTS idx_tokens_status  ON tokens(status);
 CREATE INDEX IF NOT EXISTS idx_tokens_tier    ON tokens(tier);
 
--- ── KUNCI AKSES APLIKASI (URL acak panjang) ──────────────────────────────────
---
--- Berbeda dari tabel tokens: tabel itu untuk berbagi PROYEK (satu token bisa
--- membuka beberapa slug). Tabel ini untuk satu PEMBELI → satu URL aplikasi
--- React penuh. Kode disimpan sebagai hash, jadi bocornya database tidak
--- langsung memberi URL yang bisa dipakai.
-CREATE TABLE IF NOT EXISTS access_keys (
-  id            TEXT PRIMARY KEY,
-  code_hash     TEXT NOT NULL UNIQUE,
-  label         TEXT NOT NULL DEFAULT '',
-  issued_to     TEXT NOT NULL DEFAULT '',
-  plan          TEXT NOT NULL DEFAULT 'lifetime',
-  issued_at     INTEGER NOT NULL,
-  expires_at    INTEGER,
-  revoked_at    INTEGER,
-  revoked_reason TEXT,
-  last_used_at  INTEGER,
-  use_count     INTEGER NOT NULL DEFAULT 0,
-  max_ips       INTEGER NOT NULL DEFAULT 3,
-  notes         TEXT NOT NULL DEFAULT ''
-);
-
-CREATE INDEX IF NOT EXISTS idx_access_keys_hash   ON access_keys(code_hash);
-CREATE INDEX IF NOT EXISTS idx_access_keys_issued ON access_keys(issued_to);
-
 CREATE TABLE IF NOT EXISTS token_requests (
   user_id TEXT NOT NULL,
   request_key TEXT NOT NULL,

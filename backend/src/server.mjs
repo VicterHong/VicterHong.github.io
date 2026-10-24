@@ -8,9 +8,8 @@
 import { createServer } from 'node:http';
 import { config, validateConfig, validateWarnings, ENV_FILE } from './config.mjs';
 import { initRoutes, resolveRoute, handlePreflight, rateLimited } from './routes.mjs';
-import { applyCors, sendJson, mutationAllowed, clientIp } from './http-util.mjs';
+import { applyCors, sendJson, mutationAllowed } from './http-util.mjs';
 import { closeDb } from './db.mjs';
-import { tanganiAksesAplikasi } from './akses-halaman.mjs';
 import { cleanupExpiredSessions } from './sessions.mjs';
 import { recordHeartbeat, cleanupHeartbeats, flushHeartbeats } from './sla.mjs';
 import { pruneAll } from './retention.mjs';
@@ -266,19 +265,6 @@ async function handleRequest(req, res) {
   // Batas laju per-IP untuk endpoint publik — menutup brute force token
   // tak dikenal yang tidak tersentuh guard berbasis token.
   if (rateLimited(req, res, pathname)) return;
-
-  // ── APLIKASI REACT PENUH DI BALIK KUNCI AKSES ──────────────────────────────
-  // Ditangani SEBELUM resolveRoute karena path-nya memuat kode 64 hex dan
-  // asetnya bersarang di bawahnya — bukan pola rute biasa.
-  //
-  // Diletakkan SETELAH rate limit supaya percobaan menebak kode tetap dibatasi.
-  if (pathname.startsWith('/s/')) {
-    const ditangani = tanganiAksesAplikasi(req, res, pathname, {
-      ip: clientIp(req),
-      userAgent: String(req.headers['user-agent'] ?? '').slice(0, 300),
-    });
-    if (ditangani) return;
-  }
 
   const match = resolveRoute(req.method ?? 'GET', pathname);
   if (!match) {
