@@ -18,6 +18,8 @@
 <meta property="og:title" content="Panduan Penggunaan, VIVASTIC">
 <meta property="og:description" content="Cara mengakses proyek, menggunakan token, dan memahami sistem keamanan.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://portfolio-victer.pages.dev/assets/hero-poster.jpg">
+<meta property="og:image:alt" content="VIVASTIC: otomasi dan sistem self-hosted">
 <meta property="og:url" content="https://portfolio-victer.pages.dev/docs">
 <meta property="og:locale" content="id_ID">
 <meta name="twitter:card" content="summary_large_image">
@@ -319,16 +321,14 @@
           ditebak mesin dalam hitungan menit, bukan tahun.
         </p>
         <p>
-          Setelah mendaftar, Anda langsung bisa masuk. Tidak ada langkah
-          verifikasi email yang menghambat.
+          Ikuti langkah konfirmasi yang ditampilkan saat mendaftar. Sesudah akun
+          siap, buka <a href="/klien">Proyek Saya</a> untuk melihat hak akses dan jatah akun Anda.
         </p>
 
         <h3 id="metode-lain">Metode masuk lain</h3>
         <p>
-          Halaman Sign in juga menampilkan tombol <strong>Google, Microsoft,
-          Apple, GitHub</strong>, <strong>passkey</strong>, dan <strong>SSO
-          perusahaan</strong>. Semuanya masih dalam pengembangan, tombolnya
-          terlihat redup dengan catatan "segera hadir" sampai benar-benar aktif.
+          Metode masuk yang tersedia ditampilkan di halaman Sign in sesuai konfigurasi layanan.
+          Pilih tombol yang aktif. Metode yang belum tersedia tidak perlu dipakai untuk membuat akun email.
         </p>
         <p>
           Tombol yang terlihat redup memang belum bisa diklik. Itu disengaja:
@@ -356,11 +356,9 @@
           punya masa berlaku, dan bisa dicabut kapan saja.
         </p>
         <p>
-          <strong>Token membuka dua hal:</strong> detail arsitektur proyek
-          (diagram alur, keputusan desain, metrik operasional, catatan kegagalan)
-          <em>dan</em> akses ke kode sumber. Repositori proyek bersifat privat ,
-          tautannya hanya dikirim ke pemegang token, bukan ditampilkan di halaman
-          publik.
+          <strong>Token membuka konten sesuai hak paket</strong>, bukan otomatis seluruh kode.
+          Metrik, pratinjau repositori, akses baca kode, dan hak pakai ulang berbeda per paket.
+          Repositori privat serta detail internal tetap mengikuti persetujuan akses.
         </p>
         <p>
           Ini disengaja: kode yang terbuka untuk umum berarti klien tidak punya
@@ -381,20 +379,20 @@
         <div class="steps">
           <div class="step">
             <div class="step-body">
-              <strong>Ajukan permintaan akses</strong>
-              <p>Buka halaman proyek yang Anda minati, lalu isi form permintaan akses.</p>
+              <strong>Periksa hak paket</strong>
+              <p>Masuk ke <a href="/klien">Proyek Saya</a>. Lihat jatah dan proyek yang tersedia untuk akun Anda; akun Free tidak mendapat token berbayar.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-body">
-              <strong>Tunggu peninjauan</strong>
-              <p>Saya meninjau setiap permintaan secara manual, biasanya dalam 1–2 hari kerja.</p>
+              <strong>Buat token bila termasuk</strong>
+              <p>Pelanggan yang berhak dapat memilih Buat token di Proyek Saya. Periksa proyek, masa berlaku, dan kuota sebelum menerbitkan.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-body">
-              <strong>Terima token</strong>
-              <p>Token dikirim lewat email dengan instruksi penggunaan dan masa berlaku.</p>
+              <strong>Butuh akses khusus?</strong>
+              <p>Untuk enterprise atau peninjauan manual, <a href="mailto:vivastic.id@gmail.com?subject=Permintaan%20akses%20VIVASTIC">kirim permintaan lewat email</a>. Hak serta masa akses disepakati sebelum token diterbitkan.</p>
             </div>
           </div>
         </div>
@@ -408,8 +406,8 @@
         <div class="steps">
           <div class="step">
             <div class="step-body">
-              <strong>Buka halaman proyek</strong>
-              <p>Klik tautan proyek dari halaman utama. Bagian publik langsung terlihat.</p>
+              <strong>Buka proyek yang tersedia</strong>
+              <p>Pilih proyek dari <a href="/klien">Proyek Saya</a> sesuai hak akun Anda, atau gunakan tautan yang diberikan saat akses disetujui.</p>
             </div>
           </div>
           <div class="step">
@@ -778,7 +776,7 @@ curl https://&lt;alamat-backend&gt;/api/ready</code>
           <div class="step">
             <div class="step-body">
               <strong>Masalah teknis atau akses</strong>
-              <p>Gunakan form permintaan akses di halaman utama, atau email langsung.</p>
+              <p>Email ke <a href="mailto:vivastic.id@gmail.com">vivastic.id@gmail.com</a>. Jangan sertakan sandi, token aktif, atau kode verifikasi.</p>
             </div>
           </div>
           <div class="step">

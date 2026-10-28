@@ -105,7 +105,7 @@ export async function ambilStatusCI({ fetchImpl = fetch, sekarang = Date.now() }
 }
 
 async function ambilDariGitHub({ fetchImpl, sekarang }) {
-  const url = `https://api.github.com/repos/${REPO}/actions/runs?per_page=1&branch=main`;
+  const url = `https://api.github.com/repos/${REPO}/actions/workflows/ci.yml/runs?per_page=1&branch=main&event=push`;
 
   let res;
   try {

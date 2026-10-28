@@ -15,9 +15,6 @@ import {
   type Plan,
 } from './data';
 
-/** Aset latar. Berkas disalin ke akses/assets/motion/ saat build. */
-const ASET = 'media/';
-
 /**
  * Halaman akses 3D.
  *
@@ -62,12 +59,12 @@ export default function App() {
 
   return (
     <div className={`page${reduced ? ' page--still' : ''}`}>
-      <VideoBed src={`${ASET}hero-main.mp4`} poster={`${ASET}hero-main-poster.webp`} scrim={0.5} />
+      <VideoBed poster="/assets/hero-poster.jpg" scrim={0.5} />
       <div className="grain" aria-hidden="true" />
       <a className="skip" href="#konten">Lompat ke konten</a>
 
       <header className="bar">
-        <a className="bar__brand" href="/home.html">
+        <a className="bar__brand" href="/home">
           VIVASTIC
           <span className="bar__slash" aria-hidden="true">/</span>
           <span className="bar__sub">Akses 3D</span>
@@ -80,7 +77,7 @@ export default function App() {
         <span className="bar__user">
           {masuk === 'ya' && login ? `@${login}` : 'Belum masuk'}
         </span>
-        <a className="bar__back" href="/home.html">Kembali</a>
+        <a className="bar__back" href="/home">Kembali</a>
       </header>
 
       <main id="konten" className="wrap">
@@ -325,9 +322,7 @@ function TransactionPanel({ data }: { data: Penawaran }) {
           <p className="field-label">Riwayat</p>
           <h2 className="card__title">Transaksi</h2>
         </div>
-        <button className="btn btn--ghost btn--auto" type="button" disabled>
-          Memuat
-        </button>
+        <span className="field-label">Belum dibuka</span>
       </header>
 
       <div className="tx tx--sample">

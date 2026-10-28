@@ -88,6 +88,7 @@
 
 <link rel="stylesheet" href="assets/css/main.css">
 <link rel="stylesheet" href="assets/css/akses-bridge.css">
+<link rel="stylesheet" href="assets/css/profesional.css">
 <link rel="stylesheet" href="assets/css/metrik.css">
 <link rel="stylesheet" href="assets/css/diagram.css">
 <link rel="stylesheet" href="assets/css/sandbox.css">
@@ -193,9 +194,9 @@
         Perangkat lunak yang berjalan di <span class="accent">mesin Anda sendiri</span>, bukan di cloud orang lain.
       </h1>
       <p class="hero-lede">
-        Tanpa langganan, tanpa tagihan bulanan, tanpa data yang keluar dari jaringan Anda.
-        Aplikasi inventaris, asisten pesan, dan alat otomasi yang tetap hidup di laptop
-        2&nbsp;GB RAM.
+        Otomasi, inventaris, dan asisten pesan dengan inti aplikasi yang bisa Anda kelola sendiri.
+        Biaya server, API, dan dukungan mengikuti kebutuhan. Integrasi pesan atau AI dapat
+        memproses data lewat penyedia pihak ketiga.
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
@@ -265,6 +266,37 @@
     </div>
 
     <div id="featuredProjects" class="projects-bento"></div>
+    <section class="case-studies" aria-labelledby="case-title">
+      <h2 id="case-title" class="section-title">Ringkasan studi kasus</h2>
+      <p class="section-note">Konteks pekerjaan yang bisa dibaca tanpa akun. Detail internal, kode, metrik, dan demo tetap mengikuti hak akses proyek.</p>
+      <div class="case-grid">
+        <article class="case-panel" id="case-mina">
+          <h3>MINA</h3>
+          <p><strong>Masalah.</strong> Perangkat rumah perlu dikendalikan dari jauh tanpa menambah perangkat keras baru.</p>
+          <p><strong>Peran.</strong> Pengembangan alat remote control self-hosted dan integrasi perintah melalui aplikasi pesan.</p>
+          <p><strong>Keluaran.</strong> Pengendalian komputer melalui Telegram, Discord, atau HTTP, termasuk perintah daya dan pembukaan aplikasi.</p>
+          <p><strong>Batas.</strong> Perangkat perlu disiapkan dan izin perintah dibatasi. Konektivitas serta kemampuan wake-on-LAN bergantung pada jaringan dan perangkat.</p>
+          <a href="/home#89fk39">Diskusikan kebutuhan remote control</a>
+        </article>
+        <article class="case-panel" id="case-spareparts">
+          <h3>Spareparts Inventory</h3>
+          <p><strong>Masalah.</strong> Catatan suku cadang manual sulit dicari dan ditelusuri saat stok dibutuhkan.</p>
+          <p><strong>Peran.</strong> Pengembangan sistem inventaris dan integrasi alur pencatatan.</p>
+          <p><strong>Keluaran.</strong> Aplikasi inventaris berbasis FastAPI dan PostgreSQL dengan otomasi n8n serta integrasi Telegram.</p>
+          <p><strong>Batas.</strong> Hasil bergantung pada ketertiban data awal dan alur operasional tim. Kebutuhan migrasi serta integrasi sistem lama ditentukan saat peninjauan.</p>
+          <a href="/home#89fk39">Diskusikan alur inventaris</a>
+        </article>
+        <article class="case-panel" id="case-whatsapp-bot">
+          <h3>WhatsApp Family Assistant</h3>
+          <p><strong>Masalah.</strong> Bot percakapan bisa terlalu berisik dan tidak sesuai konteks grup keluarga.</p>
+          <p><strong>Peran.</strong> Pengembangan bot reaktif, pengaturan konteks percakapan, dan integrasi pesan suara.</p>
+          <p><strong>Keluaran.</strong> Asisten yang merespons saat dipanggil, membaca tautan, mencari informasi, dan memproses pesan suara.</p>
+          <p><strong>Batas.</strong> Integrasi WhatsApp non-resmi membawa risiko pembatasan akun. AI dapat keliru; privasi, penyedia API, dan penggunaan data perlu disepakati sebelum dipakai.</p>
+          <a href="/home#89fk39">Diskusikan kebutuhan asisten pesan</a>
+        </article>
+      </div>
+      <p class="section-note">Ringkasan diperbarui 28 Oktober 2026. Tidak ada klaim penghematan atau testimoni pelanggan tanpa pengukuran dan izin publikasi.</p>
+    </section>
 
     <!-- ══ METRIK TERVERIFIKASI ═══════════════════════════════════════════════
          ── KENAPA SETELAH PROYEK, BUKAN DI DALAM KARTU ─────────────────────────
@@ -395,6 +427,7 @@
 
          Ditulis apa adanya: aplikasinya masih dibangun, dan pembayaran belum
          dibuka. Kartu ini tidak menjanjikan tanggal rilis. -->
+    <p class="service-clarity">Paket akses kode di halaman harga berbeda dari biaya jasa pembangunan sistem. Untuk pekerjaan khusus, ruang lingkup, hosting, API, lisensi, dan dukungan disepakati melalui <a href="/home#89fk39">diskusi kebutuhan</a>.</p>
     <a class="akses-bridge" href="/akses/">
       <span class="akses-bridge__body">
         <span class="akses-bridge__label">Portofolio 3D / dalam pengembangan</span>
@@ -461,7 +494,26 @@
 
     `.sr-only` menyembunyikannya dari mata tanpa menyembunyikannya dari
     pembaca layar — pola standar, bukan trik. -->
-  <section class="section section-visi" id="5nfyzw" aria-labelledby="visi-title"
+  <section class="section" id="5nfyzw" aria-labelledby="work-together-title">
+    <h2 class="section-title" id="work-together-title">Cara bekerja sama</h2>
+    <p class="section-note">Mulai dari kebutuhan, bukan langsung memilih teknologi. Ruang lingkup dan biaya disepakati sebelum pengerjaan.</p>
+    <ol class="work-grid">
+      <li class="work-panel"><h3>Brief &amp; peninjauan</h3><p>Ceritakan proses saat ini, pengguna, data yang tersedia, dan kendala. Kita tentukan kebutuhan akses, integrasi, serta batas sistem.</p></li>
+      <li class="work-panel"><h3>Penawaran tertulis</h3><p>Sepakati hasil pekerjaan, kriteria penerimaan, jadwal, biaya, revisi, dan kepemilikan kode. Hosting, API, serta lisensi pihak ketiga disebut terpisah.</p></li>
+      <li class="work-panel"><h3>Pengembangan &amp; pengujian</h3><p>Pekerjaan ditinjau per tahap. Perubahan kebutuhan dibahas dampaknya pada waktu dan biaya sebelum dilanjutkan.</p></li>
+      <li class="work-panel"><h3>Serah terima &amp; dukungan</h3><p>Hasil diperiksa terhadap kesepakatan. Dokumentasi penggunaan, akses pengelolaan, dan cakupan dukungan diserahkan sesuai penawaran.</p></li>
+    </ol>
+    <div class="work-faq">
+      <h3>Sebelum memulai</h3>
+      <details><summary>Apakah harga paket sudah termasuk pembuatan sistem?</summary><p>Tidak. Paket di halaman harga mengatur akses proyek dan kode. Jasa pembangunan atau integrasi memiliki penawaran sendiri berdasarkan kebutuhan.</p></details>
+      <details><summary>Siapa membayar server, API, dan pemeliharaan?</summary><p>Biaya serta pengelolanya ditulis dalam penawaran. Self-hosted bukan berarti semua biaya operasional hilang. Integrasi pihak ketiga mengikuti biaya dan ketentuannya masing-masing.</p></details>
+      <details><summary>Bagaimana revisi dan permintaan fitur tambahan?</summary><p>Jumlah tahap revisi dan batas pekerjaan disepakati di awal. Permintaan di luar lingkup perlu persetujuan biaya serta jadwal sebelum dikerjakan.</p></details>
+      <details><summary>Apakah saya mendapat kode dan hak pakai ulang?</summary><p>Hak akses, kepemilikan, lisensi, dan hak pakai ulang dijelaskan tertulis. Melihat kode melalui paket langganan tidak otomatis memindahkan kepemilikan atau hak pakai ulang.</p></details>
+      <details><summary>Berapa lama pengerjaannya?</summary><p>Estimasi diberikan setelah kebutuhan dan integrasi diperiksa. Sertakan tenggat Anda dalam brief agar kelayakannya bisa dibahas, bukan dijanjikan tanpa peninjauan.</p></details>
+    </div>
+  </section>
+
+  <section class="section section-visi" id="prinsip-kerja" aria-labelledby="visi-title"
            data-cine-clip data-tanpa-eyebrow>
     <h2 class="sr-only" id="visi-title">Visi &amp; Misi</h2>
 
@@ -627,11 +679,40 @@
   <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->
   <section class="section section-contact" id="89fk39" aria-labelledby="contact-title" data-cine-clip>
     <h2 class="section-title" id="contact-title" data-reveal data-cine-words>Mari bicara</h2>
-    <p class="contact-lede" data-reveal>
-      Terbuka untuk kerja sama, pertanyaan teknis, atau sekadar berbagi ide soal
-      otomasi dan perangkat hemat sumber daya.
+    <p class="contact-lede">
+      Ceritakan sistem yang ingin dibangun, kendala saat ini, dan tenggat bila ada.
+      Kita sepakati ruang lingkup dan biaya sebelum pekerjaan dimulai.
     </p>
-    <div class="contact-links" id="contactLinks" data-reveal></div>
+    <div class="contact-business">
+      <a class="btn btn-primary" href="mailto:vivastic.id@gmail.com?subject=Diskusi%20proyek%20VIVASTIC">Email untuk kerja sama</a>
+      <p class="contact-hint">vivastic.id@gmail.com · Tidak perlu akun atau paket berbayar untuk bertanya.</p>
+    </div>
+    <details class="brief-panel">
+      <summary>Siapkan brief proyek atau permintaan akses</summary>
+      <form id="briefForm" action="mailto:vivastic.id@gmail.com" method="get">
+        <p id="briefPrivacy">Form ini menyiapkan draft di perangkat Anda, bukan mengirim data ke server. Pesan belum terkirim sampai Anda mengirimkannya dari aplikasi email.</p>
+        <div class="brief-fields">
+          <label for="briefNama">Nama atau tim <span class="contact-hint">(opsional)</span></label>
+          <input id="briefNama" name="nama" autocomplete="name" maxlength="120">
+          <label for="briefTujuan">Topik</label>
+          <select id="briefTujuan" name="tujuan">
+            <option value="kerja-sama">Kerja sama proyek</option>
+            <option value="mina">Akses MINA</option>
+            <option value="spareparts">Akses Spareparts</option>
+            <option value="whatsapp-bot">Akses WhatsApp Assistant</option>
+            <option value="bantuan">Bantuan akses</option>
+          </select>
+          <label for="briefKebutuhan">Kebutuhan atau kendala</label>
+          <textarea id="briefKebutuhan" name="kebutuhan" rows="4" maxlength="2000" required aria-describedby="briefPrivacy"></textarea>
+        </div>
+        <button class="btn btn-ghost" type="submit">Siapkan email</button>
+        <p id="briefStatus" role="status" aria-live="polite"></p>
+        <a id="briefDraft" class="btn btn-primary" href="mailto:vivastic.id@gmail.com" hidden>Buka aplikasi email</a>
+        <noscript><p>JavaScript tidak aktif. Gunakan tautan email di atas dan sertakan konteks kebutuhan Anda.</p></noscript>
+      </form>
+    </details>
+    <p class="contact-hint contact-support-label">Kode publik dan dukungan karya</p>
+    <div class="contact-links" id="contactLinks"></div>
   </section>
 
 </main>
@@ -647,6 +728,7 @@
 </footer>
 
 <script type="module" src="assets/js/app.js"></script>
+<script type="module" src="assets/js/kontak.js"></script>
 <!-- Badge CI: mengambil status pipeline dari /api/ci/status. Dimuat sebagai
      modul terpisah supaya kegagalannya tidak menghentikan app.js — badge yang
      tidak bisa dimuat tidak boleh membuat seluruh halaman kosong. -->

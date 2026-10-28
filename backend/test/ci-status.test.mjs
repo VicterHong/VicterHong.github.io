@@ -275,6 +275,17 @@ test('permintaan memakai header yang diwajibkan GitHub', async () => {
   assert.ok(headerDipakai['x-github-api-version'], 'versi API harus dipatok');
 });
 
+test('badge hanya mengambil workflow CI utama, bukan Dependabot', async () => {
+  let requestUrl;
+  await ambilStatusCI({ fetchImpl: async (url) => {
+    requestUrl = new URL(url);
+    return jawabanGitHub();
+  } });
+  assert.equal(requestUrl.pathname, '/repos/VicterHong/VicterHong.github.io/actions/workflows/ci.yml/runs');
+  assert.equal(requestUrl.searchParams.get('branch'), 'main');
+  assert.equal(requestUrl.searchParams.get('event'), 'push');
+});
+
 test('URL memakai konstanta repo, bukan input', async () => {
   // ── KENAPA DIUJI ──────────────────────────────────────────────────────────
   // Kalau repo datang dari input pengguna, siapa pun bisa menyuruh server

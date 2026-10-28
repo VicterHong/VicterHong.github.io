@@ -40,9 +40,11 @@ async function loadData() {
 function buildSitemap() {
   const today = new Date().toISOString().slice(0, 10);
   const urls = [
-    { loc: `${ORIGIN}/`, lastmod: today, changefreq: 'weekly', priority: '1.0' },
-    { loc: `${ORIGIN}/home`, lastmod: today, changefreq: 'weekly', priority: '0.9' },
+    { loc: `${ORIGIN}/home`, lastmod: today, changefreq: 'weekly', priority: '1.0' },
     { loc: `${ORIGIN}/docs`, lastmod: today, changefreq: 'monthly', priority: '0.7' },
+    { loc: `${ORIGIN}/changelog`, lastmod: today, changefreq: 'weekly', priority: '0.6' },
+    { loc: `${ORIGIN}/privasi`, lastmod: today, changefreq: 'yearly', priority: '0.2' },
+    { loc: `${ORIGIN}/syarat`, lastmod: today, changefreq: 'yearly', priority: '0.2' },
   ];
 
   const xml = [

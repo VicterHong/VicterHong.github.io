@@ -3,43 +3,31 @@
    tidak memicu layout ulang. Mati total saat prefers-reduced-motion.
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* 1. CLIP-PATH REVEAL — section membuka seperti lensa.
-   Durasi 1000ms (dari 1s) dan opacity 800ms — perlambatan panjang di ujung
-   membuat section terasa "mengendap", bukan berhenti mendadak. */
+/* Reveal menambah gerak ringan; kegagalan animasi tidak menyembunyikan teks. */
 [data-cine-clip] {
   position: relative;
-  clip-path: inset(14% 10% 14% 10% round 24px);
-  transition: clip-path 1000ms var(--ease-out-expo), opacity 800ms var(--ease-out-expo);
-  opacity: 0.4;
-  will-change: clip-path, opacity;
+  clip-path: none;
+  opacity: 1;
 }
 
 [data-cine-clip].cine-clip-in {
-  clip-path: inset(0% 0% 0% 0% round 0px);
-  opacity: 1;
+  animation: section-arrive 600ms var(--ease-out-expo);
 }
 
-/* ── JARING PENGAMAN: JS GAGAL DIMUAT ──────────────────────────────────────────
- *
- * MASALAH YANG DIPECAHKAN
- * `[data-cine-clip]` mulai dari `opacity: 0.4`. Kalau JavaScript gagal dimuat
- * (CDN diblokir, berkas rusak, JS dimatikan pengguna), class `.cine-clip-in`
- * tidak pernah dipasang — dan 4 section utama tetap 40% transparan SELAMANYA.
- *
- * `[data-reveal]` sudah punya jaring pengaman ini sejak awal; `[data-cine-clip]`
- * tidak. Akibatnya halaman terlihat "kabur" tanpa penjelasan.
- *
- * KENAPA `html:not(.js-ready)`
- * `app.js` memasang `.js-ready` di <html> hanya setelah init berhasil. Tanpa
- * class itu, kita tahu JS tidak jalan — dan konten harus terlihat apa adanya.
- *
- * KENAPA PAKAI `transition: none` JUGA
- * Kalau JS dimuat lambat (bukan gagal), transisi 1000ms akan terlihat sebagai
- * kedipan aneh. Mematikannya membuat konten langsung tampil utuh. */
+@keyframes section-arrive {
+  from { transform: translateY(8px); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-cine-clip].cine-clip-in { animation: none; }
+}
+
+/* Tanpa inisialisasi JS, tidak ada gerak masuk. */
 html:not(.js-ready) [data-cine-clip] {
   clip-path: none;
   opacity: 1;
-  transition: none;
+  animation: none;
 }
 
 /* 2. TEXT STAGGER — kata muncul berurutan */

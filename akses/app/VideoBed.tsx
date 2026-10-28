@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
  *  - scrim di atasnya, jadi kontras teks tidak bergantung pada frame saat ini
  */
 type Props = {
-  src: string;
+  src?: string;
   poster: string;
   /** Menggelapkan frame supaya teks tetap terbaca di area terang. */
   scrim?: number;
@@ -31,7 +31,7 @@ export function VideoBed({ src, poster, scrim = 0.55 }: Props) {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || reduced) return;
+    if (!video || reduced || !src) return;
 
     const play = () => {
       void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
@@ -49,11 +49,11 @@ export function VideoBed({ src, poster, scrim = 0.55 }: Props) {
       document.removeEventListener('visibilitychange', onVisibility);
       video.pause();
     };
-  }, [reduced]);
+  }, [reduced, src]);
 
   return (
     <div className="videobed" aria-hidden="true">
-      {reduced ? (
+      {reduced || !src ? (
         <img className="videobed__media" src={poster} alt="" />
       ) : (
         <video

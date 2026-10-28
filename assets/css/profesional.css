@@ -1,0 +1,27 @@
+.contact-business { display: grid; justify-items: start; gap: 12px; margin: 24px 0; }
+.contact-hint { color: var(--text-dim); font-size: .875rem; line-height: 1.65; }
+.contact-support-label { margin-top: 28px; }
+.brief-panel, .work-panel, .case-panel { border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(18px, 3vw, 28px); background: var(--bg-soft); }
+.brief-panel { max-width: 680px; text-align: left; }
+.brief-panel summary, .work-faq summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.brief-panel p { margin: 16px 0; color: var(--text-dim); line-height: 1.7; }
+.brief-fields { display: grid; gap: 10px; margin: 20px 0; }
+.brief-fields input, .brief-fields textarea, .brief-fields select { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-ctl); background: var(--bg); color: var(--text); font: inherit; }
+.brief-fields textarea { resize: vertical; }
+.brief-fields label:not(:first-child) { margin-top: 12px; }
+.brief-panel :focus-visible, .work-faq summary:focus-visible, .case-panel a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+#briefDraft { margin-top: 12px; }
+.case-grid, .work-grid { display: grid; gap: 20px; margin-top: 24px; }
+.case-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.case-panel { min-width: 0; }
+.case-panel h3, .work-panel h3 { margin-bottom: 12px; }
+.case-panel p, .work-panel p, .work-faq p { color: var(--text-dim); line-height: 1.75; margin: 12px 0; }
+.case-panel a { display: inline-block; padding: 10px 0; color: var(--accent); }
+.case-panel strong, .work-panel strong { color: var(--text); }
+.case-grid + .section-note { margin-top: 18px; }
+.work-grid { padding-left: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.work-panel { padding-left: 20px; }
+.work-faq { margin-top: 28px; max-width: 800px; }
+.work-faq details { border-bottom: 1px solid var(--line); padding: 8px 0; }
+.service-clarity { margin-top: 20px; padding: 18px 20px; border-left: 2px solid var(--accent); background: var(--bg-soft); color: var(--text-dim); line-height: 1.75; }
+@media (max-width: 760px) { .case-grid, .work-grid { grid-template-columns: 1fr; } .brief-panel { width: 100%; } }

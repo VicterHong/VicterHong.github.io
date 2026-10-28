@@ -791,57 +791,7 @@
               <p class="auth-msg" id="kamPesanNotif" role="status" aria-live="polite"></p>
             </section>
 
-            <!-- ══ DANGER ZONE — DI LUAR TAB ═══════════════════════════════════
-                 ── KENAPA DI LUAR SISTEM TAB ────────────────────────────────────
-                 "Hapus akun" bukan bagian dari satu tab tertentu — ia berlaku
-                 untuk SELURUH akun. Menaruhnya di dalam tab (mis. Keamanan)
-                 membuatnya tersembunyi saat pengguna membuka tab lain, dan
-                 pengguna yang mencari fitur ini harus menebak tab mana.
 
-                 Dengan ditaruh di bawah panel, ia SELALU terlihat — dan itu
-                 memang yang diinginkan: keputusan sebesar ini sebaiknya tidak
-                 mudah dilewatkan.
-
-                 ── KENAPA DI PALING BAWAH ───────────────────────────────────────
-                 Halaman dibaca dari atas ke bawah. Yang paling bawah adalah
-                 yang paling terakhir dilihat — dan untuk aksi merusak, itu
-                 urutan yang benar: pengguna harus MELEWATI semua pengaturan
-                 lain sebelum mencapainya.
-
-                 GitHub, Stripe, dan Google menempatkannya sama: paling bawah.
-
-                 ── KENAPA TERPISAH DARI PANEL LAIN ──────────────────────────────
-                 `#kamIsi` (pembungkus panel) disembunyikan saat belum login.
-                 Danger Zone ditaruh di LUARNYA supaya markup-nya tidak ikut
-                 tersembunyi bersama panel — dan JS bisa mengelolanya sendiri
-                 berdasarkan status login. -->
-            <section class="kam-danger" id="kamDanger" hidden>
-              <div class="kam-danger-kepala">
-                <span class="kam-danger-ikon" aria-hidden="true">
-                  <svg viewBox="0 0 256 256" fill="currentColor" width="20" height="20" aria-hidden="true" focusable="false"><path d="M236.8,188.09,149.35,36.22a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z"/></svg>
-                </span>
-                <div>
-                  <h3 class="kam-danger-judul">Zona berbahaya</h3>
-                  <p class="kam-danger-ket">Tindakan permanen pada data akun Anda.</p>
-                </div>
-              </div>
-
-              <div class="kam-danger-baris">
-                <div class="kam-danger-teks">
-                  <p class="kam-danger-nama">Hapus akun</p>
-                  <p class="kam-danger-detail">
-                    Menghapus akun dan seluruh data pribadi Anda secara permanen.
-                    Riwayat pembelian, cara masuk, dan pengaturan akan hilang dan
-                    <strong>tidak bisa dikembalikan</strong>.
-                  </p>
-                </div>
-                <button class="btn btn-bahaya" type="button" id="kamHapusAkun">
-                  Hapus akun
-                </button>
-              </div>
-
-              <p class="auth-msg" id="kamPesanDanger" role="status" aria-live="polite"></p>
-            </section>
 
           </div>
         </div>

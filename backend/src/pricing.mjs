@@ -574,18 +574,18 @@ export const FAQ = [
     // Token akses adalah fitur inti yang membedakan paket ini, tapi istilahnya
     // tidak muncul di halaman harga sama sekali. Pengunjung yang membaca
     // "token akses" tanpa penjelasan harus menebak apa yang dia beli.
-    jawab: 'Token akses adalah kode yang membuka data metrik dan kode sumber proyek. Standar memberi 1 token per bulan, Profesional 5 per bulan, Enterprise tanpa batas. Token dibuat sendiri di halaman Proyek Saya setelah masuk. Jatah bulanan Anda terlihat di sana, dan jatah baru tersedia saat bulan berganti.',
+    jawab: 'Token akses membuka konten proyek sesuai hak paket. Akses baca kode dan hak pakai ulang tidak otomatis termasuk di semua paket. Standar memberi 1 token per bulan, Profesional 5 per bulan, Enterprise tanpa batas. Token dibuat sendiri di halaman Proyek Saya setelah masuk. Jatah bulanan Anda terlihat di sana, dan jatah baru tersedia saat bulan berganti.',
   },
   {
     tanya: 'Bagaimana cara mendapat bonus dari memberi star?',
-    jawab: 'Beri star di repositori GitHub portofolio, lalu klaim bonusnya di halaman Proyek Saya dengan mengetik nama pengguna GitHub Anda. Sistem memeriksa langsung ke GitHub, jadi tidak perlu mengirim tangkapan layar atau bukti apa pun. Untuk paket Free, bonusnya melengkapi akses menjadi lima proyek penuh, dan itu berlaku sekali per akun. Paket Standar dan Profesional sudah membuka seluruh proyek, jadi bonusnya 1 token akses tambahan di bulan itu.',
+    jawab: 'Beri star di repositori GitHub portofolio, lalu ikuti petunjuk verifikasi identitas GitHub di halaman Proyek Saya sebelum mengklaim bonus. Nama pengguna saja tidak cukup untuk membuktikan kepemilikan akun. Untuk paket Free, bonusnya melengkapi akses menjadi lima proyek penuh, dan itu berlaku sekali per akun. Paket Standar dan Profesional sudah membuka seluruh proyek, jadi bonusnya 1 token akses tambahan di bulan itu.',
   },
 ];
 
 /** Judul bagian di halaman pricing. */
 export const JUDUL = {
   title: 'Paket yang jelas, tanpa biaya tersembunyi',
-  sub: 'Tiga paket untuk kebutuhan yang berbeda, dari melihat cara kerjanya, sampai membangun produk di atasnya. Semua bisa berhenti kapan saja.',
+  sub: 'Pilih Free, Standar, Profesional, atau Enterprise sesuai hak akses yang dibutuhkan. Jasa pembangunan sistem memiliki penawaran terpisah.',
   judulTabel: 'Bandingkan paket',
   subTabel: 'Semua yang Anda dapatkan di setiap paket, berdampingan.',
   judulFaq: 'Pertanyaan yang sering muncul',
