@@ -376,8 +376,8 @@ function minifyHtml(isi) {
   for (const [kunci, asli] of simpan) {
     let nilai = asli;
     if (kunci.includes('\x00LINDUNG')) {
-      // Hanya blok <script> yang punya komentar JS (// atau /* */).
-      if (/^<script\b/i.test(nilai)) {
+      // Hanya blok <script> dan <style> yang punya komentar (// atau /* */).
+      if (/^<(script|style)\b/i.test(nilai)) {
         nilai = nilai
           // Hapus komentar satu baris (// ...) tapi BUKAN URL (// di dalam string)
           .replace(/(^|[^:'"])\/\/(?![a-zA-Z0-9]+\/)[^\n\r]*/g, (m, pre) => pre)

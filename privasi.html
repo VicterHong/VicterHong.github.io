@@ -404,7 +404,7 @@
         <h2>Bagaimana diamankan</h2>
         <ul>
           <li><strong>Seluruh koneksi terenkripsi (HTTPS)</strong>, tidak ada data yang dikirim dalam bentuk terbuka.</li>
-          <li><strong>Token akses disimpan sebagai hash</strong>, yang tersimpan bukan token aslinya, melainkan sidik jarinya. Kalau database bocor, token tetap tidak bisa dipakai.</li>
+          <li><strong>Token akses disimpan sebagai hash</strong>. Sistem hanya menyimpan sidik jari kriptografis; database yang terekspos tidak membocorkan token aslinya.</li>
           <li><strong>Kata sandi di-hash dengan algoritma lambat</strong>, bukan disimpan dalam bentuk yang bisa dibaca.</li>
           <li><strong>Pembatasan percobaan</strong>, membatasi upaya masuk berulang dari satu sumber.</li>
           <li><strong>Catatan audit</strong>, setiap akses ke konten terkunci tercatat.</li>
