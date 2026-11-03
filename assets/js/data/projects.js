@@ -109,6 +109,9 @@ export const projects = [
     stack: ['Python', 'HMAC-SHA256', 'stdlib only', 'Telegram', 'Discord'],
     repo: 'https://github.com/VicterHong/mina-remote-control',
     accent: 'amina',
+    cover: 'assets/spotlight/mina-terminal.jpg',
+    loop: 'assets/narrative/mina-terminal.mp4',
+    coverAlt: 'Terminal MINA di laptop rumah',
     // Variasi artefak (PRD desain): tiap proyek dapat komposisi berbeda
     // supaya terlihat sebagai karya tersendiri, bukan panel seragam.
     variant: 'terminal',
@@ -128,6 +131,8 @@ export const projects = [
     stack: ['FastAPI', 'PostgreSQL', 'Docker', 'n8n', 'Telegram'],
     repo: 'https://github.com/VicterHong/spareparts-inventory-system',
     accent: 'parts',
+    cover: 'assets/spotlight/spareparts-shelf.jpg',
+    coverAlt: 'Rak suku cadang yang dicatat sistem inventaris',
     variant: 'inventory',
     // Proyek ini TIDAK punya metrics[] — artefak menampilkan label kategori,
     // bukan angka rekaan. Sesuai aturan PRD: "jangan isi artefak dengan
@@ -145,10 +150,23 @@ export const projects = [
     stack: ['Node.js', 'Baileys', 'faster-whisper', 'systemd'],
     repo: 'https://github.com/VicterHong/whatsapp-family-bot',
     accent: 'wa',
+    cover: 'assets/spotlight/portal-door.jpg',
+    coverAlt: 'Ilustrasi pintu masuk asisten pesan keluarga',
     variant: 'flow',
     artLabel: 'Bot keluarga',
   },
 ];
+
+/**
+ * Proyek yang diterbitkan dari folder projects/<nama>/ (lihat
+ * scripts/publish-projects.mjs). Ditambahkan SETELAH proyek bawaan, tanpa
+ * pernah menimpa slug yang sama. Larik literal di atas tetap sumber kebenaran
+ * untuk tiga sistem produksi (preflight dan backend membacanya apa adanya).
+ */
+import { folderProjects } from './projects.generated.js';
+for (const p of folderProjects) {
+  if (!projects.some((x) => x.slug === p.slug)) projects.push(p);
+}
 
 /**
  * Proyek pendukung — disebut singkat, tanpa halaman detail.

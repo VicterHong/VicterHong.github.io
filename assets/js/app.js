@@ -14,24 +14,13 @@ import { profile, about, services, projects, sideProjects, stats } from './data/
 import { initCountUp, pasangFadeVisi } from './count-up.js';
 import { initVisiMisi } from './visi-misi.js';
 import { initAstra } from './astra.js';
-import { initDepth } from './depth.js';
-import { initEditorial } from './editorial.js';
-import { initGrain } from './grain.js';
-import { initWaveReveal } from './wave-reveal.js';
-import { initMagneticCards } from './magnetic.js';
-import { initHorizontalScroll } from './hscroll.js';
-import { initOrbMenu } from './orb-menu.js';
-import { initVariableWeight } from './variable-weight.js';
 import { initAllVideoPlayers } from './video-player.js';
-import { initMasonry } from './masonry.js';
+import { initMotion } from './motion.js';
 import { initVitals } from './vitals.js';
 import { initExperiments } from './experiment.js';
 import { initCookieConsent, consentGiven } from './cookies.js';
 import { initRipple } from './ripple.js';
-import { initCinematic } from './cinematic.js';
 import { pasangMonogram } from './monogram.js';
-import { techGroups, techLogos, createTechCard } from './tech-logos.js';
-import { createTiltPanel } from './tilt-panel.js';
 import { initScrollSpy } from './scroll-spy.js';
 import { createSpotlightCarousel } from './spotlight.js';
 import { ambilManifest, susunGambar, pantauPerubahan } from './media-loader.js';
@@ -107,23 +96,16 @@ function renderAbout() {
   const skillsHost = $('#aboutSkills');
   if (!skillsHost) return;
 
-  const panel = createTiltPanel(techGroups, techLogos, createTechCard);
-  skillsHost.append(panel);
-
-  initTechPulse(skillsHost);
-}
-
-/** Pulse saat logo diklik — jalan di semua perangkat, termasuk sentuh. */
-function initTechPulse(root) {
-  for (const item of root.querySelectorAll('.tech-item')) {
-    item.addEventListener('click', () => {
-      item.classList.remove('is-pulse');
-      void item.offsetWidth; // paksa reflow supaya animasi bisa diulang
-      item.classList.add('is-pulse');
-      setTimeout(() => item.classList.remove('is-pulse'), 480);
-    });
+  // Keahlian sebagai daftar berkelompok yang terbaca, bukan panel miring
+  // berlogo. Isinya sama (dari about.skills), tanpa efek glare.
+  for (const g of about.skills) {
+    skillsHost.append(el('div', { class: 'skill-group' },
+      el('h3', { class: 'skill-group-name', text: g.group }),
+      el('p', { class: 'skill-group-items', text: g.items.join(' · ') }),
+    ));
   }
 }
+
 
 // ── LAYANAN ────────────────────────────────────────────────────────────────────
 /**
@@ -144,25 +126,16 @@ function initTechPulse(root) {
 function renderServices() {
   const host = $('#servicesGrid');
   if (!host) return;
+  // Daftar bertipografi besar, bukan baris kartu berikon (pola template paling
+  // umum, diukur inspector: icon-cards). Judul di kiri, penjelasan di kanan.
+  const list = el('ul', { class: 'service-list' });
   for (const s of services) {
-    const card = el('article', { class: 'service-card' });
-
-    // Ikon: aria-hidden karena murni dekoratif — judul sudah menjelaskan
-    // maksud kartu. Membacakannya akan mengulang informasi.
-    const ic = s.icon ? icon(s.icon, { size: 22, strokeWidth: 1.5 }) : null;
-    if (ic) {
-      const wrap = el('span', { class: 'service-icon' });
-      wrap.setAttribute('aria-hidden', 'true');
-      wrap.append(ic);
-      card.append(wrap);
-    }
-
-    card.append(
-      el('h3', { text: s.title }),
-      el('p', { text: s.body }),
-    );
-    host.append(card);
+    list.append(el('li', { class: 'service-row' },
+      el('h3', { class: 'service-name', text: s.title }),
+      el('p', { class: 'service-body', text: s.body }),
+    ));
   }
+  host.append(list);
 }
 
 // ── ARTEFAK PROYEK ─────────────────────────────────────────────────────────────
@@ -189,6 +162,37 @@ function renderServices() {
  */
 function renderProjectArt(p, lihatAngka = false) {
   const art = el('figure', { class: `project-art project-art--${p.variant ?? 'default'}` });
+
+  // Gambar proyek sendiri (assets/spotlight/<cover>.jpg) kalau ada. Ini foto
+  // milik proyek, bukan stok — jadi boleh tampil besar sebagai titik masuk mata.
+  // Proyek unggulan yang punya video narasi sendiri memakainya sebagai loop
+  // senyap (poster = sampul). Video dipotong pendek dan tanpa suara.
+  if (p.featured && p.loop) {
+    const v = el('video', {
+      class: 'project-loop',
+      src: p.loop,
+      poster: p.cover ?? '',
+      playsinline: '',
+      preload: 'metadata',
+      'aria-label': p.coverAlt ?? `Cuplikan ${p.name}`,
+    });
+    // Properti, bukan atribut: browser hanya mengizinkan autoplay kalau
+    // `muted` benar-benar diset sebagai properti sebelum play().
+    v.muted = true;
+    v.loop = true;
+    v.autoplay = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    art.append(v);
+  } else if (p.cover) {
+    art.append(el('img', {
+      class: 'project-cover',
+      src: p.cover,
+      alt: p.coverAlt ?? `Tampilan ${p.name}`,
+      width: '620',
+      height: '820',
+      loading: 'lazy',
+      decoding: 'async',
+    }));
+  }
 
   // Baris atas: label kategori atau judul
   const top = el('div', { class: 'project-art__accent' });
@@ -406,7 +410,8 @@ async function renderSpotlight() {
         return t ? Number(String(t.value).replace(/\./g, '')).toLocaleString('id-ID') : '';
       })(),
       accent: ACCENT_WARNA[p.accent] || '#f5c542',
-      image: petaGambar.get(p.name)?.url ?? '',
+      // Gambar dari manifest backend; kalau kosong, pakai sampul proyek sendiri.
+      image: petaGambar.get(p.name)?.url ?? p.cover ?? '',
       lqip: petaGambar.get(p.name)?.lqip ?? null,
       })),
     ...sideProjects.map((p) => ({
@@ -825,7 +830,6 @@ renderSideProjects();
 renderContact();
 pasangGerbangAkses(akses);
 $('#year').textContent = String(new Date().getFullYear());
-loadHeroVideo();
 observeReveals();
 watchHeader();
 
@@ -838,13 +842,6 @@ watchHeader();
 // mereka TIDAK dapat penanda stagger dari daftar id di atas.
 //
 // Ditandai SEBELUM initAstra supaya observer langsung menangkapnya.
-for (const id of ['featuredProjects', 'sideProjects', 'contactLinks', 'heroStats']) {
-  const node = document.getElementById(id);
-  if (node) node.dataset.stagger = '';
-}
-for (const node of document.querySelectorAll('.misi-daftar')) {
-  node.dataset.stagger = '';
-}
 
 // Micro-interactions Astra — setelah DOM terisi supaya elemen dinamis ikut terpasang.
 initAstra();
@@ -878,49 +875,12 @@ initCountUp();
 //   2. Jalurnya digambar di atas keadaan akhir, bukan keadaan animasi
 initVisiMisi();
 
-// Efek 3D tingkat Framer/Awwwards — scroll-stand, tilt berlapis, glare,
-// spotlight. Dipanggil setelah render supaya kartu proyek sudah ada.
-initDepth();
-
-// Sentuhan editorial: nomor section, rail navigasi, marquee. Dipanggil
-// setelah semua section ter-render supaya nomor & rail menangkap semuanya.
-initEditorial();
-
-// Film grain overlay — tactile texture (2026 trend). Dipanggil awal supaya
-// canvas dibuat sebelum interaksi lain.
-initGrain();
-
-// Wave text reveal — premium animation untuk section titles. Dipanggil
-// setelah DOM terisi supaya [data-wave-reveal] sudah ada.
-initWaveReveal();
-
-// Magnetic cards — physics-based hover untuk project cards. Dipanggil
-// setelah render supaya [data-magnetic] sudah terpasang.
-initMagneticCards();
-
-// Horizontal scroll pinned section — premium showcase (FASE 2). Dipanggil
-// setelah DOM siap supaya [data-hscroll] sudah ada.
-initHorizontalScroll();
-
-// Floating orb menu — replaces rail navigation (FASE 2). Dipanggil
-// setelah sections ter-render supaya observer bisa track.
-initOrbMenu();
-
-// Variable font weight on scroll — dynamic typography (FASE 2). Dipanggil
-// setelah [data-variable-weight] titles sudah ada.
-initVariableWeight();
-
-// Three.js particle system — DISABLED (user prefer video background).
-// Uncomment line below to enable particles instead of video.
-// initParticles();
-
-// Custom video player — ornamental controls (FASE 3). Dipanggil
-// setelah DOM ready untuk video [data-custom-player].
+// Satu lapisan gerak (GSAP + Lenis) menggantikan sembilan modul efek lama
+// (depth, editorial rail, grain, wave, magnetic, hscroll, orb menu, variable
+// weight, masonry). Sembilan efek yang berlomba membuat halaman terasa seperti
+// demo; satu sistem gerak dengan token yang sama terasa dirancang.
 initAllVideoPlayers();
-
-// Masonry portfolio layout — staggered grid (FASE 3). Dipanggil
-// setelah content rendered supaya items sudah ada.
-initMasonry();
+initMotion();
 
 // Core Web Vitals — ukur performa nyata dari pengunjung (Framer Performance).
 // Ringan: hanya 5 metrik, dikirim sekali per halaman via sendBeacon.
@@ -1010,9 +970,6 @@ pasangMonogram();
 // cookie, modal) otomatis ikut tanpa didaftarkan ulang.
 initRipple();
 
-// Efek sinematik (teknik PRIOR, vanilla) — clip reveal, parallax, text stagger,
-// scroll-scrub video, hero fade. Semua hormati prefers-reduced-motion.
-initCinematic();
 
 // Tandai section aktif di navigasi saat menggulir (audit desain P1-6).
 // Pakai IntersectionObserver, BUKAN listener scroll — proyek ini punya satu
