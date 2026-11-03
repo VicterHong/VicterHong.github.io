@@ -41,6 +41,11 @@ mkdirSync(join(DIST, 'assets', 'css'), { recursive: true });
 // dulu supaya berkas hasil build sudah ada saat penyalinan berlangsung.
 execFileSync(process.execPath, [join(ROOT, 'scripts', 'build-akses.mjs')], { stdio: 'inherit' });
 
+// ── 1c. Terbitkan proyek dari folder projects/<nama>/ ───────────────────────
+// Menulis assets/js/data/projects.generated.js + menyalin sampul/video ke
+// assets/projects/. Jalan sebelum penyalinan supaya hasilnya ikut ke dist.
+execFileSync(process.execPath, [join(ROOT, 'scripts', 'publish-projects.mjs')], { stdio: 'inherit' });
+
 // ── 2. Minifikasi setiap CSS ─────────────────────────────────────────────────
 const cssDir = join(ROOT, 'assets', 'css');
 const files = readdirSync(cssDir).filter((f) => f.endsWith('.css'));
@@ -112,7 +117,10 @@ const LEWATI_BERKAS = new Set([
 ]);
 
 /** Direktori sumber yang tidak boleh disalin: isinya dibangun, bukan dikirim. */
-const LEWATI_SUMBER = new Set(['akses/app']);
+// `projects` di AKAR adalah folder unggahan sumber (project.md, aset asli).
+// Yang dikirim ke browser hanya salinan di assets/projects/ — bernama sama,
+// jadi dicocokkan menurut jalur dari akar, bukan nama folder.
+const LEWATI_SUMBER = new Set(['akses/app', 'projects']);
 
 function salin(dir, rel = '') {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

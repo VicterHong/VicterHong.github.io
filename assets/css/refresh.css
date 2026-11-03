@@ -1,0 +1,458 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   refresh.css — lapisan rapi, dimuat PALING AKHIR di home.html.
+
+   Kenapa satu lapisan, bukan menulis ulang 40 modul: modul lama dipakai juga
+   oleh halaman lain (pricing, docs, klien). Menimpa di satu tempat membuat
+   beranda bersih tanpa memecah halaman lain, dan perubahannya bisa ditinjau
+   sebagai satu berkas.
+
+   Aturan yang ditegakkan (diukur oleh inspector desain):
+     satu jenis huruf · satu aksen · tanpa gradien · tanpa bayangan diam ·
+     tanpa garis tipis / kotak bergaris · tanpa kaca blur · tanpa label kecil
+     berhuruf kapital · teks bacaan minimal 13px · lima ukuran huruf.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Token ukuran lama dinaikkan di sumbernya: --fs-1 (12px) dipakai puluhan
+     label di modul lain. Menaikkannya ke 14px menegakkan lantai 13px sekaligus. */
+  --fs-1: 0.875rem;
+  --fs-2: 0.9375rem;
+  --font: 'Satoshi', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ink: #f2f2f4;
+  --ink-2: #b4b4bc;
+  --ground: #0b0b0d;
+  --ground-2: #141418;
+  --ground-3: #1b1b20;
+  --accent: #f5c542;
+  --accent-ink: #141418;
+
+  /* Lima ukuran, tidak lebih. */
+  --t-small: 0.875rem;
+  --t-body: 1.0625rem;
+  --t-lead: 1.375rem;
+  --t-head: clamp(2rem, 1.2rem + 2.6vw, 3.25rem);
+  --t-display: clamp(2.5rem, 1.2rem + 4.6vw, 5.5rem);
+
+  --gutter: clamp(1.25rem, 4vw, 2.5rem);
+  --maxw: 1240px;
+  --gap-section: clamp(6rem, 12vw, 11rem);
+}
+
+html { background: var(--ground); }
+body {
+  font-family: var(--font);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--ground);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Satu jenis huruf di mana pun. Kode tetap mono, karena memang kode. ──
+   Modul lama menetapkan font sendiri-sendiri (Playfair, JetBrains). Menimpa
+   satu per satu rapuh; menimpa semua kecuali kode tidak. */
+body *:not(pre):not(code):not(kbd):not(samp):not(pre *):not(code *) {
+  font-family: var(--font) !important;
+}
+pre, code, kbd, samp, pre *, code * { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace !important; }
+
+/* ── Bingkai: satu pasang margin, satu lebar maksimum. ── */
+.hero, .section, .site-footer .footer-inner, .case-studies, .metrik-bagian,
+.diagram-bagian, .sandbox-bagian {
+  max-width: var(--maxw) !important;
+  margin-inline: auto !important;
+  padding-inline: var(--gutter) !important;
+}
+.section { padding-block: 0 !important; margin-block: var(--gap-section) !important; }
+
+/* ── Hero: satu hal besar, satu kalimat penjelas, satu gambar besar. ── */
+.hero {
+  min-height: min(100dvh, 980px) !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr) !important;
+  gap: clamp(2rem, 5vw, 5rem) !important;
+  align-items: center !important;
+  padding-top: clamp(7rem, 12vh, 9rem) !important;
+  padding-bottom: clamp(3rem, 6vh, 5rem) !important;
+}
+.hero-title {
+  font-size: var(--t-display) !important;
+  line-height: 0.98 !important;
+  letter-spacing: -0.045em !important;
+  font-weight: 700 !important;
+  margin: 0 0 1.75rem !important;
+  max-width: 20ch;
+  color: var(--ink) !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+.hero-lede {
+  font-size: var(--t-lead) !important;
+  line-height: 1.45 !important;
+  color: var(--ink-2) !important;
+  max-width: 34ch !important;
+  margin: 0 0 2.25rem !important;
+}
+.hero-actions { margin-bottom: 2.5rem !important; gap: 0.75rem !important; }
+
+.hero-visual { position: relative; margin: 0; display: block !important; }
+.hero-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 31 / 41;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--ground-2);
+}
+.hero-terminal {
+  position: absolute;
+  left: -2.5rem;
+  bottom: 2.5rem;
+  margin: 0;
+  padding: 1.1rem 1.35rem;
+  min-width: 17rem;
+  background: var(--ground-2);
+  color: var(--ink);
+  border-radius: 6px;
+  font-size: var(--t-small);
+  line-height: 1.7;
+  white-space: pre;
+  overflow: hidden;
+}
+.hero-terminal .tprompt { color: var(--accent); }
+.hero-caption {
+  margin-top: 0.85rem;
+  font-size: var(--t-small);
+  color: var(--ink-2);
+}
+
+/* Angka ringkas: besar, tanpa garis, tanpa mono. */
+.hero-stats {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 2.5rem !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.hero-stats > div { display: flex; flex-direction: column-reverse; gap: 0.1rem; }
+.hero-stats dd { font-size: var(--t-lead) !important; font-weight: 700 !important; letter-spacing: -0.02em !important; margin: 0; }
+.hero-stats dt {
+  font-size: var(--t-small) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--ink-2) !important;
+}
+
+@media (max-width: 1024px) {
+  .hero { grid-template-columns: 1fr !important; min-height: auto !important; }
+  .hero-visual { max-width: 30rem; }
+  .hero-terminal { left: 1rem; bottom: 1rem; }
+  .hero-title { max-width: 14ch; }
+}
+@media (max-width: 560px) {
+  .hero-terminal { position: static; margin-top: -2rem; margin-inline: 1rem; min-width: 0; }
+}
+
+/* ── Judul bagian: besar, rapat, satu warna. ── */
+.section-title, .spotlight-title, .section h2:not(.sr-only) {
+  font-size: var(--t-head) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -0.035em !important;
+  font-weight: 700 !important;
+  color: var(--ink) !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  margin: 0 0 1rem !important;
+  text-wrap: balance;
+}
+.section-title em, .spotlight-title em, .hero-title em, .hero-title .accent {
+  font-style: normal !important;
+  color: inherit !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+.section-note { font-size: var(--t-body) !important; color: var(--ink-2) !important; max-width: 60ch; }
+.section-head { margin-bottom: clamp(2.5rem, 5vw, 4rem) !important; }
+
+/* ── Tombol: rata, satu warna, persegi tegas. ── */
+.btn {
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  font-weight: 600 !important;
+  font-size: var(--t-body) !important;
+  padding: 0.85rem 1.4rem !important;
+  min-height: 48px;
+  transition: transform 160ms ease, background-color 160ms ease, color 160ms ease !important;
+}
+.btn-primary { background: var(--accent) !important; color: var(--accent-ink) !important; border: 0 !important; }
+.btn-primary:hover { background: #ffd35c !important; transform: translateY(-1px); }
+.btn-ghost { background: var(--ground-3) !important; color: var(--ink) !important; border: 0 !important; }
+.btn-ghost:hover { background: #24242b !important; transform: translateY(-1px); }
+.btn:active { transform: translateY(1px) scale(0.99) !important; }
+.btn:focus-visible, a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 3px !important;
+}
+
+/* ── Permukaan: dipisah satu langkah warna, bukan garis atau bayangan. ── */
+.project, .project-card-inner, .case-panel, .contact-card, .side-project,
+.about-body, .about-skills, .vm-kartu, .gerbang-akses, .akses-bridge,
+.metrik-kartu, .diagram-kartu, .sandbox-kartu, .work-panel, .brief-panel,
+.tilt-panel, .tech-group, .spotlight-card, .project-art {
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-image: none !important;
+}
+.project, .case-panel, .contact-card, .vm-kartu, .gerbang-akses, .akses-bridge,
+.about-body, .about-skills, .work-panel, .brief-panel {
+  background-color: var(--ground-2) !important;
+  border-radius: 6px !important;
+}
+.project-art { background-color: var(--ground-3) !important; border-radius: 4px !important; }
+
+/* Garis pembatas tipis di dalam kartu → ruang. */
+.project-foot, .terminal-bar, .hero-stats, .vm-papan, .site-footer,
+.project-highlights, .metrik-baris, .case-grid, .section-head {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
+.vm-jalur, .tilt-glare, .orb-pulse-dot, .hero-fallback { display: none !important; }
+
+/* Kepala situs: bilah rata, tanpa blur. */
+.site-header, .site-header.is-scrolled {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(11, 11, 13, 0.96) !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── Label kecil berhuruf kapital → kalimat biasa yang terbaca. ── */
+.hero-kicker, .vm-label, .project-art__label, .project-sub, .tag, .chip,
+.project-art__chip, .stack span, .tech-group-title, .section-eyebrow,
+.metrik-label, .case-panel strong, .contact-label, .gerbang-akses-judul,
+.akses-bridge__label, .project-highlights-petunjuk, .project-link,
+.side-project p, .stat-tersamar, dt, .footer-meta, .footer-inner small {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: max(var(--t-small), 0.875rem) !important;
+}
+.tag, .chip, .project-art__chip, .stack span {
+  background: var(--ground-3) !important;
+  border: 0 !important;
+  border-radius: 3px !important;
+  padding: 0.3rem 0.6rem !important;
+  color: var(--ink-2) !important;
+}
+
+/* Tidak ada teks bacaan di bawah 13px. Token --fs-1 sudah dinaikkan di atas;
+   sisanya label yang memakai px tetap ditangani per kelas. */
+small, .small, .meta, figcaption, .project-sub, .tag, .chip, .stack span,
+.project-art__chip, .ci-badge, .ci-badge *, .metrik-label, .metrik-perintah,
+.diagram-label, .sandbox-catatan, .akses-bridge__label, .akses-bridge__note,
+.gerbang-akses-teks, .vm-label, .project-link, .side-project p, .side-project .stack,
+.cookie-banner p, .cookie-banner label, .cookie-banner span, .footer-inner a,
+.footer-inner p, .footer-inner small, .contact-hint, .brief-fields label {
+  font-size: 0.875rem !important;
+}
+
+/* ── Tentang: teks di kiri, keahlian berkelompok di kanan. ── */
+.about-layout { display: grid !important; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr) !important; gap: clamp(1.5rem, 4vw, 4rem) !important; }
+@media (max-width: 860px) { .about-layout { grid-template-columns: 1fr !important; } }
+.about-body { padding: clamp(1.5rem, 3vw, 2.5rem) !important; }
+.about-body p { font-size: var(--t-lead); line-height: 1.5; margin: 0 0 1.1rem; max-width: 52ch; }
+.about-body p:not(:first-child) { font-size: var(--t-body); color: var(--ink-2); }
+.about-skills { padding: clamp(1.5rem, 3vw, 2.25rem) !important; display: grid; gap: 1.35rem; align-content: start; }
+.skill-group-name { margin: 0 0 0.25rem; font-size: var(--t-body); font-weight: 700; }
+.skill-group-items { margin: 0; color: var(--ink-2); }
+
+/* ── Layanan: daftar dua kolom bertipografi besar. ── */
+.services-grid { display: block !important; }
+.service-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.service-row {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(1rem, 4vw, 4rem);
+  padding-block: clamp(1.5rem, 3vw, 2.4rem);
+}
+.service-row + .service-row { background: none; }
+.service-row:nth-child(even) { background: var(--ground-2); padding-inline: 1.25rem; margin-inline: -1.25rem; border-radius: 6px; }
+.service-name {
+  margin: 0;
+  font-size: var(--t-lead) !important;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.service-body { margin: 0; color: var(--ink-2); max-width: 58ch; font-size: var(--t-body); }
+@media (max-width: 720px) {
+  .service-row { grid-template-columns: 1fr; gap: 0.6rem; }
+}
+
+/* ── Proyek: susunan tidak seragam — proyek unggulan memakai lebar penuh. ── */
+.projects-bento { display: grid !important; grid-template-columns: repeat(12, minmax(0, 1fr)) !important; gap: 1.25rem !important; }
+.projects-bento > .project { grid-column: span 6; padding: clamp(1.5rem, 3vw, 2.5rem) !important; transform: none !important; }
+.projects-bento > .project.is-featured { grid-column: 1 / -1; }
+@media (max-width: 860px) { .projects-bento > .project { grid-column: 1 / -1; } }
+.project-name { font-size: var(--t-head) !important; line-height: 1.04 !important; letter-spacing: -0.035em !important; }
+.project-summary { font-size: var(--t-lead) !important; line-height: 1.45; color: var(--ink) !important; max-width: 46ch; }
+.project-problem { color: var(--ink-2) !important; max-width: 60ch; }
+
+/* Gambar proyek: besar, tanpa bingkai, potongan seragam. */
+.project-art { overflow: hidden; display: grid; gap: 1rem; padding: 0 !important; margin: 0 0 1.75rem; }
+.project-cover { display: block; width: 100%; height: clamp(14rem, 28vw, 24rem); object-fit: cover; }
+.project.is-featured .project-cover { height: clamp(16rem, 36vw, 30rem); }
+.project-art__accent, .project-art__stack { padding-inline: 1.25rem; }
+.project-art__stack { padding-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+/* Ruang tegas antara daftar proyek dan studi kasus, supaya tautan kaki kartu
+   tidak terbaca sebagai label di atas judul berikutnya. */
+.case-studies { margin-top: var(--gap-section) !important; }
+
+/* ── Studi kasus: kolom yang sejajar, isi lengkap. ── */
+.case-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 1.25rem !important; }
+@media (max-width: 960px) { .case-grid { grid-template-columns: 1fr !important; } }
+.case-panel { padding: clamp(1.5rem, 2.5vw, 2rem) !important; display: flex; flex-direction: column; }
+.case-panel h3 { font-size: var(--t-lead) !important; margin: 0 0 1rem; }
+.case-panel a { margin-top: auto; padding-top: 1rem; color: var(--accent); }
+
+/* ── Visi & misi: daftar bernomor alami, tanpa nomor hiasan. ── */
+.vm-kartu { padding: clamp(1.5rem, 3vw, 2.25rem) !important; transform: none !important; }
+.vm-pin { display: none !important; }
+.vm-kartu--visi .vm-teks { font-size: clamp(1.25rem, 1rem + 0.8vw, 1.75rem) !important; line-height: 1.3 !important; letter-spacing: -0.015em; max-width: 44ch; }
+
+/* Garis putus-putus dan bingkai mono hilang. */
+[style*="dashed"], .is-dashed, .gerbang-akses *, .sandbox-bagian * { border-style: none !important; }
+
+/* Catatan gerbang di akhir seksi: kalimat biasa dengan ruang di bawahnya,
+   supaya tidak terbaca sebagai label seksi berikutnya. */
+.gerbang-akses-ringkas { font-size: var(--t-body) !important; color: var(--ink-2); margin: 1.5rem 0 0 !important; padding-bottom: 0 !important; }
+.metrik-bagian, .diagram-bagian, .sandbox-bagian, .spotlight { margin-block: clamp(5rem, 9vw, 8rem) !important; position: relative; z-index: 1; }
+.metrik-judul-bagian, .spotlight-title { position: relative; z-index: 2; }
+/* Isi metrik/visi-misi tidak boleh melebar sampai tepi layar. */
+.metrik-bagian *, .section-visi * { max-width: 100%; overflow-wrap: anywhere; }
+.vm-papan, .vm-daftar { padding-inline: 0 !important; margin-inline: 0 !important; }
+
+/* Galeri: label kartu jadi kalimat biasa, tanpa lapisan gradien. */
+.spotlight-card-label, .spotlight-eyebrow {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 0.875rem !important;
+}
+.spotlight-eyebrow { display: none !important; }
+.spotlight-card-media, .spotlight-card-media.is-holding, .spotlight-card-media::before,
+.spotlight-card-media::after, .spotlight-card::before, .spotlight-card::after {
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.spotlight-card-media.is-holding { background-color: var(--ground-3) !important; }
+.spotlight-card { box-shadow: none !important; border: 0 !important; }
+
+/* Tombol di mana pun: tanpa bayangan atau cahaya, termasuk modul interaksi. */
+.btn, .btn::before, .btn::after, button, .cookie-btn, .copy-btn, .link-btn, .nav-signin {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  background-image: none !important;
+}
+
+/* Tumpukan teknologi dan label kategori di kartu proyek: judul proyek sudah
+   menyebut apa itu, label di atasnya hanya mengulang (eyebrow). */
+.project-art__stack, .project-art__accent { display: none !important; }
+
+/* Judul kolom footer: kalimat biasa. */
+.footer-kolom-judul { text-transform: none !important; letter-spacing: 0 !important; font-size: 1rem !important; font-weight: 700; }
+
+/* Video narasi proyek: lebar penuh kartu unggulan, tanpa bingkai. */
+.project-loop { display: block; width: 100%; height: clamp(14rem, 34vw, 28rem); object-fit: cover; border-radius: 4px; background: var(--ground-3); }
+
+/* FAQ: dipisah oleh ruang dan satu langkah warna, bukan garis. */
+.work-faq details { border: 0 !important; padding: 0.4rem 1rem !important; border-radius: 4px; }
+.work-faq details:nth-child(odd) { background: var(--ground-2); }
+.work-faq summary { font-size: var(--t-body) !important; }
+
+/* Lencana CI: teks biasa, tanpa kapsul bergaris. */
+.ci-badge, .ci-badge * { border: 0 !important; box-shadow: none !important; }
+
+/* Banner cookie: kartu ringkas di pojok kanan bawah, bukan bilah selebar layar.
+   Bilah penuh menutupi judul seksi selama pengunjung belum memilih; kartu
+   kecil di pojok tetap terlihat (persetujuan wajib) tanpa menindih isi. */
+.cookie-banner {
+  left: auto !important;
+  right: var(--gutter) !important;
+  bottom: var(--gutter) !important;
+  width: min(26rem, calc(100vw - 2 * var(--gutter))) !important;
+  background: var(--ground-3) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important;
+}
+.cookie-banner::before { display: none !important; }
+.cookie-banner-inner { flex-direction: column !important; align-items: stretch !important; gap: 1rem !important; padding: 1.1rem 1.2rem !important; }
+.cookie-banner-text h2 { font-size: var(--t-body) !important; }
+.cookie-actions { display: flex !important; flex-wrap: wrap; gap: 0.5rem !important; }
+@media (max-width: 1100px) {
+  .cookie-banner { right: 0.75rem !important; left: auto !important; bottom: 0.75rem !important; width: min(22rem, calc(100vw - 1.5rem)) !important; }
+  .cookie-banner-inner { padding: 0.85rem 1rem !important; gap: 0.6rem !important; }
+}
+/* Selama kartu cookie tampil, halaman memberi ruang di bawah supaya ujung
+   isi tidak tertimpa kartu yang mengambang. */
+body:has(.cookie-banner.is-visible) main { padding-bottom: 10rem; }
+
+/* Tirai menu mobile: hanya ada saat menu terbuka. Tirai transparan yang tetap
+   terpasang menutupi seluruh layar (dan judul di bawahnya). */
+.nav-scrim:not(.is-visible) { display: none !important; }
+
+/* Tombol pengaturan cookie: kanan bawah. Judul dan teks rata kiri, jadi tombol
+   di kiri bawah menindih awal setiap judul yang lewat di belakangnya. */
+.cookie-fab { left: auto !important; right: 1rem !important; bottom: 1rem !important; box-shadow: none !important; background: var(--ground-3) !important; border: 0 !important; }
+
+/* Lapisan cookie yang tertutup tidak boleh tetap ada di atas halaman. Panel dan
+   tirai yang hanya transparan masih menutupi isi (dan menangkap baca layar). */
+.cookie-scrim:not(.is-visible), .cookie-panel:not(.is-visible) {
+  display: none !important;
+}
+.cookie-banner, .cookie-panel-head, .cookie-cat, .footer-bawah { border: 0 !important; }
+
+/* Tautan dan tombol kecil: dibentuk oleh isi warna, bukan garis 1px.
+   Kolom formulir (input, select, textarea) tetap bergaris — itu konvensi formulir. */
+.nav-signin, .akses-bridge__cta, .contact-link, .cookie-btn {
+  border: 0 !important;
+  background: var(--ground-3) !important;
+  border-radius: 4px !important;
+}
+.nav-signin:hover, .contact-link:hover, .cookie-btn:hover { background: #24242b !important; }
+.cookie-btn { color: var(--ink) !important; }
+.cookie-btn[data-consent="accept-all"], .cookie-btn[data-consent="save"] {
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
+}
+
+/* Banner cookie: tidak boleh menyembunyikan teks saat gerak dikurangi. */
+@media (prefers-reduced-motion: reduce) {
+  .cookie-banner, .cookie-banner * { transition: none !important; animation: none !important; }
+  .cookie-banner.is-visible, .cookie-banner.is-visible * { opacity: 1 !important; transform: none !important; }
+}
+
+/* Tidak ada blur di mana pun selain kepala situs (yang juga kini rata). */
+*:not(.site-header) { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+/* Tautan dalam teks: satu warna aksen, garis bawah hanya saat disorot. */
+main a:not(.btn):not(.project-link):not(.side-project):not(.akses-bridge) { color: var(--accent); text-decoration: none; }
+main a:not(.btn):hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Gerak masuk dikelola motion.js. Sebelum pustaka siap, tidak ada yang disembunyikan. */
+.motion-on [data-reveal], .motion-on [data-stagger] > * { opacity: 1 !important; transform: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
