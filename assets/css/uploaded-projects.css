@@ -1,0 +1,20 @@
+/* Sampul proyek hasil upload folder. Hanya berlaku untuk kartu yang punya
+   berkas cover sungguhan; kartu bawaan tidak berubah. Foto tampil utuh dan
+   terang, tanpa lapisan hitam yang menutupinya. */
+.project-art--cover {
+  padding: 0;
+  min-height: 0;
+  background: #121214;
+}
+.project-art--cover .project-uploaded-cover {
+  display: block;
+  width: 100%;
+  height: clamp(13rem, 26vw, 20rem);
+  object-fit: cover;
+  border-radius: inherit;
+}
+.project-art--cover .project-art__accent,
+.project-art--cover .project-art__stack {
+  padding: 0 1.25rem;
+}
+.project-art--cover .project-art__stack { padding-bottom: 1.25rem; }

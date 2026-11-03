@@ -41,6 +41,12 @@ mkdirSync(join(DIST, 'assets', 'css'), { recursive: true });
 // dulu supaya berkas hasil build sudah ada saat penyalinan berlangsung.
 execFileSync(process.execPath, [join(ROOT, 'scripts', 'build-akses.mjs')], { stdio: 'inherit' });
 
+// Folder projects/ ada hanya di server. CI tidak memilikinya dan wajib
+// mempertahankan katalog generated yang sudah di-commit, bukan mengosongkannya.
+if (existsSync(join(ROOT, 'projects'))) {
+  execFileSync(process.execPath, [join(ROOT, 'scripts', 'publish-projects.mjs')], { stdio: 'inherit' });
+}
+
 // ── 2. Minifikasi setiap CSS ─────────────────────────────────────────────────
 const cssDir = join(ROOT, 'assets', 'css');
 const files = readdirSync(cssDir).filter((f) => f.endsWith('.css'));
@@ -112,7 +118,7 @@ const LEWATI_BERKAS = new Set([
 ]);
 
 /** Direktori sumber yang tidak boleh disalin: isinya dibangun, bukan dikirim. */
-const LEWATI_SUMBER = new Set(['akses/app']);
+const LEWATI_SUMBER = new Set(['akses/app', 'projects']);
 
 function salin(dir, rel = '') {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

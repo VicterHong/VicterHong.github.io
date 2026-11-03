@@ -37,6 +37,7 @@ import { createSpotlightCarousel } from './spotlight.js';
 import { ambilManifest, susunGambar, pantauPerubahan } from './media-loader.js';
 import { icon } from './icons.js';
 import { ambilAkses, bolehLihatAngka, bolehLihatDemo, ajakanUntuk } from './akses.js';
+import { createProjectCover } from './uploaded-cover.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -189,6 +190,13 @@ function renderServices() {
  */
 function renderProjectArt(p, lihatAngka = false) {
   const art = el('figure', { class: `project-art project-art--${p.variant ?? 'default'}` });
+  // Sampul asli dari folder server (proyek hasil upload). Proyek bawaan tidak
+  // punya `cover`, jadi artefak mereka tetap persis seperti semula.
+  const cover = createProjectCover(p);
+  if (cover) {
+    art.classList.add('project-art--cover');
+    art.append(cover);
+  }
 
   // Baris atas: label kategori atau judul
   const top = el('div', { class: 'project-art__accent' });
@@ -406,7 +414,7 @@ async function renderSpotlight() {
         return t ? Number(String(t.value).replace(/\./g, '')).toLocaleString('id-ID') : '';
       })(),
       accent: ACCENT_WARNA[p.accent] || '#f5c542',
-      image: petaGambar.get(p.name)?.url ?? '',
+      image: petaGambar.get(p.name)?.url ?? p.cover ?? '',
       lqip: petaGambar.get(p.name)?.lqip ?? null,
       })),
     ...sideProjects.map((p) => ({

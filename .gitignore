@@ -33,3 +33,7 @@ akses/assets/
 *.glb
 *.gltf
 *.bin
+
+# Sumber unggahan proyek hanya ada di server. Yang masuk repo publik hanyalah
+# metadata yang sudah disaring + cover/video terpilih di assets/projects/.
+/projects/

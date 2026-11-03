@@ -1,3 +1,5 @@
+import { uploadedProjects } from './projects.generated.js';
+
 /**
  * Data portofolio — SATU sumber kebenaran.
  *
@@ -149,6 +151,12 @@ export const projects = [
     artLabel: 'Bot keluarga',
   },
 ];
+
+// Proyek dari folder server adalah daftar publik terpisah. Jangan mengubah tiga
+// entri yang ditulis tangan, dan jangan menduplikasi slug proyek yang ada.
+for (const p of uploadedProjects) {
+  if (!projects.some((existing) => existing.slug === p.slug)) projects.push(p);
+}
 
 /**
  * Proyek pendukung — disebut singkat, tanpa halaman detail.
