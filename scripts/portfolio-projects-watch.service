@@ -1,0 +1,18 @@
+[Unit]
+Description=Portofolio: terbitkan projects/<slug>/ otomatis (validasi, deploy-aman, commit)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/portfolio-victer
+ExecStart=/home/ubuntu/.hermes/node/bin/node scripts/watch-projects.mjs
+Environment=JEDA_MS=20000
+Environment=PROJECTS_DEPLOY=true
+Environment=PROJECTS_PUSH=true
+Restart=on-failure
+RestartSec=15
+Nice=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
