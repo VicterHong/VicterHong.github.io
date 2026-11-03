@@ -61,8 +61,7 @@ test('nav halaman proyek memuat tautan yang sama dengan beranda', () => {
     .map((m) => m[1].trim());
 
   // Tautan yang wajib ada di halaman proyek (path relatif dua tingkat).
-  // Nav ringkas (5 tautan): Dokumentasi, Changelog, dan Proses pindah ke footer.
-  const wajib = ['Proyek', 'Layanan', 'Tentang', 'Harga', 'Kontak'];
+  const wajib = ['Tentang', 'Proyek', 'Layanan', 'Harga', 'Proses', 'Dokumentasi', 'Changelog', 'Kontak'];
   for (const t of wajib) {
     assert.ok(navBeranda.includes(t), `beranda harus punya tautan "${t}" (sanity)`);
   }

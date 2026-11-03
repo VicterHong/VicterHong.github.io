@@ -79,7 +79,6 @@
           { teks: 'Proyek', href: '/home#utqvwf' },
           { teks: 'Cara kerja', href: '/home#5nfyzw' },
           { teks: 'Harga', href: '/pricing' },
-          { teks: 'Akses 3D', href: '/akses/' },
         ],
       },
       {
