@@ -34,6 +34,7 @@
 <!-- Satoshi (Fontshare) = body. Playfair Display = heading serif. JetBrains Mono = kode/angka. -->
 <link rel="preconnect" href="https://api.fontshare.com">
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- JSON-LD: structured data untuk search engine & AI (AEO).
      Data di sini sinkron dengan llms.txt — satu sumber kebenaran. -->
@@ -92,18 +93,29 @@
 <link rel="stylesheet" href="assets/css/diagram.css">
 <link rel="stylesheet" href="assets/css/sandbox.css">
 <link rel="stylesheet" href="assets/css/astra.css">
+<link rel="stylesheet" href="assets/css/cinematic.css">
 <link rel="stylesheet" href="assets/css/logo.css">
+<link rel="stylesheet" href="assets/css/tilt-panel.css">
 <link rel="stylesheet" href="assets/css/premium.css">
 <link rel="stylesheet" href="assets/css/bento.css">
+<link rel="stylesheet" href="assets/css/depth.css">
+<link rel="stylesheet" href="assets/css/editorial.css">
+<link rel="stylesheet" href="assets/css/grain.css">
+<link rel="stylesheet" href="assets/css/wave-reveal.css">
+<link rel="stylesheet" href="assets/css/magnetic.css">
+<link rel="stylesheet" href="assets/css/hscroll.css">
+<link rel="stylesheet" href="assets/css/orb-menu.css">
+<link rel="stylesheet" href="assets/css/variable-weight.css">
 <link rel="stylesheet" href="assets/css/spotlight.css">
 <link rel="stylesheet" href="assets/css/video-player.css">
+<link rel="stylesheet" href="assets/css/masonry.css">
 <link rel="stylesheet" href="assets/css/cf-gate.css">
 <link rel="stylesheet" href="assets/css/cookies.css">
 <link rel="stylesheet" href="assets/css/visi-misi.css">
 <link rel="stylesheet" href="assets/css/interactions.css">
+<link rel="stylesheet" href="assets/css/orb-3d.css">
 <link rel="stylesheet" href="assets/css/gerbang-akses.css">
 <link rel="stylesheet" href="assets/css/skip-link.css">
-<link rel="stylesheet" href="assets/css/refresh.css">
 <script>
   // Anti-FOUC: sembunyikan konten sampai gate memutuskan, supaya tidak ada
   // kedipan konten sebelum overlay verifikasi muncul (pola Cloudflare).
@@ -121,6 +133,18 @@
 <body>
 <a class="skip-link" href="#zs6xae">Lompat ke konten</a>
 
+<!-- Latar animasi: video Higgsfield dimuat di sini saat tersedia.
+     Sebelum video ada, lapisan gradien statis yang tampil — bukan kotak kosong. -->
+<div class="hero-backdrop" aria-hidden="true">
+  <video class="hero-video" id="heroVideo" muted playsinline preload="auto" poster="assets/hero-poster.jpg">
+    <!-- Sumber diisi oleh app.js kalau berkasnya ada. MP4 untuk kompatibilitas, WebM untuk ukuran kecil. -->
+    <!-- Desktop: scroll-scrub. Mobile: autoplay loop (lihat cinematic.js). -->
+    <!-- Poster: frame terang — supaya background tidak terlihat polos saat
+         autoplay diblokir browser (mode hemat baterai/data). -->
+  </video>
+  <div class="hero-fallback"></div>
+  <div class="hero-grain"></div>
+</div>
 
 <header class="site-header">
   <div class="site-header-inner">
@@ -129,10 +153,17 @@
       <span class="brand-text">VIVASTIC</span>
     </a>
     <nav class="site-nav" id="siteNav" aria-label="Navigasi utama">
+      <a href="#s6ahns">Tentang</a>
       <a href="#utqvwf">Proyek</a>
       <a href="#cckxsk">Layanan</a>
-      <a href="#s6ahns">Tentang</a>
       <a href="/pricing">Harga</a>
+      <!-- Jembatan ke aplikasi React: halaman statis ini tetap vanilla,
+           sedangkan /akses/ adalah bundle React yang memuat harga dan alur
+           transaksi. Dua-duanya berbagi identitas, bukan kode. -->
+      <a href="/akses/">Akses 3D</a>
+      <a href="#5nfyzw">Proses</a>
+      <a href="/docs">Dokumentasi</a>
+      <a href="/changelog">Changelog</a>
       <a href="#89fk39">Kontak</a>
     </nav>
     <!-- Grup akun — TERPISAH dari nav. -->
@@ -158,42 +189,64 @@
        jangan cuma bilang "saya bangun alat", tunjukkan alatnya bekerja. -->
   <section class="hero" aria-labelledby="hero-title">
     <div class="hero-copy">
-      <h1 class="hero-title" id="hero-title">Otomasi di mesin Anda sendiri</h1>
+      <p class="hero-kicker">Automation &amp; self-hosted tools</p>
+      <h1 class="hero-title" id="hero-title" data-cine-words>
+        Perangkat lunak yang berjalan di <span class="accent">mesin Anda sendiri</span>, bukan di cloud orang lain.
+      </h1>
       <p class="hero-lede">
-        Victer, pengembang sistem self-hosted. Remote control, inventaris, dan asisten pesan
-        yang intinya berjalan di server Anda. Integrasi pesan atau AI tetap memakai API pihak ketiga.
+        Otomasi, inventaris, dan asisten pesan dengan inti aplikasi yang bisa Anda kelola sendiri.
+        Biaya server, API, dan dukungan mengikuti kebutuhan. Integrasi pesan atau AI dapat
+        memproses data lewat penyedia pihak ketiga.
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="#utqvwf">Lihat proyek</a>
-        <a class="btn btn-ghost" href="#89fk39">Diskusikan kebutuhan</a>
+        <a class="btn btn-ghost" href="https://github.com/VicterHong" target="_blank" rel="noopener">GitHub</a>
       </div>
 
       <!-- Angka ringkas. Dihitung dari data proyek, bukan diketik manual. -->
       <dl class="hero-stats" id="heroStats"></dl>
     </div>
 
-    <figure class="hero-visual">
-      <img class="hero-shot" src="assets/spotlight/mina-terminal.jpg" width="620" height="820"
-           alt="Terminal MINA di laptop rumah: status proses dan perintah backup" decoding="async" fetchpriority="high">
-      <pre class="hero-terminal" aria-label="Contoh sesi terminal MINA"><code><span class="tprompt">$</span> mina status
-Proses aktif · 24 MB RAM
-Telegram, Discord terhubung
-<span class="tprompt">$</span> mina run backup
-Selesai dalam 1,8 detik</code></pre>
-      <figcaption class="hero-caption">MINA berjalan di laptop 2 GB RAM. Log lengkap ada di dokumentasi.</figcaption>
-    </figure>
+    <div class="hero-visual" aria-hidden="true" data-melayang>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-title">mina@home:~</span>
+        </div>
+        <div class="terminal-orb-wrap" id="heroOrbWrap">
+          <canvas id="heroOrbCanvas" class="hero-orb-canvas" width="460" height="190" aria-label="Simulasi 3D Neural Mesh"></canvas>
+          <div class="orb-telemetry">
+            <span class="orb-pulse-dot" aria-hidden="true"></span>
+            <span class="orb-telemetry-text">NEURAL 3D CORE &middot; DRAG TO ROTATE</span>
+          </div>
+          <div class="orb-hint">&bull; 320 NODES 3D MESH</div>
+        </div>
+        <div class="terminal-body">
+          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina status</span></p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Proses aktif &middot; 24&nbsp;MB RAM</p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Telegram, Discord terhubung</p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="13"></span> Berjalan sejak 47 hari lalu</p>
+          <p class="tline"><span class="tprompt">$</span> <span class="tcmd">mina run backup</span></p>
+          <p class="tline"><span class="tok" data-icon="check" data-icon-size="12"></span> Selesai dalam 1,8&nbsp;detik</p>
+          <p class="tline tdim">Log lengkap dan cara menjalankannya ada di dokumentasi.</p>
+          <p class="tline tcaret"><span class="tprompt">$</span> <span class="caret"></span></p>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ── TENTANG ─────────────────────────────────────────────────────────────
        Pembaca perlu tahu ini siapa SEBELUM melihat proyek. Urutan standar
        portofolio: perkenalan → layanan → bukti kerja → cara kerja → kontak. -->
-  <section class="section" id="s6ahns" aria-labelledby="about-title">
+  <section class="section" id="s6ahns" aria-labelledby="about-title" data-cine-clip>
     <div class="section-head">
-      <h2 class="section-title" id="about-title">Tentang</h2>
+      <h2 class="section-title" id="about-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Tentang</h2>
     </div>
     <div class="about-layout">
       <div class="about-body" id="aboutBody"></div>
-      <div class="about-skills" id="aboutSkills"></div>
+      <div class="about-skills" id="aboutSkills" data-stagger></div>
     </div>
   </section>
 
@@ -206,8 +259,8 @@ Selesai dalam 1,8 detik</code></pre>
        seragam yang membuat semuanya terlihat sama penting. -->
   <section class="section" id="utqvwf" aria-labelledby="work-title">
     <div class="section-head">
-      <h2 class="section-title" id="work-title">Proyek</h2>
-      <p class="section-note">
+      <h2 class="section-title" id="work-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Proyek</h2>
+      <p class="section-note" data-reveal>
         Angka di bawah berasal dari hasil uji terakhir. Kode sumbernya privat, saya tunjukkan saat diminta.
       </p>
     </div>
@@ -357,14 +410,14 @@ Selesai dalam 1,8 detik</code></pre>
   <!-- ── LAYANAN ─────────────────────────────────────────────────────────────
        Apa yang bisa dikerjakan — ditulis sebagai hasil, bukan daftar teknologi.
        Ditaruh SETELAH Proyek: pengunjung sudah melihat buktinya, baru ditawari. -->
-  <section class="section" id="cckxsk" aria-labelledby="services-title">
+  <section class="section" id="cckxsk" aria-labelledby="services-title" data-cine-clip>
     <div class="section-head">
-      <h2 class="section-title" id="services-title">Layanan</h2>
-      <p class="section-note">
+      <h2 class="section-title" id="services-title" data-reveal data-cine-words data-wave-reveal data-variable-weight>Layanan</h2>
+      <p class="section-note" data-reveal>
         Yang bisa saya kerjakan untuk tim atau bisnis Anda.
       </p>
     </div>
-    <div class="services-grid" id="servicesGrid"></div>
+    <div class="services-grid" id="servicesGrid" data-stagger></div>
 
     <!-- ── JEMBATAN KE APLIKASI REACT ────────────────────────────────────────
          Halaman ini tetap HTML + CSS + JS vanilla. Tautan di bawah membawa
@@ -461,7 +514,7 @@ Selesai dalam 1,8 detik</code></pre>
   </section>
 
   <section class="section section-visi" id="prinsip-kerja" aria-labelledby="visi-title"
-           data-tanpa-eyebrow>
+           data-cine-clip data-tanpa-eyebrow>
     <h2 class="sr-only" id="visi-title">Visi &amp; Misi</h2>
 
     <!--
@@ -499,7 +552,8 @@ Selesai dalam 1,8 detik</code></pre>
                 <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
               </svg>
               <div class="vm-dalam">
-                <p class="vm-teks">Setiap sistem bisa dijalankan. Setiap angka bisa diperiksa.</p>
+                <span class="vm-label">Visi</span>
+                <p class="vm-teks">Portofolio ini bukan galeri. Ia bukti kerja: setiap sistem bisa dijalankan, setiap angka bisa diperiksa, dan setiap klaim punya kode di belakangnya.</p>
               </div>
             </article>
           </div>
@@ -513,7 +567,7 @@ Selesai dalam 1,8 detik</code></pre>
                 <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
               </svg>
               <div class="vm-dalam">
-                
+                <span class="vm-label" aria-hidden="true">01</span>
                 <h3 class="vm-judul">Sistem yang ditampilkan benar-benar berjalan</h3>
                 <p class="vm-teks">
                   Bukan tangkapan layar. Ada
@@ -551,7 +605,7 @@ Selesai dalam 1,8 detik</code></pre>
                 <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
               </svg>
               <div class="vm-dalam">
-                
+                <span class="vm-label" aria-hidden="true">02</span>
                 <h3 class="vm-judul">Setiap klaim punya sumber yang bisa dibuka</h3>
                 <p class="vm-teks">
                   Saya menulis audit untuk pekerjaan sendiri, lalu memverifikasi
@@ -572,7 +626,7 @@ Selesai dalam 1,8 detik</code></pre>
                 <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
               </svg>
               <div class="vm-dalam">
-                
+                <span class="vm-label" aria-hidden="true">03</span>
                 <h3 class="vm-judul">Jalan di perangkat yang sudah Anda punya</h3>
                 <p class="vm-teks">
                   <a href="#utqvwf">MINA</a>, remote control rumah yang jadi
@@ -595,7 +649,7 @@ Selesai dalam 1,8 detik</code></pre>
                 <path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z" />
               </svg>
               <div class="vm-dalam">
-                
+                <span class="vm-label" aria-hidden="true">04</span>
                 <h3 class="vm-judul">Batas disebut di depan, bukan saat bermasalah</h3>
                 <p class="vm-teks">
                   Aset halaman dibatasi
@@ -623,8 +677,8 @@ Selesai dalam 1,8 detik</code></pre>
   </section>
 
   <!-- ── KONTAK ────────────────────────────────────────────────────────────── -->
-  <section class="section section-contact" id="89fk39" aria-labelledby="contact-title">
-    <h2 class="section-title" id="contact-title">Mari bicara</h2>
+  <section class="section section-contact" id="89fk39" aria-labelledby="contact-title" data-cine-clip>
+    <h2 class="section-title" id="contact-title" data-reveal data-cine-words>Mari bicara</h2>
     <p class="contact-lede">
       Ceritakan sistem yang ingin dibangun, kendala saat ini, dan tenggat bila ada.
       Kita sepakati ruang lingkup dan biaya sebelum pekerjaan dimulai.

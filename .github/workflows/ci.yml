@@ -126,7 +126,7 @@ jobs:
       - name: Periksa meta SEO/AEO di halaman utama
         run: |
           missing=0
-          for marker in 'rel="canonical"' 'og:title' 'og:image' 'application/ld+json' 'assets/css/refresh.css'; do
+          for marker in 'rel="canonical"' 'og:title' 'og:image' 'application/ld+json' 'data-wave-reveal'; do
             if ! grep -q "$marker" home.html; then
               echo "::error::home.html kehilangan penanda: $marker"
               missing=1

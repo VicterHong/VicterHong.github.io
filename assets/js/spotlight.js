@@ -115,10 +115,13 @@ export function createSpotlightCarousel(items) {
   // ── Judul section ─────────────────────────────────────────────────────────
   const head = document.createElement('header');
   head.className = 'spotlight-head';
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'spotlight-eyebrow';
+  eyebrow.textContent = 'The Spotlight Collection';
   const h2 = document.createElement('h2');
   h2.className = 'spotlight-title';
-  h2.textContent = 'Semua karya, sekilas';
-  head.append(h2);
+  h2.innerHTML = 'Karya terpilih, <em>dibingkai cahaya</em>';
+  head.append(eyebrow, h2);
   root.append(head);
 
   // ── Panggung: kartu-kartu bergerak di sini ────────────────────────────────
