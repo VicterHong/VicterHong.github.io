@@ -102,7 +102,6 @@ export const projects = [
     access_codes: ['e7kz4swubfvg', 'xthef8ur'],
     featured: true,
     gated: true,
-    cover: 'assets/spotlight/mina-terminal.jpg',
     name: 'MINA',
     subtitle: 'Remote Control for Your Home Machine',
     summary: 'Kendalikan komputer rumah dari Telegram, Discord, atau HTTP apa pun, shutdown, wake-on-LAN, buka aplikasi, dashboard langsung. Berjalan di laptop 2–4 GB RAM dalam ~25 MB.',
@@ -122,7 +121,6 @@ export const projects = [
     // URL: /s/zsvjp554dkt4/ (atau alias mana pun di daftar `access_codes`)
     access_codes: ['zsvjp554dkt4', 'w8r69sbx'],
     gated: true,
-    cover: 'assets/spotlight/efms.jpg',
     name: 'Spareparts Inventory System',
     subtitle: 'Inventory & logistik untuk suku cadang alat berat',
     summary: 'Sistem inventaris otomatis: FastAPI + PostgreSQL + Docker + n8n + bot Telegram. Menggantikan pencatatan manual dengan alur yang bisa diaudit.',
@@ -140,7 +138,6 @@ export const projects = [
   },
   {
     slug: 'whatsapp-bot',
-    cover: 'assets/spotlight/portal-door.jpg',
     name: 'WhatsApp Family Assistant',
     subtitle: 'Bot grup keluarga yang reaktif dan aman',
     summary: 'Bot WhatsApp untuk grup keluarga: hanya menjawab saat dipanggil, dengan kontrol anti-ban berlapis, memori percakapan per grup, dan penjagaan privasi. Bisa mendengar pesan suara, mencari berita sendiri, dan membaca isi tautan yang dibagikan.',
