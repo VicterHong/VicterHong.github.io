@@ -54,6 +54,10 @@
   --vm-miring: 8deg;      /* sudut miring, dari sumber */
   --vm-rise: 28px;        /* jarak angkat saat kartu muncul */
   --vm-dur: 0.7s;         /* durasi reveal */
+  /* Sudut kartu miring menonjol ~1px di tepi layar tablet dan membuat
+     halaman bisa digeser ke samping. `clip` memotong hanya sumbu X, tanpa
+     membuat konteks scroll baru (sticky dan observer tetap bekerja). */
+  overflow-x: clip;
 }
 
 /* ── TEKS HANYA UNTUK PEMBACA LAYAR ───────────────────────────────────────────
@@ -301,7 +305,11 @@ html:not(.js-ready) .vm-item { opacity: 1; transform: none; }
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.01em;
+  /* Baris judul diseimbangkan supaya tidak ada satu kata menggantung. */
+  text-wrap: balance;
 }
+/* Kata ulang ("benar-benar") tidak boleh terpecah di tanda hubung. */
+.vm-judul .utuh { white-space: nowrap; }
 
 .vm-teks {
   margin: 0;

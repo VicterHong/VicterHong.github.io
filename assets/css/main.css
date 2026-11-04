@@ -1415,6 +1415,9 @@ a { color: inherit; text-decoration: none; }
   font-size: var(--fs-1);
 }
 
+.ci-badge-bagian { white-space: nowrap; }
+.ci-badge-pemisah { color: var(--text-faint); }
+
 .ci-badge-commit {
   margin-top: 0.25rem;
   color: var(--text-faint);

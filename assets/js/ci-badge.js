@@ -73,7 +73,14 @@ function gambar(data) {
   if (data?.ok) {
     const bagian = bagianRincian(data);
     if (bagian.length) {
-      host.append(el('div', 'ci-badge-rincian', bagian.join(' · ')));
+      // Tiap bagian dibungkus utuh supaya baris pecah di antara bagian,
+      // bukan di tengah frasa seperti "7 menit / lalu".
+      const rincian = el('div', 'ci-badge-rincian');
+      bagian.forEach((teks, i) => {
+        if (i) rincian.append(el('span', 'ci-badge-pemisah', ' · '));
+        rincian.append(el('span', 'ci-badge-bagian', teks));
+      });
+      host.append(rincian);
     }
 
     // ── JUDUL COMMIT — DIKURUNG HANYA KALAU ADA ─────────────────────────────
