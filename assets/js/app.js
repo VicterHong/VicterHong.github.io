@@ -38,7 +38,6 @@ import { ambilManifest, susunGambar, pantauPerubahan } from './media-loader.js';
 import { icon } from './icons.js';
 import { ambilAkses, bolehLihatAngka, bolehLihatDemo, ajakanUntuk } from './akses.js';
 import { createProjectCover } from './uploaded-cover.js';
-import { initCardMotion } from './card-motion.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, attrs = {}, ...children) => {
@@ -190,24 +189,13 @@ function renderServices() {
  * sebagai tiga karya tersendiri, bukan tiga panel seragam.
  */
 function renderProjectArt(p, lihatAngka = false) {
-  const art = el('figure', { class: `project-art project-art--${p.variant ?? 'default'} project-art--reveal` });
-  
-  // Foto proyek: dari folder upload atau bawaan
+  const art = el('figure', { class: `project-art project-art--${p.variant ?? 'default'}` });
+  // Sampul asli dari folder server (proyek hasil upload). Proyek bawaan tidak
+  // punya `cover`, jadi artefak mereka tetap persis seperti semula.
   const cover = createProjectCover(p);
   if (cover) {
     art.classList.add('project-art--cover');
     art.append(cover);
-  } else if (p.cover) {
-    // Proyek bawaan dengan foto (mina, spareparts, whatsapp-bot)
-    art.classList.add('project-art--photo');
-    const img = el('img', {
-      class: 'project-art__photo',
-      src: p.cover,
-      alt: `Sampul ${p.name}`,
-      loading: 'lazy',
-      decoding: 'async',
-    });
-    art.append(img);
   }
 
   // Baris atas: label kategori atau judul
@@ -1033,9 +1021,6 @@ initRipple();
 // Efek sinematik (teknik PRIOR, vanilla) — clip reveal, parallax, text stagger,
 // scroll-scrub video, hero fade. Semua hormati prefers-reduced-motion.
 initCinematic();
-
-// Motion kartu proyek — reveal scroll + parallax foto.
-initCardMotion();
 
 // Tandai section aktif di navigasi saat menggulir (audit desain P1-6).
 // Pakai IntersectionObserver, BUKAN listener scroll — proyek ini punya satu
