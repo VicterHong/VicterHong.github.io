@@ -81,14 +81,18 @@ function renderStats(akses) {
   }
 
   const s = stats();
+  // Total tes dihitung server dari SEMUA proyek. Hitungan lokal hanya mencakup
+  // proyek yang sudah dibuka, jadi akun Free melihat 0. Jangan pernah tampilkan 0.
+  const tes = Number.isFinite(akses.totalTes) && akses.totalTes > 0 ? akses.totalTes : s.tests;
   const entries = [
     { label: 'proyek', value: String(s.projects) },
-    { label: 'tes otomatis', value: s.tests.toLocaleString('id-ID') },
+    { label: 'tes otomatis', value: tes > 0 ? tes.toLocaleString('id-ID') : '—' },
     { label: 'teknologi', value: String(s.stacks) },
   ];
   for (const entry of entries) {
+    const angka = /^\d[\d.]*$/.test(entry.value);
     host.append(el('div', {},
-      el('dd', { 'data-count': entry.value.replace(/\./g, ''), text: entry.value }),
+      el('dd', angka ? { 'data-count': entry.value.replace(/\./g, ''), text: entry.value } : { text: entry.value }),
       el('dt', { text: entry.label }),
     ));
   }
