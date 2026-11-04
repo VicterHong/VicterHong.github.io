@@ -138,7 +138,7 @@ import {
 import { mulaiPembayaran, prosesWebhook, ambilPembayaran, statusPembayaran } from './checkout.mjs';
 import { ruteAuth } from './auth-routes.mjs';
 import { ruteKlien, penggunaDariRequest } from './klien-routes.mjs';
-import { projectDetails } from './project-details.mjs';
+import { projectDetails, totalTestCount } from './project-details.mjs';
 // ── SENTINEL: inspector webhook ──────────────────────────────────────────────
 // Rutenya sudah DIKUNCI di dalam ruteSentinel() — semuanya lewat pembungkus
 // kunciAdmin, jadi tidak ada yang bisa terdaftar tanpa kunci.
@@ -4431,6 +4431,7 @@ export const routes = [
         ok: true,
         masuk: true,
         detailProyek,
+        totalTes: totalTestCount(),
         paket: k.paket,
         berbayar: k.berbayar,
         total: k.total,          // null = tanpa batas (berbayar)
