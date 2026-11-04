@@ -1026,6 +1026,8 @@
       auth_sesi_cabut_semua: 'Semua sesi dicabut',
       // 2FA
       totp_verify: 'Verifikasi dua langkah',
+      totp_nonaktif: 'Verifikasi dua langkah dinonaktifkan',
+      totp_kode_pemulihan_baru: 'Kode pemulihan baru dibuat',
       // Profil
       profil_diperbarui: 'Profil diperbarui',
       avatar_unggah: 'Foto profil diunggah',
@@ -2496,7 +2498,13 @@
     }
 
     // ── BUKA / TUTUP ──────────────────────────────────────────────────────────
-    tombol.addEventListener('click', buka);
+    // Satu tombol, dua tujuan: "Aktifkan" membuka setup, "Kelola" (2FA sudah
+    // aktif) membuka dialog kelola. Dulu keduanya membuka setup, yang ditolak
+    // server (totp_sudah_aktif) — pengguna tidak punya jalan menonaktifkan.
+    tombol.addEventListener('click', () => {
+      if (tombol.dataset.aktif === '1') bukaKelola2fa();
+      else buka();
+    });
 
     for (const id of ['#kamBatal2fa', '#kamBatal2fa2']) {
       $(id)?.addEventListener('click', tutup);
@@ -2705,6 +2713,175 @@
    * selesai. Kalau disatukan, salah satu pemanggil harus memanggil seluruh
    * init — yang berarti memasang ulang listener (dan itu menggandakan klik).
    */
+  /** Status 2FA terakhir dari server; dipakai dialog kelola. */
+  let status2fa = null;
+
+  // ══ KELOLA 2FA ════════════════════════════════════════════════════════════
+  //
+  // Tiga tampilan dalam satu dialog: ringkasan → konfirmasi kode → (opsional)
+  // daftar kode pemulihan baru. Kedua aksi berisiko (kode baru, nonaktifkan)
+  // meminta kode authenticator atau kode pemulihan; sesi login saja tidak cukup.
+  let kelolaSiap = false;
+  let kelolaAksi = null;      // 'kode-baru' | 'nonaktif'
+  let otpKelola = null;
+
+  function kelolaTampil(bagian) {
+    for (const [id, nama] of [['#kamKelolaRingkas', 'ringkas'], ['#kamKelolaKonfirmasi', 'konfirmasi'], ['#kamKelolaKodeBaru', 'kode']]) {
+      const el = $(id);
+      if (el) el.hidden = nama !== bagian;
+    }
+  }
+
+  function pesanKelola(teks, jenis = '') {
+    const p = $('#kamPesanKelola2fa');
+    if (!p) return;
+    p.textContent = teks;
+    p.classList.toggle('is-galat', jenis === 'galat');
+    p.classList.toggle('is-sukses', jenis === 'sukses');
+  }
+
+  function isiRingkasKelola() {
+    const d = status2fa || {};
+    const sejak = $('#kamKelolaSejak');
+    if (sejak) sejak.textContent = d.dibuat_pada ? waktuRingkas(d.dibuat_pada, { jam: false }) : '—';
+    const sisa = $('#kamKelolaSisa');
+    if (sisa) {
+      const n = Number(d.kode_pemulihan_tersisa ?? 0);
+      sisa.textContent = `${n} dari 8 tersisa`;
+      sisa.classList.toggle('is-peringatan', n <= 2);
+    }
+  }
+
+  function bukaKelola2fa() {
+    const dlg = $('#kamDialogKelola2fa');
+    if (!dlg) return;
+    pasangKelola2fa();
+    kelolaAksi = null;
+    otpKelola?.reset();
+    const pulih = $('#kamKelolaPemulihan');
+    if (pulih) pulih.value = '';
+    const det = $('#kamKelolaPakaiPemulihan');
+    if (det) det.open = false;
+    pesanKelola('');
+    isiRingkasKelola();
+    kelolaTampil('ringkas');
+    dlg.hidden = false;
+    setTimeout(() => $('#kamKodeBaru2fa')?.focus(), 50);
+  }
+
+  function tutupKelola2fa() {
+    const dlg = $('#kamDialogKelola2fa');
+    if (dlg) dlg.hidden = true;
+    otpKelola?.reset();
+    $('#kamAktifkan2fa')?.focus();
+  }
+
+  function mintaKonfirmasi(aksi) {
+    kelolaAksi = aksi;
+    const teks = $('#kamKelolaKonfirmasiTeks');
+    const lanjut = $('#kamKelolaLanjut');
+    if (aksi === 'nonaktif') {
+      if (teks) teks.textContent = 'Masukkan kode dari aplikasi authenticator untuk menonaktifkan verifikasi 2 langkah. Setelah ini, akun hanya dilindungi sandi.';
+      if (lanjut) { lanjut.textContent = 'Nonaktifkan'; lanjut.classList.add('auth-oauth-bahaya'); lanjut.classList.remove('auth-oauth-utama'); }
+    } else {
+      if (teks) teks.textContent = 'Masukkan kode dari aplikasi authenticator untuk membuat kode pemulihan baru. Kode lama akan langsung tidak berlaku.';
+      if (lanjut) { lanjut.textContent = 'Buat kode baru'; lanjut.classList.add('auth-oauth-utama'); lanjut.classList.remove('auth-oauth-bahaya'); }
+    }
+    otpKelola?.reset();
+    pesanKelola('');
+    kelolaTampil('konfirmasi');
+    setTimeout(() => otpKelola?.sel[0]?.focus(), 50);
+  }
+
+  async function jalankanKelola() {
+    const pulih = ($('#kamKelolaPemulihan')?.value || '').trim();
+    const kode = pulih || otpKelola?.nilai() || '';
+    if (!pulih && !/^\d{6}$/.test(kode)) {
+      pesanKelola('Masukkan 6 digit kode, atau pakai kode pemulihan.', 'galat');
+      otpKelola?.fokusKosong();
+      return;
+    }
+
+    const lanjut = $('#kamKelolaLanjut');
+    if (lanjut) lanjut.disabled = true;
+    pesanKelola('Memeriksa kode…');
+    const url = kelolaAksi === 'nonaktif' ? '/api/token/2fa/cabut' : '/api/token/2fa/pulihkan';
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: kode }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.ok) {
+        pesanKelola(d.message || 'Kode tidak cocok. Coba lagi.', 'galat');
+        otpKelola?.reset();
+        otpKelola?.sel[0]?.focus();
+        return;
+      }
+
+      if (kelolaAksi === 'nonaktif') {
+        await segarkanStatus2fa();
+        tutupKelola2fa();
+        const p = $('#kamPesan2fa');
+        if (p) {
+          p.textContent = 'Verifikasi 2 langkah dinonaktifkan.';
+          p.classList.add('is-sukses');
+          p.classList.remove('is-galat');
+        }
+        return;
+      }
+
+      const daftar = $('#kamKelolaDaftarKode');
+      if (daftar) {
+        daftar.innerHTML = '';
+        for (const k of d.kode_pemulihan ?? []) {
+          const li = document.createElement('li');
+          li.textContent = String(k).trim();
+          daftar.appendChild(li);
+        }
+      }
+      pesanKelola('');
+      kelolaTampil('kode');
+      segarkanStatus2fa();
+      setTimeout(() => $('#kamKelolaSelesai')?.focus(), 50);
+    } catch {
+      pesanKelola('Tidak bisa menghubungi server. Coba lagi.', 'galat');
+    } finally {
+      if (lanjut) lanjut.disabled = false;
+    }
+  }
+
+  function pasangKelola2fa() {
+    if (kelolaSiap) return;
+    const dlg = $('#kamDialogKelola2fa');
+    if (!dlg) return;
+    kelolaSiap = true;
+    otpKelola = pasangOtpSel('#kamOtpKelola2fa', () => jalankanKelola());
+
+    $('#kamKodeBaru2fa')?.addEventListener('click', () => mintaKonfirmasi('kode-baru'));
+    $('#kamNonaktif2fa')?.addEventListener('click', () => mintaKonfirmasi('nonaktif'));
+    $('#kamKelolaLanjut')?.addEventListener('click', jalankanKelola);
+    $('#kamKelolaKembali')?.addEventListener('click', () => { pesanKelola(''); isiRingkasKelola(); kelolaTampil('ringkas'); });
+    $('#kamTutupKelola2fa')?.addEventListener('click', tutupKelola2fa);
+    $('#kamKelolaSelesai')?.addEventListener('click', () => { isiRingkasKelola(); tutupKelola2fa(); });
+    dlg.querySelector('[data-tutup]')?.addEventListener('click', tutupKelola2fa);
+    dlg.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); tutupKelola2fa(); } });
+    $('#kamKelolaPemulihan')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); jalankanKelola(); } });
+
+    $('#kamKelolaSalin')?.addEventListener('click', async () => {
+      const teks = [...document.querySelectorAll('#kamKelolaDaftarKode li')].map((li) => li.textContent).join('\n');
+      try {
+        await navigator.clipboard.writeText(teks);
+        pesanKelola('Kode pemulihan disalin.', 'sukses');
+      } catch {
+        pesanKelola('Gagal menyalin. Salin manual dari daftar di atas.', 'galat');
+      }
+    });
+  }
+
   async function segarkanStatus2fa() {
     try {
       const res = await fetch('/api/auth/2fa/status', { credentials: 'same-origin' });
@@ -2724,7 +2901,9 @@
           ? `Aktif sejak ${waktuRingkas(d.dibuat_pada, { jam: false })}`
           : 'Tambahkan lapisan keamanan kedua saat masuk.';
       }
+      status2fa = d;
       if (tombol) {
+        tombol.dataset.aktif = d.aktif ? '1' : '0';
         tombol.textContent = d.aktif ? 'Kelola' : 'Aktifkan';
         tombol.title = d.aktif
           ? 'Lihat kode cadangan atau matikan verifikasi 2 langkah'

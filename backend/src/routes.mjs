@@ -2777,6 +2777,10 @@ export const routes = [
       if (!hasil.ok) {
         return sendJson(res, 400, { ok: false, error: hasil.alasan, message: hasil.pesan });
       }
+      recordEvent({
+        tokenId: sesi.id, action: 'totp_kode_pemulihan_baru', outcome: 'sukses',
+        ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 200),
+      });
 
       return sendJson(res, 200, {
         ok: true,
@@ -2819,7 +2823,13 @@ export const routes = [
       }
 
       cabut2fa(identity);
-      return sendJson(res, 200, { ok: true, pesan: '2FA dimatikan.' });
+      // Tercatat di riwayat aktivitas pengguna: mematikan 2FA adalah
+      // perubahan keamanan yang harus bisa ia lihat (dan curigai) nanti.
+      recordEvent({
+        tokenId: sesi.id, action: 'totp_nonaktif', outcome: 'sukses',
+        ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 200),
+      });
+      return sendJson(res, 200, { ok: true, pesan: 'Verifikasi 2 langkah dinonaktifkan.' });
     }),
   },
 
