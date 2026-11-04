@@ -157,7 +157,7 @@ const AKSI_PENGGUNA = [
   // Sesi
   'auth_sesi_cabut', 'auth_sesi_cabut_semua',
   // 2FA
-  'totp_verify',
+  'totp_verify', 'totp_nonaktif', 'totp_kode_pemulihan_baru',
   // Profil
   'profil_diperbarui', 'avatar_unggah', 'avatar_hapus',
   'auth_identitas_hapus',
@@ -3257,12 +3257,15 @@ function ruteSso() {
 
         // Identitas TOTP memakai email — lihat totp-service.mjs.
         const s = statusTotp(pengguna.email);
+        // statusTotp() memakai `dibuat_at`; dulu dibaca sebagai `dibuat_pada`
+        // sehingga "Aktif sejak" selalu kosong.
         sendJson(res, 200, {
           ok: true,
           aktif: Boolean(s?.aktif),
-          terverifikasi: Boolean(s?.terverifikasi),
-          dibuat_pada: s?.dibuat_pada ?? null,
+          terverifikasi: Boolean(s?.aktif),
+          dibuat_pada: s?.dibuat_at ?? null,
           terakhir_dipakai: s?.terakhir_dipakai ?? null,
+          kode_pemulihan_tersisa: s?.aktif ? (s.kode_pemulihan_tersisa ?? 0) : 0,
         });
       },
     },

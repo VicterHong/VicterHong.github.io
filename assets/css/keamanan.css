@@ -2568,3 +2568,65 @@
   color: var(--teks);
   font-weight: 600;
 }
+
+/* ── DIALOG KELOLA 2FA ─────────────────────────────────────────────────────
+   Pola halaman keamanan korporat (GitHub, Google): ringkasan metode di atas,
+   aksi per baris, aksi berisiko dipisah dengan garis dan warna bahaya. */
+.kam-kelola2fa { width: min(440px, 100%); }
+
+.kam-kelola-rincian {
+  margin: 4px 0 16px;
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--garis);
+  border-radius: var(--radius-kartu);
+  overflow: hidden;
+}
+.kam-kelola-rincian > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.kam-kelola-rincian dt { margin: 0; font-size: var(--fs-1); color: var(--teks-redup); }
+.kam-kelola-rincian dd { margin: 0; font-size: var(--fs-1); color: var(--teks); text-align: right; }
+.kam-kelola-rincian dd.is-peringatan { color: #fcd34d; }
+
+.kam-kelola-baris {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--garis);
+}
+.kam-kelola-baris .auth-oauth { width: auto; margin-bottom: 0; flex: 0 0 auto; white-space: nowrap; }
+.kam-kelola-judul { margin: 0 0 2px; font-size: var(--fs-2); font-weight: 600; color: var(--teks); }
+.kam-kelola-ket { margin: 0; font-size: var(--fs-1); line-height: 1.5; color: var(--teks-redup); }
+.kam-kelola-bahaya .kam-kelola-judul { color: #fca5a5; }
+.kam-kelola-baris + .kam-dialog-aksi { padding-top: 14px; border-top: 1px solid var(--garis); }
+
+.kam-kelola-input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--garis-terang);
+  border-radius: var(--radius-kontrol, 8px);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--teks);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: var(--fs-2);
+  letter-spacing: 0.04em;
+}
+.kam-kelola-input:focus-visible { outline: 2px solid var(--emas, #f5c542); outline-offset: 1px; }
+#kamKelolaKonfirmasi .kam-manual { margin: 14px 0 18px; }
+
+/* Mobile: teks di atas, tombol ringkas rata kiri di bawahnya (pola GitHub).
+   Tombol bahaya TIDAK dibuat selebar layar: aksi merusak tidak boleh jadi
+   elemen paling dominan di dialog. "Tutup" yang selebar layar menjadi aksi
+   utama yang jelas. */
+@media (max-width: 480px) {
+  .kam-kelola-baris { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .kam-kelola2fa > #kamKelolaRingkas > .kam-dialog-aksi .auth-oauth { width: 100%; }
+}

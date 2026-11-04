@@ -944,6 +944,91 @@
   </div>
 </div>
 
+<!-- ══ DIALOG KELOLA 2FA ═════════════════════════════════════════════════════
+     Dibuka dari tombol "Kelola" saat 2FA sudah aktif. Pola GitHub / Google /
+     Microsoft: ringkasan metode, kode pemulihan, lalu nonaktifkan di bagian
+     berisiko. Membuat kode baru dan menonaktifkan sama-sama meminta kode dari
+     aplikasi authenticator (atau kode pemulihan bila ponsel hilang). -->
+<div class="kam-dialog" id="kamDialogKelola2fa" hidden>
+  <div class="kam-dialog-latar" data-tutup="1"></div>
+  <div class="kam-dialog-kotak kam-kelola2fa" role="dialog" aria-modal="true"
+       aria-labelledby="kamJudulKelola2fa">
+
+    <h3 class="kam-dialog-judul" id="kamJudulKelola2fa">Verifikasi 2 langkah</h3>
+
+    <!-- ── RINGKASAN ─────────────────────────────────────────────────────── -->
+    <div id="kamKelolaRingkas">
+      <dl class="kam-kelola-rincian">
+        <div><dt>Metode</dt><dd>Aplikasi authenticator</dd></div>
+        <div><dt>Aktif sejak</dt><dd id="kamKelolaSejak">—</dd></div>
+        <div><dt>Kode pemulihan</dt><dd id="kamKelolaSisa">—</dd></div>
+      </dl>
+
+      <div class="kam-kelola-baris">
+        <div>
+          <p class="kam-kelola-judul">Kode pemulihan</p>
+          <p class="kam-kelola-ket">Buat set baru kalau kode lama hilang atau hampir habis. Set lama langsung tidak berlaku.</p>
+        </div>
+        <button class="auth-oauth" type="button" id="kamKodeBaru2fa">Buat kode baru</button>
+      </div>
+
+      <div class="kam-kelola-baris kam-kelola-bahaya">
+        <div>
+          <p class="kam-kelola-judul">Nonaktifkan verifikasi 2 langkah</p>
+          <p class="kam-kelola-ket">Akun hanya dilindungi sandi. Semua kode pemulihan ikut dihapus.</p>
+        </div>
+        <button class="auth-oauth auth-oauth-bahaya" type="button" id="kamNonaktif2fa">Nonaktifkan</button>
+      </div>
+
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamTutupKelola2fa">Tutup</button>
+      </div>
+    </div>
+
+    <!-- ── KONFIRMASI KODE (dipakai kedua aksi) ──────────────────────────── -->
+    <div id="kamKelolaKonfirmasi" hidden>
+      <p class="kam-dialog-teks" id="kamKelolaKonfirmasiTeks"></p>
+      <label class="kam-hapus-label" for="kamKelolaKode0">Kode 6 digit dari aplikasi authenticator</label>
+      <div class="auth-otp" id="kamOtpKelola2fa">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1"
+               id="kamKelolaKode0" aria-label="Digit 1" autocomplete="one-time-code">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 2">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 3">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 4">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 5">
+        <input class="auth-otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 6">
+      </div>
+
+      <details class="kam-manual" id="kamKelolaPakaiPemulihan">
+        <summary>Tidak bisa membuka aplikasi? Pakai kode pemulihan</summary>
+        <label class="kam-hapus-label" for="kamKelolaPemulihan">Kode pemulihan</label>
+        <input class="kam-kelola-input" type="text" id="kamKelolaPemulihan"
+               autocomplete="off" spellcheck="false" placeholder="xxxxx-xxxxx">
+      </details>
+
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamKelolaKembali">Kembali</button>
+        <button class="auth-oauth auth-oauth-utama" type="button" id="kamKelolaLanjut">Lanjutkan</button>
+      </div>
+    </div>
+
+    <!-- ── KODE PEMULIHAN BARU ───────────────────────────────────────────── -->
+    <div id="kamKelolaKodeBaru" hidden>
+      <p class="kam-dialog-teks">
+        Simpan kode ini di tempat aman. <strong>Kode lama sudah tidak berlaku.</strong>
+        Setiap kode hanya bisa dipakai sekali.
+      </p>
+      <ul class="kam-pemulihan" id="kamKelolaDaftarKode"></ul>
+      <div class="kam-dialog-aksi">
+        <button class="auth-oauth" type="button" id="kamKelolaSalin">Salin semua</button>
+        <button class="auth-oauth auth-oauth-utama" type="button" id="kamKelolaSelesai">Selesai</button>
+      </div>
+    </div>
+
+    <p class="auth-msg" id="kamPesanKelola2fa" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
 <!-- ══ DIALOG HAPUS AKUN ══════════════════════════════════════════════════════
      ── KENAPA DIALOG TERPISAH, BUKAN PAKAI YANG SUDAH ADA ────────────────────
      Dialog di atas (`#kamDialog`) hanya punya judul, teks, dan dua tombol.
